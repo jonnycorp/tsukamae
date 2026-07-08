@@ -20,8 +20,8 @@ import type { UICapture } from './use-tracker';
 // statuses it isn't currently in.
 const STATUS_META: { status: CaptureStatus; icon: IconDefinition; label: string }[] = [
   { status: 'caught', icon: faCheck, label: 'Caught' },
-  { status: 'temporary', icon: faClock, label: 'Temporary (to be replaced)' },
-  { status: 'locked', icon: faLock, label: 'Locked (never changing)' },
+  { status: 'temporary', icon: faClock, label: 'Temporary' },
+  { status: 'locked', icon: faLock, label: 'Locked' },
 ];
 
 interface Props {

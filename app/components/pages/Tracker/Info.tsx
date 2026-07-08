@@ -31,8 +31,8 @@ const SEREBII_LINKS: Record<string, string> = {
 
 const STATUS_OPTIONS: { value: CaptureStatus; label: string }[] = [
   { value: 'caught', label: 'Caught' },
-  { value: 'temporary', label: 'Temporary (to be replaced)' },
-  { value: 'locked', label: 'Locked (never changing)' },
+  { value: 'temporary', label: 'Temporary' },
+  { value: 'locked', label: 'Locked' },
 ];
 
 interface Props {
