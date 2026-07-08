@@ -16,6 +16,11 @@ body {
   margin: 0;
   padding: 0;
   font-family: $font-primary;
+  // Light theme is the default surface; without an explicit background the
+  // page falls through to the browser's canvas, which renders black when the
+  // OS is in dark mode. The .night-mode root overrides this for dark theme.
+  background-color: #fff;
+  color-scheme: light;
 }
 
 #root,
@@ -183,6 +188,30 @@ nav {
     background-color: lighten($brand-primary, 10%);
     cursor: pointer;
   }
+}
+
+.nav-dex-select {
+  @include align-self(center);
+
+  max-width: 320px;
+  margin-right: 8px;
+  padding: 5px 8px;
+  border: 1px solid $brand-primary-dark;
+  background-color: #fff;
+  color: $brand-secondary;
+  font-family: $font-secondary;
+  font-size: 11px;
+  font-weight: 700;
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.night-mode .nav-dex-select {
+  border-color: $night-mode-01dp;
+  background-color: $night-mode-06dp;
+  color: white;
 }
 
 .btn {
@@ -749,6 +778,9 @@ select {
   bottom: 0;
   left: 0;
   background-color: rgba(0, 0, 0, 0.35);
+  // The modal renders inline (no portal), so it needs to stack above the
+  // tracker's positioned elements (tooltips, the scroll button).
+  z-index: 100;
 }
 
 .modal {
@@ -778,6 +810,9 @@ select {
 .night-mode {
   background-color: $night-mode;
   color: white;
+  // Dark theme is the default; this also styles native controls (the dex
+  // switcher and origin-game / status dropdowns) to match.
+  color-scheme: dark;
 
   .profile {
     background-color: $night-mode;
@@ -965,6 +1000,16 @@ select {
       .set-info {
         border-color: darken($night-mode-temporary, 15%);
         border-style: dashed;
+      }
+    }
+
+    &.captured.locked {
+      background-color: $night-mode-locked;
+
+      .set-captured,
+      .set-captured-mobile,
+      .set-info {
+        border-color: darken($night-mode-locked, 15%);
       }
     }
 

@@ -1,0 +1,29 @@
+{
+  "key": "sword-shield-national",
+  "name": "Sword & Shield Full National Dex",
+  "game": {
+    "id": "sword",
+    "name": "Sword",
+    "game_family": {
+      "id": "sword_shield",
+      "generation": 8,
+      "regional_total": 428,
+      "national_total": 967,
+      "regional_support": true,
+      "national_support": true,
+      "order": 18,
+      "published": true
+    },
+    "order": 31
+  },
+  "dex_type": {
+    "id": 11,
+    "name": "Full National",
+    "game_family_id": "sword_shield",
+    "order": 2,
+    "tags": [
+      "full national"
+    ]
+  },
+  "total": 967
+}

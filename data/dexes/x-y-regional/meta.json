@@ -1,0 +1,29 @@
+{
+  "key": "x-y-regional",
+  "name": "X & Y Regional Dex",
+  "game": {
+    "id": "x",
+    "name": "X",
+    "game_family": {
+      "id": "x_y",
+      "generation": 6,
+      "regional_total": 457,
+      "national_total": 721,
+      "regional_support": true,
+      "national_support": true,
+      "order": 13,
+      "published": true
+    },
+    "order": 21
+  },
+  "dex_type": {
+    "id": 1,
+    "name": "Regional",
+    "game_family_id": "x_y",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 457
+}

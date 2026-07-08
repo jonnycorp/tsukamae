@@ -1,0 +1,29 @@
+{
+  "key": "bdsp-regional",
+  "name": "Brilliant Diamond & Shining Pearl Regional Dex",
+  "game": {
+    "id": "brilliant_diamond",
+    "name": "Brilliant Diamond",
+    "game_family": {
+      "id": "brilliant_diamond_shining_pearl",
+      "generation": 8,
+      "regional_total": 0,
+      "national_total": 0,
+      "regional_support": false,
+      "national_support": false,
+      "order": 20,
+      "published": true
+    },
+    "order": 35
+  },
+  "dex_type": {
+    "id": 14,
+    "name": "Regional",
+    "game_family_id": "brilliant_diamond_shining_pearl",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 151
+}

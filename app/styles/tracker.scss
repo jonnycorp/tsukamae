@@ -140,6 +140,41 @@
     }
   }
 
+  .info-links {
+    @include flexbox();
+
+    margin-top: 20px;
+
+    a {
+      @include transition(all .1s ease-out);
+
+      flex: 1;
+      padding: 12px;
+      background-color: $brand-secondary-dark;
+      color: #fff;
+      font-family: $font-secondary;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-decoration: none;
+      text-align: center;
+
+      &:first-child {
+        margin-right: 6px;
+      }
+
+      .svg-inline--fa {
+        font-size: 10px;
+        margin-left: 3px;
+      }
+
+      &:hover {
+        background-color: darken($brand-secondary-dark, 4%);
+      }
+    }
+  }
+
   .info-locations {
     @include flex(1 1 auto);
     @include overflow-y-scroll;
@@ -244,6 +279,32 @@
 
     margin-top: auto;
     border-top: 2px solid darken($brand-secondary-dark, 3%);
+
+    .info-release {
+      @include transition(all .1s ease-out);
+
+      flex: 1;
+      padding: 18px;
+      border: 0;
+      background-color: $brand-secondary-dark;
+      color: rgba(#fff, .7);
+      font-family: $font-secondary;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+
+      .svg-inline--fa {
+        font-size: 11px;
+        margin-right: 5px;
+      }
+
+      &:hover {
+        background-color: #b23b3b;
+        color: #fff;
+      }
+    }
 
     a {
       @include transition(all .1s ease-out);
@@ -562,6 +623,15 @@ header {
     }
   }
 
+  &.captured.locked {
+    background-color: $locked-light;
+
+    .set-captured,
+    .set-captured-mobile {
+      border-color: rgba($locked, .6);
+    }
+  }
+
   &.disabled {
     opacity: .1;
 
@@ -587,6 +657,10 @@ header {
           margin: 3px;
         }
       }
+    }
+
+    .set-status {
+      opacity: 1;
     }
 
     &:not(.viewing) {
@@ -684,6 +758,58 @@ header {
   }
 }
 
+// Hover-revealed quick status buttons: one click sets Caught / Temporary /
+// Locked directly (the tile only offers the statuses it isn't already in).
+.set-status {
+  @include flexbox();
+  @include justify-content(center);
+  @include transition(opacity .1s ease-out);
+
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 6px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, .28), rgba(0, 0, 0, 0));
+
+  .status-btn {
+    @include flexbox();
+    @include align-items(center);
+    @include justify-content(center);
+    @include transition(transform .1s ease-out);
+
+    width: 26px;
+    height: 26px;
+    margin: 0 3px;
+    padding: 0;
+    border: 2px solid rgba(#fff, .85);
+    border-radius: 50%;
+    font-size: 11px;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+
+    &:hover {
+      transform: scale(1.15);
+    }
+
+    &.status-btn-caught {
+      background-color: $brand-primary;
+      color: $brand-secondary;
+    }
+
+    &.status-btn-temporary {
+      background-color: $temporary;
+    }
+
+    &.status-btn-locked {
+      background-color: $locked;
+    }
+  }
+}
+
 .search-results {
   @include flexbox();
   @include flex-wrap(wrap);
@@ -777,6 +903,11 @@ header {
 
     &.captured .set-info {
       border-color: darken($brand-primary-light, 5%);
+    }
+
+    // No hover on touch; status is set from the info panel instead.
+    .set-status {
+      display: none;
     }
 
     .set-captured {

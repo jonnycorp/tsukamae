@@ -1,0 +1,29 @@
+{
+  "key": "legends-arceus-regional",
+  "name": "Legends: Arceus Regional Dex",
+  "game": {
+    "id": "legends_arceus",
+    "name": "Legends: Arceus",
+    "game_family": {
+      "id": "legends_arceus",
+      "generation": 8,
+      "regional_total": 0,
+      "national_total": 0,
+      "regional_support": false,
+      "national_support": false,
+      "order": 21,
+      "published": true
+    },
+    "order": 37
+  },
+  "dex_type": {
+    "id": 16,
+    "name": "Regional",
+    "game_family_id": "legends_arceus",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 245
+}

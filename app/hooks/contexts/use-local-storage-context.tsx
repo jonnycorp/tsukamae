@@ -30,7 +30,7 @@ interface Props {
 
 export const LocalStorageContextProvider = ({ children }: Props) => {
   const [hideNotification, setHideNotification] = useLocalStorage('notif-2024.01.20', { defaultValue: false, parseAsJson: true });
-  const [isNightMode, setIsNightMode] = useLocalStorage('nightMode', { defaultValue: false, parseAsJson: true });
+  const [isNightMode, setIsNightMode] = useLocalStorage('nightMode', { defaultValue: true, parseAsJson: true });
   const [showInfo, setShowInfo] = useLocalStorage('showInfo', { defaultValue: window.innerWidth > MOBILE_WIDTH, parseAsJson: true });
 
   const contextValue = useMemo<LocalStorageContextState>(() => ({

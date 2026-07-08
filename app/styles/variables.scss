@@ -16,11 +16,16 @@ $temporary: #ff9800;
 $temporary-light: lighten($temporary, 34%);
 $night-mode-temporary: #a8794a;
 
+// Locked mons: this slot is final and never changing.
+$locked: #7e57c2;
+$locked-light: lighten($locked, 28%);
+$night-mode-locked: #7a6ba8;
+
 $gray-light: #f1f1f1;
 $gray-medium: #d2d2d2;
 $gray-dark: #ababab;
 
-$night-mode: #121212;
+$night-mode: #1e1e1e;
 $night-mode-01dp: lighten($night-mode, 5%);
 $night-mode-02dp: lighten($night-mode, 7%);
 $night-mode-03dp: lighten($night-mode, 8%);

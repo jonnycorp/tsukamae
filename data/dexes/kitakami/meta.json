@@ -1,0 +1,30 @@
+{
+  "key": "kitakami",
+  "name": "Scarlet & Violet Kitakami Dex (The Teal Mask)",
+  "game": {
+    "id": "scarlet_expansion_pass",
+    "name": "Scarlet (Expansion Pass)",
+    "game_family": {
+      "id": "scarlet_violet_expansion_pass",
+      "generation": 9,
+      "regional_total": 0,
+      "national_total": 0,
+      "regional_support": false,
+      "national_support": false,
+      "order": 23,
+      "published": true
+    },
+    "order": 40
+  },
+  "dex_type": {
+    "id": 20,
+    "name": "Kitakami",
+    "description": "Kitakami dex only",
+    "game_family_id": "scarlet_violet_expansion_pass",
+    "order": 2,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 203
+}
