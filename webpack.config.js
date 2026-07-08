@@ -6,7 +6,7 @@ const Webpack = require('webpack');
 const PRODUCTION = process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production';
 
 module.exports = {
-  entry: ['whatwg-fetch', './app/index.tsx'],
+  entry: './app/index.tsx',
   output: {
     path: `${__dirname}/build`,
     filename: PRODUCTION ? '[name].[contenthash].js' : '[name].[fullhash].js',

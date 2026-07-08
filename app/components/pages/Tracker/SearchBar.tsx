@@ -2,8 +2,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef } from 'react';
 
-import { ReactGA } from '../../../utils/analytics';
-
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 
 interface Props {
@@ -11,15 +9,16 @@ interface Props {
   query: string;
   setHideCaught: Dispatch<SetStateAction<boolean>>;
   setQuery: Dispatch<SetStateAction<string>>;
+  setTemporaryOnly: Dispatch<SetStateAction<boolean>>;
+  temporaryOnly: boolean;
 }
 
-export function SearchBar ({ hideCaught, query, setHideCaught, setQuery }: Props) {
+export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemporaryOnly, temporaryOnly }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKeyup = (e: KeyboardEvent) => {
       if (e.target instanceof Element && e.target.tagName.toLowerCase() !== 'input' && e.key === '/') {
-        ReactGA.event({ action: 'used shortcut', category: 'Search' });
         inputRef.current?.focus();
       }
     };
@@ -31,6 +30,7 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery }: Props
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value);
   const handleHideCaughtChange = (e: ChangeEvent<HTMLInputElement>) => setHideCaught(e.target.checked);
+  const handleTemporaryOnlyChange = (e: ChangeEvent<HTMLInputElement>) => setTemporaryOnly(e.target.checked);
 
   const handleClearClick = () => {
     setQuery('');
@@ -75,6 +75,20 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery }: Props
                   type="checkbox"
                 />
                 <span className="checkbox-custom"><span /></span>Hide Caught Pokémon
+              </label>
+            </div>
+          </div>
+          <div className="form-group">
+            <div className="checkbox">
+              <label>
+                <input
+                  checked={temporaryOnly}
+                  id="temporary-only"
+                  name="temporary-only"
+                  onChange={handleTemporaryOnlyChange}
+                  type="checkbox"
+                />
+                <span className="checkbox-custom"><span /></span>Temporary Only
               </label>
             </div>
           </div>

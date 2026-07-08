@@ -1,20 +1,13 @@
-import keyBy from 'lodash/keyBy';
-import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
-import { useParams } from 'react-router';
 
 import { Box } from './Box';
-import { DonatedFlair } from '../../library/DonatedFlair';
-import { FriendCode } from '../../library/FriendCode';
+import { DEX } from '../../../utils/local-data';
 import { Header } from '../../library/Header';
-import { Notification } from '../../library/Notification';
 import { Progress } from '../../library/Progress';
-import { ReactGA } from '../../../utils/analytics';
 import { Scroll } from './Scroll';
 import { SearchResults } from './SearchResults';
 import { groupBoxes } from '../../../utils/pokemon';
 import { useTrackerContext } from './use-tracker';
-import { useUser } from '../../../hooks/queries/users';
 
 import type { Dispatch, MouseEventHandler, SetStateAction } from 'react';
 
@@ -27,7 +20,9 @@ interface Props {
   setHideCaught: Dispatch<SetStateAction<boolean>>;
   setQuery: Dispatch<SetStateAction<string>>;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
+  setTemporaryOnly: Dispatch<SetStateAction<boolean>>;
   showScrollButton: boolean;
+  temporaryOnly: boolean;
 }
 
 export function Dex ({
@@ -37,16 +32,14 @@ export function Dex ({
   setHideCaught,
   setQuery,
   setSelectedPokemon,
+  setTemporaryOnly,
   showScrollButton,
+  temporaryOnly,
 }: Props) {
-  const { username, slug } = useParams<{ username: string; slug: string }>();
-
-  const user = useUser(username).data!;
-  const dex = useMemo(() => keyBy(user.dexes, 'slug')[slug], [user, slug]);
-
   const { captures } = useTrackerContext();
 
   const caught = useMemo(() => captures.filter(({ captured }) => captured).length, [captures]);
+  const temporary = useMemo(() => captures.filter((capture) => capture.captured && capture.temporary).length, [captures]);
   const total = captures.length;
 
   const groupedCaptures = useMemo(() => groupBoxes(captures), [captures]);
@@ -55,7 +48,7 @@ export function Dex ({
       <Box
         captures={box}
         deferred={i > DEFER_CUTOFF}
-        dexTotal={dex.total}
+        dexTotal={DEX.total}
         key={box[0].pokemon.id}
         setSelectedPokemon={setSelectedPokemon}
       />
@@ -66,19 +59,13 @@ export function Dex ({
     <div className="dex">
       <div className="wrapper">
         <Scroll onClick={onScrollButtonClick} showScroll={showScrollButton} />
-        <Notification />
         <header>
           <Header />
-          <h3>
-            <Link onClick={() => ReactGA.event({ action: 'click view profile', category: 'User' })} to={`/u/${username}`}>/u/{username}</Link>
-            <DonatedFlair user={user} />
-          </h3>
-          <FriendCode />
         </header>
         <div className="percentage">
-          <Progress caught={caught} total={total} />
+          <Progress caught={caught} temporary={temporary} total={total} />
         </div>
-        {query.length > 0 || hideCaught ?
+        {query.length > 0 || hideCaught || temporaryOnly ?
           <SearchResults
             captures={captures}
             hideCaught={hideCaught}
@@ -86,6 +73,8 @@ export function Dex ({
             setHideCaught={setHideCaught}
             setQuery={setQuery}
             setSelectedPokemon={setSelectedPokemon}
+            setTemporaryOnly={setTemporaryOnly}
+            temporaryOnly={temporaryOnly}
           /> :
           boxes
         }

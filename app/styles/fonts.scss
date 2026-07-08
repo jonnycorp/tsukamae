@@ -1,0 +1,42 @@
+// Self-hosted fonts (latin subset) so the app works fully offline.
+// Montserrat is a variable font — one file covers weights 400/500/700.
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/montserrat-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/alegreya-sans-300-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/alegreya-sans-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/alegreya-sans-500-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/alegreya-sans-700-latin.woff2') format('woff2');
+}

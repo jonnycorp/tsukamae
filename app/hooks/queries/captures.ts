@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
-import { API } from '../../utils/api';
+import { loadProgress, progressToCaptures, saveProgress } from '../../utils/local-data';
 
 import type { Capture } from '../../types';
-import type { PokedexTrackerError } from '../../utils/api';
+import type { Progress, ProgressEntry } from '../../utils/local-data';
 import type { UseQueryOptions } from '@tanstack/react-query';
 
 export enum QueryKey {
@@ -12,60 +12,89 @@ export enum QueryKey {
 
 type ListCapturesData = Capture[];
 
-export const useCaptures = (username: string, slug: string, options: UseQueryOptions<ListCapturesData, PokedexTrackerError> = {}) => {
-  return useQuery<ListCapturesData, PokedexTrackerError, ListCapturesData>({
+// The in-memory source of truth for persisted progress. Loaded from disk (or
+// localStorage in a plain browser) when the tracker mounts, mutated by the
+// hooks below, and written back on every change.
+let progress: Progress = {};
+
+export const useCaptures = (options: UseQueryOptions<ListCapturesData, Error> = {}) => {
+  return useQuery<ListCapturesData, Error, ListCapturesData>({
     ...options,
-    queryKey: [QueryKey.ListCaptures, username, slug],
-    queryFn: () => {
-      return API.get(`/users/${username}/dexes/${slug}/captures`);
+    queryKey: [QueryKey.ListCaptures],
+    queryFn: async () => {
+      progress = await loadProgress();
+      return progressToCaptures(progress);
     },
   });
 };
 
 export interface CreateCapturesPayload {
-  dex: number;
   pokemon: number[];
 }
 
 interface CreateCaptureMutationVariables {
-  username: string;
-  slug: string;
   payload: CreateCapturesPayload;
 }
 
 export const useCreateCapture = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<Capture[], PokedexTrackerError, CreateCaptureMutationVariables>({
-    mutationFn: ({ payload }) => {
-      return API.post('/captures', payload);
-    },
-    onSuccess: (_data, { username, slug }) => {
-      queryClient.invalidateQueries([QueryKey.ListCaptures, { username, slug }]);
+  return useMutation<void, Error, CreateCaptureMutationVariables>({
+    mutationFn: async ({ payload }) => {
+      for (const id of payload.pokemon) {
+        const existing = progress[id] as ProgressEntry | undefined;
+        progress[id] = {
+          origin_game: existing?.origin_game ?? null,
+          temporary: existing?.temporary ?? false,
+          captured: true,
+        };
+      }
+      await saveProgress(progress);
     },
   });
 };
 
 export interface DeleteCapturesPayload {
-  dex: number;
   pokemon: number[];
 }
 
 interface DeleteCaptureMutationVariables {
-  username: string;
-  slug: string;
   payload: DeleteCapturesPayload;
 }
 
 export const useDeleteCapture = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<Capture[], PokedexTrackerError, DeleteCaptureMutationVariables>({
-    mutationFn: ({ payload }) => {
-      return API.delete('/captures', payload);
+  return useMutation<void, Error, DeleteCaptureMutationVariables>({
+    mutationFn: async ({ payload }) => {
+      for (const id of payload.pokemon) {
+        // Unmarking a mon clears its origin/temporary state too — there's no
+        // mon anymore for that state to describe.
+        delete progress[id];
+      }
+      await saveProgress(progress);
     },
-    onSuccess: (_data, { username, slug }) => {
-      queryClient.invalidateQueries([QueryKey.ListCaptures, { username, slug }]);
+  });
+};
+
+export interface UpdateCapturePayload {
+  pokemon: number;
+  origin_game?: string | null;
+  temporary?: boolean;
+}
+
+interface UpdateCaptureMutationVariables {
+  payload: UpdateCapturePayload;
+}
+
+export const useUpdateCapture = () => {
+  return useMutation<void, Error, UpdateCaptureMutationVariables>({
+    mutationFn: async ({ payload }) => {
+      const { pokemon, ...changes } = payload;
+      const existing = progress[pokemon] as ProgressEntry | undefined;
+      progress[pokemon] = {
+        captured: existing?.captured ?? false,
+        origin_game: existing?.origin_game ?? null,
+        temporary: existing?.temporary ?? false,
+        ...changes,
+      };
+      await saveProgress(progress);
     },
   });
 };

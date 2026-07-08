@@ -1,15 +1,9 @@
-import keyBy from 'lodash/keyBy';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
 import { useMemo } from 'react';
-import { useParams } from 'react-router';
 
-import { ReactGA } from '../../../utils/analytics';
-import { padding } from '../../../utils/formatting';
 import { useCreateCapture, useDeleteCapture } from '../../../hooks/queries/captures';
-import { useSession } from '../../../hooks/contexts/use-session';
 import { useTrackerContext } from './use-tracker';
-import { useUser } from '../../../hooks/queries/users';
 
 import type { UICapture } from './use-tracker';
 
@@ -18,12 +12,6 @@ interface Props {
 }
 
 export function MarkAllButton ({ captures }: Props) {
-  const { username, slug } = useParams<{ username: string; slug: string }>();
-
-  const { session } = useSession();
-  const user = useUser(username).data!;
-  const dex = useMemo(() => keyBy(user.dexes, 'slug')[slug], [user, slug]);
-
   const { setCaptures } = useTrackerContext();
 
   const createCapturesMutation = useCreateCapture();
@@ -33,12 +21,6 @@ export function MarkAllButton ({ captures }: Props) {
     return captures.reduce((total, capture) => total + (capture.captured ? 0 : 1), 0);
   }, [captures]);
 
-  const ownPage = session?.id === user.id;
-
-  if (!ownPage) {
-    return null;
-  }
-
   const handleButtonClick = async () => {
     createCapturesMutation.reset();
     deleteCapturesMutation.reset();
@@ -47,7 +29,7 @@ export function MarkAllButton ({ captures }: Props) {
     const pokemon = captures
     .filter((capture) => capture.captured === deleting)
     .map((capture) => capture.pokemon.id);
-    const payload = { dex: dex.id, pokemon };
+    const payload = { pokemon };
 
     setCaptures((prev) => prev.map((cap) => {
       if (!pokemon.includes(cap.pokemon.id)) {
@@ -63,9 +45,9 @@ export function MarkAllButton ({ captures }: Props) {
     }));
 
     if (deleting) {
-      await deleteCapturesMutation.mutateAsync({ username: user.username, slug, payload });
+      await deleteCapturesMutation.mutateAsync({ payload });
     } else {
-      await createCapturesMutation.mutateAsync({ username: user.username, slug, payload });
+      await createCapturesMutation.mutateAsync({ payload });
     }
 
     setCaptures((prev) => prev.map((cap) => {
@@ -77,14 +59,11 @@ export function MarkAllButton ({ captures }: Props) {
         ...cap,
         pending: false,
         captured: !deleting,
+        // Unmarking clears origin/temporary state along with the capture.
+        origin_game: deleting ? null : cap.origin_game,
+        temporary: deleting ? false : cap.temporary,
       };
     }));
-
-    ReactGA.event({
-      category: 'Box',
-      label: `${padding(captures[0].pokemon.national_id, 3)} - ${padding(captures[captures.length - 1].pokemon.national_id, 3)}`,
-      action: deleting ? 'unmark all' : 'mark all',
-    });
   };
 
   const isLoading = createCapturesMutation.isLoading || deleteCapturesMutation.isLoading;

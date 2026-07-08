@@ -9,6 +9,13 @@ $brand-secondary-light: lighten($brand-secondary, 7%);
 $brand-secondary-dark: darken($brand-secondary, 7%);
 $error: #ff0000;
 $success: #00cc66;
+
+// Temporary (placeholder) mons: caught, but from Pokémon GO / a stranger's
+// trade, to be replaced with a properly obtained one later.
+$temporary: #ff9800;
+$temporary-light: lighten($temporary, 34%);
+$night-mode-temporary: #a8794a;
+
 $gray-light: #f1f1f1;
 $gray-medium: #d2d2d2;
 $gray-dark: #ababab;

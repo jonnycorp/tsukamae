@@ -4,7 +4,16 @@ module.exports = {
     es6: true,
     node: true,
   },
-  ignorePatterns: ['public', 'build'],
+  ignorePatterns: ['public', 'build', 'dist'],
+  overrides: [
+    {
+      // The Electron main process logs to the terminal by design.
+      files: ['electron/**/*.js', 'scripts/**/*.mjs'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+  ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaFeatures: {

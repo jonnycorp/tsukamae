@@ -1,0 +1,31 @@
+{
+  "title": "HOME National Living Dex",
+  "slug": "home-national-living-dex",
+  "shiny": false,
+  "game": {
+    "id": "home",
+    "name": "HOME",
+    "game_family": {
+      "id": "home",
+      "generation": 9,
+      "regional_total": 0,
+      "national_total": 0,
+      "regional_support": false,
+      "national_support": false,
+      "order": 9999,
+      "published": true
+    },
+    "order": 9999
+  },
+  "dex_type": {
+    "id": 21,
+    "name": "Full National",
+    "game_family_id": "home",
+    "order": 1,
+    "tags": [
+      "full national"
+    ]
+  },
+  "regional": null,
+  "total": 1080
+}

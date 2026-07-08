@@ -957,6 +957,17 @@ select {
       }
     }
 
+    &.captured.temporary {
+      background-color: $night-mode-temporary;
+
+      .set-captured,
+      .set-captured-mobile,
+      .set-info {
+        border-color: darken($night-mode-temporary, 15%);
+        border-style: dashed;
+      }
+    }
+
     &:not(.empty):not(.disabled):hover {
       .set-info {
         &:hover {
