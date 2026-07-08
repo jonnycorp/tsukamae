@@ -14,6 +14,9 @@ export interface Capture {
   status: CaptureStatus | null;
   // The game the mon originated from (id from data/games.json), if set.
   origin_game: string | null;
+  // The language of origin of the mon (id from data/languages.json), if set.
+  // Foreign-language mons are worth distinguishing from same-language ones.
+  language: string | null;
 }
 
 export interface CapturePokemon {

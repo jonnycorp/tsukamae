@@ -4,7 +4,21 @@ A personal living dex tracker, running as a Windows desktop app (Electron). Fork
 
 ## Additional Capabilities
 
-TODO FILL
+Beyond the upstream caught/uncaught toggle, each slot tracks how it's held and
+where the mon came from:
+
+- **Capture status** — every caught slot is one of:
+  - _Caught_ — a regular, properly obtained mon.
+  - _Temporary_ — a placeholder (e.g. from GO or a stranger trade) to replace
+    with a proper one later.
+  - _Locked_ — the slot is final and never changing.
+- **Quick marking** — clicking a tile catches it; hovering reveals one-click
+  buttons for the other statuses. Every tile click opens the info sidebar.
+- **Per-mon metadata** (info sidebar) — _Origin Game_ and _Language of origin_
+  (English, Japanese, and the other mainline languages), since foreign-language
+  mons are worth distinguishing. _Release_ clears the slot and its metadata.
+- **Multiple personal dexes** — each is its own instance of a catalog dex with
+  independent progress, switchable from the nav.
 
 ## Data Persistence
 
@@ -12,7 +26,11 @@ TODO FILL
 
 ## Development
 
-Requires Node (see `.node-version`) and Yarn.
+Requires Node (see `.node-version`) and Yarn. Use **Yarn, not npm** — the
+committed lockfile is `yarn.lock`, and some type packages (e.g. `@types/react`)
+are peer dependencies that npm 7+ silently auto-installs but Yarn does not. They
+are pinned explicitly in `package.json`, so `yarn install` gives a complete,
+type-checkable tree.
 
 ```bash
 yarn install

@@ -10,10 +10,12 @@
     "dataset": "node scripts/generate-dataset.mjs",
     "electron:build": "yarn build && electron-builder --win",
     "electron:dev": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron .\"",
+    "electron:dev:fresh": "TSUKAMAE_USER_DATA=\"$(mktemp -d)\" yarn electron:dev",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx --max-warnings 0 .",
     "lint:all": "yarn lint && yarn lint:types",
     "lint:types": "tsc --noEmit",
-    "start": "webpack serve"
+    "start": "webpack serve",
+    "start:fresh": "TSUKAMAE_FRESH=1 webpack serve"
   },
   "build": {
     "appId": "com.jonnycorp.tsukamae",
@@ -29,6 +31,12 @@
     "win": {
       "target": "nsis",
       "signAndEditExecutable": false
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "publish": {
+      "provider": "github"
     }
   },
   "dependencies": {
@@ -38,25 +46,26 @@
     "@babel/preset-env": "^7.22.4",
     "@babel/preset-react": "^7.22.5",
     "@babel/preset-typescript": "^7.22.5",
-    "@fortawesome/fontawesome-svg-core": "^1.2.27",
-    "@fortawesome/free-brands-svg-icons": "^5.12.1",
-    "@fortawesome/free-solid-svg-icons": "^5.12.1",
+    "@fortawesome/fontawesome-svg-core": "^6.0.0",
+    "@fortawesome/free-brands-svg-icons": "^6.0.0",
+    "@fortawesome/free-solid-svg-icons": "^6.0.0",
     "@fortawesome/react-fontawesome": "^0.2.0",
     "@tanstack/react-query": "^4.29.19",
     "@types/lodash": "^4.14.195",
-    "@types/react-dom": "^18.2.6",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.7",
     "babel-loader": "^9.1.2",
     "classnames": "^2.3.2",
     "core-js": "^3.30.2",
     "css-loader": "^6.8.1",
     "html-webpack-plugin": "^5.5.1",
     "lodash": "^4.17.21",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "sass": "^1.62.1",
     "sass-loader": "^13.3.1",
     "style-loader": "^3.3.3",
-    "typescript": "5.0.4",
+    "typescript": "^5.2.2",
     "webpack": "^5.85.0",
     "webpack-cli": "^5.1.1"
   },

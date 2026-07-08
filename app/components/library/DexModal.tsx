@@ -44,27 +44,49 @@ interface Props {
 export function DexModal ({ dex, onRequestClose }: Props) {
   const { dexes, createDex, updateDex, deleteDex } = useDexContext();
 
+  const initialCatalog = getCatalogDex(dex?.catalogKey || DEFAULT_CATALOG_KEY);
+
   const [title, setTitle] = useState(dex?.title || '');
-  const [catalogKey, setCatalogKey] = useState(dex?.catalogKey || DEFAULT_CATALOG_KEY);
+  const [gameId, setGameId] = useState(initialCatalog.game.id);
+  const [catalogKey, setCatalogKey] = useState(initialCatalog.key);
   const [shiny, setShiny] = useState(dex?.shiny || false);
 
-  // The picker lists the catalog grouped by generation, newest first
-  // (DEX_CATALOG is already in that order).
-  const catalogByGeneration = useMemo(() => {
-    const groups: { generation: number; entries: CatalogDex[] }[] = [];
+  // The catalog grouped by game, newest first (DEX_CATALOG is already in that
+  // order). Picking a game filters the Dex options to just that game's dexes —
+  // e.g. HOME → Full National / Gigantamax Forms — mirroring the original
+  // pokedextracker create-dex flow, where the game is the top-level category.
+  const gamesWithDexes = useMemo(() => {
+    const groups: { game: CatalogDex['game']; entries: CatalogDex[] }[] = [];
+    const byGameId = new Map<string, { game: CatalogDex['game']; entries: CatalogDex[] }>();
     for (const entry of DEX_CATALOG) {
-      const generation = entry.game.game_family.generation;
-      const group = groups[groups.length - 1];
-      if (group && group.generation === generation) {
-        group.entries.push(entry);
-      } else {
-        groups.push({ generation, entries: [entry] });
+      let group = byGameId.get(entry.game.id);
+      if (!group) {
+        group = { game: entry.game, entries: [] };
+        byGameId.set(entry.game.id, group);
+        groups.push(group);
       }
+      group.entries.push(entry);
     }
     return groups;
   }, []);
 
+  const dexesForGame = useMemo(
+    () => gamesWithDexes.find((group) => group.game.id === gameId)?.entries || [],
+    [gamesWithDexes, gameId],
+  );
+
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value);
+
+  const handleGameChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const newGameId = e.target.value;
+    setGameId(newGameId);
+    // Default to the first dex of the newly selected game.
+    const firstEntry = gamesWithDexes.find((group) => group.game.id === newGameId)?.entries[0];
+    if (firstEntry) {
+      setCatalogKey(firstEntry.key);
+    }
+  };
+
   const handleCatalogChange = (e: ChangeEvent<HTMLSelectElement>) => setCatalogKey(e.target.value);
   const handleShinyChange = (e: ChangeEvent<HTMLInputElement>) => setShiny(e.target.checked);
 
@@ -117,23 +139,34 @@ export function DexModal ({ dex, onRequestClose }: Props) {
               <label>Dex</label>
               <div className="form-note">{getCatalogDex(dex.catalogKey).name} ({getCatalogDex(dex.catalogKey).total} Pokémon) — the dex structure can&apos;t be changed after creation.</div>
             </div> :
-            <div className="form-group">
-              <label htmlFor="dex_catalog">Dex</label>
-              <select
-                className="form-control"
-                id="dex_catalog"
-                name="dex_catalog"
-                onChange={handleCatalogChange}
-                value={catalogKey}
-              >
-                {catalogByGeneration.map((group) => (
-                  <optgroup key={group.generation} label={`Generation ${group.generation}`}>
-                    {group.entries.map((entry) => <option key={entry.key} value={entry.key}>{entry.name} ({entry.total})</option>)}
-                  </optgroup>
-                ))}
-              </select>
-              <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
-            </div>
+            <>
+              <div className="form-group">
+                <label htmlFor="dex_game">Game</label>
+                <select
+                  className="form-control"
+                  id="dex_game"
+                  name="dex_game"
+                  onChange={handleGameChange}
+                  value={gameId}
+                >
+                  {gamesWithDexes.map((group) => <option key={group.game.id} value={group.game.id}>{group.game.name}</option>)}
+                </select>
+                <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
+              </div>
+              <div className="form-group">
+                <label htmlFor="dex_catalog">Dex</label>
+                <select
+                  className="form-control"
+                  id="dex_catalog"
+                  name="dex_catalog"
+                  onChange={handleCatalogChange}
+                  value={catalogKey}
+                >
+                  {dexesForGame.map((entry) => <option key={entry.key} value={entry.key}>{entry.dex_type.name} ({entry.total})</option>)}
+                </select>
+                <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
+              </div>
+            </>
           }
           <div className="form-group">
             <div className="checkbox">
@@ -165,7 +198,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
           }
         </form>
       </div>
-      <p><a className="link" onClick={onRequestClose}>Go Back</a></p>
+      <p><a className="link back-link" onClick={onRequestClose}>Go Back</a></p>
     </ModalShell>
   );
 }

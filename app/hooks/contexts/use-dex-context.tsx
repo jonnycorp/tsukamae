@@ -87,14 +87,11 @@ export const DexContextProvider = ({ children }: Props) => {
         state.dexes = state.dexes.map((dex) => (dex.id === id ? { ...dex, ...changes } : dex));
       }),
       deleteDex: (id) => apply((state) => {
-        if (state.dexes.length === 1) {
-          // The tracker always shows a dex; deleting the last one is blocked
-          // in the UI too.
-          return;
-        }
         state.dexes = state.dexes.filter((dex) => dex.id !== id);
         if (state.activeDexId === id) {
-          state.activeDexId = state.dexes[0].id;
+          // Drop back to the landing page when the open dex is deleted (also
+          // how deleting your only dex works now).
+          state.activeDexId = '';
         }
       }),
     };

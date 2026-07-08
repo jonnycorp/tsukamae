@@ -2,6 +2,10 @@
 
 html {
   -webkit-font-smoothing: antialiased;
+  // Clip horizontal overflow at the viewport itself (body's overflow-x doesn't
+  // reliably propagate here). Kills the stray horizontal scrollbar / dead space
+  // on the right; nothing in the app scrolls horizontally on purpose.
+  overflow-x: hidden;
 }
 
 *, *:before, *:after {
@@ -12,9 +16,26 @@ html {
   outline: 0;
 }
 
+// Hide native scrollbars app-wide. In Chromium — and therefore the Electron
+// build — the classic Windows scrollbar reserves layout width, which pushes
+// full-width children past the viewport and produces a horizontal scrollbar
+// plus dead space on the right. macOS overlay scrollbars are 0px, so it can't
+// be reproduced there. Scrolling still works; only the bar is hidden.
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+}
+
 body {
   margin: 0;
   padding: 0;
+  // Stray absolutely-positioned bits (e.g. the rightmost nav tooltip) can poke
+  // past the viewport's right edge and create a horizontal scrollbar + dead
+  // space. Nothing here scrolls horizontally on purpose, so clip it.
+  overflow-x: hidden;
   font-family: $font-primary;
   // Light theme is the default surface; without an explicit background the
   // page falls through to the browser's canvas, which renders black when the
@@ -62,6 +83,12 @@ a.link {
   &:hover,
   &:focus {
     color: $brand-secondary-dark;
+  }
+
+  // Standalone action links (e.g. the modal "Go Back") read as buttons, not
+  // inline prose, so they drop the underline.
+  &.back-link {
+    text-decoration: none;
   }
 }
 
@@ -190,14 +217,74 @@ nav {
   }
 }
 
-.nav-dex-select {
-  @include align-self(center);
+// Click-toggled data menu (Export / Import / Wipe) grouped under one nav button.
+.nav-menu {
+  @include flexbox();
 
+  position: relative;
+
+  .nav-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 10;
+    width: 210px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background-color: lighten($brand-primary, 10%);
+
+    li {
+      @include flexbox();
+      @include align-items(center);
+
+      padding: 12px 14px;
+      border-top: 2px solid $brand-primary;
+      font-family: $font-secondary;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: $brand-secondary;
+      white-space: nowrap;
+      cursor: pointer;
+
+      .svg-inline--fa {
+        margin-right: 12px;
+        font-size: 12px;
+      }
+
+      &:hover {
+        background-color: lighten($brand-primary, 15%);
+      }
+
+      &.nav-menu-danger {
+        color: #e2a0a0;
+      }
+    }
+  }
+}
+
+// The dex dropdown + edit/add live in a group centered in the nav, independent
+// of the logo (left) and data/night-mode (right) widths.
+.nav-dex-controls {
+  @include flexbox();
+  @include align-items(center);
+
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.nav-dex-select {
   max-width: 320px;
   margin-right: 8px;
-  padding: 5px 8px;
-  border: 1px solid $brand-primary-dark;
-  background-color: #fff;
+  padding: 6px 10px;
+  border: 0;
+  // Blend into the bar rather than a stark white box: a slightly darker "well"
+  // with soft inset edges, echoing the box sections.
+  background-color: darken($brand-primary, 4%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), inset 0 1px 3px rgba(0, 0, 0, .18);
   color: $brand-secondary;
   font-family: $font-secondary;
   font-size: 11px;
@@ -209,7 +296,6 @@ nav {
 }
 
 .night-mode .nav-dex-select {
-  border-color: $night-mode-01dp;
   background-color: $night-mode-06dp;
   color: white;
 }
@@ -274,7 +360,7 @@ nav {
   &:focus {
     cursor: pointer;
 
-    .fa-long-arrow-right {
+    .fa-right-long {
       margin-left: 7px;
     }
 
@@ -332,7 +418,7 @@ nav {
     }
   }
 
-  .fa-times {
+  .fa-xmark {
     @include transition(all .1s ease-out);
 
     position: absolute;
@@ -918,7 +1004,7 @@ select {
     border-bottom: 1px solid $night-mode-dark;
 
     .form-group {
-      .fa-search {
+      .fa-magnifying-glass {
         color: white;
       }
     }
@@ -962,14 +1048,8 @@ select {
 
   .box .box-container,
   .set-captured,
-  .set-captured-mobile,
-  .pokemon .set-info {
+  .set-captured-mobile {
     border-color: $night-mode-01dp;
-
-    .fa-info {
-      border-color: $night-mode-link;
-      color: $night-mode-link;
-    }
   }
 
   .pokemon {
@@ -982,8 +1062,7 @@ select {
       color: black;
 
       .set-captured,
-      .set-captured-mobile,
-      .set-info {
+      .set-captured-mobile {
         border-color: $night-mode-primary-dark;
       }
 
@@ -996,8 +1075,7 @@ select {
       background-color: $night-mode-temporary;
 
       .set-captured,
-      .set-captured-mobile,
-      .set-info {
+      .set-captured-mobile {
         border-color: darken($night-mode-temporary, 15%);
         border-style: dashed;
       }
@@ -1007,22 +1085,12 @@ select {
       background-color: $night-mode-locked;
 
       .set-captured,
-      .set-captured-mobile,
-      .set-info {
+      .set-captured-mobile {
         border-color: darken($night-mode-locked, 15%);
       }
     }
 
     &:not(.empty):not(.disabled):hover {
-      .set-info {
-        &:hover {
-          .fa-info {
-            border-color: $night-mode-link-dark;
-            color: $night-mode-link-dark;
-          }
-        }
-      }
-
       &:not(.viewing) {
         .set-captured {
           border-color: $night-mode-primary-dark;
