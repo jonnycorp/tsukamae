@@ -1,0 +1,29 @@
+{
+  "key": "lets-go-regional",
+  "name": "Let’s Go, Pikachu & Eevee Regional Dex",
+  "game": {
+    "id": "lets_go_pikachu",
+    "name": "Let's Go, Pikachu!",
+    "game_family": {
+      "id": "lets_go_pikachu_eevee",
+      "generation": 8,
+      "regional_total": 171,
+      "national_total": 809,
+      "regional_support": true,
+      "national_support": false,
+      "order": 17,
+      "published": true
+    },
+    "order": 29
+  },
+  "dex_type": {
+    "id": 9,
+    "name": "Regional",
+    "game_family_id": "lets_go_pikachu_eevee",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 171
+}

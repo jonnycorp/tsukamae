@@ -1,7 +1,6 @@
 {
-  "title": "HOME National Living Dex",
-  "slug": "home-national-living-dex",
-  "shiny": false,
+  "key": "home-national",
+  "name": "HOME National Dex",
   "game": {
     "id": "home",
     "name": "HOME",
@@ -26,6 +25,5 @@
       "full national"
     ]
   },
-  "regional": null,
   "total": 1080
 }

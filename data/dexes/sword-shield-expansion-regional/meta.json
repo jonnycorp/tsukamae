@@ -1,0 +1,29 @@
+{
+  "key": "sword-shield-expansion-regional",
+  "name": "Sword & Shield (Expansion Pass) Regional Dex",
+  "game": {
+    "id": "sword_expansion_pass",
+    "name": "Sword (Expansion Pass)",
+    "game_family": {
+      "id": "sword_shield_expansion_pass",
+      "generation": 8,
+      "regional_total": 882,
+      "national_total": 967,
+      "regional_support": true,
+      "national_support": true,
+      "order": 19,
+      "published": true
+    },
+    "order": 33
+  },
+  "dex_type": {
+    "id": 12,
+    "name": "Regional",
+    "game_family_id": "sword_shield_expansion_pass",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 882
+}

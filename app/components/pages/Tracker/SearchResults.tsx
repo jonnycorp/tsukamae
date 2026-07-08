@@ -30,7 +30,7 @@ export function SearchResults ({ captures, hideCaught, query, setHideCaught, set
       const natId = nationalId(capture.pokemon.national_id);
 
       const matchesCaught = !hideCaught || !capture.captured;
-      const matchesTemporary = !temporaryOnly || (capture.captured && capture.temporary);
+      const matchesTemporary = !temporaryOnly || capture.status === 'temporary';
       const matchesQuery =
         // Case-insensitive name prefix match (e.g. bulba)
         capture.pokemon.name.toLowerCase().indexOf(query.toLowerCase()) === 0 ||

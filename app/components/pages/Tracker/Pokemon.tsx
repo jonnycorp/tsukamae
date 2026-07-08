@@ -1,18 +1,28 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faInfo } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faClock, faInfo, faLock } from '@fortawesome/free-solid-svg-icons';
 
-import { DEX } from '../../../utils/local-data';
 import { PokemonName } from '../../library/PokemonName';
 import { iconClass } from '../../../utils/pokemon';
 import { nationalId, padding } from '../../../utils/formatting';
-import { useCreateCapture, useDeleteCapture } from '../../../hooks/queries/captures';
 import { useDelayedRender } from '../../../hooks/use-delayed-render';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerContext } from './use-tracker';
+import { useUpdateCapture } from '../../../hooks/queries/captures';
 
-import type { Dispatch, SetStateAction } from 'react';
+import type { CaptureStatus } from '../../../types';
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import type { Dispatch, MouseEvent, SetStateAction } from 'react';
 import type { UICapture } from './use-tracker';
+
+// The status a hover button sets, and how it's labelled. A tile only shows the
+// statuses it isn't currently in.
+const STATUS_META: { status: CaptureStatus; icon: IconDefinition; label: string }[] = [
+  { status: 'caught', icon: faCheck, label: 'Caught' },
+  { status: 'temporary', icon: faClock, label: 'Temporary (to be replaced)' },
+  { status: 'locked', icon: faLock, label: 'Locked (never changing)' },
+];
 
 interface Props {
   capture: UICapture | null;
@@ -23,11 +33,11 @@ interface Props {
 export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
   const render = useDelayedRender(delay);
 
+  const { activeDex, activeDexView } = useDexContext();
   const { setCaptures } = useTrackerContext();
   const { setShowInfo } = useLocalStorageContext();
 
-  const createCapturesMutation = useCreateCapture();
-  const deleteCapturesMutation = useDeleteCapture();
+  const updateCaptureMutation = useUpdateCapture(activeDex!.id);
 
   if (!render || !capture) {
     return (
@@ -38,85 +48,89 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
     );
   }
 
-  const handleSetCapturedClick = async () => {
-    if (createCapturesMutation.isLoading || deleteCapturesMutation.isLoading) {
-      // We're already making a request, so exit early.
-      return;
-    }
-
-    createCapturesMutation.reset();
-    deleteCapturesMutation.reset();
-
-    const payload = { pokemon: [capture.pokemon.id] };
-
+  // Setting a status is also how a mon gets caught (a plain uncaught mon
+  // defaults to 'caught'). Every status change opens the info panel on that
+  // mon, since it now holds the metadata (origin game) you'll usually set next.
+  const applyStatus = (status: CaptureStatus) => {
     setCaptures((prev) => prev.map((cap) => {
       if (cap.pokemon.id !== capture.pokemon.id) {
-        // We're not modifying this one.
         return cap;
       }
-      return {
-        ...cap,
-        pending: true,
-        // We need to make it look like captured is false, otherwise, the pending styles won't show up.
-        captured: false,
-      };
+      return { ...cap, captured: true, pending: false, status };
     }));
 
-    if (capture.captured) {
-      await deleteCapturesMutation.mutateAsync({ payload });
-    } else {
-      await createCapturesMutation.mutateAsync({ payload });
-    }
+    updateCaptureMutation.mutate({ payload: { pokemon: capture.pokemon.id, status } });
 
-    setCaptures((prev) => prev.map((cap) => {
-      if (cap.pokemon.id !== capture.pokemon.id) {
-        // We're not modifying this one.
-        return cap;
-      }
-      return {
-        ...cap,
-        pending: false,
-        captured: !capture.captured,
-        // Unmarking clears origin/temporary state along with the capture.
-        origin_game: capture.captured ? null : cap.origin_game,
-        temporary: capture.captured ? false : cap.temporary,
-      };
-    }));
-  };
-
-  const handleSetInfoClick = () => {
     setSelectedPokemon(capture.pokemon.id);
     setShowInfo(true);
+  };
+
+  const openInfo = () => {
+    setSelectedPokemon(capture.pokemon.id);
+    setShowInfo(true);
+  };
+
+  // A plain tile click never unmarks (that's the deliberate Release button in
+  // the info panel). It catches an uncaught mon, or just opens the info panel
+  // for one that's already caught.
+  const handleTileClick = () => {
+    if (capture.captured) {
+      openInfo();
+    } else {
+      applyStatus('caught');
+    }
+  };
+
+  const handleStatusClick = (e: MouseEvent<HTMLButtonElement>, status: CaptureStatus) => {
+    e.stopPropagation();
+    applyStatus(status);
   };
 
   const classes = {
     pokemon: true,
     captured: capture.captured,
     pending: capture.pending,
-    temporary: capture.captured && capture.temporary,
+    temporary: capture.status === 'temporary',
+    locked: capture.status === 'locked',
   };
 
-  const regional = DEX.dex_type.tags.includes('regional');
+  const dexView = activeDexView!;
+  const regional = dexView.dex_type.tags.includes('regional');
   const idToDisplay = regional ? (capture.pokemon.dex_number === -1 ? '---' : capture.pokemon.dex_number) : nationalId(capture.pokemon.national_id);
-  const paddingDigits = DEX.total >= 1000 ? 4 : 3;
+  const paddingDigits = dexView.total >= 1000 ? 4 : 3;
+
+  const statusButtons = STATUS_META.filter((meta) => meta.status !== capture.status);
 
   return (
     <div className={classNames(classes)}>
-      <div className="set-captured" onClick={handleSetCapturedClick}>
+      <div className="set-status">
+        {statusButtons.map((meta) => (
+          <button
+            className={`status-btn status-btn-${meta.status}`}
+            key={meta.status}
+            onClick={(e) => handleStatusClick(e, meta.status)}
+            title={meta.label}
+            type="button"
+          >
+            <FontAwesomeIcon icon={meta.icon} />
+          </button>
+        ))}
+      </div>
+      <div className="set-captured" onClick={handleTileClick}>
         <h4><PokemonName name={capture.pokemon.name} /></h4>
         <div className="icon-wrapper">
-          <i className={iconClass(capture.pokemon, DEX)} />
+          <i className={iconClass(capture.pokemon, dexView)} />
         </div>
         <p>#{padding(idToDisplay, paddingDigits)}</p>
       </div>
-      <div className="set-captured-mobile" onClick={handleSetCapturedClick}>
+      <div className="set-captured-mobile" onClick={handleTileClick}>
         <div className="icon-wrapper">
-          <i className={iconClass(capture.pokemon, DEX)} />
+          <i className={iconClass(capture.pokemon, dexView)} />
         </div>
         <h4><PokemonName name={capture.pokemon.name} /></h4>
         <p>#{padding(idToDisplay, paddingDigits)}</p>
       </div>
-      <div className="set-info" onClick={handleSetInfoClick}>
+      <div className="set-info" onClick={openInfo}>
         <FontAwesomeIcon icon={faInfo} />
       </div>
     </div>

@@ -3,6 +3,7 @@ import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
 import { useMemo } from 'react';
 
 import { useCreateCapture, useDeleteCapture } from '../../../hooks/queries/captures';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerContext } from './use-tracker';
 
 import type { UICapture } from './use-tracker';
@@ -12,10 +13,11 @@ interface Props {
 }
 
 export function MarkAllButton ({ captures }: Props) {
+  const { activeDex } = useDexContext();
   const { setCaptures } = useTrackerContext();
 
-  const createCapturesMutation = useCreateCapture();
-  const deleteCapturesMutation = useDeleteCapture();
+  const createCapturesMutation = useCreateCapture(activeDex!.id);
+  const deleteCapturesMutation = useDeleteCapture(activeDex!.id);
 
   const uncaught = useMemo(() => {
     return captures.reduce((total, capture) => total + (capture.captured ? 0 : 1), 0);
@@ -41,6 +43,7 @@ export function MarkAllButton ({ captures }: Props) {
         pending: true,
         // We need to make it look like captured is false, otherwise, the pending styles won't show up.
         captured: false,
+        status: null,
       };
     }));
 
@@ -59,9 +62,9 @@ export function MarkAllButton ({ captures }: Props) {
         ...cap,
         pending: false,
         captured: !deleting,
-        // Unmarking clears origin/temporary state along with the capture.
+        // Unmarking clears status/origin state along with the capture.
+        status: deleting ? null : (cap.status || 'caught'),
         origin_game: deleting ? null : cap.origin_game,
-        temporary: deleting ? false : cap.temporary,
       };
     }));
   };

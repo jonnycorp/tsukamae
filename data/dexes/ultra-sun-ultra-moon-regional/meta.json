@@ -1,0 +1,29 @@
+{
+  "key": "ultra-sun-ultra-moon-regional",
+  "name": "Ultra Sun & Ultra Moon Regional Dex",
+  "game": {
+    "id": "ultra_sun",
+    "name": "Ultra Sun",
+    "game_family": {
+      "id": "ultra_sun_ultra_moon",
+      "generation": 7,
+      "regional_total": 403,
+      "national_total": 825,
+      "regional_support": true,
+      "national_support": true,
+      "order": 16,
+      "published": true
+    },
+    "order": 27
+  },
+  "dex_type": {
+    "id": 7,
+    "name": "Regional",
+    "game_family_id": "ultra_sun_ultra_moon",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 403
+}

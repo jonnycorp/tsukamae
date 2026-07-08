@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 
 import { Box } from './Box';
-import { DEX } from '../../../utils/local-data';
 import { Header } from '../../library/Header';
 import { Progress } from '../../library/Progress';
 import { Scroll } from './Scroll';
 import { SearchResults } from './SearchResults';
 import { groupBoxes } from '../../../utils/pokemon';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerContext } from './use-tracker';
 
 import type { Dispatch, MouseEventHandler, SetStateAction } from 'react';
@@ -36,10 +36,12 @@ export function Dex ({
   showScrollButton,
   temporaryOnly,
 }: Props) {
+  const { activeDexView } = useDexContext();
   const { captures } = useTrackerContext();
 
   const caught = useMemo(() => captures.filter(({ captured }) => captured).length, [captures]);
-  const temporary = useMemo(() => captures.filter((capture) => capture.captured && capture.temporary).length, [captures]);
+  const temporary = useMemo(() => captures.filter((capture) => capture.status === 'temporary').length, [captures]);
+  const locked = useMemo(() => captures.filter((capture) => capture.status === 'locked').length, [captures]);
   const total = captures.length;
 
   const groupedCaptures = useMemo(() => groupBoxes(captures), [captures]);
@@ -48,7 +50,7 @@ export function Dex ({
       <Box
         captures={box}
         deferred={i > DEFER_CUTOFF}
-        dexTotal={DEX.total}
+        dexTotal={activeDexView!.total}
         key={box[0].pokemon.id}
         setSelectedPokemon={setSelectedPokemon}
       />
@@ -63,7 +65,7 @@ export function Dex ({
           <Header />
         </header>
         <div className="percentage">
-          <Progress caught={caught} temporary={temporary} total={total} />
+          <Progress caught={caught} locked={locked} temporary={temporary} total={total} />
         </div>
         {query.length > 0 || hideCaught || temporaryOnly ?
           <SearchResults

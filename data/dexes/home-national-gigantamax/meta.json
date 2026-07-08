@@ -1,0 +1,40 @@
+{
+  "key": "home-national-gigantamax",
+  "name": "HOME National Dex + Gigantamax Forms",
+  "game": {
+    "id": "home",
+    "name": "HOME",
+    "game_family": {
+      "id": "home",
+      "generation": 9,
+      "regional_total": 0,
+      "national_total": 0,
+      "regional_support": false,
+      "national_support": false,
+      "order": 9999,
+      "published": true
+    },
+    "order": 9999
+  },
+  "dex_type": {
+    "id": 17,
+    "name": "Gigantamax Forms",
+    "game_family_id": "home",
+    "order": -1,
+    "tags": [
+      "full national",
+      "customization-gigantamax forms"
+    ],
+    "base_dex_type_id": 21,
+    "base_dex_type": {
+      "id": 21,
+      "name": "Full National",
+      "game_family_id": "home",
+      "order": 1,
+      "tags": [
+        "full national"
+      ]
+    }
+  },
+  "total": 1112
+}

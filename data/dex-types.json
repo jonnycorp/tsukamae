@@ -1,0 +1,205 @@
+[
+  {
+    "id": 17,
+    "name": "Gigantamax Forms",
+    "game_family_id": "home",
+    "order": -1,
+    "tags": [
+      "full national",
+      "customization-gigantamax forms"
+    ],
+    "base_dex_type_id": 21
+  },
+  {
+    "id": 21,
+    "name": "Full National",
+    "game_family_id": "home",
+    "order": 1,
+    "tags": [
+      "full national"
+    ]
+  },
+  {
+    "id": 19,
+    "name": "Full Paldea",
+    "description": "Includes Paldea base dex AND new Kitakami and Blueberry dexes",
+    "game_family_id": "scarlet_violet_expansion_pass",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 20,
+    "name": "Kitakami",
+    "description": "Kitakami dex only",
+    "game_family_id": "scarlet_violet_expansion_pass",
+    "order": 2,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 22,
+    "name": "Blueberry",
+    "description": "Blueberry dex only",
+    "game_family_id": "scarlet_violet_expansion_pass",
+    "order": 3,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 18,
+    "name": "Regional",
+    "game_family_id": "scarlet_violet",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 16,
+    "name": "Regional",
+    "game_family_id": "legends_arceus",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Regional",
+    "game_family_id": "brilliant_diamond_shining_pearl",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 15,
+    "name": "Game National",
+    "game_family_id": "brilliant_diamond_shining_pearl",
+    "order": 2,
+    "tags": [
+      "game national"
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Regional",
+    "game_family_id": "sword_shield_expansion_pass",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Full National",
+    "game_family_id": "sword_shield_expansion_pass",
+    "order": 2,
+    "tags": [
+      "full national"
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Regional",
+    "game_family_id": "sword_shield",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Full National",
+    "game_family_id": "sword_shield",
+    "order": 2,
+    "tags": [
+      "full national"
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Regional",
+    "game_family_id": "lets_go_pikachu_eevee",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Regional",
+    "game_family_id": "ultra_sun_ultra_moon",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Full National",
+    "game_family_id": "ultra_sun_ultra_moon",
+    "order": 2,
+    "tags": [
+      "full national"
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Regional",
+    "game_family_id": "sun_moon",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Full National",
+    "game_family_id": "sun_moon",
+    "order": 2,
+    "tags": [
+      "full national"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Regional",
+    "game_family_id": "omega_ruby_alpha_sapphire",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Full National",
+    "game_family_id": "omega_ruby_alpha_sapphire",
+    "order": 2,
+    "tags": [
+      "full national"
+    ]
+  },
+  {
+    "id": 1,
+    "name": "Regional",
+    "game_family_id": "x_y",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Full National",
+    "game_family_id": "x_y",
+    "order": 2,
+    "tags": [
+      "full national"
+    ]
+  }
+]

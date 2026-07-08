@@ -1,0 +1,29 @@
+{
+  "key": "oras-regional",
+  "name": "Omega Ruby & Alpha Sapphire Regional Dex",
+  "game": {
+    "id": "omega_ruby",
+    "name": "Omega Ruby",
+    "game_family": {
+      "id": "omega_ruby_alpha_sapphire",
+      "generation": 6,
+      "regional_total": 211,
+      "national_total": 721,
+      "regional_support": true,
+      "national_support": true,
+      "order": 14,
+      "published": true
+    },
+    "order": 23
+  },
+  "dex_type": {
+    "id": 3,
+    "name": "Regional",
+    "game_family_id": "omega_ruby_alpha_sapphire",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 211
+}

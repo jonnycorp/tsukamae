@@ -1,0 +1,29 @@
+{
+  "key": "scarlet-violet-regional",
+  "name": "Scarlet & Violet Regional Dex",
+  "game": {
+    "id": "scarlet",
+    "name": "Scarlet",
+    "game_family": {
+      "id": "scarlet_violet",
+      "generation": 9,
+      "regional_total": 0,
+      "national_total": 0,
+      "regional_support": false,
+      "national_support": false,
+      "order": 22,
+      "published": true
+    },
+    "order": 38
+  },
+  "dex_type": {
+    "id": 18,
+    "name": "Regional",
+    "game_family_id": "scarlet_violet",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 404
+}

@@ -1,0 +1,29 @@
+{
+  "key": "sun-moon-regional",
+  "name": "Sun & Moon Regional Dex",
+  "game": {
+    "id": "sun",
+    "name": "Sun",
+    "game_family": {
+      "id": "sun_moon",
+      "generation": 7,
+      "regional_total": 302,
+      "national_total": 820,
+      "regional_support": true,
+      "national_support": true,
+      "order": 15,
+      "published": true
+    },
+    "order": 25
+  },
+  "dex_type": {
+    "id": 5,
+    "name": "Regional",
+    "game_family_id": "sun_moon",
+    "order": 1,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 302
+}

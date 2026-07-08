@@ -123,6 +123,10 @@
   .temporary-count {
     color: darken($temporary, 15%);
   }
+
+  .locked-count {
+    color: darken($locked, 10%);
+  }
 }
 
 .progress-outer {

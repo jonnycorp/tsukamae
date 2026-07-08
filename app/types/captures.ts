@@ -1,14 +1,19 @@
 import type { GameFamily } from './games';
 
+// How a caught slot is held:
+// - caught: a regular, properly obtained mon.
+// - temporary: a placeholder (e.g. from Pokémon GO or traded from a stranger)
+//   that should eventually be replaced with a properly obtained one.
+// - locked: this slot is final and never changing.
+export type CaptureStatus = 'caught' | 'temporary' | 'locked';
+
 export interface Capture {
-  dex_id: number;
   pokemon: CapturePokemon;
   captured: boolean;
-  // The game the mon currently lives in (id from data/games.json), if set.
+  // null while uncaught.
+  status: CaptureStatus | null;
+  // The game the mon originated from (id from data/games.json), if set.
   origin_game: string | null;
-  // A placeholder mon (e.g. from Pokémon GO or traded from a stranger) that
-  // should eventually be replaced with a properly obtained one.
-  temporary: boolean;
 }
 
 export interface CapturePokemon {

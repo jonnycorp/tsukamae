@@ -1,8 +1,8 @@
 import throttle from 'lodash/throttle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { DEX } from '../../../utils/local-data';
 import { Dex } from './Dex';
+import { DexContextProvider, useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { Footer } from '../../library/Footer';
 import { Info } from './Info';
 import { Nav } from '../../library/Nav';
@@ -11,11 +11,26 @@ import { SearchBar } from './SearchBar';
 import { TrackerContextProvider, useTrackerContext } from './use-tracker';
 import { useCaptures } from '../../../hooks/queries/captures';
 
-// To enable the inner component to access the context value, it needs to be nested under the provider, so we need this
-// wrapper component to add that nesting.
 export function Tracker () {
   return (
-    <TrackerContextProvider>
+    <DexContextProvider>
+      <TrackerLoader />
+    </DexContextProvider>
+  );
+}
+
+// Keying by the active dex remounts the whole tracker on a dex switch, so
+// per-dex UI state (captures, search query, filters, selected mon) resets
+// cleanly instead of carrying over from the previous dex.
+function TrackerLoader () {
+  const { activeDex } = useDexContext();
+
+  if (!activeDex) {
+    return <div className="loading">Loading...</div>;
+  }
+
+  return (
+    <TrackerContextProvider key={activeDex.id}>
       <TrackerInner />
     </TrackerContextProvider>
   );
@@ -24,9 +39,10 @@ export function Tracker () {
 export function TrackerInner () {
   const trackerRef = useRef<HTMLDivElement>(null);
 
+  const { activeDex } = useDexContext();
   const { setCaptures } = useTrackerContext();
 
-  const { data: storedCaptures, isLoading: capturesIsLoading } = useCaptures();
+  const { data: storedCaptures, isLoading: capturesIsLoading } = useCaptures(activeDex!.id);
 
   const [query, setQuery] = useState('');
   const [hideCaught, setHideCaught] = useState(false);
@@ -35,8 +51,8 @@ export function TrackerInner () {
   const [selectedPokemon, setSelectedPokemon] = useState(0);
 
   useEffect(() => {
-    document.title = `${DEX.title} | Pokédex Tracker`;
-  }, []);
+    document.title = `${activeDex!.title} | Tsukamae`;
+  }, [activeDex!.title]);
 
   useEffect(() => {
     if (trackerRef.current) {

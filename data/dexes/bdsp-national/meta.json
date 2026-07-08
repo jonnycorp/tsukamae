@@ -1,0 +1,29 @@
+{
+  "key": "bdsp-national",
+  "name": "Brilliant Diamond & Shining Pearl National Dex",
+  "game": {
+    "id": "brilliant_diamond",
+    "name": "Brilliant Diamond",
+    "game_family": {
+      "id": "brilliant_diamond_shining_pearl",
+      "generation": 8,
+      "regional_total": 0,
+      "national_total": 0,
+      "regional_support": false,
+      "national_support": false,
+      "order": 20,
+      "published": true
+    },
+    "order": 35
+  },
+  "dex_type": {
+    "id": 15,
+    "name": "Game National",
+    "game_family_id": "brilliant_diamond_shining_pearl",
+    "order": 2,
+    "tags": [
+      "game national"
+    ]
+  },
+  "total": 493
+}
