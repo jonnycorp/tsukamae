@@ -100,6 +100,46 @@
     }
   }
 
+  .info-capture-details {
+    @include flex(1 1 auto);
+
+    padding: 30px;
+    background-color: $brand-secondary;
+    border-bottom: 2px solid darken($brand-secondary-dark, 3%);
+
+    label {
+      font-family: $font-secondary;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    select.form-control {
+      display: block;
+      width: 100%;
+      margin: 10px 0 20px;
+      padding: 8px;
+      font-size: 16px;
+    }
+
+    .checkbox label {
+      display: inline-flex;
+      align-items: center;
+      text-transform: none;
+      font-family: $font-primary;
+      font-size: 16px;
+      font-weight: 400;
+      cursor: pointer;
+    }
+
+    .info-uncaught-note {
+      margin: 0;
+      font-size: 16px;
+      opacity: .7;
+    }
+  }
+
   .info-locations {
     @include flex(1 1 auto);
     @include overflow-y-scroll;
@@ -509,6 +549,16 @@ header {
 
     .game-family-legends_arceus {
       background-color: rgba(#ffffff, .5);
+    }
+  }
+
+  &.captured.temporary {
+    background-color: $temporary-light;
+
+    .set-captured,
+    .set-captured-mobile {
+      border-color: rgba($temporary, .6);
+      border-style: dashed;
     }
   }
 

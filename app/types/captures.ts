@@ -4,6 +4,11 @@ export interface Capture {
   dex_id: number;
   pokemon: CapturePokemon;
   captured: boolean;
+  // The game the mon currently lives in (id from data/games.json), if set.
+  origin_game: string | null;
+  // A placeholder mon (e.g. from Pokémon GO or traded from a stranger) that
+  // should eventually be replaced with a properly obtained one.
+  temporary: boolean;
 }
 
 export interface CapturePokemon {

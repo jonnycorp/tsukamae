@@ -358,3 +358,9 @@ tags
 
 .idea
 build
+
+# Personal tracking data must never land in the repo. Progress lives in the
+# per-user app data directory; these guard against exports saved in the repo.
+tsukamae-progress*.json
+*.tracker-export.json
+captures.json

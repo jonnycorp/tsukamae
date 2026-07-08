@@ -1,22 +1,16 @@
-import find from 'lodash/find';
-import keyBy from 'lodash/keyBy';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCaretLeft, faCaretRight, faLongArrowAltRight } from '@fortawesome/free-solid-svg-icons';
-import type { Dispatch, SetStateAction } from 'react';
 import { useMemo } from 'react';
-import { useParams } from 'react-router';
 
-import { EvolutionFamily } from './EvolutionFamily';
-import { InfoLocations } from './InfoLocations';
+import { DEX, ORIGIN_GAMES } from '../../../utils/local-data';
 import { PokemonName } from '../../library/PokemonName';
-import { ReactGA } from '../../../utils/analytics';
 import { iconClass } from '../../../utils/pokemon';
 import { nationalId, padding, serebiiLink } from '../../../utils/formatting';
 import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
-import { usePokemon } from '../../../hooks/queries/pokemon';
-import { useUser } from '../../../hooks/queries/users';
+import { useTrackerContext } from './use-tracker';
+import { useUpdateCapture } from '../../../hooks/queries/captures';
 
-import type { Dex } from '../../../types';
+import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 
 const SEREBII_LINKS: Record<string, string> = {
   x_y: 'pokedex-xy',
@@ -38,51 +32,51 @@ interface Props {
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
-export function Info ({ selectedPokemon, setSelectedPokemon }: Props) {
-  const { username, slug } = useParams<{ username: string; slug: string }>();
-
-  const user = useUser(username).data!;
-  const dex = useMemo<Dex>(() => keyBy(user.dexes, 'slug')[slug], [user, slug]);
-  const { data: pokemon } = usePokemon(selectedPokemon, {
-    dex_type: dex.dex_type.id,
-  });
-
+export function Info ({ selectedPokemon }: Props) {
+  const { captures, setCaptures } = useTrackerContext();
   const { showInfo, setShowInfo } = useLocalStorageContext();
 
-  const serebiiPath = useMemo(() => {
-    if (!pokemon) {
-      return '';
+  const updateCaptureMutation = useUpdateCapture();
+
+  const capture = useMemo(() => captures.find((cap) => cap.pokemon.id === selectedPokemon), [captures, selectedPokemon]);
+
+  const handleInfoClick = () => setShowInfo(!showInfo);
+
+  const handleOriginGameChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    if (!capture) {
+      return;
     }
 
-    const swshLocation = find(pokemon.locations, (loc) => loc.game.game_family.id === 'sword_shield');
-    const bdspLocation = find(pokemon.locations, (loc) => loc.game.game_family.id === 'brilliant_diamond_shining_pearl');
-    const plaLocation = find(pokemon.locations, (loc) => loc.game.game_family.id === 'legends_arceus');
-    const svLocation = find(pokemon.locations, (loc) => loc.game.game_family.id === 'scarlet_violet');
+    const originGame = e.target.value || null;
 
-    if (dex.game.game_family.id === 'home' && !svLocation) {
-      if (swshLocation && swshLocation.value.length > 0 && swshLocation.value[0] === 'Currently unavailable' && !bdspLocation && !plaLocation) {
-        // If the Pokemon's location is 'Currently unavailable' for SwSh and they
-        // don't have locations for any other gen8 game, that means they aren't
-        // available in this generation, so they don't have a gen8 Serebii page.
-        // Because of this, we go back to the SuMo Serebii links. This will
-        // probably need to be updating with future generations.
-        return 'pokedex-sm';
+    setCaptures((prev) => prev.map((cap) => {
+      if (cap.pokemon.id !== capture.pokemon.id) {
+        return cap;
       }
+      return { ...cap, origin_game: originGame };
+    }));
 
-      // This is a HOME dex, there is no SV location, and there is a gen8
-      // location, so we use the SwSh link.
-      return 'pokedex-swsh';
-    }
-
-    return SEREBII_LINKS[dex.game.game_family.id];
-  }, [dex, pokemon]);
-
-  const handleInfoClick = () => {
-    ReactGA.event({ action: showInfo ? 'collapse' : 'uncollapse', category: 'Info' });
-    setShowInfo(!showInfo);
+    updateCaptureMutation.mutate({ payload: { pokemon: capture.pokemon.id, origin_game: originGame } });
   };
 
-  if (!pokemon) {
+  const handleTemporaryChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!capture) {
+      return;
+    }
+
+    const temporary = e.target.checked;
+
+    setCaptures((prev) => prev.map((cap) => {
+      if (cap.pokemon.id !== capture.pokemon.id) {
+        return cap;
+      }
+      return { ...cap, temporary };
+    }));
+
+    updateCaptureMutation.mutate({ payload: { pokemon: capture.pokemon.id, temporary } });
+  };
+
+  if (!capture) {
     return (
       <div className={`info ${showInfo ? '' : 'collapsed'}`}>
         <div className="info-collapse" onClick={handleInfoClick}>
@@ -94,6 +88,10 @@ export function Info ({ selectedPokemon, setSelectedPokemon }: Props) {
     );
   }
 
+  const { pokemon } = capture;
+  const regional = DEX.dex_type.tags.includes('regional');
+  const idToDisplay = regional ? (pokemon.dex_number === -1 ? '---' : pokemon.dex_number) : nationalId(pokemon.national_id);
+
   return (
     <div className={`info ${showInfo ? '' : 'collapsed'}`}>
       <div className="info-collapse" onClick={handleInfoClick}>
@@ -102,27 +100,56 @@ export function Info ({ selectedPokemon, setSelectedPokemon }: Props) {
 
       <div className="info-main">
         <div className="info-header">
-          <i className={iconClass(pokemon, dex)} />
+          <i className={iconClass(pokemon, DEX)} />
           <h1><PokemonName name={pokemon.name} /></h1>
-          <h2>#{padding(dex.dex_type.tags.includes('regional') ? (pokemon.dex_number === -1 ? '---' : pokemon.dex_number) : nationalId(pokemon.national_id), dex.total >= 1000 ? 4 : 3)}</h2>
+          <h2>#{padding(idToDisplay, DEX.total >= 1000 ? 4 : 3)}</h2>
         </div>
 
-        <InfoLocations locations={pokemon.locations} />
-
-        <EvolutionFamily family={pokemon.evolution_family} setSelectedPokemon={setSelectedPokemon} />
+        {capture.captured ?
+          <div className="info-capture-details">
+            <div className="form-group">
+              <label htmlFor="origin-game">Currently In</label>
+              <select
+                className="form-control"
+                id="origin-game"
+                name="origin-game"
+                onChange={handleOriginGameChange}
+                value={capture.origin_game || ''}
+              >
+                <option value="">—</option>
+                {ORIGIN_GAMES.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <div className="checkbox">
+                <label>
+                  <input
+                    checked={capture.temporary}
+                    id="temporary"
+                    name="temporary"
+                    onChange={handleTemporaryChange}
+                    type="checkbox"
+                  />
+                  <span className="checkbox-custom"><span /></span>Temporary (to be replaced)
+                </label>
+              </div>
+            </div>
+          </div> :
+          <div className="info-capture-details">
+            <p className="info-uncaught-note">Not caught yet.</p>
+          </div>
+        }
 
         <div className="info-footer">
           <a
             href={`http://bulbapedia.bulbagarden.net/wiki/${encodeURI(pokemon.name)}_(Pok%C3%A9mon)`}
-            onClick={() => ReactGA.event({ action: 'open Bulbapedia link', category: 'Info', label: pokemon.name })}
             rel="noopener noreferrer"
             target="_blank"
           >
             Bulbapedia <FontAwesomeIcon icon={faLongArrowAltRight} />
           </a>
           <a
-            href={serebiiLink(serebiiPath, pokemon.national_id)}
-            onClick={() => ReactGA.event({ action: 'open Serebii link', category: 'Info', label: pokemon.name })}
+            href={serebiiLink(SEREBII_LINKS[DEX.game.game_family.id], pokemon.national_id)}
             rel="noopener noreferrer"
             target="_blank"
           >

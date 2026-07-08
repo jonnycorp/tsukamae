@@ -15,10 +15,13 @@ interface Props {
   setHideCaught: Dispatch<SetStateAction<boolean>>;
   setQuery: Dispatch<SetStateAction<string>>;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
+  setTemporaryOnly: Dispatch<SetStateAction<boolean>>;
+  temporaryOnly: boolean;
 }
 
-export function SearchResults ({ captures, hideCaught, query, setHideCaught, setQuery, setSelectedPokemon }: Props) {
+export function SearchResults ({ captures, hideCaught, query, setHideCaught, setQuery, setSelectedPokemon, setTemporaryOnly, temporaryOnly }: Props) {
   const handleClearCaughtFilter = () => setHideCaught(false);
+  const handleClearTemporaryFilter = () => setTemporaryOnly(false);
   const handleClearClick = () => setQuery('');
 
   const filteredCaptures = useMemo(() => {
@@ -27,6 +30,7 @@ export function SearchResults ({ captures, hideCaught, query, setHideCaught, set
       const natId = nationalId(capture.pokemon.national_id);
 
       const matchesCaught = !hideCaught || !capture.captured;
+      const matchesTemporary = !temporaryOnly || (capture.captured && capture.temporary);
       const matchesQuery =
         // Case-insensitive name prefix match (e.g. bulba)
         capture.pokemon.name.toLowerCase().indexOf(query.toLowerCase()) === 0 ||
@@ -43,9 +47,9 @@ export function SearchResults ({ captures, hideCaught, query, setHideCaught, set
         // Exact 4-digit formatted national ID match (e.g. 0001, 0002, 0003)
         padding(natId, 4) === query;
 
-      return matchesCaught && matchesQuery;
+      return matchesCaught && matchesTemporary && matchesQuery;
     });
-  }, [captures, hideCaught, query]);
+  }, [captures, hideCaught, query, temporaryOnly]);
 
   if (filteredCaptures.length === 0) {
     let message = <p>No results. <a className="link" onClick={handleClearClick}>Clear your search?</a></p>;
@@ -56,6 +60,8 @@ export function SearchResults ({ captures, hideCaught, query, setHideCaught, set
       } else {
         message = <p>No uncaught Pokémon. <a className="link" onClick={handleClearCaughtFilter}>Show all Pokémon?</a></p>;
       }
+    } else if (temporaryOnly) {
+      message = <p>No temporary Pokémon{query ? ' matching your search' : ''}. <a className="link" onClick={handleClearTemporaryFilter}>Show all Pokémon?</a></p>;
     }
 
     return (

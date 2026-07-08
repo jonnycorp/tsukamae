@@ -119,6 +119,10 @@
     text-transform: uppercase;
     letter-spacing: 1px;
   }
+
+  .temporary-count {
+    color: darken($temporary, 15%);
+  }
 }
 
 .progress-outer {

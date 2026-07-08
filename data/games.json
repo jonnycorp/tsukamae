@@ -1,0 +1,86 @@
+[
+  {
+    "id": "home",
+    "name": "HOME"
+  },
+  {
+    "id": "scarlet",
+    "name": "Scarlet"
+  },
+  {
+    "id": "violet",
+    "name": "Violet"
+  },
+  {
+    "id": "legends_arceus",
+    "name": "Legends: Arceus"
+  },
+  {
+    "id": "brilliant_diamond",
+    "name": "Brilliant Diamond"
+  },
+  {
+    "id": "shining_pearl",
+    "name": "Shining Pearl"
+  },
+  {
+    "id": "sword",
+    "name": "Sword"
+  },
+  {
+    "id": "shield",
+    "name": "Shield"
+  },
+  {
+    "id": "lets_go_pikachu",
+    "name": "Let's Go, Pikachu!"
+  },
+  {
+    "id": "lets_go_eevee",
+    "name": "Let's Go, Eevee!"
+  },
+  {
+    "id": "ultra_sun",
+    "name": "Ultra Sun"
+  },
+  {
+    "id": "ultra_moon",
+    "name": "Ultra Moon"
+  },
+  {
+    "id": "sun",
+    "name": "Sun"
+  },
+  {
+    "id": "moon",
+    "name": "Moon"
+  },
+  {
+    "id": "omega_ruby",
+    "name": "Omega Ruby"
+  },
+  {
+    "id": "alpha_sapphire",
+    "name": "Alpha Sapphire"
+  },
+  {
+    "id": "x",
+    "name": "X"
+  },
+  {
+    "id": "y",
+    "name": "Y"
+  },
+  {
+    "id": "go",
+    "name": "Pokémon GO"
+  },
+  {
+    "id": "trade",
+    "name": "Trade (stranger)"
+  },
+  {
+    "id": "other",
+    "name": "Other"
+  }
+]

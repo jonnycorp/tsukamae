@@ -1,75 +1,89 @@
-# pokedextracker.com
+# Tsukamae
 
-[![CircleCI](https://circleci.com/gh/pokedextracker/pokedextracker.com.svg?style=shield)](https://circleci.com/gh/pokedextracker/pokedextracker.com)
-[![Dependency Status](https://david-dm.org/pokedextracker/pokedextracker.com.svg)](https://david-dm.org/pokedextracker/pokedextracker.com)
+A personal, fully offline living dex tracker, running as a Windows desktop app
+(Electron). Forked from [pokedextracker.com](https://pokedextracker.com) and
+stripped down to a single-user, single-dex tracker with no server, no login,
+and no network dependency.
 
-A website to track your completion of a Living Pokedex.
+## What it tracks
 
-## Install
+One **HOME National Living Dex** (1,080 slots: national order with
+Alolan/Galarian/Hisuian/Paldean form boxes at the bottom). On top of the usual
+caught/uncaught state, each mon can also track:
 
-This project has been tested to work with Node.js v5 (at least v5.10) and v6 (though it might work for other versions), so make sure you have one of them installed and active when running this application. This project also relies on the `yarn.lock` file to lock down dependency versions, so we recommend that you use [`yarn`](https://yarnpkg.com/en/) instead of `npm` to avoid "it works on my computer" bugs that are all too common with just a `package.json`.
+- **Currently In** — which game the mon currently lives in (Scarlet, GO,
+  HOME, …), picked from a fixed dropdown.
+- **Temporary** — a placeholder mon (e.g. from Pokémon GO or traded from a
+  stranger) that should eventually be replaced with a properly obtained one.
+  Temporary mons show with an orange dashed tile, get their own count in the
+  progress bar, and can be filtered with the "Temporary Only" checkbox.
 
-### Unix
+## Where your data lives
 
-When on Linux or Mac OS X, we recommend using [`nvm`](https://github.com/creationix/nvm) so that you can easily switch between Node versions. This is so that they don't conflict with each other when working on different Node projects.
+**Progress is never stored in this repo.** Every fresh clone starts with an
+empty tracker. Your data lives in a single JSON file:
 
-```sh
-$ nvm install 5
-$ nvm use 5
-$ yarn
+```
+%APPDATA%\tsukamae\captures.json
 ```
 
-If you have [`avn`](https://github.com/wbyoung/avn) or [`nodenv`](https://github.com/nodenv/nodenv) setup, the `.node-version` file should automatically switch the version for you.
+Every change auto-saves (debounced, atomic writes) — there is no save button.
+Open the app, click things, close it. To move progress between machines use
+**File → Export Progress… / Import Progress…**; the export is just that JSON
+file.
 
-Keep in mind though that `nvm` is not required to run this application.
+> The storage layer is a plain JSON file on purpose. If it ever needs to be a
+> real database, swap the `tracker:load` / `tracker:save` IPC handlers in
+> `electron/main.js` for SQLite (`better-sqlite3`) — nothing else needs to
+> change. Wholly unneeded at the current scale.
 
-### Windows
+## Development
 
-While there is [`nvm` for Windows](https://github.com/coreybutler/nvm-windows), we've seen some people having issues with later versions of Node. So instead, it might just be easier to install Node using the [Windows Installer](https://nodejs.org/en/download/current/). Once you have Node installed, then you should be able to just install the dependencies.
+Requires Node (see `.node-version`) and Yarn.
 
-```dos
-> yarn
+```bash
+yarn install
+
+# Desktop app (webpack dev server + Electron, hot reload)
+yarn electron:dev
+
+# Browser-only dev (persistence falls back to localStorage)
+yarn start          # http://localhost:9898
+
+# Build a Windows installer (output in dist/)
+yarn electron:build
+
+# Lint + typecheck
+yarn lint:all
 ```
 
-## Running
+## Updating the dex for a new game
 
-To run the development server to test it locally, you only need to run:
+The dex structure is a static snapshot in `data/` (`dex.json`, `games.json`,
+`dex-meta.json`), generated from the live pokedextracker API:
 
-```sh
-$ yarn start
+```bash
+yarn dataset        # optionally: node scripts/generate-dataset.mjs <user> <slug>
 ```
 
-Once the bundle becomes valid, you should be able to go to [http://localhost:8080](http://localhost:8080) to view it.
+When a new generation lands, regenerate the dataset (and update the sprite
+sheet `public/pokesprite-v12.png` + `app/styles/pokesprite.scss` from
+upstream). The generation script strips all personal progress — only
+structure is committed.
 
-## Linting
+## Architecture notes
 
-To ensure your files are following the preferred style guide, you can run:
+- React 17 + TypeScript SPA (webpack, SCSS), UI inherited from
+  pokedextracker.com — grid of 30-slot PC boxes, search, hide-caught filter.
+- All remote-API code was replaced by `app/utils/local-data.ts` (bundled
+  dataset) + `app/hooks/queries/captures.ts` (progress store).
+- The Electron main process (`electron/main.js`) serves the built bundle over
+  a custom `app://` protocol and owns the progress file; the renderer talks
+  to it through the `window.tracker` bridge (`electron/preload.js`).
+- Fonts and sprites are self-hosted; the app makes zero network requests.
 
-```sh
-$ yarn run lint
-```
+## Credits
 
-This is run on Travis whenever a commit is made so if you're going to [contribute](CONTRIBUTING.md), you should make sure your files pass the linter.
-
-## Docker
-
-Every merge into the `master` branch on GitHub triggers a new build for a Docker image. That image will overwrite the `latest` tag, and there will be an explicit tag with the first 7 characters of the commit hash. The server will be listening on port 4939 so if you run a container locally, make sure that traffic is forwarded to that port. For example:
-
-```sh
-$ docker run --rm --publish 3000:4939 --name pokedextracker pokedextracker/pokedextracker.com:latest
-```
-
-## Deployments
-
->Note: you need the necessary permissions to be able to deploy.
-
-The [deploy script](script/deploy.sh) uses [Helm](https://helm.sh/) and the
-[`web-app` Helm
-chart](https://github.com/pokedextracker/charts/tree/master/src/web-app) to
-create a new release in the PokedexTracker Kubernetes cluster. Pass in the
-newly created Docker tag to deploy that version to the cluster.
-
-```sh
-$ yarn deploy:staging 123abcd
-$ yarn deploy:production 123abcd
-```
+Built on [pokedextracker.com](https://github.com/pokedextracker) by Robin
+Joseph — the dex structure, box layout, and sprite system all come from that
+project. Licensed MIT.
