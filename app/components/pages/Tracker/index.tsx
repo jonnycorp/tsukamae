@@ -9,6 +9,7 @@ import { SCROLL_DEBOUNCE, SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SearchBar } from './SearchBar';
 import { TrackerContextProvider, useTrackerContext } from './use-tracker';
 import { useCaptures } from '../../../hooks/queries/captures';
+import { useTranslation } from '../../../hooks/use-translation';
 
 export function Tracker () {
   return <TrackerLoader />;
@@ -36,6 +37,7 @@ export function TrackerInner () {
 
   const { activeDex } = useDexContext();
   const { captures, setCaptures } = useTrackerContext();
+  const { t } = useTranslation();
 
   const { data: storedCaptures, isLoading: capturesIsLoading } = useCaptures(activeDex!.id);
 
@@ -46,8 +48,8 @@ export function TrackerInner () {
   const [selectedPokemon, setSelectedPokemon] = useState(0);
 
   useEffect(() => {
-    document.title = `${activeDex!.title} | Tsukamae`;
-  }, [activeDex!.title]);
+    document.title = `${activeDex!.title} | ${t('app.name')}`;
+  }, [activeDex!.title, t]);
 
   useEffect(() => {
     if (trackerRef.current) {

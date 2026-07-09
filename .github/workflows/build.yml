@@ -30,12 +30,12 @@ jobs:
 
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Reads the Node version from .node-version and caches the yarn store
       # (keyed on yarn.lock) so later runs install faster.
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: yarn
@@ -60,7 +60,7 @@ jobs:
       # Also attach the installer to the workflow run itself (kept 90 days) —
       # handy for grabbing a manual/test build without cutting a release.
       - name: Upload the installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tsukamae-${{ matrix.platform }}
           path: |

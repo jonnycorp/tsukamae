@@ -2,6 +2,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef } from 'react';
 
+import { useTranslation } from '../../../hooks/use-translation';
+
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 
 interface Props {
@@ -15,6 +17,7 @@ interface Props {
 
 export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemporaryOnly, temporaryOnly }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const handleKeyup = (e: KeyboardEvent) => {
@@ -50,7 +53,7 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
             id="search"
             name="search"
             onChange={handleInputChange}
-            placeholder="Search by name or # (use / to quick search)"
+            placeholder={t('search.placeholder')}
             ref={inputRef}
             spellCheck="false"
             type="text"
@@ -74,7 +77,7 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
                   onChange={handleHideCaughtChange}
                   type="checkbox"
                 />
-                <span className="checkbox-custom"><span /></span>Hide Caught Pokémon
+                <span className="checkbox-custom"><span /></span>{t('search.hideCaught')}
               </label>
             </div>
           </div>
@@ -88,7 +91,7 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
                   onChange={handleTemporaryOnlyChange}
                   type="checkbox"
                 />
-                <span className="checkbox-custom"><span /></span>Temporary Only
+                <span className="checkbox-custom"><span /></span>{t('search.temporaryOnly')}
               </label>
             </div>
           </div>

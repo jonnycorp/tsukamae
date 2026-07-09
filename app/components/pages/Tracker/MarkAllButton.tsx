@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { useCreateCapture, useDeleteCapture } from '../../../hooks/queries/captures';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerContext } from './use-tracker';
+import { useTranslation } from '../../../hooks/use-translation';
 
 import type { UICapture } from './use-tracker';
 
@@ -15,6 +16,7 @@ interface Props {
 export function MarkAllButton ({ captures }: Props) {
   const { activeDex } = useDexContext();
   const { setCaptures } = useTrackerContext();
+  const { t } = useTranslation();
 
   const createCapturesMutation = useCreateCapture(activeDex!.id);
   const deleteCapturesMutation = useDeleteCapture(activeDex!.id);
@@ -73,7 +75,7 @@ export function MarkAllButton ({ captures }: Props) {
 
   return (
     <button className="btn btn-blue" disabled={isLoading} onClick={handleButtonClick}>
-      <span className={isLoading ? 'hidden' : ''}>{uncaught === 0 ? 'Unmark' : 'Mark'} All</span>
+      <span className={isLoading ? 'hidden' : ''}>{t(uncaught === 0 ? 'markAll.unmark' : 'markAll.mark')}</span>
       {isLoading ?
         <span className="spinner">
           <FontAwesomeIcon icon={faCircleNotch} spin />

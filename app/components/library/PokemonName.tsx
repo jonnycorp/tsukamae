@@ -1,21 +1,30 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faVenus, faMars } from '@fortawesome/free-solid-svg-icons';
 
+import { useTranslation } from '../../hooks/use-translation';
+
 interface Props {
   name: string;
+  // Katakana species name; shown when the UI locale is Japanese. Falls back to
+  // the English name for entries that don't have one.
+  nameJa?: string | null;
 }
 
-export function PokemonName ({ name }: Props) {
-  const male = name.indexOf('♂') > -1;
-  const female = name.indexOf('♀') > -1;
+export function PokemonName ({ name, nameJa }: Props) {
+  const { locale } = useTranslation();
+
+  const displayName = (locale === 'ja' && nameJa) || name;
+
+  const male = displayName.indexOf('♂') > -1;
+  const female = displayName.indexOf('♀') > -1;
 
   if (!male && !female) {
-    return <>{name}</>;
+    return <>{displayName}</>;
   }
 
   return (
     <>
-      {name.replace(/[♂♀]/g, '')}
+      {displayName.replace(/[♂♀]/g, '')}
       {male && <FontAwesomeIcon icon={faMars} />}
       {female && <FontAwesomeIcon icon={faVenus} />}
     </>

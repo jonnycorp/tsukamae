@@ -5,12 +5,14 @@ import { DexModal } from '../library/DexModal';
 import { Progress } from '../library/Progress';
 import { dexCounts, toDexView } from '../../utils/local-data';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
+import { useTranslation } from '../../hooks/use-translation';
 
 // The landing page: the home view the logo returns to. Lists every dex you
 // have (opening one enters its tracker) and offers to create a new one. With no
 // dexes it's just the create prompt.
 export function Landing () {
   const { dexes, setActiveDex } = useDexContext();
+  const { t } = useTranslation();
 
   const [showCreate, setShowCreate] = useState(false);
 
@@ -20,8 +22,8 @@ export function Landing () {
     <div className="home-container">
       <div className="home">
         <div className="hero">
-          <img alt="Tsukamae" src="/pokeball.svg" />
-          <h1>Tsukamae</h1>
+          <img alt={t('app.name')} src="/pokeball.svg" />
+          <h1>{t('app.name')}</h1>
         </div>
 
         <div className="sub">
@@ -40,11 +42,11 @@ export function Landing () {
                 );
               })}
             </ul> :
-            <p className="dex-list-empty">No dexes yet — create your first one to start tracking.</p>
+            <p className="dex-list-empty">{t('landing.empty')}</p>
           }
 
           <button className="btn btn-blue" onClick={() => setShowCreate(true)} type="button">
-            {hasDexes ? 'Create a New Dex' : 'Create Your First Dex'}
+            {hasDexes ? t('landing.createNew') : t('landing.createFirst')}
           </button>
         </div>
       </div>

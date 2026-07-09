@@ -1,17 +1,19 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileExport, faFileImport, faGear, faMoon, faPencilAlt, faPlus, faSun, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faFileExport, faFileImport, faGear, faLanguage, faMoon, faPencilAlt, faPlus, faSun, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { DexModal } from './DexModal';
 import { exportAppState, importAppState } from '../../utils/local-data';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
+import { useTranslation } from '../../hooks/use-translation';
 
 import type { ChangeEvent } from 'react';
 
 export function Nav () {
-  const { isNightMode, setIsNightMode } = useLocalStorageContext();
+  const { isNightMode, setIsNightMode, locale, setLocale } = useLocalStorageContext();
   const { dexes, activeDex, setActiveDex } = useDexContext();
+  const { t } = useTranslation();
 
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -36,6 +38,7 @@ export function Nav () {
   }, [showDataMenu]);
 
   const handleNightModeClick = () => setIsNightMode(!isNightMode);
+  const handleLanguageToggle = () => setLocale(locale === 'en' ? 'ja' : 'en');
   // The logo returns to the landing page (no dex open).
   const handleLogoClick = () => setActiveDex('');
   const handleDexChange = (e: ChangeEvent<HTMLSelectElement>) => setActiveDex(e.target.value);
@@ -68,7 +71,7 @@ export function Nav () {
   // landing page exists.
   const handleWipeClick = () => {
     setShowDataMenu(false);
-    window.alert('Wipe Data is coming with the landing page.');
+    window.alert(t('nav.wipeAlert'));
   };
 
   const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -82,16 +85,16 @@ export function Nav () {
     try {
       raw = JSON.parse(await file.text());
     } catch {
-      window.alert('That file isn\'t valid JSON.');
+      window.alert(t('nav.importInvalidJson'));
       return;
     }
 
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-      window.alert('That file doesn\'t look like a Tsukamae progress export.');
+      window.alert(t('nav.importNotExport'));
       return;
     }
 
-    if (!window.confirm('Importing will REPLACE all current dexes and progress. Continue?')) {
+    if (!window.confirm(t('nav.importConfirm'))) {
       return;
     }
 
@@ -101,7 +104,7 @@ export function Nav () {
 
   return (
     <nav>
-      <a className="nav-logo" onClick={handleLogoClick}>Tsukamae</a>
+      <a className="nav-logo" onClick={handleLogoClick}>{t('app.name')}</a>
       {activeDex &&
         <div className="nav-dex-controls">
           <select className="nav-dex-select" onChange={handleDexChange} value={activeDex.id}>
@@ -109,11 +112,11 @@ export function Nav () {
           </select>
           <a className="tooltip tooltip-below" onClick={handleEditDexClick}>
             <FontAwesomeIcon icon={faPencilAlt} />
-            <span className="tooltip-text">Edit Dex</span>
+            <span className="tooltip-text">{t('nav.editDex')}</span>
           </a>
           <a className="tooltip tooltip-below" onClick={handleNewDexClick}>
             <FontAwesomeIcon icon={faPlus} />
-            <span className="tooltip-text">New Dex</span>
+            <span className="tooltip-text">{t('nav.newDex')}</span>
           </a>
         </div>
       }
@@ -123,9 +126,9 @@ export function Nav () {
         </a>
         {showDataMenu &&
           <ul className="nav-menu-dropdown">
-            <li onClick={handleExportClick}><FontAwesomeIcon icon={faFileExport} /> Export Progress</li>
-            <li onClick={handleImportClick}><FontAwesomeIcon icon={faFileImport} /> Import Progress</li>
-            <li className="nav-menu-danger" onClick={handleWipeClick}><FontAwesomeIcon icon={faTrash} /> Wipe Data</li>
+            <li onClick={handleExportClick}><FontAwesomeIcon icon={faFileExport} /> {t('nav.export')}</li>
+            <li onClick={handleImportClick}><FontAwesomeIcon icon={faFileImport} /> {t('nav.import')}</li>
+            <li className="nav-menu-danger" onClick={handleWipeClick}><FontAwesomeIcon icon={faTrash} /> {t('nav.wipe')}</li>
           </ul>
         }
       </div>
@@ -136,9 +139,13 @@ export function Nav () {
         style={{ display: 'none' }}
         type="file"
       />
+      <a className="tooltip tooltip-below" onClick={handleLanguageToggle}>
+        <FontAwesomeIcon icon={faLanguage} />
+        <span className="tooltip-text">{locale === 'en' ? '日本語' : 'English'}</span>
+      </a>
       <a className="tooltip tooltip-below" onClick={handleNightModeClick}>
         <FontAwesomeIcon icon={isNightMode ? faSun : faMoon} />
-        <span className="tooltip-text">Night Mode {isNightMode ? 'Off' : 'On'}</span>
+        <span className="tooltip-text">{t(isNightMode ? 'nav.nightModeOff' : 'nav.nightModeOn')}</span>
       </a>
       {showCreate && <DexModal onRequestClose={handleCreateClose} />}
       {showEdit && activeDex && <DexModal dex={activeDex} onRequestClose={handleEditClose} />}

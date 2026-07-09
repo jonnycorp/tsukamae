@@ -1,13 +1,14 @@
 {
   "name": "tsukamae",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A personal offline living dex tracker (fork of pokedextracker.com)",
   "main": "electron/main.js",
   "scripts": {
     "build": "npm run build:bundle && npm run build:public",
     "build:bundle": "node -e \"fs.rmSync('build',{recursive:true,force:true})\" && webpack --node-env production",
     "build:public": "node -e \"fs.cpSync('public','build',{recursive:true})\"",
-    "dataset": "node scripts/generate-dataset.mjs",
+    "dataset": "node scripts/generate-dataset.mjs && node scripts/add-japanese-names.mjs",
+    "dataset:ja": "node scripts/add-japanese-names.mjs",
     "electron:build": "yarn build && electron-builder --win",
     "electron:dev": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron .\"",
     "electron:dev:fresh": "TSUKAMAE_USER_DATA=\"$(mktemp -d)\" yarn electron:dev",
@@ -19,7 +20,7 @@
   },
   "build": {
     "appId": "com.jonnycorp.tsukamae",
-    "productName": "Tsukamae",
+    "productName": "tsukamae",
     "files": [
       "build/**/*",
       "electron/**/*",

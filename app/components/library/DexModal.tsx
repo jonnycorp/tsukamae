@@ -3,8 +3,10 @@ import { faAsterisk, faChevronDown, faLongArrowAltRight } from '@fortawesome/fre
 import { useMemo, useState } from 'react';
 
 import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex } from '../../utils/local-data';
+import { localizeCatalogDexName, localizeCatalogGame, localizeDexType } from '../../i18n/names';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
+import { useTranslation } from '../../hooks/use-translation';
 
 import type { CatalogDex, PersonalDex } from '../../utils/local-data';
 import type { ChangeEvent, FormEvent, MouseEvent, ReactNode } from 'react';
@@ -42,7 +44,8 @@ interface Props {
 }
 
 export function DexModal ({ dex, onRequestClose }: Props) {
-  const { dexes, createDex, updateDex, deleteDex } = useDexContext();
+  const { createDex, updateDex, deleteDex } = useDexContext();
+  const { t, locale } = useTranslation();
 
   const initialCatalog = getCatalogDex(dex?.catalogKey || DEFAULT_CATALOG_KEY);
 
@@ -93,7 +96,9 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const resolvedTitle = title.trim() || getCatalogDex(catalogKey).name;
+    // An empty title falls back to the catalog name in the language the user
+    // was typing in — titles are user data, saved as-is.
+    const resolvedTitle = title.trim() || localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name);
 
     if (dex) {
       updateDex(dex.id, { title: resolvedTitle, shiny });
@@ -107,28 +112,27 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     if (!dex) {
       return;
     }
-    if (window.confirm(`Delete "${dex.title}" and ALL of its progress? This cannot be undone.`)) {
+    // Deleting the open dex (even the only one) drops back to the landing page.
+    if (window.confirm(t('dexModal.deleteConfirm', { title: dex.title }))) {
       deleteDex(dex.id);
       onRequestClose();
     }
   };
 
-  const isOnlyDex = (dexes?.length || 0) <= 1;
-
   return (
-    <ModalShell contentLabel={dex ? 'Edit Dex' : 'Create a New Dex'} onRequestClose={onRequestClose}>
+    <ModalShell contentLabel={t(dex ? 'dexModal.editTitle' : 'dexModal.createTitle')} onRequestClose={onRequestClose}>
       <div className="form">
-        <h1>{dex ? 'Edit Dex' : 'Create New Dex'}</h1>
+        <h1>{t(dex ? 'dexModal.editTitle' : 'dexModal.createTitle')}</h1>
         <form className="form-column" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="dex_title">Title</label>
+            <label htmlFor="dex_title">{t('dexModal.titleLabel')}</label>
             <input
               className="form-control"
               id="dex_title"
               maxLength={300}
               name="dex_title"
               onChange={handleTitleChange}
-              placeholder={getCatalogDex(catalogKey).name}
+              placeholder={localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name)}
               type="text"
               value={title}
             />
@@ -136,12 +140,12 @@ export function DexModal ({ dex, onRequestClose }: Props) {
           </div>
           {dex ?
             <div className="form-group">
-              <label>Dex</label>
-              <div className="form-note">{getCatalogDex(dex.catalogKey).name} ({getCatalogDex(dex.catalogKey).total} Pokémon) — the dex structure can&apos;t be changed after creation.</div>
+              <label>{t('dexModal.dex')}</label>
+              <div className="form-note">{t('dexModal.structureNote', { name: localizeCatalogDexName(locale, dex.catalogKey, getCatalogDex(dex.catalogKey).name), total: getCatalogDex(dex.catalogKey).total })}</div>
             </div> :
             <>
               <div className="form-group">
-                <label htmlFor="dex_game">Game</label>
+                <label htmlFor="dex_game">{t('dexModal.game')}</label>
                 <select
                   className="form-control"
                   id="dex_game"
@@ -149,12 +153,12 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                   onChange={handleGameChange}
                   value={gameId}
                 >
-                  {gamesWithDexes.map((group) => <option key={group.game.id} value={group.game.id}>{group.game.name}</option>)}
+                  {gamesWithDexes.map((group) => <option key={group.game.id} value={group.game.id}>{localizeCatalogGame(locale, group.game.id, group.game.name)}</option>)}
                 </select>
                 <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
               </div>
               <div className="form-group">
-                <label htmlFor="dex_catalog">Dex</label>
+                <label htmlFor="dex_catalog">{t('dexModal.dex')}</label>
                 <select
                   className="form-control"
                   id="dex_catalog"
@@ -162,7 +166,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                   onChange={handleCatalogChange}
                   value={catalogKey}
                 >
-                  {dexesForGame.map((entry) => <option key={entry.key} value={entry.key}>{entry.dex_type.name} ({entry.total})</option>)}
+                  {dexesForGame.map((entry) => <option key={entry.key} value={entry.key}>{localizeDexType(locale, entry.dex_type.name)} ({entry.total})</option>)}
                 </select>
                 <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
               </div>
@@ -178,27 +182,25 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                   onChange={handleShinyChange}
                   type="checkbox"
                 />
-                <span className="checkbox-custom"><span /></span>Shiny
+                <span className="checkbox-custom"><span /></span>{t('common.shiny')}
               </label>
             </div>
           </div>
           <button className="btn btn-blue" type="submit">
-            {dex ? 'Save' : 'Create'} <FontAwesomeIcon icon={faLongArrowAltRight} />
+            {t(dex ? 'dexModal.save' : 'dexModal.create')} <FontAwesomeIcon icon={faLongArrowAltRight} />
           </button>
           {dex &&
             <button
               className="btn btn-white"
-              disabled={isOnlyDex}
               onClick={handleDeleteClick}
-              title={isOnlyDex ? 'The tracker always needs at least one dex.' : undefined}
               type="button"
             >
-              Delete Dex
+              {t('dexModal.delete')}
             </button>
           }
         </form>
       </div>
-      <p><a className="link back-link" onClick={onRequestClose}>Go Back</a></p>
+      <p><a className="link back-link" onClick={onRequestClose}>{t('dexModal.goBack')}</a></p>
     </ModalShell>
   );
 }

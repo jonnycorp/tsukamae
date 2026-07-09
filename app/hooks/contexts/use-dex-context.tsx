@@ -54,6 +54,9 @@ export const DexContextProvider = ({ children }: Props) => {
 
   useEffect(() => {
     loadAppState().then((state) => {
+      // The app always opens on the landing page — the persisted active dex
+      // only tracks navigation within a session, never across launches.
+      state.activeDexId = '';
       setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes] });
     });
   }, []);

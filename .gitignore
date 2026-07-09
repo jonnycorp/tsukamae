@@ -364,3 +364,7 @@ build
 tsukamae-progress*.json
 *.tracker-export.json
 captures.json
+
+# Claude Code local config (dev-server launch config, permissions, etc.) is
+# machine-specific and shouldn't be shared via the repo.
+.claude/
