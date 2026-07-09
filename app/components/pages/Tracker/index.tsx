@@ -2,21 +2,16 @@ import throttle from 'lodash/throttle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Dex } from './Dex';
-import { DexContextProvider, useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { Footer } from '../../library/Footer';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { Info } from './Info';
-import { Nav } from '../../library/Nav';
 import { SCROLL_DEBOUNCE, SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SearchBar } from './SearchBar';
 import { TrackerContextProvider, useTrackerContext } from './use-tracker';
 import { useCaptures } from '../../../hooks/queries/captures';
 
 export function Tracker () {
-  return (
-    <DexContextProvider>
-      <TrackerLoader />
-    </DexContextProvider>
-  );
+  return <TrackerLoader />;
 }
 
 // Keying by the active dex remounts the whole tracker on a dex switch, so
@@ -40,7 +35,7 @@ export function TrackerInner () {
   const trackerRef = useRef<HTMLDivElement>(null);
 
   const { activeDex } = useDexContext();
-  const { setCaptures } = useTrackerContext();
+  const { captures, setCaptures } = useTrackerContext();
 
   const { data: storedCaptures, isLoading: capturesIsLoading } = useCaptures(activeDex!.id);
 
@@ -63,7 +58,6 @@ export function TrackerInner () {
   useEffect(() => {
     if (storedCaptures) {
       setCaptures(storedCaptures);
-      setSelectedPokemon(storedCaptures[0].pokemon.id);
     }
   }, [storedCaptures]);
 
@@ -81,13 +75,14 @@ export function TrackerInner () {
     }
   }, [trackerRef.current]);
 
-  if (capturesIsLoading || !selectedPokemon) {
+  // Wait until the captures list is populated (via the effect above). Nothing
+  // is selected on load, so the info panel stays closed until a mon is clicked.
+  if (capturesIsLoading || captures.length === 0) {
     return <div className="loading">Loading...</div>;
   }
 
   return (
     <div className="tracker-container">
-      <Nav />
       <div className="tracker">
         <div className="dex-wrapper">
           <SearchBar

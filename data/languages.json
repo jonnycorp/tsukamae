@@ -1,0 +1,11 @@
+[
+  { "id": "japanese", "name": "Japanese", "abbr": "JPN" },
+  { "id": "english", "name": "English", "abbr": "ENG" },
+  { "id": "french", "name": "French", "abbr": "FRE" },
+  { "id": "italian", "name": "Italian", "abbr": "ITA" },
+  { "id": "german", "name": "German", "abbr": "GER" },
+  { "id": "spanish", "name": "Spanish", "abbr": "SPA" },
+  { "id": "korean", "name": "Korean", "abbr": "KOR" },
+  { "id": "chinese_simplified", "name": "Chinese (Simplified)", "abbr": "CHS" },
+  { "id": "chinese_traditional", "name": "Chinese (Traditional)", "abbr": "CHT" }
+]

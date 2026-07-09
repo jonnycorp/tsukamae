@@ -1,0 +1,113 @@
+.home-container {
+  @include flexbox();
+  @include flex-direction(column);
+
+  background: $brand-primary url('/pattern.png') repeat center center;
+  background-size: 500px 250px;
+  text-align: center;
+
+  .home {
+    @include flex-grow(1);
+    @include flexbox();
+    @include flex-direction(column);
+    @include align-items(center);
+    @include justify-content(center);
+    @include overflow-y-scroll();
+
+    padding: 40px 20px;
+  }
+
+  // The hero drops in from above and the list rises from below — they meet in
+  // the middle (the `slide` keyframe animates each to top: 0).
+  .hero {
+    @include animation(slide 1s cubic-bezier(0, 0, .05, 1) forwards);
+
+    position: relative;
+    top: -60px;
+
+    img {
+      width: 90px;
+      height: 90px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: $font-secondary;
+      font-size: 54px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: $brand-secondary;
+    }
+  }
+
+  .sub {
+    @include animation(slide 1s cubic-bezier(0, 0, .05, 1) forwards);
+    @include flexbox();
+    @include flex-direction(column);
+    @include align-items(center);
+
+    position: relative;
+    top: 60px;
+    width: 100%;
+  }
+
+  // A clean list that blends into the field — hairline separators and a soft
+  // hover, no heavy box.
+  .dex-list {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 0 24px;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+  }
+
+  .dex-list-item {
+    @include transition(background-color .1s ease-out);
+
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba($brand-secondary, .15);
+    cursor: pointer;
+
+    &:first-child {
+      border-top: 1px solid rgba($brand-secondary, .15);
+    }
+
+    &:hover {
+      background-color: rgba($brand-secondary, .07);
+    }
+
+    .dex-list-item-title {
+      @include flexbox();
+      @include align-items(center);
+      @include justify-content(space-between);
+
+      h3 {
+        margin: 0;
+        font-family: $font-secondary;
+        font-size: 18px;
+        font-weight: 700;
+        color: $brand-secondary;
+      }
+    }
+  }
+
+  .dex-list-empty {
+    max-width: 480px;
+    margin: 0 0 24px;
+    font-size: 15px;
+    color: $brand-secondary;
+  }
+
+  .btn {
+    display: inline-block;
+    width: auto;
+    min-width: 220px;
+  }
+}
+
+.night-mode .home-container {
+  background-image: url('/pattern-night.png');
+}

@@ -1,0 +1,69 @@
+name: Build Installers
+
+# When this runs:
+#   - "workflow_dispatch": a manual "Run workflow" button in the Actions tab.
+#   - pushing a version tag like v1.0.0: cuts installers for that version.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    # One run per OS. Each installer is built on its own native runner
+    # (Windows exe on Windows, macOS dmg on macOS), so there's no
+    # cross-compilation and no Wine.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+    runs-on: ${{ matrix.os }}
+
+    # Needed for the tagged builds to create/attach a GitHub Release.
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      # Reads the Node version from .node-version and caches the yarn store
+      # (keyed on yarn.lock) so later runs install faster.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build the web bundle
+        run: yarn build
+
+      # On a version tag (v1.0.0), publish to a permanent GitHub Release so old
+      # installers are archived forever. On a manual run (no tag), just build —
+      # the artifact upload below covers those.
+      - name: Package the installer
+        run: yarn electron-builder --${{ matrix.platform }} --publish ${{ startsWith(github.ref, 'refs/tags/') && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No Apple Developer cert, so skip macOS signing (unsigned is fine for
+          # personal use). Ignored on Windows.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      # Also attach the installer to the workflow run itself (kept 90 days) —
+      # handy for grabbing a manual/test build without cutting a release.
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsukamae-${{ matrix.platform }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+          if-no-files-found: ignore

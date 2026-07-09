@@ -1,45 +1,36 @@
 # Tsukamae
 
-A personal, fully offline living dex tracker, running as a Windows desktop app
-(Electron). Forked from [pokedextracker.com](https://pokedextracker.com) and
-stripped down to a single-user, single-dex tracker with no server, no login,
-and no network dependency.
+A personal living dex tracker, running as a Windows desktop app (Electron). Forked from [pokedextracker.com](https://pokedextracker.com) and stripped down to a local-contained, offline, and single-user app with additional marking capabilities to reflect continuous and fluid progression.
 
-## What it tracks
+## Additional Capabilities
 
-One **HOME National Living Dex** (1,080 slots: national order with
-Alolan/Galarian/Hisuian/Paldean form boxes at the bottom). On top of the usual
-caught/uncaught state, each mon can also track:
+Beyond the upstream caught/uncaught toggle, each slot tracks how it's held and
+where the mon came from:
 
-- **Currently In** — which game the mon currently lives in (Scarlet, GO,
-  HOME, …), picked from a fixed dropdown.
-- **Temporary** — a placeholder mon (e.g. from Pokémon GO or traded from a
-  stranger) that should eventually be replaced with a properly obtained one.
-  Temporary mons show with an orange dashed tile, get their own count in the
-  progress bar, and can be filtered with the "Temporary Only" checkbox.
+- **Capture status** — every caught slot is one of:
+  - _Caught_ — a regular, properly obtained mon.
+  - _Temporary_ — a placeholder (e.g. from GO or a stranger trade) to replace
+    with a proper one later.
+  - _Locked_ — the slot is final and never changing.
+- **Quick marking** — clicking a tile catches it; hovering reveals one-click
+  buttons for the other statuses. Every tile click opens the info sidebar.
+- **Per-mon metadata** (info sidebar) — _Origin Game_ and _Language of origin_
+  (English, Japanese, and the other mainline languages), since foreign-language
+  mons are worth distinguishing. _Release_ clears the slot and its metadata.
+- **Multiple personal dexes** — each is its own instance of a catalog dex with
+  independent progress, switchable from the nav.
 
-## Where your data lives
+## Data Persistence
 
-**Progress is never stored in this repo.** Every fresh clone starts with an
-empty tracker. Your data lives in a single JSON file:
-
-```
-%APPDATA%\tsukamae\captures.json
-```
-
-Every change auto-saves (debounced, atomic writes) — there is no save button.
-Open the app, click things, close it. To move progress between machines use
-**File → Export Progress… / Import Progress…**; the export is just that JSON
-file.
-
-> The storage layer is a plain JSON file on purpose. If it ever needs to be a
-> real database, swap the `tracker:load` / `tracker:save` IPC handlers in
-> `electron/main.js` for SQLite (`better-sqlite3`) — nothing else needs to
-> change. Wholly unneeded at the current scale.
+TODO FILL
 
 ## Development
 
-Requires Node (see `.node-version`) and Yarn.
+Requires Node (see `.node-version`) and Yarn. Use **Yarn, not npm** — the
+committed lockfile is `yarn.lock`, and some type packages (e.g. `@types/react`)
+are peer dependencies that npm 7+ silently auto-installs but Yarn does not. They
+are pinned explicitly in `package.json`, so `yarn install` gives a complete,
+type-checkable tree.
 
 ```bash
 yarn install
@@ -48,7 +39,7 @@ yarn install
 yarn electron:dev
 
 # Browser-only dev (persistence falls back to localStorage)
-yarn start          # http://localhost:9898
+yarn start # http://localhost:9898
 
 # Build a Windows installer (output in dist/)
 yarn electron:build
@@ -57,33 +48,22 @@ yarn electron:build
 yarn lint:all
 ```
 
-## Updating the dex for a new game
+## Future-proofing
 
-The dex structure is a static snapshot in `data/` (`dex.json`, `games.json`,
-`dex-meta.json`), generated from the live pokedextracker API:
+The dex structure is a static snapshot in `data/` (`dex.json`, `games.json`, `dex-meta.json`), generated from the live pokedextracker API:
 
 ```bash
-yarn dataset        # optionally: node scripts/generate-dataset.mjs <user> <slug>
+yarn dataset
 ```
 
-When a new generation lands, regenerate the dataset (and update the sprite
-sheet `public/pokesprite-v12.png` + `app/styles/pokesprite.scss` from
-upstream). The generation script strips all personal progress — only
-structure is committed.
+When a new generation arrives, regenerate the dataset (and update the sprite sheet `public/pokesprite-v12.png` + `app/styles/pokesprite.scss` from upstream). The generation script strips all personal progress — only structure is committed, so make sure to export data beforehand.
 
-## Architecture notes
+TODO VERIFY ABOVE IS POSSIBLE (EXPORT) AND PROVIDE UPDATE SCRIPT
 
-- React 17 + TypeScript SPA (webpack, SCSS), UI inherited from
-  pokedextracker.com — grid of 30-slot PC boxes, search, hide-caught filter.
-- All remote-API code was replaced by `app/utils/local-data.ts` (bundled
-  dataset) + `app/hooks/queries/captures.ts` (progress store).
-- The Electron main process (`electron/main.js`) serves the built bundle over
-  a custom `app://` protocol and owns the progress file; the renderer talks
-  to it through the `window.tracker` bridge (`electron/preload.js`).
-- Fonts and sprites are self-hosted; the app makes zero network requests.
+## Architecture
+
+TODO REDO WITH LESS REFERENCE TO FORK, ADD REPO DIAGRAM
 
 ## Credits
 
-Built on [pokedextracker.com](https://github.com/pokedextracker) by Robin
-Joseph — the dex structure, box layout, and sprite system all come from that
-project. Licensed MIT.
+Built on [pokedextracker.com](https://github.com/pokedextracker). The frontend structure comes from this project; personal additions build upon this foundation. Licensed MIT.

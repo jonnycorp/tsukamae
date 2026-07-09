@@ -41,7 +41,26 @@ module.exports = {
   module: {
     rules: [
       { test: /\.[jt]sx?$/, loader: 'babel-loader', exclude: /node_modules/ },
-      { test: /\.scss$/, use: ['style-loader', { loader: 'css-loader', options: { url: false } }, 'sass-loader'] },
+      {
+        test: /\.scss$/,
+        use: [
+          'style-loader',
+          { loader: 'css-loader', options: { url: false } },
+          {
+            loader: 'sass-loader',
+            options: {
+              api: 'modern',
+              // The stylesheets still use the legacy `@import` and global color
+              // functions (lighten/darken). These are deprecated but not yet
+              // removed; silence the noise until they're migrated to `@use` /
+              // `color.adjust`.
+              sassOptions: {
+                silenceDeprecations: ['import', 'global-builtin', 'color-functions'],
+              },
+            },
+          },
+        ],
+      },
     ],
   },
   plugins: [
@@ -49,6 +68,10 @@ module.exports = {
     new Webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV) || 'undefined',
       'process.env.VERSION': JSON.stringify(process.env.VERSION || 'development'),
+      // When set (via `yarn start:fresh`), the app keeps progress in memory only
+      // — nothing touches localStorage, so every launch/reload starts empty and
+      // real saved data is never read or overwritten.
+      'process.env.TSUKAMAE_FRESH': JSON.stringify(process.env.TSUKAMAE_FRESH || ''),
     }),
   ],
 };
