@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCaretLeft, faCaretRight, faLongArrowAltRight, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useMemo } from 'react';
 
-import { ORIGIN_GAMES } from '../../../utils/local-data';
+import { LANGUAGES, ORIGIN_GAMES } from '../../../utils/local-data';
 import { PokemonName } from '../../library/PokemonName';
 import { iconClass } from '../../../utils/pokemon';
 import { nationalId, padding, serebiiLink } from '../../../utils/formatting';
@@ -69,6 +69,23 @@ export function Info ({ selectedPokemon }: Props) {
     updateCaptureMutation.mutate({ payload: { pokemon: capture.pokemon.id, origin_game: originGame } });
   };
 
+  const handleLanguageChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    if (!capture) {
+      return;
+    }
+
+    const language = e.target.value || null;
+
+    setCaptures((prev) => prev.map((cap) => {
+      if (cap.pokemon.id !== capture.pokemon.id) {
+        return cap;
+      }
+      return { ...cap, language };
+    }));
+
+    updateCaptureMutation.mutate({ payload: { pokemon: capture.pokemon.id, language } });
+  };
+
   const handleStatusChange = (e: ChangeEvent<HTMLSelectElement>) => {
     if (!capture) {
       return;
@@ -97,19 +114,18 @@ export function Info ({ selectedPokemon }: Props) {
       if (cap.pokemon.id !== capture.pokemon.id) {
         return cap;
       }
-      return { ...cap, captured: false, status: null, origin_game: null };
+      return { ...cap, captured: false, status: null, origin_game: null, language: null };
     }));
 
     deleteCaptureMutation.mutate({ payload: { pokemon: [capture.pokemon.id] } });
   };
 
+  // With nothing selected the panel stays closed — it only opens once a mon is
+  // picked (selecting one also flips showInfo on). This avoids an empty panel
+  // sitting open on load.
   if (!capture) {
     return (
-      <div className={`info ${showInfo ? '' : 'collapsed'}`}>
-        <div className="info-collapse" onClick={handleInfoClick}>
-          <FontAwesomeIcon icon={showInfo ? faCaretRight : faCaretLeft} />
-        </div>
-
+      <div className="info collapsed">
         <div className="info-main" />
       </div>
     );
@@ -147,6 +163,19 @@ export function Info ({ selectedPokemon }: Props) {
                 >
                   <option value="">—</option>
                   {ORIGIN_GAMES.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="language">Language</label>
+                <select
+                  className="form-control"
+                  id="language"
+                  name="language"
+                  onChange={handleLanguageChange}
+                  value={capture.language || ''}
+                >
+                  <option value="">—</option>
+                  {LANGUAGES.map((language) => <option key={language.id} value={language.id}>{language.name}</option>)}
                 </select>
               </div>
               <div className="form-group">

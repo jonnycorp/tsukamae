@@ -48,6 +48,7 @@ export const useCreateCapture = (dexId: string) => {
           dex.progress[id] = {
             status: dex.progress[id]?.status ?? 'caught',
             origin_game: dex.progress[id]?.origin_game ?? null,
+            language: dex.progress[id]?.language ?? null,
           };
         }
       });
@@ -82,6 +83,7 @@ export interface UpdateCapturePayload {
   pokemon: number;
   origin_game?: string | null;
   status?: CaptureStatus;
+  language?: string | null;
 }
 
 interface UpdateCaptureMutationVariables {
@@ -97,6 +99,7 @@ export const useUpdateCapture = (dexId: string) => {
         dex.progress[pokemon] = {
           status: dex.progress[pokemon]?.status ?? 'caught',
           origin_game: dex.progress[pokemon]?.origin_game ?? null,
+          language: dex.progress[pokemon]?.language ?? null,
           ...changes,
         };
       });

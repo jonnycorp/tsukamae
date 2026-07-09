@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { BrowserWindow, Menu, app, dialog, ipcMain, net, protocol, shell } = require('electron');
+const { BrowserWindow, Menu, app, ipcMain, net, protocol, shell } = require('electron');
 
 const DEV_SERVER_URL = 'http://localhost:9898';
 const SAVE_DEBOUNCE_MS = 300;
@@ -96,63 +96,6 @@ ipcMain.handle('tracker:save', (_event, progress) => {
 });
 
 // ---------------------------------------------------------------------------
-// Export / Import: the only way progress moves between machines.
-// ---------------------------------------------------------------------------
-
-async function exportProgress (win) {
-  await flushSave();
-  const { canceled, filePath } = await dialog.showSaveDialog(win, {
-    title: 'Export Progress',
-    defaultPath: 'tsukamae-progress.json',
-    filters: [{ name: 'JSON', extensions: ['json'] }],
-  });
-  if (canceled || !filePath) {
-    return;
-  }
-  let contents = '{}';
-  try {
-    contents = await fsp.readFile(progressFile(), 'utf8');
-  } catch {
-    // No progress yet; export an empty object.
-  }
-  await fsp.writeFile(filePath, contents);
-}
-
-async function importProgress (win) {
-  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-    title: 'Import Progress',
-    filters: [{ name: 'JSON', extensions: ['json'] }],
-    properties: ['openFile'],
-  });
-  if (canceled || filePaths.length === 0) {
-    return;
-  }
-  let progress;
-  try {
-    progress = JSON.parse(await fsp.readFile(filePaths[0], 'utf8'));
-    if (!progress || typeof progress !== 'object' || Array.isArray(progress)) {
-      throw new Error('not a progress object');
-    }
-  } catch (err) {
-    dialog.showErrorBox('Import Failed', `That file doesn't look like a Tsukamae progress export.\n\n${err.message}`);
-    return;
-  }
-  const { response } = await dialog.showMessageBox(win, {
-    type: 'warning',
-    buttons: ['Replace', 'Cancel'],
-    defaultId: 1,
-    title: 'Import Progress',
-    message: 'Importing will replace ALL current progress with the file contents. Continue?',
-  });
-  if (response !== 0) {
-    return;
-  }
-  pendingProgress = null;
-  await writeProgress(progress);
-  win.reload();
-}
-
-// ---------------------------------------------------------------------------
 // App / window setup
 // ---------------------------------------------------------------------------
 
@@ -188,14 +131,12 @@ function createWindow () {
   return win;
 }
 
-function buildMenu (win) {
+function buildMenu () {
   const template = [
     {
       label: 'File',
       submenu: [
-        { label: 'Export Progress…', click: () => exportProgress(win).catch((err) => dialog.showErrorBox('Export Failed', err.message)) },
-        { label: 'Import Progress…', click: () => importProgress(win).catch((err) => dialog.showErrorBox('Import Failed', err.message)) },
-        { type: 'separator' },
+        // Import/Export live in the app UI (nav), not the native menu.
         { role: 'quit' },
       ],
     },
@@ -227,8 +168,8 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(target).toString());
   });
 
-  const win = createWindow();
-  buildMenu(win);
+  createWindow();
+  buildMenu();
 });
 
 app.on('before-quit', flushSaveSync);

@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faClock, faInfo, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faClock, faLock } from '@fortawesome/free-solid-svg-icons';
 
 import { PokemonName } from '../../library/PokemonName';
 import { iconClass } from '../../../utils/pokemon';
@@ -129,9 +129,6 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
         </div>
         <h4><PokemonName name={capture.pokemon.name} /></h4>
         <p>#{padding(idToDisplay, paddingDigits)}</p>
-      </div>
-      <div className="set-info" onClick={openInfo}>
-        <FontAwesomeIcon icon={faInfo} />
       </div>
     </div>
   );

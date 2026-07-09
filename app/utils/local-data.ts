@@ -16,6 +16,7 @@ import letsGoRegionalMeta from '../../data/dexes/lets-go-regional/meta.json';
 import letsGoRegionalPokemon from '../../data/dexes/lets-go-regional/pokemon.json';
 import orasRegionalMeta from '../../data/dexes/oras-regional/meta.json';
 import orasRegionalPokemon from '../../data/dexes/oras-regional/pokemon.json';
+import languagesJson from '../../data/languages.json';
 import originGamesJson from '../../data/games.json';
 import paldeaFullMeta from '../../data/dexes/paldea-full/meta.json';
 import paldeaFullPokemon from '../../data/dexes/paldea-full/pokemon.json';
@@ -58,8 +59,33 @@ interface CatalogMeta {
   total: number;
 }
 
+// The bundled data names each dex's game after its single lead version (e.g.
+// "Scarlet"); these override that with the recognizable pair shown in the dex
+// picker and dex list. HOME stays HOME (it's the vehicle) — only the "National
+// Dex" name is cleaned of the HOME prefix, below.
+const GAME_NAME_OVERRIDES: Record<string, string> = {
+  scarlet: 'Scarlet/Violet',
+  scarlet_expansion_pass: 'Scarlet/Violet (Expansion Pass)',
+  sword: 'Sword/Shield',
+  sword_expansion_pass: 'Sword/Shield (Expansion Pass)',
+  brilliant_diamond: 'Brilliant Diamond/Shining Pearl',
+  lets_go_pikachu: 'Let\'s Go Pikachu/Eevee',
+  ultra_sun: 'Ultra Sun/Ultra Moon',
+  sun: 'Sun/Moon',
+  omega_ruby: 'Omega Ruby/Alpha Sapphire',
+  x: 'X/Y',
+  // home and legends_arceus keep their names (vehicle / single game).
+};
+
 function catalogEntry (meta: unknown, pokemonList: unknown): CatalogDex {
-  return { ...(meta as CatalogMeta), pokemonList: pokemonList as CapturePokemon[] };
+  const entry = { ...(meta as CatalogMeta), pokemonList: pokemonList as CapturePokemon[] };
+  const gameName = GAME_NAME_OVERRIDES[entry.game.id];
+  if (gameName) {
+    entry.game = { ...entry.game, name: gameName };
+  }
+  // Drop the legacy "HOME " prefix from the national-dex display names.
+  entry.name = entry.name.replace(/^HOME /, '');
+  return entry;
 }
 
 // Same order as DEX_MANIFEST in scripts/generate-dataset.mjs (newest first);
@@ -100,6 +126,17 @@ export interface OriginGame {
 }
 export const ORIGIN_GAMES = originGamesJson as OriginGame[];
 
+// Language-of-origin options for the "what language is this mon" dropdown. The
+// set of languages the mainline games (Gen 6+ / HOME) support is small and
+// fixed, so it lives in a bundled file rather than behind an API. `abbr` is the
+// in-game three-letter tag (JPN, ENG, …).
+export interface Language {
+  id: string;
+  name: string;
+  abbr: string;
+}
+export const LANGUAGES = languagesJson as Language[];
+
 // ---------------------------------------------------------------------------
 // Persisted state: the user's personal dexes, each an instance of a catalog
 // entry with its own progress. Progress is a sparse map keyed by pokemon id —
@@ -109,6 +146,7 @@ export const ORIGIN_GAMES = originGamesJson as OriginGame[];
 export interface ProgressEntry {
   status: CaptureStatus;
   origin_game: string | null;
+  language: string | null;
 }
 export type Progress = Record<string, ProgressEntry>;
 
@@ -137,15 +175,10 @@ interface LegacyProgressEntry {
   temporary: boolean;
 }
 
+// A brand-new install has no dexes and lands on the landing page. activeDexId
+// '' means "no dex open" — the user creates their first dex from there.
 function seedState (): AppState {
-  const dex: PersonalDex = {
-    id: newDexId(),
-    title: 'HOME National Living Dex',
-    catalogKey: DEFAULT_CATALOG_KEY,
-    shiny: false,
-    progress: {},
-  };
-  return { activeDexId: dex.id, dexes: [dex] };
+  return { activeDexId: '', dexes: [] };
 }
 
 function migrateLegacyState (legacy: Record<string, LegacyProgressEntry>): AppState {
@@ -157,11 +190,19 @@ function migrateLegacyState (legacy: Record<string, LegacyProgressEntry>): AppSt
     progress[pokemonId] = {
       status: entry.temporary ? 'temporary' : 'caught',
       origin_game: entry.origin_game || null,
+      language: null,
     };
   }
-  const state = seedState();
-  state.dexes[0].progress = progress;
-  return state;
+  // Preserve the old implicit single dex as a real National dex, but land on
+  // the landing page (activeDexId '') with it shown in the list.
+  const dex: PersonalDex = {
+    id: newDexId(),
+    title: 'National Living Dex',
+    catalogKey: DEFAULT_CATALOG_KEY,
+    shiny: false,
+    progress,
+  };
+  return { activeDexId: '', dexes: [dex] };
 }
 
 function normalizeState (raw: unknown): AppState {
@@ -176,11 +217,11 @@ function normalizeState (raw: unknown): AppState {
     return migrateLegacyState(raw as Record<string, LegacyProgressEntry>);
   }
   const state = raw as unknown as AppState;
-  if (state.dexes.length === 0) {
-    return seedState();
-  }
-  if (!state.dexes.some((dex) => dex.id === state.activeDexId)) {
-    state.activeDexId = state.dexes[0].id;
+  // An empty dex list is valid (landing page). Only clear activeDexId when it
+  // points at a dex that no longer exists — fall back to the landing page
+  // rather than force-opening an arbitrary dex.
+  if (state.activeDexId && !state.dexes.some((dex) => dex.id === state.activeDexId)) {
+    state.activeDexId = '';
   }
   return state;
 }
@@ -204,7 +245,16 @@ declare global {
 
 const BROWSER_STORAGE_KEY = 'progress';
 
+// Fresh/test mode (`yarn start:fresh`): keep everything in memory only. Real
+// localStorage is never read or written, so testing can't clobber saved data
+// and every reload starts from a clean slate.
+const FRESH = process.env.TSUKAMAE_FRESH === '1';
+let memoryStore: unknown = {};
+
 async function loadRaw (): Promise<unknown> {
+  if (FRESH) {
+    return memoryStore;
+  }
   if (window.tracker) {
     return window.tracker.load();
   }
@@ -216,6 +266,10 @@ async function loadRaw (): Promise<unknown> {
 }
 
 async function saveRaw (state: AppState): Promise<void> {
+  if (FRESH) {
+    memoryStore = state;
+    return;
+  }
   if (window.tracker) {
     return window.tracker.save(state);
   }
@@ -246,6 +300,28 @@ export async function mutateAppState (mutator: (state: AppState) => void): Promi
   mutator(state);
   await saveRaw(state);
   return state;
+}
+
+// ---------------------------------------------------------------------------
+// Import / Export: a portable JSON snapshot of the whole tracker (every dex and
+// its progress). Used to back up data and carry it between app versions or
+// machines. Works in the browser and the Electron build alike; the Electron
+// File menu offers the same thing via native OS dialogs.
+// ---------------------------------------------------------------------------
+
+export function exportAppState (): string {
+  return JSON.stringify(getAppState(), null, 2);
+}
+
+// Adopt an imported snapshot as the new state and persist it. normalizeState
+// validates and migrates older/legacy shapes, so an export from a previous
+// version still imports cleanly. Callers should reload afterwards so the React
+// tree re-derives from the new snapshot.
+export async function importAppState (raw: unknown): Promise<AppState> {
+  const next = normalizeState(raw);
+  appState = next;
+  await saveRaw(next);
+  return next;
 }
 
 // ---------------------------------------------------------------------------
@@ -282,6 +358,20 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
       captured: Boolean(entry),
       status: entry ? entry.status : null,
       origin_game: entry ? entry.origin_game : null,
+      // `?? null` keeps progress files written before languages existed valid.
+      language: entry ? entry.language ?? null : null,
     };
   });
+}
+
+// Summary counts for a dex (for the landing-page list). Every progress entry is
+// a caught mon; temporary/locked are subsets by status.
+export function dexCounts (dex: PersonalDex): { caught: number; temporary: number; locked: number; total: number } {
+  const entries = Object.values(dex.progress);
+  return {
+    caught: entries.length,
+    temporary: entries.filter((entry) => entry.status === 'temporary').length,
+    locked: entries.filter((entry) => entry.status === 'locked').length,
+    total: getCatalogDex(dex.catalogKey).total,
+  };
 }

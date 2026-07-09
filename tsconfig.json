@@ -10,9 +10,6 @@
     /* Allow default imports from modules with no default export. This does not affect code emit, just typechecking. */
     "allowSyntheticDefaultImports": true,
 
-    /* Base directory to resolve non-absolute module names. */
-    "baseUrl": "app",
-
     /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
     "esModuleInterop": true,
 
@@ -81,15 +78,16 @@
 
     /* ---MODULE RESOLUTION OPTIONS---*/
 
-    /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */
-    "moduleResolution": "node",
+    /* 'bundler' resolution matches how webpack actually resolves this project.
+       It's the modern, non-deprecated choice for bundled apps and pairs with
+       'module: esnext'. (Replaces the legacy 'node'/'node10' strategy.) */
+    "moduleResolution": "bundler",
 
     /* Allow importing the static dataset JSON files in data/. */
     "resolveJsonModule": true,
 
     /* List of folders to include type definitions from. */
     "typeRoots": [
-      "app/*",
       "node_modules/@types"
     ],
 
