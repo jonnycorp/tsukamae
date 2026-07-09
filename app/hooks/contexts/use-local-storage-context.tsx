@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo } from 'react';
 import { useLocalStorage } from '../use-local-storage';
 
+import type { Locale } from '../../i18n/translations';
 import type { ReactNode } from 'react';
 import type { SetLocalStorageFn } from '../use-local-storage';
 
@@ -13,6 +14,9 @@ interface LocalStorageContextState {
   setIsNightMode: SetLocalStorageFn<boolean>;
   showInfo: boolean;
   setShowInfo: SetLocalStorageFn<boolean>;
+  // The app's UI language (distinct from a mon's per-capture origin language).
+  locale: Locale;
+  setLocale: SetLocalStorageFn<Locale>;
 }
 
 const LocalStorageContext = createContext<LocalStorageContextState>({
@@ -22,6 +26,8 @@ const LocalStorageContext = createContext<LocalStorageContextState>({
   setIsNightMode: () => {},
   showInfo: false,
   setShowInfo: () => {},
+  locale: 'en',
+  setLocale: () => {},
 });
 
 interface Props {
@@ -32,6 +38,7 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const [hideNotification, setHideNotification] = useLocalStorage('notif-2024.01.20', { defaultValue: false, parseAsJson: true });
   const [isNightMode, setIsNightMode] = useLocalStorage('nightMode', { defaultValue: true, parseAsJson: true });
   const [showInfo, setShowInfo] = useLocalStorage('showInfo', { defaultValue: window.innerWidth > MOBILE_WIDTH, parseAsJson: true });
+  const [locale, setLocale] = useLocalStorage<Locale>('locale', { defaultValue: 'en', parseAsJson: true });
 
   const contextValue = useMemo<LocalStorageContextState>(() => ({
     hideNotification,
@@ -40,6 +47,8 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
     setIsNightMode,
     showInfo,
     setShowInfo,
+    locale,
+    setLocale,
   }), [
     hideNotification,
     setHideNotification,
@@ -47,6 +56,8 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
     setIsNightMode,
     showInfo,
     setShowInfo,
+    locale,
+    setLocale,
   ]);
 
   return (

@@ -5,14 +5,17 @@ import { useMemo } from 'react';
 import { LANGUAGES, ORIGIN_GAMES } from '../../../utils/local-data';
 import { PokemonName } from '../../library/PokemonName';
 import { iconClass } from '../../../utils/pokemon';
+import { localizeCaptureLanguage, localizeOriginGame } from '../../../i18n/names';
 import { nationalId, padding, serebiiLink } from '../../../utils/formatting';
 import { useDeleteCapture, useUpdateCapture } from '../../../hooks/queries/captures';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerContext } from './use-tracker';
+import { useTranslation } from '../../../hooks/use-translation';
 
 import type { CaptureStatus } from '../../../types';
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
+import type { TranslationKey } from '../../../i18n/translations';
 
 const SEREBII_LINKS: Record<string, string> = {
   x_y: 'pokedex-xy',
@@ -29,10 +32,10 @@ const SEREBII_LINKS: Record<string, string> = {
   home: 'pokedex-sv',
 };
 
-const STATUS_OPTIONS: { value: CaptureStatus; label: string }[] = [
-  { value: 'caught', label: 'Caught' },
-  { value: 'temporary', label: 'Temporary' },
-  { value: 'locked', label: 'Locked' },
+const STATUS_OPTIONS: { value: CaptureStatus; labelKey: TranslationKey }[] = [
+  { value: 'caught', labelKey: 'status.caught' },
+  { value: 'temporary', labelKey: 'status.temporary' },
+  { value: 'locked', labelKey: 'status.locked' },
 ];
 
 interface Props {
@@ -44,6 +47,7 @@ export function Info ({ selectedPokemon }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { captures, setCaptures } = useTrackerContext();
   const { showInfo, setShowInfo } = useLocalStorageContext();
+  const { t, locale } = useTranslation();
 
   const updateCaptureMutation = useUpdateCapture(activeDex!.id);
   const deleteCaptureMutation = useDeleteCapture(activeDex!.id);
@@ -145,7 +149,7 @@ export function Info ({ selectedPokemon }: Props) {
       <div className="info-main">
         <div className="info-header">
           <i className={iconClass(pokemon, dexView)} />
-          <h1><PokemonName name={pokemon.name} /></h1>
+          <h1><PokemonName name={pokemon.name} nameJa={pokemon.name_ja} /></h1>
           <h2>#{padding(idToDisplay, dexView.total >= 1000 ? 4 : 3)}</h2>
         </div>
 
@@ -153,7 +157,7 @@ export function Info ({ selectedPokemon }: Props) {
           {capture.captured ?
             <>
               <div className="form-group">
-                <label htmlFor="origin-game">Origin Game</label>
+                <label htmlFor="origin-game">{t('info.originGame')}</label>
                 <select
                   className="form-control"
                   id="origin-game"
@@ -162,11 +166,11 @@ export function Info ({ selectedPokemon }: Props) {
                   value={capture.origin_game || ''}
                 >
                   <option value="">—</option>
-                  {ORIGIN_GAMES.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}
+                  {ORIGIN_GAMES.map((game) => <option key={game.id} value={game.id}>{localizeOriginGame(locale, game.id, game.name)}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="language">Language</label>
+                <label htmlFor="language">{t('info.language')}</label>
                 <select
                   className="form-control"
                   id="language"
@@ -175,11 +179,11 @@ export function Info ({ selectedPokemon }: Props) {
                   value={capture.language || ''}
                 >
                   <option value="">—</option>
-                  {LANGUAGES.map((language) => <option key={language.id} value={language.id}>{language.name}</option>)}
+                  {LANGUAGES.map((language) => <option key={language.id} value={language.id}>{localizeCaptureLanguage(locale, language.id, language.name)}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="status">Status</label>
+                <label htmlFor="status">{t('info.status')}</label>
                 <select
                   className="form-control"
                   id="status"
@@ -187,11 +191,11 @@ export function Info ({ selectedPokemon }: Props) {
                   onChange={handleStatusChange}
                   value={capture.status || 'caught'}
                 >
-                  {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
                 </select>
               </div>
             </> :
-            <p className="info-uncaught-note">Not caught yet.</p>
+            <p className="info-uncaught-note">{t('info.notCaught')}</p>
           }
 
           <div className="info-links">
@@ -215,7 +219,7 @@ export function Info ({ selectedPokemon }: Props) {
         {capture.captured &&
           <div className="info-footer">
             <button className="info-release" onClick={handleRelease} type="button">
-              <FontAwesomeIcon icon={faTrash} /> Release
+              <FontAwesomeIcon icon={faTrash} /> {t('info.release')}
             </button>
           </div>
         }

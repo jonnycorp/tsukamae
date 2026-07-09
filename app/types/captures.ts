@@ -23,6 +23,8 @@ export interface CapturePokemon {
   id: number;
   national_id: number;
   name: string;
+  // Official katakana species name (from PokéAPI via scripts/add-japanese-names.mjs).
+  name_ja: string | null;
   game_family: GameFamily;
   form: string | null;
   box: string | null;
