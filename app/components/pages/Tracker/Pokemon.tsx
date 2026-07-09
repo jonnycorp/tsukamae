@@ -9,19 +9,21 @@ import { useDelayedRender } from '../../../hooks/use-delayed-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerContext } from './use-tracker';
+import { useTranslation } from '../../../hooks/use-translation';
 import { useUpdateCapture } from '../../../hooks/queries/captures';
 
 import type { CaptureStatus } from '../../../types';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { Dispatch, MouseEvent, SetStateAction } from 'react';
+import type { TranslationKey } from '../../../i18n/translations';
 import type { UICapture } from './use-tracker';
 
 // The status a hover button sets, and how it's labelled. A tile only shows the
 // statuses it isn't currently in.
-const STATUS_META: { status: CaptureStatus; icon: IconDefinition; label: string }[] = [
-  { status: 'caught', icon: faCheck, label: 'Caught' },
-  { status: 'temporary', icon: faClock, label: 'Temporary' },
-  { status: 'locked', icon: faLock, label: 'Locked' },
+const STATUS_META: { status: CaptureStatus; icon: IconDefinition; labelKey: TranslationKey }[] = [
+  { status: 'caught', icon: faCheck, labelKey: 'status.caught' },
+  { status: 'temporary', icon: faClock, labelKey: 'status.temporary' },
+  { status: 'locked', icon: faLock, labelKey: 'status.locked' },
 ];
 
 interface Props {
@@ -36,6 +38,7 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { setCaptures } = useTrackerContext();
   const { setShowInfo } = useLocalStorageContext();
+  const { t } = useTranslation();
 
   const updateCaptureMutation = useUpdateCapture(activeDex!.id);
 
@@ -109,7 +112,7 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
             className={`status-btn status-btn-${meta.status}`}
             key={meta.status}
             onClick={(e) => handleStatusClick(e, meta.status)}
-            title={meta.label}
+            title={t(meta.labelKey)}
             type="button"
           >
             <FontAwesomeIcon icon={meta.icon} />
@@ -117,7 +120,7 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
         ))}
       </div>
       <div className="set-captured" onClick={handleTileClick}>
-        <h4><PokemonName name={capture.pokemon.name} /></h4>
+        <h4><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></h4>
         <div className="icon-wrapper">
           <i className={iconClass(capture.pokemon, dexView)} />
         </div>
@@ -127,7 +130,7 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
         <div className="icon-wrapper">
           <i className={iconClass(capture.pokemon, dexView)} />
         </div>
-        <h4><PokemonName name={capture.pokemon.name} /></h4>
+        <h4><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></h4>
         <p>#{padding(idToDisplay, paddingDigits)}</p>
       </div>
     </div>

@@ -673,6 +673,10 @@ header {
     margin: 0;
     font-size: 17px;
     font-weight: 400;
+    // Absolute line-height so the tile's interior layout is identical in both
+    // languages (CJK glyph metrics would otherwise grow the line box).
+    line-height: 22px;
+    white-space: nowrap;
   }
 
   .icon-wrapper {
@@ -914,5 +918,27 @@ header {
     &.collapsed {
       width: inherit;
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Japanese type sizing. CJK glyphs fill the full em square (Latin lowercase
+// only fills the x-height), so at an equal font-size Japanese reads ~20%
+// larger and overflows the fixed 110px tiles. CSS can't shrink text to fit a
+// box, so the boxes stay fixed and the Japanese type steps down to the same
+// optical size instead. Scoped via the <html lang> attribute the app sets.
+// ---------------------------------------------------------------------------
+
+html[lang='ja'] {
+  .set-captured h4 {
+    font-size: 14px;
+  }
+
+  .set-captured-mobile h4 {
+    font-size: 17px;
+  }
+
+  .info-header h1 {
+    font-size: 26px;
   }
 }

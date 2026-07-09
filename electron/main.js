@@ -158,14 +158,28 @@ function buildMenu () {
 }
 
 app.whenReady().then(() => {
-  protocol.handle('app', (request) => {
+  protocol.handle('app', async (request) => {
     const { pathname } = new URL(request.url);
     const relativePath = pathname === '/' ? 'index.html' : decodeURIComponent(pathname.slice(1));
     const target = path.normalize(path.join(BUILD_DIR, relativePath));
     if (!target.startsWith(BUILD_DIR)) {
       return new Response('Not found', { status: 404 });
     }
-    return net.fetch(pathToFileURL(target).toString());
+
+    const response = await net.fetch(pathToFileURL(target).toString());
+
+    // Files served over app:// arrive without a charset, so the renderer guesses
+    // a legacy encoding and mangles non-ASCII text (é, the — placeholder, ♀/♂).
+    // Force UTF-8 on text assets so it matches how the bundle is actually
+    // written. (The <meta charset> in index.html is the belt to this braces.)
+    const contentType = response.headers.get('content-type');
+    if (contentType && /^(text\/|application\/(javascript|json))/.test(contentType) && !/charset/i.test(contentType)) {
+      const headers = new Headers(response.headers);
+      headers.set('content-type', `${contentType}; charset=utf-8`);
+      return new Response(response.body, { status: response.status, headers });
+    }
+
+    return response;
   });
 
   createWindow();
