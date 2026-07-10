@@ -1,13 +1,12 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faClock, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCircleExclamation, faClock, faLock } from '@fortawesome/free-solid-svg-icons';
 
 import { PokemonName } from '../../library/PokemonName';
 import { iconClass } from '../../../utils/pokemon';
 import { nationalId, padding } from '../../../utils/formatting';
 import { useDelayedRender } from '../../../hooks/use-delayed-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerContext } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 import { useUpdateCapture } from '../../../hooks/queries/captures';
@@ -37,7 +36,6 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
 
   const { activeDex, activeDexView } = useDexContext();
   const { setCaptures } = useTrackerContext();
-  const { setShowInfo } = useLocalStorageContext();
   const { t } = useTranslation();
 
   const updateCaptureMutation = useUpdateCapture(activeDex!.id);
@@ -52,8 +50,8 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
   }
 
   // Setting a status is also how a mon gets caught (a plain uncaught mon
-  // defaults to 'caught'). Every status change opens the info panel on that
-  // mon, since it now holds the metadata (origin game) you'll usually set next.
+  // defaults to 'caught'). Every status change opens the popover on that mon,
+  // since it holds the metadata (origin game) you'll usually set next.
   const applyStatus = (status: CaptureStatus) => {
     setCaptures((prev) => prev.map((cap) => {
       if (cap.pokemon.id !== capture.pokemon.id) {
@@ -65,20 +63,16 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
     updateCaptureMutation.mutate({ payload: { pokemon: capture.pokemon.id, status } });
 
     setSelectedPokemon(capture.pokemon.id);
-    setShowInfo(true);
-  };
-
-  const openInfo = () => {
-    setSelectedPokemon(capture.pokemon.id);
-    setShowInfo(true);
   };
 
   // A plain tile click never unmarks (that's the deliberate Release button in
-  // the info panel). It catches an uncaught mon, or just opens the info panel
-  // for one that's already caught.
+  // the popover). It catches an uncaught mon, or just opens the popover for
+  // one that's already caught. Clicking the tile of the open popover closes
+  // it naturally: the mousedown lands outside the popover (dismissing it) and
+  // this click re-selects the same id, which is a no-op.
   const handleTileClick = () => {
     if (capture.captured) {
-      openInfo();
+      setSelectedPokemon(capture.pokemon.id);
     } else {
       applyStatus('caught');
     }
@@ -89,12 +83,18 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
     applyStatus(status);
   };
 
+  // Caught but with unfinished bookkeeping (origin game or language unset),
+  // regardless of status — a locked slot with unknown origin still deserves
+  // the nudge.
+  const metaMissing = capture.captured && (!capture.origin_game || !capture.language);
+
   const classes = {
     pokemon: true,
     captured: capture.captured,
     pending: capture.pending,
     temporary: capture.status === 'temporary',
     locked: capture.status === 'locked',
+    'meta-missing': metaMissing,
   };
 
   const dexView = activeDexView!;
@@ -105,7 +105,13 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
   const statusButtons = STATUS_META.filter((meta) => meta.status !== capture.status);
 
   return (
-    <div className={classNames(classes)}>
+    // data-pokemon-id is the anchor the popover positions itself against.
+    <div className={classNames(classes)} data-pokemon-id={capture.pokemon.id}>
+      {metaMissing &&
+        <div className="missing-meta-badge">
+          <FontAwesomeIcon icon={faCircleExclamation} />
+        </div>
+      }
       <div className="set-status">
         {statusButtons.map((meta) => (
           <button

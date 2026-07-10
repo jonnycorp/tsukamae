@@ -5,15 +5,25 @@ import { Landing } from './Landing';
 import { Nav } from '../library/Nav';
 import { Tracker } from './Tracker';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
+import { useScrollbarFade } from '../../hooks/use-scrollbar-fade';
 
 export function App () {
   const { isNightMode, locale } = useLocalStorageContext();
+
+  useScrollbarFade();
 
   // Tell the renderer which language the UI is in, so it applies the right
   // font behavior for CJK text.
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
+
+  // Mirror the theme onto <html>: the .root div doesn't cover the document
+  // surface behind the app (visible during overscroll), and color-scheme on
+  // the root element is what themes viewport-level native UI.
+  useEffect(() => {
+    document.documentElement.classList.toggle('night-mode', isNightMode);
+  }, [isNightMode]);
 
   return (
     <div className={`root ${isNightMode ? 'night-mode' : ''}`}>

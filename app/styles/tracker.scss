@@ -29,83 +29,79 @@
   }
 }
 
-.info {
-  @include flexbox();
+// The floating capture editor anchored to a clicked tile (replaced the old
+// fixed sidebar). PokemonPopover sets top/left inline; the box grid never
+// moves for it.
+.pokemon-popover {
+  @include animation(fade-in $fade-duration ease-out);
+  @include transition(opacity $fade-duration ease-out);
 
-  position: relative;
-  z-index: 2;
+  position: fixed;
+  width: 280px;
+  // Above tile hover states and the scroll button, below the modal overlay.
+  z-index: 50;
+  border: 2px solid darken($brand-secondary-dark, 3%);
+  background-color: $brand-secondary;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
 
-  &.collapsed .info-main {
-    display: none;
+  // useDismissable sets this while the fade-out plays, then unmounts.
+  &.closing {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .pkicon.game-family-legends_arceus {
     background-color: rgba($gray-light, .3);
   }
 
-  .info-collapse {
+  .popover-header {
     @include flexbox();
     @include align-items(center);
 
-    padding: 8px;
-    background-color: darken($brand-secondary-dark, 3%);
-    color: white;
-    font-size: 12px;
-
-    &:hover {
-      cursor: pointer;
-      padding-right: 10px;
-      margin-left: -2px;
-    }
-  }
-
-  .info-main {
-    @include flexbox();
-    @include flex-direction(column);
-
-    width: 350px;
-    background-color: $brand-secondary;
-    color: #fff;
-
-    > * {
-      @include flex-shrink(0);
-    }
-  }
-
-  .info-header {
-    @include flexbox();
-    @include align-items(center);
-
-    padding: 17px 17px 17px 8px;
-    background-color: $brand-secondary;
+    padding: 10px 10px 10px 4px;
     border-bottom: 2px solid darken($brand-secondary-dark, 3%);
 
     .pkicon {
-      margin: 0 12px;
+      margin: 0 8px;
     }
 
     h1 {
       @include flex-grow(1);
 
       margin: 0;
-      font-size: 32px;
+      font-size: 22px;
       font-weight: 500;
+      // Absolute so the header height survives the smaller Japanese font-size
+      // (the html[lang='ja'] override below).
+      line-height: 30px;
     }
 
     h2 {
-      margin: 0;
+      margin: 0 6px 0 8px;
       font-family: $font-secondary;
-      font-size: 17px;
+      font-size: 14px;
       font-weight: 400;
+    }
+
+    .popover-close {
+      @include transition(all .1s ease-out);
+
+      padding: 4px 6px;
+      border: 0;
+      background: none;
+      color: rgba(#fff, .7);
+      font-size: 15px;
+      cursor: pointer;
+
+      &:hover {
+        color: #fff;
+      }
     }
   }
 
-  .info-capture-details {
-    @include flex(1 1 auto);
-
-    padding: 30px;
-    background-color: $brand-secondary;
-    border-bottom: 2px solid darken($brand-secondary-dark, 3%);
+  .popover-body {
+    padding: 14px 16px 16px;
 
     label {
       font-family: $font-secondary;
@@ -118,38 +114,28 @@
     select.form-control {
       display: block;
       width: 100%;
-      margin: 10px 0 20px;
-      padding: 8px;
-      font-size: 16px;
+      margin: 6px 0 12px;
+      padding: 6px 8px;
+      font-size: 15px;
     }
 
-    .checkbox label {
-      display: inline-flex;
-      align-items: center;
-      text-transform: none;
-      font-family: $font-primary;
-      font-size: 16px;
-      font-weight: 400;
-      cursor: pointer;
-    }
-
-    .info-uncaught-note {
-      margin: 0;
-      font-size: 16px;
+    .popover-uncaught-note {
+      margin: 0 0 12px;
+      font-size: 15px;
       opacity: .7;
     }
   }
 
-  .info-links {
+  .popover-links {
     @include flexbox();
 
-    margin-top: 20px;
+    margin-top: 2px;
 
     a {
       @include transition(all .1s ease-out);
 
       flex: 1;
-      padding: 12px;
+      padding: 10px;
       background-color: $brand-secondary-dark;
       color: #fff;
       font-family: $font-secondary;
@@ -164,9 +150,12 @@
         margin-right: 6px;
       }
 
+      // Arrow on its own line under the label in both links — "Bulbapedia"
+      // wraps anyway, "Serebii" wouldn't, and the mismatch looks off.
       .svg-inline--fa {
+        display: block;
+        margin: 4px auto 0;
         font-size: 10px;
-        margin-left: 3px;
       }
 
       &:hover {
@@ -175,116 +164,16 @@
     }
   }
 
-  .info-locations {
-    @include flex(1 1 auto);
-    @include overflow-y-scroll;
-
-    padding: 30px;
-    background-color: $brand-secondary;
-    border-bottom: 2px solid darken($brand-secondary-dark, 3%);
-
-    h3 {
-      margin: 0;
-      font-family: $font-secondary;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    ul {
-      margin: 10px 0 20px;
-      padding-left: 33px;
-      font-size: 16px;
-      line-height: 1.4;
-    }
-  }
-
-  .info-evolutions {
-    @include flexbox();
-    @include justify-content(center);
-
-    padding: 20px;
-    background-color: $brand-secondary;
-    text-align: center;
-    font-size: 13px;
-
-    .evolution-pokemon-column,
-    .evolution-trigger-column {
-      @include flexbox();
-      @include flex-direction(column);
-      @include justify-content(space-around);
-
-      &.push {
-        @include justify-content(flex-end);
-      }
-    }
-
-    .evolution-pokemon-column {
-      .pkicon-809 {
-        margin-left: 3px;
-      }
-
-      a {
-        cursor: pointer;
-        padding: 0 5px;
-      }
-    }
-
-    .evolution-trigger-column {
-      @include flex-grow(1);
-
-      max-width: 90px;
-
-      .evolution-trigger {
-        @include flexbox();
-        @include flex-direction(column);
-        @include justify-content(center);
-
-        margin: 8px 0;
-
-        &:first-child {
-          margin-top: 0;
-        }
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        > .svg-inline--fa {
-          margin-bottom: 3px;
-          width: unset;
-        }
-
-        .tooltip {
-          .fa-plus-circle {
-            color: white;
-          }
-
-          .tooltip-text {
-            color: black;
-            background-color: white;
-
-            &::after {
-              border-color: #fff transparent transparent transparent;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  .info-footer {
+  .popover-footer {
     @include flexbox();
 
-    margin-top: auto;
     border-top: 2px solid darken($brand-secondary-dark, 3%);
 
-    .info-release {
+    .popover-release {
       @include transition(all .1s ease-out);
 
       flex: 1;
-      padding: 18px;
+      padding: 12px;
       border: 0;
       background-color: $brand-secondary-dark;
       color: rgba(#fff, .7);
@@ -304,48 +193,6 @@
         background-color: #b23b3b;
         color: #fff;
       }
-    }
-
-    a {
-      @include transition(all .1s ease-out);
-
-      width: 50%;
-      padding: 20px;
-      background-color: $brand-secondary-dark;
-      color: #fff;
-      font-family: $font-secondary;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      text-decoration: none;
-      text-align: center;
-
-      &:first-child {
-        border-right: 1px solid darken($brand-secondary-dark, 3%);
-      }
-
-      &:last-child {
-        border-left: 1px solid darken($brand-secondary-dark, 3%);
-      }
-
-      .svg-inline--fa {
-        @include transition(all .1s ease-out);
-
-        font-size: 10px;
-        margin-left: 3px;
-      }
-    }
-  }
-}
-
-.no-touch .info-footer a {
-  &:hover,
-  &:focus {
-    background-color: darken($brand-secondary-dark, 3%);
-
-    .fa-right-long {
-      margin-left: 7px;
     }
   }
 }
@@ -575,6 +422,10 @@ header {
 
       height: auto;
       width: auto;
+      // Matches a single tile's width, so the button holds one size across
+      // locales and across the Mark All ⇄ Unmark All toggle, and reads as
+      // "one grid cell" next to the box below it.
+      min-width: $pokemon-box-size;
       padding: 8px 12px;
       margin-left: 10px;
       font-size: 10px;
@@ -658,6 +509,17 @@ header {
   .game-family-legends_arceus {
     background-color: rgba($gray-medium, .4);
   }
+
+  // Missing-metadata nudge: a caught mon whose bookkeeping (origin game /
+  // language) is unfinished gets a small corner mark. Deliberately plain —
+  // it's a nag to clear, not a decoration.
+  .missing-meta-badge {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 11px;
+    color: rgba($brand-secondary, .45);
+  }
 }
 
 .set-captured {
@@ -738,12 +600,17 @@ header {
   z-index: 2;
   padding: 6px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, .28), rgba(0, 0, 0, 0));
+  // The strip itself is just a visual scrim — only the buttons take clicks,
+  // so the rest of the tile stays clickable underneath it.
+  pointer-events: none;
 
   .status-btn {
     @include flexbox();
     @include align-items(center);
     @include justify-content(center);
     @include transition(transform .1s ease-out);
+
+    pointer-events: auto;
 
     width: 26px;
     height: 26px;
@@ -807,25 +674,6 @@ header {
   }
 }
 
-@media (max-width: 1100px) {
-  .info {
-    .info-collapse {
-      position: relative;
-      right: 350px;
-    }
-
-    &.collapsed .info-collapse {
-      right: 0;
-    }
-
-    .info-main {
-      position: absolute;
-      right: 0;
-      height: 100%;
-    }
-  }
-}
-
 @media (max-width: 750px) {
   .dex {
     padding: 15px;
@@ -866,7 +714,7 @@ header {
     width: 100%;
     height: 80px;
 
-    // No hover on touch; status is set from the info panel instead.
+    // No hover on touch; status is set from the popover instead.
     .set-status {
       display: none;
     }
@@ -881,42 +729,6 @@ header {
 
     &.empty {
       display: none;
-    }
-  }
-}
-
-@media (max-width: 400px) {
-  .dex {
-    padding: 15px 35px 15px 15px;
-  }
-
-  .dex-search-bar {
-    padding: 10px 35px 10px 10px;
-  }
-
-  .info {
-    position: absolute;
-    left: auto;
-    right: 0;
-    height: 100%;
-    width: 100%;
-
-    .info-collapse {
-      right: 0;
-
-      &:hover {
-        margin-left: 0;
-        padding-right: 8px;
-      }
-    }
-
-    .info-main {
-      position: relative;
-      width: 100%;
-    }
-
-    &.collapsed {
-      width: inherit;
     }
   }
 }
@@ -938,7 +750,7 @@ html[lang='ja'] {
     font-size: 17px;
   }
 
-  .info-header h1 {
-    font-size: 26px;
+  .pokemon-popover .popover-header h1 {
+    font-size: 18px;
   }
 }

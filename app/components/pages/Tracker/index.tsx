@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Dex } from './Dex';
 import { Footer } from '../../library/Footer';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { Info } from './Info';
+import { PokemonPopover } from './PokemonPopover';
 import { SCROLL_DEBOUNCE, SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SearchBar } from './SearchBar';
 import { TrackerContextProvider, useTrackerContext } from './use-tracker';
@@ -72,13 +72,13 @@ export function TrackerInner () {
   }, SCROLL_DEBOUNCE);
 
   const handleScrollButtonClick = useCallback(() => {
-    if (trackerRef.current) {
-      trackerRef.current.scrollTop = 0;
-    }
-  }, [trackerRef.current]);
+    // Animated, not a teleport — Chromium's smooth scroll is distance-capped,
+    // so even a long dex gets back up in well under a second.
+    trackerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Wait until the captures list is populated (via the effect above). Nothing
-  // is selected on load, so the info panel stays closed until a mon is clicked.
+  // is selected on load, so no popover shows until a mon is clicked.
   if (capturesIsLoading || captures.length === 0) {
     return <div className="loading">Loading...</div>;
   }
@@ -110,7 +110,15 @@ export function TrackerInner () {
             <Footer />
           </div>
         </div>
-        <Info selectedPokemon={selectedPokemon} setSelectedPokemon={setSelectedPokemon} />
+        {selectedPokemon !== 0 &&
+          // Keyed so moving to another mon remounts with fresh position and
+          // dismiss state instead of mutating the open one.
+          <PokemonPopover
+            key={selectedPokemon}
+            onClose={() => setSelectedPokemon(0)}
+            selectedPokemon={selectedPokemon}
+          />
+        }
       </div>
     </div>
   );

@@ -75,7 +75,7 @@
     "@typescript-eslint/eslint-plugin": "^5.60.1",
     "@typescript-eslint/parser": "^5.60.1",
     "concurrently": "^8.2.2",
-    "electron": "^31.0.0",
+    "electron": "^43.1.0",
     "electron-builder": "^24.13.3",
     "eslint": "^8.44.0",
     "eslint-plugin-react": "^7.32.2",

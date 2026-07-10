@@ -1,10 +1,14 @@
+import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAsterisk, faChevronDown, faLongArrowAltRight } from '@fortawesome/free-solid-svg-icons';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
-import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex } from '../../utils/local-data';
+import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex, progressToCaptures } from '../../utils/local-data';
 import { localizeCatalogDexName, localizeCatalogGame, localizeDexType } from '../../i18n/names';
+import { QueryKey } from '../../hooks/queries/captures';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
+import { useDismissable } from '../../hooks/use-dismissable';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../hooks/use-translation';
 
@@ -13,23 +17,27 @@ import type { ChangeEvent, FormEvent, MouseEvent, ReactNode } from 'react';
 
 interface ModalShellProps {
   children: ReactNode;
+  // While true the overlay plays its fade-out (the .closing styles).
+  closing: boolean;
   contentLabel: string;
-  onRequestClose: () => void;
+  onDismiss: () => void;
 }
 
 // A dependency-free stand-in for the react-modal component the original
 // dex-management UI used; reuses the .modal/.modal-overlay styles.
-function ModalShell ({ children, contentLabel, onRequestClose }: ModalShellProps) {
+// Presentational only — the owner holds useDismissable so every close path
+// (backdrop, Esc, links, submit) shares one animated dismiss.
+function ModalShell ({ children, closing, contentLabel, onDismiss }: ModalShellProps) {
   const { isNightMode } = useLocalStorageContext();
 
   const handleOverlayClick = (e: MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-      onRequestClose();
+      onDismiss();
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
+    <div className={classNames('modal-overlay', { closing })} onClick={handleOverlayClick}>
       <div aria-label={contentLabel} className={`modal ${isNightMode ? 'night-mode' : ''}`} role="dialog">
         {children}
       </div>
@@ -46,6 +54,21 @@ interface Props {
 export function DexModal ({ dex, onRequestClose }: Props) {
   const { createDex, updateDex, deleteDex } = useDexContext();
   const { t, locale } = useTranslation();
+  const queryClient = useQueryClient();
+
+  // Actions that switch the view (creating a dex opens it, deleting the open
+  // dex drops to landing) wait here until the fade-out finishes: run
+  // immediately, the heavy tracker remount plays underneath the dimmed
+  // overlay and janks the fade. Edits apply immediately — they don't switch
+  // views.
+  const pendingActionRef = useRef<() => void>();
+
+  const { closing, dismiss } = useDismissable({
+    onDismissed: () => {
+      pendingActionRef.current?.();
+      onRequestClose();
+    },
+  });
 
   const initialCatalog = getCatalogDex(dex?.catalogKey || DEFAULT_CATALOG_KEY);
 
@@ -103,9 +126,15 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     if (dex) {
       updateDex(dex.id, { title: resolvedTitle, shiny });
     } else {
-      createDex({ title: resolvedTitle, catalogKey, shiny });
+      pendingActionRef.current = () => {
+        const newDex = createDex({ title: resolvedTitle, catalogKey, shiny });
+        // Warm the captures cache before React renders the switch, so the
+        // remounted tracker finds data on its first frame instead of
+        // flashing its loading state.
+        queryClient.setQueryData([QueryKey.ListCaptures, newDex.id], progressToCaptures(newDex));
+      };
     }
-    onRequestClose();
+    dismiss();
   };
 
   const handleDeleteClick = () => {
@@ -114,13 +143,13 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     }
     // Deleting the open dex (even the only one) drops back to the landing page.
     if (window.confirm(t('dexModal.deleteConfirm', { title: dex.title }))) {
-      deleteDex(dex.id);
-      onRequestClose();
+      pendingActionRef.current = () => deleteDex(dex.id);
+      dismiss();
     }
   };
 
   return (
-    <ModalShell contentLabel={t(dex ? 'dexModal.editTitle' : 'dexModal.createTitle')} onRequestClose={onRequestClose}>
+    <ModalShell closing={closing} contentLabel={t(dex ? 'dexModal.editTitle' : 'dexModal.createTitle')} onDismiss={dismiss}>
       <div className="form">
         <h1>{t(dex ? 'dexModal.editTitle' : 'dexModal.createTitle')}</h1>
         <form className="form-column" onSubmit={handleSubmit}>
@@ -200,7 +229,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
           }
         </form>
       </div>
-      <p><a className="link back-link" onClick={onRequestClose}>{t('dexModal.goBack')}</a></p>
+      <p><a className="link back-link" onClick={dismiss}>{t('dexModal.goBack')}</a></p>
     </ModalShell>
   );
 }

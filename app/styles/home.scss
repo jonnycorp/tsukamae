@@ -6,14 +6,17 @@
   background-size: 500px 250px;
   text-align: center;
 
+  // The page itself never scrolls: the hero and the create button stay put,
+  // and only the dex list below scrolls in its own window (mirroring the
+  // tracker's dex column).
   .home {
     @include flex-grow(1);
     @include flexbox();
     @include flex-direction(column);
     @include align-items(center);
     @include justify-content(center);
-    @include overflow-y-scroll();
 
+    min-height: 0;
     padding: 40px 20px;
   }
 
@@ -51,13 +54,17 @@
     position: relative;
     top: 60px;
     width: 100%;
+    min-height: 0;
   }
 
   // A clean list that blends into the field — hairline separators and a soft
   // hover, no heavy box.
   .dex-list {
+    @include overflow-y-scroll();
+
     width: 100%;
     max-width: 640px;
+    min-height: 0;
     margin: 0 0 24px;
     padding: 0;
     list-style: none;
@@ -67,7 +74,7 @@
   .dex-list-item {
     @include transition(background-color .1s ease-out);
 
-    padding: 16px 20px;
+    padding: 14px 20px 18px;
     border-bottom: 1px solid rgba($brand-secondary, .15);
     cursor: pointer;
 
@@ -83,6 +90,9 @@
       @include flexbox();
       @include align-items(center);
       @include justify-content(space-between);
+
+      // Lift the title off the progress bar below it.
+      margin-bottom: 8px;
 
       h3 {
         margin: 0;

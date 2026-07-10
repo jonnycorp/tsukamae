@@ -38,6 +38,7 @@ const en = {
 
   'markAll.mark': 'Mark All',
   'markAll.unmark': 'Unmark All',
+  'markAll.unmarkConfirm': 'Unmark every Pokémon in this box? Their origin game and language data will be cleared too.',
 
   'footer.basedOn': 'Based on PokédexTracker',
 
@@ -56,6 +57,7 @@ const en = {
   'info.status': 'Status',
   'info.notCaught': 'Not caught yet.',
   'info.release': 'Release',
+  'popover.close': 'Close',
 
   'dexModal.editTitle': 'Edit Dex',
   'dexModal.createTitle': 'Create New Dex',
@@ -110,6 +112,7 @@ const ja: Record<TranslationKey, string> = {
 
   'markAll.mark': 'すべて記録',
   'markAll.unmark': 'すべて解除',
+  'markAll.unmarkConfirm': 'このボックスのポケモンをすべて解除しますか？出身ソフトと言語のデータも消去されます。',
 
   'footer.basedOn': 'PokédexTracker がベース',
 
@@ -128,6 +131,7 @@ const ja: Record<TranslationKey, string> = {
   'info.status': '状態',
   'info.notCaught': 'まだ捕まえていません。',
   'info.release': '逃がす',
+  'popover.close': '閉じる',
 
   'dexModal.editTitle': '図鑑を編集',
   'dexModal.createTitle': '新しい図鑑を作成',

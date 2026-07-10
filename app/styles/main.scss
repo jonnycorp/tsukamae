@@ -6,6 +6,9 @@ html {
   // reliably propagate here). Kills the stray horizontal scrollbar / dead space
   // on the right; nothing in the app scrolls horizontally on purpose.
   overflow-x: hidden;
+  // No elastic rubber-banding past the document edge (macOS Chrome shifts the
+  // whole page and flashes the background behind it). Inert in Electron.
+  overscroll-behavior: none;
 }
 
 *, *:before, *:after {
@@ -16,17 +19,19 @@ html {
   outline: 0;
 }
 
-// Hide native scrollbars app-wide. In Chromium — and therefore the Electron
-// build — the classic Windows scrollbar reserves layout width, which pushes
-// full-width children past the viewport and produces a horizontal scrollbar
-// plus dead space on the right. macOS overlay scrollbars are 0px, so it can't
-// be reproduced there. Scrolling still works; only the bar is hidden.
-::-webkit-scrollbar {
-  display: none;
-}
-
-* {
-  scrollbar-width: none;
+// Slim themed scrollbar via the standard scrollbar-width/scrollbar-color
+// properties (set per scroll container by the scrollbar-fade mixin). Setting
+// them switches Chromium — and therefore the Electron build — off native
+// scrollbars onto its own painted scrollbar, so the bar renders identically
+// on every platform: the 0px macOS overlay and the ~17px classic Windows bar
+// (whose reserved width used to push content past the viewport) are both
+// replaced by a uniform thin gutter the flex layout absorbs.
+// Do NOT style ::-webkit-scrollbar pseudo-elements instead: Chromium caches
+// those styles and won't repaint them on class/variable changes, which
+// silently breaks the fade (and any non-auto scrollbar-width/color disables
+// them anyway).
+:root {
+  --scrollbar-thumb-active: #{rgba($brand-secondary, .45)};
 }
 
 body {
@@ -36,12 +41,28 @@ body {
   // past the viewport's right edge and create a horizontal scrollbar + dead
   // space. Nothing here scrolls horizontally on purpose, so clip it.
   overflow-x: hidden;
+  overscroll-behavior: none;
   font-family: $font-primary;
+  // Never leave line-height at `normal`: it's the only value computed from the
+  // font's own metrics, so the taller CJK fallback fonts would grow every
+  // content-sized text element when the UI switches to Japanese and jolt the
+  // layout. A specified value computes from font-size alone, making element
+  // heights identical in both locales. 1.35 ≈ Alegreya Sans's natural normal,
+  // so the Latin layout barely moves.
+  line-height: 1.35;
   // Light theme is the default surface; without an explicit background the
   // page falls through to the browser's canvas, which renders black when the
   // OS is in dark mode. The .night-mode root overrides this for dark theme.
   background-color: #fff;
   color-scheme: light;
+}
+
+// Form controls don't inherit body's line-height — the UA hands them their own
+// `normal`, which is font-metric-dependent and reintroduces the EN/JA height
+// jolt the body rule exists to prevent (buttons like New Dex / Mark All grew
+// when Japanese text swapped in a taller CJK fallback font).
+button, input, select, textarea {
+  line-height: 1.35;
 }
 
 #root,
@@ -60,14 +81,9 @@ body {
     @include flex(1 1 auto);
     @include flexbox();
     @include flex-direction(column);
-  }
 
-  // All but the home container.
-  .tracker-container,
-  .register-container,
-  .login-container,
-  .account-container,
-  .profile-container {
+    // Containers cap at the viewport; anything taller scrolls inside its own
+    // window (the dex column, the landing dex list) instead of the page.
     min-height: 0;
   }
 }
@@ -784,8 +800,9 @@ select {
     font-weight: 400;
     font-size: 13px;
     // Nav links pin line-height to the bar height; the tooltip bubble must not
-    // inherit that.
-    line-height: normal;
+    // inherit that. (1.35, not `normal`, to stay font-metric-independent —
+    // see body.)
+    line-height: 1.35;
     white-space: normal;
 
     &::after {
@@ -817,6 +834,12 @@ select {
 }
 
 .loading {
+  // Silent at first: brief loading states (a dex switch remount resolves
+  // within a frame or two) shouldn't flash text at the user. The label only
+  // fades in if loading actually persists.
+  @include animation(fade-in .3s ease-out .4s forwards);
+
+  opacity: 0;
   margin-top: 47vh;
   text-align: center;
   font-family: $font-secondary;
@@ -884,6 +907,9 @@ select {
 }
 
 .modal-overlay {
+  @include animation(fade-in $fade-duration ease-out);
+  @include transition(opacity $fade-duration ease-out);
+
   position: fixed;
   top: 0;
   right: 0;
@@ -893,6 +919,12 @@ select {
   // The modal renders inline (no portal), so it needs to stack above the
   // tracker's positioned elements (tooltips, the scroll button).
   z-index: 100;
+
+  // useDismissable sets this while the fade-out plays, then unmounts.
+  &.closing {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .modal {
@@ -919,12 +951,22 @@ select {
   }
 }
 
+// The class lives on both <html> (so the document surface behind everything —
+// revealed by overscroll or load gaps — is dark, and color-scheme reaches
+// native viewport UI) and the .root div (which the descendant overrides below
+// key off).
 .night-mode {
   background-color: $night-mode;
   color: white;
   // Dark theme is the default; this also styles native controls (the dex
   // switcher and origin-game / status dropdowns) to match.
   color-scheme: dark;
+
+  body {
+    background-color: $night-mode;
+  }
+
+  --scrollbar-thumb-active: #{rgba(#fff, .3)};
 
   .profile {
     background-color: $night-mode;
@@ -1138,34 +1180,31 @@ select {
     }
   }
 
-  .info {
-    .info-collapse {
-      background-color: $night-mode-secondary-dark;
+  .pokemon-popover {
+    background-color: $night-mode-secondary;
+    border-color: $night-mode-secondary-dark;
+
+    .popover-header,
+    .popover-footer {
+      border-color: $night-mode-secondary-dark;
     }
 
-    .info-main {
-      background-color: $night-mode-02dp;
+    .popover-links a {
+      background-color: darken($night-mode-secondary, 4%);
 
-      .info-header,
-      .info-locations,
-      .info-evolutions,
-      .info-footer {
-        background-color: $night-mode-secondary;
-        border-color: $night-mode-secondary-dark;
-      }
-
-      .info-footer {
-        a {
-          background-color: darken($night-mode-secondary, 4%);
-          border-color: $night-mode-secondary-dark;
-
-          &:hover {
-            background-color: darken($night-mode-secondary, 6%);
-            color: white;
-          }
-        }
+      &:hover {
+        background-color: darken($night-mode-secondary, 6%);
       }
     }
+
+    // Hover keeps the light theme's red warning color.
+    .popover-release {
+      background-color: darken($night-mode-secondary, 4%);
+    }
+  }
+
+  .missing-meta-badge {
+    color: rgba(#fff, .4);
   }
 
   .form-control {

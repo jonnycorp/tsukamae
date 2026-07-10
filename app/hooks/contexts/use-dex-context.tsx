@@ -25,7 +25,9 @@ interface DexContextState {
   // pokedextracker.com (iconClass, DexIndicator, numbering).
   activeDexView: Dex | null;
   setActiveDex: (id: string) => void;
-  createDex: (input: CreateDexInput) => void;
+  // Returns the created dex so callers can prepare for the view switch (e.g.
+  // seeding the captures query cache before the tracker remounts).
+  createDex: (input: CreateDexInput) => PersonalDex;
   updateDex: (id: string, changes: UpdateDexInput) => void;
   deleteDex: (id: string) => void;
 }
@@ -35,7 +37,9 @@ const DexContext = createContext<DexContextState>({
   activeDex: null,
   activeDexView: null,
   setActiveDex: () => {},
-  createDex: () => {},
+  createDex: () => {
+    throw new Error('createDex called outside DexContextProvider');
+  },
   updateDex: () => {},
   deleteDex: () => {},
 });
@@ -81,11 +85,14 @@ export const DexContextProvider = ({ children }: Props) => {
       setActiveDex: (id) => apply((state) => {
         state.activeDexId = id;
       }),
-      createDex: ({ title, catalogKey, shiny }) => apply((state) => {
+      createDex: ({ title, catalogKey, shiny }) => {
         const dex: PersonalDex = { id: newDexId(), title, catalogKey, shiny, progress: {} };
-        state.dexes = [...state.dexes, dex];
-        state.activeDexId = dex.id;
-      }),
+        apply((state) => {
+          state.dexes = [...state.dexes, dex];
+          state.activeDexId = dex.id;
+        });
+        return dex;
+      },
       updateDex: (id, changes) => apply((state) => {
         state.dexes = state.dexes.map((dex) => (dex.id === id ? { ...dex, ...changes } : dex));
       }),

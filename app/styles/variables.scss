@@ -51,3 +51,7 @@ $night-mode-error-dark: darken(#bb2323, 7%);
 
 $pokemon-box-size: 110px;
 $tooltip-width: 120px;
+
+// Fade in/out length for dismissable overlays (modal, popover). Keep in sync
+// with FADE_MS in hooks/use-dismissable.ts, which unmounts after the fade.
+$fade-duration: .15s;

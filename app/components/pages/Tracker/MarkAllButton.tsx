@@ -26,10 +26,17 @@ export function MarkAllButton ({ captures }: Props) {
   }, [captures]);
 
   const handleButtonClick = async () => {
+    const deleting = uncaught === 0;
+
+    // Unmarking a whole box wipes each mon's metadata too — the same reason
+    // releasing is a deliberate button in the popover, so it gets a confirm.
+    // (It stays available as the bulk undo for an accidental Mark All.)
+    if (deleting && !window.confirm(t('markAll.unmarkConfirm'))) {
+      return;
+    }
+
     createCapturesMutation.reset();
     deleteCapturesMutation.reset();
-
-    const deleting = uncaught === 0;
     const pokemon = captures
     .filter((capture) => capture.captured === deleting)
     .map((capture) => capture.pokemon.id);
