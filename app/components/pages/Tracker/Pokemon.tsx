@@ -50,14 +50,29 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
   }
 
   // Setting a status is also how a mon gets caught (a plain uncaught mon
-  // defaults to 'caught'). Every status change opens the popover on that mon,
-  // since it holds the metadata (origin game) you'll usually set next.
+  // defaults to the dex's default status, or 'caught'). Every status change
+  // opens the popover on that mon, since it holds the metadata (origin game)
+  // you'll usually set next.
   const applyStatus = (status: CaptureStatus) => {
+    // Mirror the mutation layer: a fresh catch prefills the dex's
+    // captureDefaults; a mon that was already caught keeps its data.
+    const defaults = activeDex!.captureDefaults;
+
     setCaptures((prev) => prev.map((cap) => {
       if (cap.pokemon.id !== capture.pokemon.id) {
         return cap;
       }
-      return { ...cap, captured: true, pending: false, status };
+      if (cap.captured) {
+        return { ...cap, pending: false, status };
+      }
+      return {
+        ...cap,
+        captured: true,
+        pending: false,
+        status,
+        origin_game: defaults?.origin_game ?? null,
+        language: defaults?.language ?? null,
+      };
     }));
 
     updateCaptureMutation.mutate({ payload: { pokemon: capture.pokemon.id, status } });
@@ -74,7 +89,7 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
     if (capture.captured) {
       setSelectedPokemon(capture.pokemon.id);
     } else {
-      applyStatus('caught');
+      applyStatus(activeDex!.captureDefaults?.status ?? 'caught');
     }
   };
 

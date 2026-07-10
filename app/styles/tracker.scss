@@ -197,10 +197,53 @@
   }
 }
 
+// The bar doubles as the fixed dex summary: title + progress pinned on the
+// left, a deliberately narrower search stack on the right.
 .dex-search-bar {
   background-color: white;
   border-bottom: 1px solid $gray-light;
-  padding: 10px;
+  padding: 12px 24px;
+
+  .dex-search-bar-inner {
+    @include flexbox();
+    @include align-items(center);
+    @include justify-content(space-between);
+
+    // Aligns the bar's content with the two-column box grid below it.
+    max-width: $dex-grid-width;
+    margin: 0 auto;
+  }
+
+  .dex-search-bar-summary {
+    @include flex(1 1 auto);
+
+    min-width: 0;
+    margin-right: 32px;
+
+    .header-row {
+      @include flexbox();
+      @include align-items(center);
+
+      margin-bottom: 8px;
+
+      h1 {
+        margin: 0 12px 0 0;
+        color: $brand-secondary;
+        font-size: 24px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .progress-container {
+      max-width: 520px;
+    }
+  }
+
+  .dex-search-bar-search {
+    @include flex(0 0 320px);
+  }
 
   .form-group {
     margin-bottom: 0;
@@ -243,14 +286,28 @@
   }
 
   .dex-search-bar-filters {
-    padding-top: 10px;
+    @include flexbox();
+
+    gap: 14px;
+    padding-top: 8px;
+
+    .form-group {
+      margin-bottom: 0;
+    }
   }
 }
 
 .dex {
   @include flex(1 0 auto);
 
-  padding: 100px 0;
+  // The bar above owns the title/progress now, so the boxes start high.
+  padding: 10px 0 100px;
+
+  // Widen the shared 1-box .wrapper to the two-column grid.
+  .wrapper {
+    width: auto;
+    max-width: $dex-grid-width;
+  }
 
   .scroll-up {
     @include transition(all .5s ease-out);
@@ -284,123 +341,21 @@
   }
 }
 
-header {
-  .header-row {
-    @include flexbox();
-    @include align-items(center);
+// Boxes flow two per row, left to right (A B / C D), wrapping back to a
+// single column when the window can't fit a pair.
+.box-grid {
+  @include flexbox();
+  @include flex-wrap(wrap);
+  @include justify-content(center);
 
-    .donated-flair {
-      margin-left: auto;
-      height: 18px;
-    }
-  }
-
-  h1 {
-    position: relative;
-    display: inline-block;
-    margin: 0;
-    color: $brand-secondary;
-    font-size: 40px;
-  }
-
-  h3 {
-    margin: 0 0 8px;
-
-    a {
-      color: lighten(#000, 35%);
-
-      &:hover {
-        color: lighten(#000, 25%);
-      }
-    }
-
-    .donated-flair {
-      margin-left: 4px;
-      height: 15px;
-      vertical-align: middle;
-    }
-  }
-
-  a {
-    font-size: 16px;
-    color: lighten(#000, 25%);
-
-    .svg-inline--fa {
-      position: relative;
-      margin-left: 5px;
-      bottom: 4px;
-      font-size: 14px;
-    }
-
-    .fa-pencil {
-      bottom: 1px;
-      font-size: 12px;
-    }
-
-    &:hover {
-      color: black;
-      cursor: pointer;
-    }
-  }
-
-  .share-container {
-    position: relative;
-    display: inline-block;
-
-    a {
-      position: relative;
-    }
-
-    .share {
-      $share-width: 300px;
-
-      position: absolute;
-      bottom: 200%;
-      left: 50%;
-      width: $share-width;
-      padding: 10px;
-      margin-left: math.div($share-width, -2);
-      z-index: 1;
-      border: 2px solid $gray-light;
-      background-color: lighten($gray-light, 10%);
-      font-size: 14px;
-
-      input {
-        margin-top: 5px;
-        font-size: 12px;
-      }
-
-      &::after {
-        content: " ";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -8px;
-        border-width: 8px;
-        border-style: solid;
-        border-color: $gray-light transparent transparent transparent;
-      }
-    }
-  }
-
-  h2 {
-    margin: 0;
-    font-size: 15px;
-    font-family: $font-secondary;
-    font-weight: 400;
-
-    span.fc-missing {
-      color: $gray-medium;
-    }
-
-    b {
-      font-weight: 500;
-    }
-  }
+  column-gap: $dex-grid-gap;
 }
 
 .box {
   display: block;
+  // Exactly the in-game 6-tile grid — as a flex item in .box-grid the box
+  // would otherwise stretch to the row and reflow its tiles wider than 6.
+  width: $box-width;
   margin-top: 60px;
 
   .box-header {
@@ -646,7 +601,10 @@ header {
   @include flexbox();
   @include flex-wrap(wrap);
 
-  margin-top: 60px;
+  // The wrapper is two-box wide now; results keep the classic 6-tile column
+  // (the tile row-break rules assume 6 per row).
+  width: $box-width;
+  margin: 60px auto 0;
 
   &-empty {
     @include justify-content(center);
@@ -677,25 +635,10 @@ header {
 @media (max-width: 750px) {
   .dex {
     padding: 15px;
-
-    .percentage {
-      margin-top: 15px;
-    }
   }
 
-  header,
   .box {
     width: 100%;
-  }
-
-  header {
-    h1 {
-      font-size: 30px;
-    }
-
-    .share-container {
-      display: none
-    }
   }
 
   .box {

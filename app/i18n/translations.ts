@@ -61,15 +61,14 @@ const en = {
 
   'dexModal.editTitle': 'Edit Dex',
   'dexModal.createTitle': 'Create New Dex',
+  'dexModal.defaults': 'Defaults',
   'dexModal.titleLabel': 'Title',
   'dexModal.game': 'Game',
   'dexModal.dex': 'Dex',
-  'dexModal.structureNote': '{name} ({total} Pokémon) — the dex structure can\'t be changed after creation.',
   'dexModal.save': 'Save',
   'dexModal.create': 'Create',
   'dexModal.delete': 'Delete Dex',
   'dexModal.deleteConfirm': 'Delete "{title}" and ALL of its progress? This cannot be undone.',
-  'dexModal.goBack': 'Go Back',
 
   'searchResults.none': 'No results.',
   'searchResults.clearSearch': 'Clear your search?',
@@ -135,15 +134,14 @@ const ja: Record<TranslationKey, string> = {
 
   'dexModal.editTitle': '図鑑を編集',
   'dexModal.createTitle': '新しい図鑑を作成',
+  'dexModal.defaults': '既定値',
   'dexModal.titleLabel': 'タイトル',
   'dexModal.game': 'ソフト',
   'dexModal.dex': '図鑑',
-  'dexModal.structureNote': '{name}（{total}匹）— 図鑑の構成は作成後に変更できません。',
   'dexModal.save': '保存',
   'dexModal.create': '作成',
   'dexModal.delete': '図鑑を削除',
   'dexModal.deleteConfirm': '「{title}」とその進捗をすべて削除しますか？元に戻せません。',
-  'dexModal.goBack': '戻る',
 
   'searchResults.none': '結果がありません。',
   'searchResults.clearSearch': '検索をクリアしますか？',

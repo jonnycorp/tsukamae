@@ -100,12 +100,6 @@ a.link {
   &:focus {
     color: $brand-secondary-dark;
   }
-
-  // Standalone action links (e.g. the modal "Go Back") read as buttons, not
-  // inline prose, so they drop the underline.
-  &.back-link {
-    text-decoration: none;
-  }
 }
 
 .hidden {
@@ -122,6 +116,11 @@ nav {
 
   position: relative;
   height: $nav-height;
+  // The bar's popouts (hover tooltips, the data dropdown) must paint over the
+  // page content below; without this, the transformed .nav-dex-controls
+  // stacks at DOM order and its bubbles end up behind the tracker. Below the
+  // popover (50) and modal (100), which are true overlays.
+  z-index: 20;
   background-color: $brand-primary;
   font-family: $font-secondary;
 
@@ -307,10 +306,50 @@ nav {
   .tooltip .svg-inline--fa {
     font-size: 13px;
   }
+
+  // The generic nav-link hover paints the full bar-height anchor, which reads
+  // as an oversized rectangle around these small icons. Shape the anchors as
+  // snug circles centered on the icon so the same hover background becomes a
+  // tight halo around just the icon.
+  a.tooltip {
+    @include justify-content(center);
+
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 50%;
+
+    + a.tooltip {
+      margin-left: 4px;
+    }
+
+    // The anchor shrank from bar height to a 28px chip; re-anchor the bubble
+    // (tuned as top: 47px against the full-height anchor) so it still lands
+    // just under the bar.
+    .tooltip-text {
+      top: 34px;
+    }
+  }
 }
 
 .nav-logo {
   font-size: 13px;
+}
+
+// The right-edge nav tooltips (language, night mode): centering the 120px
+// bubble on icons this close to the viewport edge pushes it off screen (and
+// body's overflow-x clip eats it). Hang these bubbles from the anchor's right
+// edge instead, with the arrow re-aimed at the icon.
+nav > a.tooltip .tooltip-text {
+  left: auto;
+  right: 0;
+  margin-left: 0;
+
+  &::after {
+    left: auto;
+    right: 16px;
+    margin-left: 0;
+  }
 }
 
 .nav-dex-select {
@@ -902,7 +941,7 @@ select {
 }
 
 .wrapper {
-  width: 6 * $pokemon-box-size + 2;
+  width: $box-width;
   margin: 0 auto;
 }
 
@@ -928,12 +967,13 @@ select {
 }
 
 .modal {
-  @include overflow-y-scroll();
-
   position: relative;
-  margin: 10vh auto;
+  margin: 6vh auto;
   width: 500px;
-  max-height: 80vh;
+  max-height: 88vh;
+  // No forced scrollbar: the forms are sized to fit, so this only kicks in on
+  // very short windows.
+  overflow-y: auto;
   border: 2px solid $brand-secondary-light;
   background: #fff;
   outline: none;
@@ -944,10 +984,52 @@ select {
     font-size: 14px;
   }
 
+  // Standard top-right close (matches the popover); backdrop click and Esc
+  // are the other close paths.
+  .modal-close {
+    @include transition(all .1s ease-out);
+
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+    padding: 6px 8px;
+    border: 0;
+    background: none;
+    color: $gray-dark;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover {
+      color: $brand-secondary;
+    }
+  }
+
+  // The standalone .form (profile/auth pages) scrolls itself with generous
+  // padding; inside the modal the shell owns the box, so the form hugs its
+  // content instead.
+  .form {
+    overflow-y: visible;
+    scrollbar-gutter: auto;
+    padding: 24px 0 32px;
+
+    h1 {
+      margin-top: 0;
+    }
+  }
+
   &.night-mode {
     background-color: $night-mode;
     color: $gray-medium;
     border-color: $night-mode-secondary-dark;
+
+    .modal-close {
+      color: $gray-dark;
+
+      &:hover {
+        color: white;
+      }
+    }
   }
 }
 
@@ -1017,10 +1099,8 @@ select {
     }
   }
 
-  header {
-    h1 {
-      color: white;
-    }
+  .dex-search-bar-summary .header-row h1 {
+    color: white;
   }
 
   .loading {
@@ -1074,26 +1154,6 @@ select {
     .form-group {
       .fa-magnifying-glass {
         color: white;
-      }
-    }
-  }
-
-  header  {
-    .share-container .share {
-      background-color: $night-mode;
-      border-color: $night-mode-02dp;
-      color: white;
-
-      &::after {
-        border-color: $night-mode-02dp transparent transparent transparent;
-      }
-    }
-
-    a {
-      color: $night-mode-link-gray;
-
-      &:hover {
-        color: $night-mode-link-gray-dark;
       }
     }
   }

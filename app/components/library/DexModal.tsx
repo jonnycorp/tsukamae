@@ -1,19 +1,27 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faAsterisk, faChevronDown, faLongArrowAltRight } from '@fortawesome/free-solid-svg-icons';
+import { faAsterisk, faChevronDown, faLongArrowAltRight, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex, progressToCaptures } from '../../utils/local-data';
-import { localizeCatalogDexName, localizeCatalogGame, localizeDexType } from '../../i18n/names';
+import { DEFAULT_CATALOG_KEY, DEX_CATALOG, LANGUAGES, ORIGIN_GAMES, getCatalogDex, progressToCaptures } from '../../utils/local-data';
+import { localizeCaptureLanguage, localizeCatalogDexName, localizeCatalogGame, localizeDexType, localizeOriginGame } from '../../i18n/names';
 import { QueryKey } from '../../hooks/queries/captures';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../hooks/use-dismissable';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../hooks/use-translation';
 
+import type { CaptureStatus } from '../../types';
 import type { CatalogDex, PersonalDex } from '../../utils/local-data';
 import type { ChangeEvent, FormEvent, MouseEvent, ReactNode } from 'react';
+import type { TranslationKey } from '../../i18n/translations';
+
+const STATUS_OPTIONS: { value: CaptureStatus; labelKey: TranslationKey }[] = [
+  { value: 'caught', labelKey: 'status.caught' },
+  { value: 'temporary', labelKey: 'status.temporary' },
+  { value: 'locked', labelKey: 'status.locked' },
+];
 
 interface ModalShellProps {
   children: ReactNode;
@@ -26,9 +34,10 @@ interface ModalShellProps {
 // A dependency-free stand-in for the react-modal component the original
 // dex-management UI used; reuses the .modal/.modal-overlay styles.
 // Presentational only — the owner holds useDismissable so every close path
-// (backdrop, Esc, links, submit) shares one animated dismiss.
+// (backdrop, Esc, ×, submit) shares one animated dismiss.
 function ModalShell ({ children, closing, contentLabel, onDismiss }: ModalShellProps) {
   const { isNightMode } = useLocalStorageContext();
+  const { t } = useTranslation();
 
   const handleOverlayClick = (e: MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -39,6 +48,9 @@ function ModalShell ({ children, closing, contentLabel, onDismiss }: ModalShellP
   return (
     <div className={classNames('modal-overlay', { closing })} onClick={handleOverlayClick}>
       <div aria-label={contentLabel} className={`modal ${isNightMode ? 'night-mode' : ''}`} role="dialog">
+        <button aria-label={t('popover.close')} className="modal-close" onClick={onDismiss} title={t('popover.close')} type="button">
+          <FontAwesomeIcon icon={faXmark} />
+        </button>
         {children}
       </div>
     </div>
@@ -76,6 +88,12 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const [gameId, setGameId] = useState(initialCatalog.game.id);
   const [catalogKey, setCatalogKey] = useState(initialCatalog.key);
   const [shiny, setShiny] = useState(dex?.shiny || false);
+
+  // Defaults for new catches — all optional ('' = unset, so fresh catches
+  // stay blank and keep the missing-metadata mark).
+  const [defaultStatus, setDefaultStatus] = useState(dex?.captureDefaults?.status || '');
+  const [defaultOriginGame, setDefaultOriginGame] = useState(dex?.captureDefaults?.origin_game || '');
+  const [defaultLanguage, setDefaultLanguage] = useState(dex?.captureDefaults?.language || '');
 
   // The catalog grouped by game, newest first (DEX_CATALOG is already in that
   // order). Picking a game filters the Dex options to just that game's dexes —
@@ -123,11 +141,17 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     // was typing in — titles are user data, saved as-is.
     const resolvedTitle = title.trim() || localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name);
 
+    const captureDefaults = {
+      status: (defaultStatus || null) as CaptureStatus | null,
+      origin_game: defaultOriginGame || null,
+      language: defaultLanguage || null,
+    };
+
     if (dex) {
-      updateDex(dex.id, { title: resolvedTitle, shiny });
+      updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults });
     } else {
       pendingActionRef.current = () => {
-        const newDex = createDex({ title: resolvedTitle, catalogKey, shiny });
+        const newDex = createDex({ title: resolvedTitle, catalogKey, shiny, captureDefaults });
         // Warm the captures cache before React renders the switch, so the
         // remounted tracker finds data on its first frame instead of
         // flashing its loading state.
@@ -167,11 +191,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
             />
             <FontAwesomeIcon className="input-icon" icon={faAsterisk} />
           </div>
-          {dex ?
-            <div className="form-group">
-              <label>{t('dexModal.dex')}</label>
-              <div className="form-note">{t('dexModal.structureNote', { name: localizeCatalogDexName(locale, dex.catalogKey, getCatalogDex(dex.catalogKey).name), total: getCatalogDex(dex.catalogKey).total })}</div>
-            </div> :
+          {!dex &&
             <>
               <div className="form-group">
                 <label htmlFor="dex_game">{t('dexModal.game')}</label>
@@ -215,6 +235,51 @@ export function DexModal ({ dex, onRequestClose }: Props) {
               </label>
             </div>
           </div>
+          <div className="form-group">
+            <label>{t('dexModal.defaults')}</label>
+          </div>
+          <div className="form-group">
+            <label htmlFor="default_status">{t('info.status')}</label>
+            <select
+              className="form-control"
+              id="default_status"
+              name="default_status"
+              onChange={(e) => setDefaultStatus(e.target.value)}
+              value={defaultStatus}
+            >
+              <option value="">—</option>
+              {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
+            </select>
+            <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="default_origin_game">{t('info.originGame')}</label>
+            <select
+              className="form-control"
+              id="default_origin_game"
+              name="default_origin_game"
+              onChange={(e) => setDefaultOriginGame(e.target.value)}
+              value={defaultOriginGame}
+            >
+              <option value="">—</option>
+              {ORIGIN_GAMES.map((game) => <option key={game.id} value={game.id}>{localizeOriginGame(locale, game.id, game.name)}</option>)}
+            </select>
+            <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="default_language">{t('info.language')}</label>
+            <select
+              className="form-control"
+              id="default_language"
+              name="default_language"
+              onChange={(e) => setDefaultLanguage(e.target.value)}
+              value={defaultLanguage}
+            >
+              <option value="">—</option>
+              {LANGUAGES.map((language) => <option key={language.id} value={language.id}>{localizeCaptureLanguage(locale, language.id, language.name)}</option>)}
+            </select>
+            <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
+          </div>
           <button className="btn btn-blue" type="submit">
             {t(dex ? 'dexModal.save' : 'dexModal.create')} <FontAwesomeIcon icon={faLongArrowAltRight} />
           </button>
@@ -229,7 +294,6 @@ export function DexModal ({ dex, onRequestClose }: Props) {
           }
         </form>
       </div>
-      <p><a className="link back-link" onClick={dismiss}>{t('dexModal.goBack')}</a></p>
     </ModalShell>
   );
 }

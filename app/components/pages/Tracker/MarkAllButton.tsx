@@ -62,6 +62,10 @@ export function MarkAllButton ({ captures }: Props) {
       await createCapturesMutation.mutateAsync({ payload });
     }
 
+    // Mirror the mutation layer: newly marked mons prefill from the dex's
+    // captureDefaults (these were all uncaught, so their fields were blank).
+    const defaults = activeDex!.captureDefaults;
+
     setCaptures((prev) => prev.map((cap) => {
       if (!pokemon.includes(cap.pokemon.id)) {
         // We're not modifying this one.
@@ -72,8 +76,9 @@ export function MarkAllButton ({ captures }: Props) {
         pending: false,
         captured: !deleting,
         // Unmarking clears status/origin state along with the capture.
-        status: deleting ? null : (cap.status || 'caught'),
-        origin_game: deleting ? null : cap.origin_game,
+        status: deleting ? null : (cap.status || defaults?.status || 'caught'),
+        origin_game: deleting ? null : (cap.origin_game ?? defaults?.origin_game ?? null),
+        language: deleting ? null : (cap.language ?? defaults?.language ?? null),
       };
     }));
   };

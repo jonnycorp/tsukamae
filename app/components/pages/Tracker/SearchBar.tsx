@@ -1,7 +1,10 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
+import { Header } from '../../library/Header';
+import { Progress } from '../../library/Progress';
+import { useTrackerContext } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
@@ -17,7 +20,14 @@ interface Props {
 
 export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemporaryOnly, temporaryOnly }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { captures } = useTrackerContext();
   const { t } = useTranslation();
+
+  // The bar doubles as the dex summary (title + progress), so it owns the
+  // counts that used to live above the boxes.
+  const caught = useMemo(() => captures.filter(({ captured }) => captured).length, [captures]);
+  const temporary = useMemo(() => captures.filter((capture) => capture.status === 'temporary').length, [captures]);
+  const locked = useMemo(() => captures.filter((capture) => capture.status === 'locked').length, [captures]);
 
   useEffect(() => {
     const handleKeyup = (e: KeyboardEvent) => {
@@ -42,57 +52,63 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
 
   return (
     <div className="dex-search-bar">
-      <div className="wrapper">
-        <div className="form-group">
-          <FontAwesomeIcon icon={faSearch} />
-          <input
-            autoCapitalize="off"
-            autoComplete="off"
-            autoCorrect="off"
-            className="form-control"
-            id="search"
-            name="search"
-            onChange={handleInputChange}
-            placeholder={t('search.placeholder')}
-            ref={inputRef}
-            spellCheck="false"
-            type="text"
-            value={query}
-          />
-          {query.length > 0 ?
-            <a className="clear-btn" onClick={handleClearClick}>
-              <FontAwesomeIcon className="input-icon" icon={faTimes} />
-            </a> :
-            null
-          }
+      <div className="dex-search-bar-inner">
+        <div className="dex-search-bar-summary">
+          <Header />
+          <Progress caught={caught} locked={locked} temporary={temporary} total={captures.length} />
         </div>
-        <div className="dex-search-bar-filters">
+        <div className="dex-search-bar-search">
           <div className="form-group">
-            <div className="checkbox">
-              <label>
-                <input
-                  checked={hideCaught}
-                  id="hide-caught"
-                  name="hide-caught"
-                  onChange={handleHideCaughtChange}
-                  type="checkbox"
-                />
-                <span className="checkbox-custom"><span /></span>{t('search.hideCaught')}
-              </label>
-            </div>
+            <FontAwesomeIcon icon={faSearch} />
+            <input
+              autoCapitalize="off"
+              autoComplete="off"
+              autoCorrect="off"
+              className="form-control"
+              id="search"
+              name="search"
+              onChange={handleInputChange}
+              placeholder={t('search.placeholder')}
+              ref={inputRef}
+              spellCheck="false"
+              type="text"
+              value={query}
+            />
+            {query.length > 0 ?
+              <a className="clear-btn" onClick={handleClearClick}>
+                <FontAwesomeIcon className="input-icon" icon={faTimes} />
+              </a> :
+              null
+            }
           </div>
-          <div className="form-group">
-            <div className="checkbox">
-              <label>
-                <input
-                  checked={temporaryOnly}
-                  id="temporary-only"
-                  name="temporary-only"
-                  onChange={handleTemporaryOnlyChange}
-                  type="checkbox"
-                />
-                <span className="checkbox-custom"><span /></span>{t('search.temporaryOnly')}
-              </label>
+          <div className="dex-search-bar-filters">
+            <div className="form-group">
+              <div className="checkbox">
+                <label>
+                  <input
+                    checked={hideCaught}
+                    id="hide-caught"
+                    name="hide-caught"
+                    onChange={handleHideCaughtChange}
+                    type="checkbox"
+                  />
+                  <span className="checkbox-custom"><span /></span>{t('search.hideCaught')}
+                </label>
+              </div>
+            </div>
+            <div className="form-group">
+              <div className="checkbox">
+                <label>
+                  <input
+                    checked={temporaryOnly}
+                    id="temporary-only"
+                    name="temporary-only"
+                    onChange={handleTemporaryOnlyChange}
+                    type="checkbox"
+                  />
+                  <span className="checkbox-custom"><span /></span>{t('search.temporaryOnly')}
+                </label>
+              </div>
             </div>
           </div>
         </div>

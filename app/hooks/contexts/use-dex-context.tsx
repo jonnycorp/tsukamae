@@ -2,19 +2,21 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import { getAppState, loadAppState, mutateAppState, newDexId, toDexView } from '../../utils/local-data';
 
+import type { CaptureDefaults, PersonalDex } from '../../utils/local-data';
 import type { Dex } from '../../types';
-import type { PersonalDex } from '../../utils/local-data';
 import type { ReactNode } from 'react';
 
 export interface CreateDexInput {
   title: string;
   catalogKey: string;
   shiny: boolean;
+  captureDefaults?: CaptureDefaults;
 }
 
 export interface UpdateDexInput {
   title?: string;
   shiny?: boolean;
+  captureDefaults?: CaptureDefaults;
 }
 
 interface DexContextState {
@@ -85,8 +87,8 @@ export const DexContextProvider = ({ children }: Props) => {
       setActiveDex: (id) => apply((state) => {
         state.activeDexId = id;
       }),
-      createDex: ({ title, catalogKey, shiny }) => {
-        const dex: PersonalDex = { id: newDexId(), title, catalogKey, shiny, progress: {} };
+      createDex: ({ title, catalogKey, shiny, captureDefaults }) => {
+        const dex: PersonalDex = { id: newDexId(), title, catalogKey, shiny, progress: {}, captureDefaults };
         apply((state) => {
           state.dexes = [...state.dexes, dex];
           state.activeDexId = dex.id;

@@ -52,6 +52,12 @@ $night-mode-error-dark: darken(#bb2323, 7%);
 $pokemon-box-size: 110px;
 $tooltip-width: 120px;
 
+// Derived layout: a box is 6 tiles wide (+2px for its container border), and
+// the tracker lays boxes out two per row.
+$box-width: 6 * $pokemon-box-size + 2;
+$dex-grid-gap: 40px;
+$dex-grid-width: 2 * $box-width + $dex-grid-gap;
+
 // Fade in/out length for dismissable overlays (modal, popover). Keep in sync
 // with FADE_MS in hooks/use-dismissable.ts, which unmounts after the fade.
 $fade-duration: .15s;

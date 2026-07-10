@@ -150,12 +150,25 @@ export interface ProgressEntry {
 }
 export type Progress = Record<string, ProgressEntry>;
 
+// Per-dex prefills applied when a mon is NEWLY marked (never retroactively —
+// see the capture mutation hooks). Each field is independent; unset fields
+// stay blank so the missing-metadata mark still nags. E.g. a regional living
+// dex where every catch is a locked local catch sets all three, while a
+// national dex sets none so unfinished bookkeeping stays visible.
+export interface CaptureDefaults {
+  status: CaptureStatus | null;
+  origin_game: string | null;
+  language: string | null;
+}
+
 export interface PersonalDex {
   id: string;
   title: string;
   catalogKey: string;
   shiny: boolean;
   progress: Progress;
+  // Absent on dexes created before this feature — treated as all-unset.
+  captureDefaults?: CaptureDefaults;
 }
 
 export interface AppState {
