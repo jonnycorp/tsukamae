@@ -2,12 +2,7 @@
 
 html {
   -webkit-font-smoothing: antialiased;
-  // Clip horizontal overflow at the viewport itself (body's overflow-x doesn't
-  // reliably propagate here). Kills the stray horizontal scrollbar / dead space
-  // on the right; nothing in the app scrolls horizontally on purpose.
   overflow-x: hidden;
-  // No elastic rubber-banding past the document edge (macOS Chrome shifts the
-  // whole page and flashes the background behind it). Inert in Electron.
   overscroll-behavior: none;
 }
 
@@ -19,50 +14,61 @@ html {
   outline: 0;
 }
 
-// Slim themed scrollbar via the standard scrollbar-width/scrollbar-color
-// properties (set per scroll container by the scrollbar-fade mixin). Setting
-// them switches Chromium — and therefore the Electron build — off native
-// scrollbars onto its own painted scrollbar, so the bar renders identically
-// on every platform: the 0px macOS overlay and the ~17px classic Windows bar
-// (whose reserved width used to push content past the viewport) are both
-// replaced by a uniform thin gutter the flex layout absorbs.
-// Do NOT style ::-webkit-scrollbar pseudo-elements instead: Chromium caches
-// those styles and won't repaint them on class/variable changes, which
-// silently breaks the fade (and any non-auto scrollbar-width/color disables
-// them anyway).
 :root {
-  --scrollbar-thumb-active: #{rgba($brand-secondary, .45)};
+  --scrollbar-thumb-active: var(--brand-secondary-a45);
+  // Box/tile outlines: dark hairline on light surfaces, light on dark.
+  --grid-line: var(--grid-line-light);
 }
 
 body {
   margin: 0;
   padding: 0;
-  // Stray absolutely-positioned bits (e.g. the rightmost nav tooltip) can poke
-  // past the viewport's right edge and create a horizontal scrollbar + dead
-  // space. Nothing here scrolls horizontally on purpose, so clip it.
   overflow-x: hidden;
   overscroll-behavior: none;
   font-family: $font-primary;
-  // Never leave line-height at `normal`: it's the only value computed from the
-  // font's own metrics, so the taller CJK fallback fonts would grow every
-  // content-sized text element when the UI switches to Japanese and jolt the
-  // layout. A specified value computes from font-size alone, making element
-  // heights identical in both locales. 1.35 ≈ Alegreya Sans's natural normal,
-  // so the Latin layout barely moves.
+  // Fixed value keeps EN/JA layouts identical (`normal` is font-metric-dependent).
   line-height: 1.35;
-  // Light theme is the default surface; without an explicit background the
-  // page falls through to the browser's canvas, which renders black when the
-  // OS is in dark mode. The .night-mode root overrides this for dark theme.
-  background-color: #fff;
+  background-color: var(--surface);
+  color: $brand-secondary;
   color-scheme: light;
 }
 
-// Form controls don't inherit body's line-height — the UA hands them their own
-// `normal`, which is font-metric-dependent and reintroduces the EN/JA height
-// jolt the body rule exists to prevent (buttons like New Dex / Mark All grew
-// when Japanese text swapped in a taller CJK fallback font).
+// Form controls don't inherit body's line-height; same EN/JA rule as above.
 button, input, select, textarea {
   line-height: 1.35;
+}
+
+// Mode prototype: palette intact, only surfaces + text flip (.night-mode dormant).
+.soft-dark {
+  --surface: var(--surface-dark);
+  --surface-raised: var(--surface-raised-dark);
+  --grid-line: rgba(242, 241, 238, .18);
+
+  background-color: var(--surface);
+  color: #f2f1ee;
+  color-scheme: dark;
+
+  // Explicit: UA field colors don't reliably follow the flip.
+  input,
+  select,
+  textarea,
+  .form-control {
+    color: #f2f1ee;
+
+    &::placeholder {
+      color: rgba(#f2f1ee, .55);
+    }
+  }
+
+  // Sits on mode-independent chrome.
+  .nav-dex-select {
+    color: $brand-secondary;
+  }
+
+  // Captured tiles keep their light palette fills, so their text stays dark.
+  .pokemon.captured {
+    color: #26221f;
+  }
 }
 
 #root,
@@ -82,8 +88,7 @@ button, input, select, textarea {
     @include flexbox();
     @include flex-direction(column);
 
-    // Containers cap at the viewport; anything taller scrolls inside its own
-    // window (the dex column, the landing dex list) instead of the page.
+    // Cap at the viewport; content scrolls in its own window, not the page.
     min-height: 0;
   }
 }
@@ -106,8 +111,6 @@ a.link {
   visibility: hidden;
 }
 
-// The bar is a bit taller than the original 42px so the centered dex controls
-// can act as the page title.
 $nav-height: 54px;
 
 nav {
@@ -116,10 +119,6 @@ nav {
 
   position: relative;
   height: $nav-height;
-  // The bar's popouts (hover tooltips, the data dropdown) must paint over the
-  // page content below; without this, the transformed .nav-dex-controls
-  // stacks at DOM order and its bubbles end up behind the tracker. Below the
-  // popover (50) and modal (100), which are true overlays.
   z-index: 20;
   background-color: $brand-primary;
   font-family: $font-secondary;
@@ -135,9 +134,7 @@ nav {
     text-transform: uppercase;
     letter-spacing: 1px;
     text-decoration: none;
-    // CJK glyphs have taller intrinsic line boxes than Latin at the same
-    // font-size; pinning the line height keeps the bar height identical in
-    // both languages instead of growing when the UI is in Japanese.
+    // Pinned so the bar height is identical in EN/JA.
     line-height: $nav-height;
     white-space: nowrap;
 
@@ -176,7 +173,7 @@ nav {
 
     &:hover {
       > a {
-        background-color: lighten($brand-primary, 10%);
+        background-color: var(--brand-primary-l10);
       }
 
       ul {
@@ -214,13 +211,13 @@ nav {
       li  a {
         display: block;
         border-top: 2px solid $brand-primary;
-        background-color: lighten($brand-primary, 10%);
+        background-color: var(--brand-primary-l10);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
 
         &:hover {
-          background-color: lighten($brand-primary, 15%);
+          background-color: var(--brand-primary-l15);
         }
 
         .svg-inline--fa {
@@ -237,7 +234,7 @@ nav {
 .no-touch nav a {
   &:hover,
   &:focus {
-    background-color: lighten($brand-primary, 10%);
+    background-color: var(--brand-primary-l10);
     cursor: pointer;
   }
 }
@@ -257,7 +254,7 @@ nav {
     margin: 0;
     padding: 0;
     list-style: none;
-    background-color: lighten($brand-primary, 10%);
+    background-color: var(--brand-primary-l10);
 
     li {
       @include flexbox();
@@ -280,7 +277,7 @@ nav {
       }
 
       &:hover {
-        background-color: lighten($brand-primary, 15%);
+        background-color: var(--brand-primary-l15);
       }
 
       &.nav-menu-danger {
@@ -290,10 +287,7 @@ nav {
   }
 }
 
-// The dex dropdown + edit/add live in a group centered in the nav — both
-// axes — independent of the logo (left) and data/night-mode (right) widths.
-// It doubles as the page title, so its type runs slightly bigger than the
-// rest of the bar.
+// Centered independently of the side widths; doubles as the page title.
 .nav-dex-controls {
   @include flexbox();
   @include align-items(center);
@@ -306,40 +300,24 @@ nav {
   .tooltip .svg-inline--fa {
     font-size: 13px;
   }
+}
 
-  // The generic nav-link hover paints the full bar-height anchor, which reads
-  // as an oversized rectangle around these small icons. Shape the anchors as
-  // snug circles centered on the icon so the same hover background becomes a
-  // tight halo around just the icon.
-  a.tooltip {
-    @include justify-content(center);
+// One shape for all icon-only nav buttons — uniform hover, no width shift.
+nav a.nav-icon {
+  @include justify-content(center);
+  // Never squeezed by flex neighbors (the dex select grows to fill).
+  @include flex-shrink(0);
 
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border-radius: 50%;
-
-    + a.tooltip {
-      margin-left: 4px;
-    }
-
-    // The anchor shrank from bar height to a 28px chip; re-anchor the bubble
-    // (tuned as top: 47px against the full-height anchor) so it still lands
-    // just under the bar.
-    .tooltip-text {
-      top: 34px;
-    }
-  }
+  width: 44px;
+  height: $nav-height;
+  padding: 0;
 }
 
 .nav-logo {
   font-size: 13px;
 }
 
-// The right-edge nav tooltips (language, night mode): centering the 120px
-// bubble on icons this close to the viewport edge pushes it off screen (and
-// body's overflow-x clip eats it). Hang these bubbles from the anchor's right
-// edge instead, with the arrow re-aimed at the icon.
+// Hung from the right edge so bubbles stay on-screen.
 nav > a.tooltip .tooltip-text {
   left: auto;
   right: 0;
@@ -359,9 +337,8 @@ nav > a.tooltip .tooltip-text {
   font-size: 13px;
   line-height: 1;
   border: 0;
-  // Blend into the bar rather than a stark white box: a slightly darker "well"
-  // with soft inset edges, echoing the box sections.
-  background-color: darken($brand-primary, 4%);
+  // A slightly darker inset "well" in the bar.
+  background-color: var(--brand-primary-d4);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), inset 0 1px 3px rgba(0, 0, 0, .18);
   color: $brand-secondary;
   font-family: $font-secondary;
@@ -405,7 +382,7 @@ nav > a.tooltip .tooltip-text {
 
   &.btn-white {
     color: $brand-secondary;
-    background-color: #fff;
+    background-color: var(--surface-raised);
   }
 
   .svg-inline--fa {
@@ -450,7 +427,7 @@ nav > a.tooltip .tooltip-text {
     }
 
     &.btn-white {
-      background-color: darken(#fff, 1%);
+      background-color: #fcfcfc;
     }
   }
 }
@@ -484,10 +461,10 @@ nav > a.tooltip .tooltip-text {
   &.alert-muted {
     margin-bottom: 50px;
     border: 2px solid $gray-medium;
-    color: darken($gray-dark, 20%);
+    color: var(--gray-dark-d20);
 
     a {
-      color: darken($gray-dark, 40%);
+      color: var(--gray-dark-d40);
 
       &:hover {
         color: black;
@@ -583,7 +560,7 @@ select {
   -webkit-appearance: none;
   border: 2px solid $brand-secondary-light;
   border-radius: 0;
-  background-color: white;
+  background-color: var(--surface);
   padding: 6px;
   font-family: $font-primary;
 
@@ -661,7 +638,7 @@ select {
       width: 16px;
       height: 16px;
       border: 1px solid $gray-medium;
-      background-color: lighten($gray-light, 25%);
+      background-color: var(--gray-light-l25);
       border-radius: 50%;
 
       > span {
@@ -722,7 +699,7 @@ select {
       width: 16px;
       height: 16px;
       border: 1px solid $gray-medium;
-      background-color: lighten($gray-light, 25%);
+      background-color: var(--gray-light-l25);
 
       > span {
         @include transition(all .15s ease-out);
@@ -805,10 +782,10 @@ select {
     }
 
     .tooltip-text {
-      background-color: darken($error, 5%);
+      background-color: var(--error-d5);
 
       &::after {
-        border-color: darken($error, 5%) transparent transparent transparent;
+        border-color: var(--error-d5) transparent transparent transparent;
       }
     }
   }
@@ -838,9 +815,7 @@ select {
     text-align: center;
     font-weight: 400;
     font-size: 13px;
-    // Nav links pin line-height to the bar height; the tooltip bubble must not
-    // inherit that. (1.35, not `normal`, to stay font-metric-independent —
-    // see body.)
+    // Escapes the nav's pinned line-height (1.35 stays font-metric-independent).
     line-height: 1.35;
     white-space: normal;
 
@@ -873,9 +848,7 @@ select {
 }
 
 .loading {
-  // Silent at first: brief loading states (a dex switch remount resolves
-  // within a frame or two) shouldn't flash text at the user. The label only
-  // fades in if loading actually persists.
+  // Silent at first; the label only fades in if loading persists.
   @include animation(fade-in .3s ease-out .4s forwards);
 
   opacity: 0;
@@ -931,7 +904,7 @@ select {
 .reload {
   text-align: center;
   padding: 10px 30px;
-  background-color: lighten($brand-primary-light, 15%);
+  background-color: var(--brand-primary-light-l15);
   font-size: 14px;
 
   .svg-inline--fa {
@@ -955,8 +928,7 @@ select {
   bottom: 0;
   left: 0;
   background-color: rgba(0, 0, 0, 0.35);
-  // The modal renders inline (no portal), so it needs to stack above the
-  // tracker's positioned elements (tooltips, the scroll button).
+  // Above the tracker's positioned elements (renders inline, no portal).
   z-index: 100;
 
   // useDismissable sets this while the fade-out plays, then unmounts.
@@ -969,13 +941,12 @@ select {
 .modal {
   position: relative;
   margin: 6vh auto;
-  width: 500px;
+  // Wide enough for the two-column dex form (2 × 280px columns + gutters).
+  width: 660px;
   max-height: 88vh;
-  // No forced scrollbar: the forms are sized to fit, so this only kicks in on
-  // very short windows.
   overflow-y: auto;
   border: 2px solid $brand-secondary-light;
-  background: #fff;
+  background: var(--surface-raised);
   outline: none;
 
   p {
@@ -984,8 +955,6 @@ select {
     font-size: 14px;
   }
 
-  // Standard top-right close (matches the popover); backdrop click and Esc
-  // are the other close paths.
   .modal-close {
     @include transition(all .1s ease-out);
 
@@ -1005,9 +974,7 @@ select {
     }
   }
 
-  // The standalone .form (profile/auth pages) scrolls itself with generous
-  // padding; inside the modal the shell owns the box, so the form hugs its
-  // content instead.
+  // Inside the modal the shell owns the box; the form hugs its content.
   .form {
     overflow-y: visible;
     scrollbar-gutter: auto;
@@ -1015,6 +982,34 @@ select {
 
     h1 {
       margin-top: 0;
+    }
+  }
+
+  .dex-form {
+    .form-row .form-column {
+      width: 280px;
+    }
+
+    .btn {
+      margin-top: 8px;
+    }
+  }
+
+  // Heads a group of related optional fields (the capture defaults).
+  .form-section-label {
+    margin-bottom: 18px;
+    font-family: $font-secondary;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+
+    .optional-tag {
+      margin-left: 4px;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      opacity: .55;
     }
   }
 
@@ -1033,15 +1028,10 @@ select {
   }
 }
 
-// The class lives on both <html> (so the document surface behind everything —
-// revealed by overscroll or load gaps — is dark, and color-scheme reaches
-// native viewport UI) and the .root div (which the descendant overrides below
-// key off).
+// DORMANT legacy night-mode — the toggle applies .soft-dark instead.
 .night-mode {
   background-color: $night-mode;
   color: white;
-  // Dark theme is the default; this also styles native controls (the dex
-  // switcher and origin-game / status dropdowns) to match.
   color-scheme: dark;
 
   body {
@@ -1182,7 +1172,7 @@ select {
 
   .pokemon {
     &.pending {
-      background: rgba($night-mode-primary, .5);
+      background: var(--night-mode-primary-a50);
     }
 
     &.captured {
@@ -1201,10 +1191,12 @@ select {
 
     &.captured.temporary {
       background-color: $night-mode-temporary;
+      // Temporary's stripe identity, tuned for the dark tile fill.
+      background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--night-mode-temporary-stripe) 8px 16px);
 
       .set-captured,
       .set-captured-mobile {
-        border-color: darken($night-mode-temporary, 15%);
+        border-color: var(--night-mode-temporary-d15);
         border-style: dashed;
       }
     }
@@ -1214,7 +1206,7 @@ select {
 
       .set-captured,
       .set-captured-mobile {
-        border-color: darken($night-mode-locked, 15%);
+        border-color: var(--night-mode-locked-d15);
       }
     }
 
@@ -1227,7 +1219,7 @@ select {
     }
 
     .pkicon.game-family-legends_arceus {
-      background-color: rgba($gray-light, .2);
+      background-color: var(--gray-light-a20);
     }
   }
 
@@ -1250,16 +1242,16 @@ select {
     }
 
     .popover-links a {
-      background-color: darken($night-mode-secondary, 4%);
+      background-color: var(--night-mode-secondary-d4);
 
       &:hover {
-        background-color: darken($night-mode-secondary, 6%);
+        background-color: var(--night-mode-secondary-d6);
       }
     }
 
     // Hover keeps the light theme's red warning color.
     .popover-release {
-      background-color: darken($night-mode-secondary, 4%);
+      background-color: var(--night-mode-secondary-d4);
     }
   }
 
@@ -1274,7 +1266,7 @@ select {
   }
 
   .form h1 {
-    color: #3777ca;
+    color: $night-mode-link;
   }
 
   .form-group .radio .radio-custom {
@@ -1325,7 +1317,7 @@ select {
       }
 
       &.btn-white {
-        background-color: darken($gray-light, 6%);
+        background-color: var(--gray-light-d6);
         color: $night-mode-secondary;
       }
 

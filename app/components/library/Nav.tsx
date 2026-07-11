@@ -47,9 +47,6 @@ export function Nav () {
   const handleCreateClose = () => setShowCreate(false);
   const handleEditClose = () => setShowEdit(false);
 
-  // Export downloads the whole tracker as JSON. In the browser this uses the
-  // normal download flow; in the Electron build Chromium shows a native "Save
-  // As" dialog, so it lands wherever you choose.
   const handleExportClick = () => {
     const blob = new Blob([exportAppState()], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -66,9 +63,6 @@ export function Nav () {
     importInputRef.current?.click();
   };
 
-  // Placeholder: wiping every dex needs the landing page to fall back to, and
-  // deleteDex currently refuses to remove the last dex. Wire this up once the
-  // landing page exists.
   const handleWipeClick = () => {
     setShowDataMenu(false);
     window.alert(t('nav.wipeAlert'));
@@ -110,18 +104,18 @@ export function Nav () {
           <select className="nav-dex-select" onChange={handleDexChange} value={activeDex.id}>
             {dexes!.map((dex) => <option key={dex.id} value={dex.id}>{dex.title}</option>)}
           </select>
-          <a className="tooltip tooltip-below" onClick={handleEditDexClick}>
+          <a className="nav-icon tooltip tooltip-below" onClick={handleEditDexClick}>
             <FontAwesomeIcon icon={faPencilAlt} />
             <span className="tooltip-text">{t('nav.editDex')}</span>
           </a>
-          <a className="tooltip tooltip-below" onClick={handleNewDexClick}>
+          <a className="nav-icon tooltip tooltip-below" onClick={handleNewDexClick}>
             <FontAwesomeIcon icon={faPlus} />
             <span className="tooltip-text">{t('nav.newDex')}</span>
           </a>
         </div>
       }
       <div className="nav-menu" ref={dataMenuRef}>
-        <a className="nav-menu-toggle" onClick={() => setShowDataMenu((open) => !open)}>
+        <a className="nav-icon nav-menu-toggle" onClick={() => setShowDataMenu((open) => !open)}>
           <FontAwesomeIcon icon={faGear} />
         </a>
         {showDataMenu &&
@@ -139,11 +133,11 @@ export function Nav () {
         style={{ display: 'none' }}
         type="file"
       />
-      <a className="tooltip tooltip-below" onClick={handleLanguageToggle}>
+      <a className="nav-icon tooltip tooltip-below" onClick={handleLanguageToggle}>
         <FontAwesomeIcon icon={faLanguage} />
         <span className="tooltip-text">{locale === 'en' ? '日本語' : 'English'}</span>
       </a>
-      <a className="tooltip tooltip-below" onClick={handleNightModeClick}>
+      <a className="nav-icon tooltip tooltip-below" onClick={handleNightModeClick}>
         <FontAwesomeIcon icon={isNightMode ? faSun : faMoon} />
         <span className="tooltip-text">{t(isNightMode ? 'nav.nightModeOff' : 'nav.nightModeOn')}</span>
       </a>

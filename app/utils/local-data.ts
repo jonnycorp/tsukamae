@@ -37,11 +37,6 @@ import xYRegionalPokemon from '../../data/dexes/x-y-regional/pokemon.json';
 
 import type { Capture, CapturePokemon, CaptureStatus, Dex, DexType, Game } from '../types';
 
-// ---------------------------------------------------------------------------
-// The catalog: every dex structure bundled by scripts/generate-dataset.mjs.
-// This never changes at runtime — the user creates personal dexes from it.
-// ---------------------------------------------------------------------------
-
 export interface CatalogDex {
   key: string;
   name: string;
@@ -59,10 +54,7 @@ interface CatalogMeta {
   total: number;
 }
 
-// The bundled data names each dex's game after its single lead version (e.g.
-// "Scarlet"); these override that with the recognizable pair shown in the dex
-// picker and dex list. HOME stays HOME (it's the vehicle) — only the "National
-// Dex" name is cleaned of the HOME prefix, below.
+// Data names games by their lead version; display them as pairs.
 const GAME_NAME_OVERRIDES: Record<string, string> = {
   scarlet: 'Scarlet/Violet',
   scarlet_expansion_pass: 'Scarlet/Violet (Expansion Pass)',
@@ -88,8 +80,7 @@ function catalogEntry (meta: unknown, pokemonList: unknown): CatalogDex {
   return entry;
 }
 
-// Same order as DEX_MANIFEST in scripts/generate-dataset.mjs (newest first);
-// the in-app picker preserves it.
+// Same order as DEX_MANIFEST in scripts/generate-dataset.mjs (newest first).
 export const DEX_CATALOG: CatalogDex[] = [
   catalogEntry(homeNationalMeta, homeNationalPokemon),
   catalogEntry(homeNationalGigantamaxMeta, homeNationalGigantamaxPokemon),
@@ -113,9 +104,6 @@ export const DEX_CATALOG: CatalogDex[] = [
 export const DEFAULT_CATALOG_KEY = 'home-national';
 
 export function getCatalogDex (key: string): CatalogDex {
-  // A progress file referencing a key that's no longer bundled (should never
-  // happen — keys are append-only) falls back to the default dex structure
-  // rather than crashing the tracker.
   return DEX_CATALOG.find((entry) => entry.key === key) || DEX_CATALOG.find((entry) => entry.key === DEFAULT_CATALOG_KEY)!;
 }
 
@@ -126,22 +114,13 @@ export interface OriginGame {
 }
 export const ORIGIN_GAMES = originGamesJson as OriginGame[];
 
-// Language-of-origin options for the "what language is this mon" dropdown. The
-// set of languages the mainline games (Gen 6+ / HOME) support is small and
-// fixed, so it lives in a bundled file rather than behind an API. `abbr` is the
-// in-game three-letter tag (JPN, ENG, …).
+// Languages the mainline games support; `abbr` is the in-game three-letter tag.
 export interface Language {
   id: string;
   name: string;
   abbr: string;
 }
 export const LANGUAGES = languagesJson as Language[];
-
-// ---------------------------------------------------------------------------
-// Persisted state: the user's personal dexes, each an instance of a catalog
-// entry with its own progress. Progress is a sparse map keyed by pokemon id —
-// uncaught mons are omitted so the persisted file stays small and readable.
-// ---------------------------------------------------------------------------
 
 export interface ProgressEntry {
   status: CaptureStatus;
@@ -150,11 +129,7 @@ export interface ProgressEntry {
 }
 export type Progress = Record<string, ProgressEntry>;
 
-// Per-dex prefills applied when a mon is NEWLY marked (never retroactively —
-// see the capture mutation hooks). Each field is independent; unset fields
-// stay blank so the missing-metadata mark still nags. E.g. a regional living
-// dex where every catch is a locked local catch sets all three, while a
-// national dex sets none so unfinished bookkeeping stays visible.
+// Per-dex prefills for NEWLY marked mons only; unset fields keep the missing-metadata nag.
 export interface CaptureDefaults {
   status: CaptureStatus | null;
   origin_game: string | null;
@@ -180,16 +155,13 @@ export function newDexId (): string {
   return `dex-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// The pre-multi-dex format: one implicit HOME national dex, stored as a flat
-// map of pokemon id → entry.
+// The pre-multi-dex legacy format.
 interface LegacyProgressEntry {
   captured: boolean;
   origin_game: string | null;
   temporary: boolean;
 }
 
-// A brand-new install has no dexes and lands on the landing page. activeDexId
-// '' means "no dex open" — the user creates their first dex from there.
 function seedState (): AppState {
   return { activeDexId: '', dexes: [] };
 }
@@ -206,8 +178,7 @@ function migrateLegacyState (legacy: Record<string, LegacyProgressEntry>): AppSt
       language: null,
     };
   }
-  // Preserve the old implicit single dex as a real National dex, but land on
-  // the landing page (activeDexId '') with it shown in the list.
+  // The old implicit single dex becomes a real National dex.
   const dex: PersonalDex = {
     id: newDexId(),
     title: 'National Living Dex',
@@ -230,20 +201,12 @@ function normalizeState (raw: unknown): AppState {
     return migrateLegacyState(raw as Record<string, LegacyProgressEntry>);
   }
   const state = raw as unknown as AppState;
-  // An empty dex list is valid (landing page). Only clear activeDexId when it
-  // points at a dex that no longer exists — fall back to the landing page
-  // rather than force-opening an arbitrary dex.
+  // Clear activeDexId only when it points at a dex that no longer exists.
   if (state.activeDexId && !state.dexes.some((dex) => dex.id === state.activeDexId)) {
     state.activeDexId = '';
   }
   return state;
 }
-
-// ---------------------------------------------------------------------------
-// Persistence. The bridge exposed by the Electron preload script owns the
-// file on disk; when the app runs in a plain browser (yarn start), it's
-// absent and we fall back to localStorage so development still works.
-// ---------------------------------------------------------------------------
 
 export interface TrackerBridge {
   load: () => Promise<unknown>;
@@ -258,9 +221,7 @@ declare global {
 
 const BROWSER_STORAGE_KEY = 'progress';
 
-// Fresh/test mode (`yarn start:fresh`): keep everything in memory only. Real
-// localStorage is never read or written, so testing can't clobber saved data
-// and every reload starts from a clean slate.
+// Fresh/test mode: memory only, real storage never touched.
 const FRESH = process.env.TSUKAMAE_FRESH === '1';
 let memoryStore: unknown = {};
 
@@ -289,9 +250,6 @@ async function saveRaw (state: AppState): Promise<void> {
   window.localStorage.setItem(BROWSER_STORAGE_KEY, JSON.stringify(state));
 }
 
-// The in-memory source of truth, shared by the dex-management context and the
-// capture hooks. Loaded (and legacy files migrated) once on startup; every
-// mutation writes the whole state back.
 let appState: AppState | null = null;
 
 export async function loadAppState (): Promise<AppState> {
@@ -315,21 +273,10 @@ export async function mutateAppState (mutator: (state: AppState) => void): Promi
   return state;
 }
 
-// ---------------------------------------------------------------------------
-// Import / Export: a portable JSON snapshot of the whole tracker (every dex and
-// its progress). Used to back up data and carry it between app versions or
-// machines. Works in the browser and the Electron build alike; the Electron
-// File menu offers the same thing via native OS dialogs.
-// ---------------------------------------------------------------------------
-
 export function exportAppState (): string {
   return JSON.stringify(getAppState(), null, 2);
 }
 
-// Adopt an imported snapshot as the new state and persist it. normalizeState
-// validates and migrates older/legacy shapes, so an export from a previous
-// version still imports cleanly. Callers should reload afterwards so the React
-// tree re-derives from the new snapshot.
 export async function importAppState (raw: unknown): Promise<AppState> {
   const next = normalizeState(raw);
   appState = next;
@@ -337,13 +284,6 @@ export async function importAppState (raw: unknown): Promise<AppState> {
   return next;
 }
 
-// ---------------------------------------------------------------------------
-// Derivations
-// ---------------------------------------------------------------------------
-
-// A Dex-shaped view of a personal dex so the components inherited from
-// pokedextracker.com (iconClass, DexIndicator, box grouping, numbering) keep
-// working unchanged.
 export function toDexView (dex: PersonalDex): Dex {
   const catalog = getCatalogDex(dex.catalogKey);
   return {
@@ -377,8 +317,6 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
   });
 }
 
-// Summary counts for a dex (for the landing-page list). Every progress entry is
-// a caught mon; temporary/locked are subsets by status.
 export function dexCounts (dex: PersonalDex): { caught: number; temporary: number; locked: number; total: number } {
   const entries = Object.values(dex.progress);
   return {

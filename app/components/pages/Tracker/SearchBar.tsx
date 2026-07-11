@@ -23,8 +23,7 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
   const { captures } = useTrackerContext();
   const { t } = useTranslation();
 
-  // The bar doubles as the dex summary (title + progress), so it owns the
-  // counts that used to live above the boxes.
+  // The bar owns the dex summary counts.
   const caught = useMemo(() => captures.filter(({ captured }) => captured).length, [captures]);
   const temporary = useMemo(() => captures.filter((capture) => capture.status === 'temporary').length, [captures]);
   const locked = useMemo(() => captures.filter((capture) => capture.status === 'locked').length, [captures]);

@@ -29,9 +29,7 @@
   }
 }
 
-// The floating capture editor anchored to a clicked tile (replaced the old
-// fixed sidebar). PokemonPopover sets top/left inline; the box grid never
-// moves for it.
+// Floating capture editor anchored to the clicked tile (top/left set inline).
 .pokemon-popover {
   @include animation(fade-in $fade-duration ease-out);
   @include transition(opacity $fade-duration ease-out);
@@ -40,7 +38,7 @@
   width: 280px;
   // Above tile hover states and the scroll button, below the modal overlay.
   z-index: 50;
-  border: 2px solid darken($brand-secondary-dark, 3%);
+  border: 2px solid var(--brand-secondary-dark-d3);
   background-color: $brand-secondary;
   color: #fff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
@@ -52,7 +50,7 @@
   }
 
   .pkicon.game-family-legends_arceus {
-    background-color: rgba($gray-light, .3);
+    background-color: var(--gray-light-a30);
   }
 
   .popover-header {
@@ -60,7 +58,7 @@
     @include align-items(center);
 
     padding: 10px 10px 10px 4px;
-    border-bottom: 2px solid darken($brand-secondary-dark, 3%);
+    border-bottom: 2px solid var(--brand-secondary-dark-d3);
 
     .pkicon {
       margin: 0 8px;
@@ -72,8 +70,7 @@
       margin: 0;
       font-size: 22px;
       font-weight: 500;
-      // Absolute so the header height survives the smaller Japanese font-size
-      // (the html[lang='ja'] override below).
+      // Absolute: header height survives the smaller JA font-size.
       line-height: 30px;
     }
 
@@ -150,8 +147,7 @@
         margin-right: 6px;
       }
 
-      // Arrow on its own line under the label in both links — "Bulbapedia"
-      // wraps anyway, "Serebii" wouldn't, and the mismatch looks off.
+      // Arrow under the label in both links, wrap or not.
       .svg-inline--fa {
         display: block;
         margin: 4px auto 0;
@@ -159,7 +155,7 @@
       }
 
       &:hover {
-        background-color: darken($brand-secondary-dark, 4%);
+        background-color: var(--brand-secondary-dark-d4);
       }
     }
   }
@@ -167,7 +163,7 @@
   .popover-footer {
     @include flexbox();
 
-    border-top: 2px solid darken($brand-secondary-dark, 3%);
+    border-top: 2px solid var(--brand-secondary-dark-d3);
 
     .popover-release {
       @include transition(all .1s ease-out);
@@ -190,18 +186,16 @@
       }
 
       &:hover {
-        background-color: #b23b3b;
+        background-color: $release-danger;
         color: #fff;
       }
     }
   }
 }
 
-// The bar doubles as the fixed dex summary: title + progress pinned on the
-// left, a deliberately narrower search stack on the right.
+// The dex header: title + progress pinned left, narrow search stack right.
 .dex-search-bar {
-  background-color: white;
-  border-bottom: 1px solid $gray-light;
+  background-color: var(--surface-raised);
   padding: 12px 24px;
 
   .dex-search-bar-inner {
@@ -227,8 +221,8 @@
       margin-bottom: 8px;
 
       h1 {
+        // Inherits themed text so it flips with the mode.
         margin: 0 12px 0 0;
-        color: $brand-secondary;
         font-size: 24px;
         white-space: nowrap;
         overflow: hidden;
@@ -294,13 +288,16 @@
     .form-group {
       margin-bottom: 0;
     }
+
+    .checkbox label {
+      white-space: nowrap;
+    }
   }
 }
 
 .dex {
   @include flex(1 0 auto);
 
-  // The bar above owns the title/progress now, so the boxes start high.
   padding: 10px 0 100px;
 
   // Widen the shared 1-box .wrapper to the two-column grid.
@@ -341,8 +338,7 @@
   }
 }
 
-// Boxes flow two per row, left to right (A B / C D), wrapping back to a
-// single column when the window can't fit a pair.
+// Two boxes per row (A B / C D), wrapping to one column when narrow.
 .box-grid {
   @include flexbox();
   @include flex-wrap(wrap);
@@ -353,8 +349,7 @@
 
 .box {
   display: block;
-  // Exactly the in-game 6-tile grid — as a flex item in .box-grid the box
-  // would otherwise stretch to the row and reflow its tiles wider than 6.
+  // Pinned: the in-game 6-tile grid must never reflow wider.
   width: $box-width;
   margin-top: 60px;
 
@@ -377,9 +372,7 @@
 
       height: auto;
       width: auto;
-      // Matches a single tile's width, so the button holds one size across
-      // locales and across the Mark All ⇄ Unmark All toggle, and reads as
-      // "one grid cell" next to the box below it.
+      // One tile wide: stable across locales and the Mark ⇄ Unmark toggle.
       min-width: $pokemon-box-size;
       padding: 8px 12px;
       margin-left: 10px;
@@ -391,7 +384,7 @@
     @include flexbox();
     @include flex-wrap(wrap);
 
-    border: 1px solid $gray-light;
+    border: 1px solid var(--grid-line);
   }
 }
 
@@ -403,15 +396,15 @@
   height: $pokemon-box-size;
 
   &.pending {
-    background: rgba($brand-primary-light, .5);
+    background: var(--caught-light-a50);
   }
 
   &.captured {
-    background-color: $brand-primary-light;
+    background-color: var(--caught-light);
 
     .set-captured,
     .set-captured-mobile {
-      border-color: darken($brand-primary-light, 5%);
+      border-color: var(--caught-light-d5);
     }
 
     .game-family-legends_arceus {
@@ -421,10 +414,12 @@
 
   &.captured.temporary {
     background-color: $temporary-light;
+    // Stripes are temporary's texture identity.
+    background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--temporary-stripe) 8px 16px);
 
     .set-captured,
     .set-captured-mobile {
-      border-color: rgba($temporary, .6);
+      border-color: var(--temporary-a60);
       border-style: dashed;
     }
   }
@@ -434,7 +429,7 @@
 
     .set-captured,
     .set-captured-mobile {
-      border-color: rgba($locked, .6);
+      border-color: var(--locked-a60);
     }
   }
 
@@ -456,24 +451,22 @@
 
       .set-captured,
       .set-capture-mobile:hover {
-        border-color: darken($brand-primary-light, 5%);
+        border-color: var(--caught-light-d5);
       }
     }
   }
 
   .game-family-legends_arceus {
-    background-color: rgba($gray-medium, .4);
+    background-color: var(--gray-medium-a40);
   }
 
-  // Missing-metadata nudge: a caught mon whose bookkeeping (origin game /
-  // language) is unfinished gets a small corner mark. Deliberately plain —
-  // it's a nag to clear, not a decoration.
+  // Missing-metadata nudge — deliberately plain, it's a nag to clear.
   .missing-meta-badge {
     position: absolute;
     top: 3px;
     right: 5px;
     font-size: 11px;
-    color: rgba($brand-secondary, .45);
+    color: var(--brand-secondary-a45);
   }
 }
 
@@ -484,14 +477,13 @@
   @include align-items(center);
   @include justify-content(center);
 
-  border: 1px solid $gray-light;
+  border: 1px solid var(--grid-line);
 
   h4 {
     margin: 0;
     font-size: 17px;
     font-weight: 400;
-    // Absolute line-height so the tile's interior layout is identical in both
-    // languages (CJK glyph metrics would otherwise grow the line box).
+    // Absolute so EN/JA tile layout is identical.
     line-height: 22px;
     white-space: nowrap;
   }
@@ -516,7 +508,7 @@
   @include align-items(center);
 
   display: none;
-  border: 1px solid $gray-light;
+  border: 1px solid var(--grid-line);
 
   .icon-wrapper {
     min-width: 52px;
@@ -540,8 +532,6 @@
   }
 }
 
-// Hover-revealed quick status buttons: one click sets Caught / Temporary /
-// Locked directly (the tile only offers the statuses it isn't already in).
 .set-status {
   @include flexbox();
   @include justify-content(center);
@@ -555,8 +545,7 @@
   z-index: 2;
   padding: 6px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, .28), rgba(0, 0, 0, 0));
-  // The strip itself is just a visual scrim — only the buttons take clicks,
-  // so the rest of the tile stays clickable underneath it.
+  // Scrim only; the tile stays clickable under it.
   pointer-events: none;
 
   .status-btn {
@@ -601,8 +590,7 @@
   @include flexbox();
   @include flex-wrap(wrap);
 
-  // The wrapper is two-box wide now; results keep the classic 6-tile column
-  // (the tile row-break rules assume 6 per row).
+  // Results keep the 6-tile column (row-break rules assume 6 per row).
   width: $box-width;
   margin: 60px auto 0;
 
@@ -650,7 +638,7 @@
   }
 
   .search-results:not(.search-results-empty) {
-    border: 1px solid $gray-light;
+    border: 1px solid var(--grid-line);
   }
 
   .pokemon {
@@ -676,14 +664,7 @@
   }
 }
 
-// ---------------------------------------------------------------------------
-// Japanese type sizing. CJK glyphs fill the full em square (Latin lowercase
-// only fills the x-height), so at an equal font-size Japanese reads ~20%
-// larger and overflows the fixed 110px tiles. CSS can't shrink text to fit a
-// box, so the boxes stay fixed and the Japanese type steps down to the same
-// optical size instead. Scoped via the <html lang> attribute the app sets.
-// ---------------------------------------------------------------------------
-
+// CJK fills the em square — JA type steps down to the same optical size.
 html[lang='ja'] {
   .set-captured h4 {
     font-size: 14px;

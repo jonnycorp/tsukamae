@@ -15,9 +15,7 @@ export function Tracker () {
   return <TrackerLoader />;
 }
 
-// Keying by the active dex remounts the whole tracker on a dex switch, so
-// per-dex UI state (captures, search query, filters, selected mon) resets
-// cleanly instead of carrying over from the previous dex.
+// Keyed remount on dex switch resets per-dex UI state cleanly.
 function TrackerLoader () {
   const { activeDex } = useDexContext();
 
@@ -72,13 +70,9 @@ export function TrackerInner () {
   }, SCROLL_DEBOUNCE);
 
   const handleScrollButtonClick = useCallback(() => {
-    // Animated, not a teleport — Chromium's smooth scroll is distance-capped,
-    // so even a long dex gets back up in well under a second.
     trackerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Wait until the captures list is populated (via the effect above). Nothing
-  // is selected on load, so no popover shows until a mon is clicked.
   if (capturesIsLoading || captures.length === 0) {
     return <div className="loading">Loading...</div>;
   }
@@ -111,8 +105,7 @@ export function TrackerInner () {
           </div>
         </div>
         {selectedPokemon !== 0 &&
-          // Keyed so moving to another mon remounts with fresh position and
-          // dismiss state instead of mutating the open one.
+          // Keyed so moving to another mon remounts with fresh position/dismiss state.
           <PokemonPopover
             key={selectedPokemon}
             onClose={() => setSelectedPokemon(0)}

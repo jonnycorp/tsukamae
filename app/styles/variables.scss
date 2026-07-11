@@ -1,63 +1,213 @@
 $font-primary: 'Alegreya Sans', 'Helvetica', sans-serif;
 $font-secondary: 'Montserrat', 'Helvetica', sans-serif;
 
-$brand-primary: #ffd924;
-$brand-primary-light: lighten($brand-primary, 20%);
-$brand-primary-dark: darken($brand-primary, 7%);
-$brand-secondary: #18447d;
-$brand-secondary-light: lighten($brand-secondary, 7%);
-$brand-secondary-dark: darken($brand-secondary, 7%);
-$error: #ff0000;
-$success: #00cc66;
+// Color system — KEEP IN SYNC with app/palette/tokens.ts (?palette=1 self-checks).
 
-// Temporary (placeholder) mons: caught, but from Pokémon GO / a stranger's
-// trade, to be replaced with a properly obtained one later.
-$temporary: #ff9800;
-$temporary-light: lighten($temporary, 34%);
-$night-mode-temporary: #a8794a;
+$palette-bases: (
+  'brand-primary': #ffd924,
+  'brand-secondary': #18447d,
+  // Own base, not chrome: surfaces derive from brand-primary.
+  'caught': #ffd924,
+  'error': #ff0000,
+  'success': #00cc66,
+  // Placeholder mons, to be replaced later.
+  'temporary': #ff9800,
+  // Final slots — the goal state.
+  'locked': #9bc257,
+  // Destructive hover (the Release button).
+  'release-danger': #b23b3b,
+  'gray-light': #f1f1f1,
+  'gray-medium': #d2d2d2,
+  'gray-dark': #ababab,
+  // The dark theme's surface anchor. Deliberately a dark gray, not black.
+  'night-mode': #1e1e1e,
+  'night-mode-link-gray': #5f5f5f,
+);
 
-// Locked mons: this slot is final and never changing.
-$locked: #9BC257;
-$locked-light: lighten($locked, 28%);
-$night-mode-locked: #99A86B;
+// (source, fn, amount); chains go through named intermediates.
+$palette-derived: (
+  // tint scales sanely for pastel bases where fixed lighten() blows out.
+  'brand-primary-light': ('brand-primary', tint, 46.5%),
+  'brand-primary-dark': ('brand-primary', darken, 7%),
+  'brand-primary-l10': ('brand-primary', lighten, 10%),
+  'brand-primary-l15': ('brand-primary', lighten, 15%),
+  'brand-primary-d4': ('brand-primary', darken, 4%),
+  'brand-primary-light-l15': ('brand-primary-light', lighten, 15%),
+  'caught-light': ('caught', tint, 46.5%),
+  'caught-light-d5': ('caught-light', darken, 5%),
+  'caught-light-a50': ('caught-light', alpha, .5),
+  'brand-secondary-light': ('brand-secondary', lighten, 7%),
+  'brand-secondary-dark': ('brand-secondary', darken, 7%),
+  'brand-secondary-dark-d3': ('brand-secondary-dark', darken, 3%),
+  'brand-secondary-dark-d4': ('brand-secondary-dark', darken, 4%),
+  'brand-secondary-a7': ('brand-secondary', alpha, .07),
+  'brand-secondary-a15': ('brand-secondary', alpha, .15),
+  'brand-secondary-a45': ('brand-secondary', alpha, .45),
+  'error-d5': ('error', darken, 5%),
+  'temporary-light': ('temporary', tint, 68%),
+  'temporary-d15': ('temporary', darken, 15%),
+  'temporary-a60': ('temporary', alpha, .6),
+  'temporary-stripe': ('temporary', alpha, .16),
+  // Slightly stronger than the other fills: locked is the goal state.
+  'locked-light': ('locked', tint, 55.7%),
+  'locked-d10': ('locked', darken, 10%),
+  'locked-a60': ('locked', alpha, .6),
+  'gray-light-l25': ('gray-light', lighten, 25%),
+  'gray-light-d6': ('gray-light', darken, 6%),
+  'gray-light-a20': ('gray-light', alpha, .2),
+  'gray-light-a30': ('gray-light', alpha, .3),
+  'gray-medium-a40': ('gray-medium', alpha, .4),
+  'gray-dark-d20': ('gray-dark', darken, 20%),
+  'gray-dark-d40': ('gray-dark', darken, 40%),
+  'night-mode-01dp': ('night-mode', lighten, 5%),
+  'night-mode-02dp': ('night-mode', lighten, 7%),
+  'night-mode-03dp': ('night-mode', lighten, 8%),
+  'night-mode-04dp': ('night-mode', lighten, 9%),
+  'night-mode-06dp': ('night-mode', lighten, 11%),
+  'night-mode-08dp': ('night-mode', lighten, 12%),
+  'night-mode-12dp': ('night-mode', lighten, 14%),
+  'night-mode-16dp': ('night-mode', lighten, 15%),
+  'night-mode-24dp': ('night-mode', lighten, 16%),
+  'night-mode-dark': ('night-mode', darken, 7%),
+  // Night accents (dormant with .night-mode; kept until themes finalize).
+  'brand-primary-muted': ('brand-primary', desaturate, 60%),
+  'night-mode-primary': ('brand-primary-muted', lighten, 7%),
+  'night-mode-secondary': ('brand-secondary', desaturate, 20%),
+  'brand-secondary-l21': ('brand-secondary', lighten, 21%),
+  'night-mode-link': ('brand-secondary-l21', desaturate, 10%),
+  'temporary-muted': ('temporary', desaturate, 55%),
+  'night-mode-temporary': ('temporary-muted', darken, 3%),
+  'locked-muted': ('locked', desaturate, 20%),
+  'night-mode-locked': ('locked-muted', darken, 1%),
+  'error-muted': ('error', desaturate, 30%),
+  'night-mode-error': ('error-muted', darken, 6%),
+  'night-mode-primary-light': ('night-mode-primary', lighten, 15%),
+  'night-mode-primary-dark': ('night-mode-primary', darken, 15%),
+  'night-mode-primary-a50': ('night-mode-primary', alpha, .5),
+  'night-mode-secondary-light': ('night-mode-secondary', lighten, 7%),
+  'night-mode-secondary-dark': ('night-mode-secondary', darken, 7%),
+  'night-mode-secondary-d4': ('night-mode-secondary', darken, 4%),
+  'night-mode-secondary-d6': ('night-mode-secondary', darken, 6%),
+  'night-mode-link-dark': ('night-mode-link', darken, 7%),
+  'night-mode-link-gray-dark': ('night-mode-link-gray', darken, 7%),
+  'night-mode-error-dark': ('night-mode-error', darken, 7%),
+  'night-mode-temporary-d15': ('night-mode-temporary', darken, 15%),
+  'night-mode-temporary-stripe': ('night-mode-temporary-d15', alpha, .35),
+  'night-mode-locked-d15': ('night-mode-locked', darken, 15%),
+  'grid-line-light': ('brand-secondary', alpha, .18),
+  // Landing wallpaper icons (pattern.png as a mask over this color).
+  'pattern-icons': ('brand-primary', shade, 10%),
+  'night-pattern-icons': ('night-mode', lighten, 9%),
+  // Surface pair per mode; saturation SET (not subtracted) so pastel chromes keep their hue.
+  'brand-primary-dim': ('brand-primary', saturation, 25%),
+  'surface-light': ('brand-primary', tint, 62%),
+  'surface-raised-light': ('brand-primary', tint, 85%),
+  'surface-dark': ('brand-primary-dim', shade, 58%),
+  'surface-raised-dark': ('brand-primary-dim', shade, 50%),
+);
 
-$gray-light: #f1f1f1;
-$gray-medium: #d2d2d2;
-$gray-dark: #ababab;
+@function palette-apply($value, $fn, $amount) {
+  @if $fn == lighten {
+    @return lighten($value, $amount);
+  } @else if $fn == darken {
+    @return darken($value, $amount);
+  } @else if $fn == desaturate {
+    @return desaturate($value, $amount);
+  } @else if $fn == saturate {
+    @return saturate($value, $amount);
+  } @else if $fn == saturation {
+    // Sets saturation absolutely — subtractive desaturate zeroes pastels.
+    @return change-color($value, $saturation: $amount);
+  } @else if $fn == tint {
+    // Proportional toward white — pastel-safe.
+    @return scale-color($value, $lightness: $amount);
+  } @else if $fn == shade {
+    @return scale-color($value, $lightness: -$amount);
+  } @else if $fn == alpha {
+    @return rgba($value, $amount);
+  }
+  @error 'unknown palette fn: #{$fn}';
+}
 
-$night-mode: #1e1e1e;
-$night-mode-01dp: lighten($night-mode, 5%);
-$night-mode-02dp: lighten($night-mode, 7%);
-$night-mode-03dp: lighten($night-mode, 8%);
-$night-mode-04dp: lighten($night-mode, 9%);
-$night-mode-06dp: lighten($night-mode, 11%);
-$night-mode-08dp: lighten($night-mode, 12%);
-$night-mode-12dp: lighten($night-mode, 14%);
-$night-mode-16dp: lighten($night-mode, 15%);
-$night-mode-24dp: lighten($night-mode, 16%);
-$night-mode-dark: darken($night-mode, 7%);
-$night-mode-primary: #c7bd7d;
-$night-mode-primary-light: lighten($night-mode-primary, 15%);
-$night-mode-primary-dark: darken($night-mode-primary, 15%);
-$night-mode-secondary: #102d52;
-$night-mode-secondary-light: lighten($night-mode-secondary, 7%);
-$night-mode-secondary-dark: darken($night-mode-secondary, 7%);
-$night-mode-link: #3777ca;
-$night-mode-link-dark: darken($night-mode-link, 7%);
-$night-mode-link-gray: #5f5f5f;
-$night-mode-link-gray-dark: darken($night-mode-link-gray, 7%);
-$night-mode-error: #bb2323;
-$night-mode-error-dark: darken(#bb2323, 7%);
+// The fully resolved name → concrete color map (build-time values).
+$palette: $palette-bases;
+@each $name, $spec in $palette-derived {
+  $source-name: nth($spec, 1);
+  @if not map-has-key($palette, $source-name) {
+    @error 'palette token #{$name} derives from unknown/later token #{$source-name}';
+  }
+  $palette: map-merge($palette, ($name: palette-apply(map-get($palette, $source-name), nth($spec, 2), nth($spec, 3))));
+}
+
+// Concrete (non-var) value, for the rare spot that needs one at build time.
+@function palette($name) {
+  @if not map-has-key($palette, $name) {
+    @error 'unknown palette token: #{$name}';
+  }
+  @return map-get($palette, $name);
+}
+
+:root {
+  @each $name, $value in $palette {
+    --#{$name}: #{$value};
+  }
+
+  // Mode pointers — live picks write the variants, never these.
+  --surface: var(--surface-light);
+  --surface-raised: var(--surface-raised-light);
+}
+
+// Aliases → vars; Sass color fns on these fail the build by design.
+
+$brand-primary: var(--brand-primary);
+$brand-primary-light: var(--brand-primary-light);
+$brand-primary-dark: var(--brand-primary-dark);
+$brand-secondary: var(--brand-secondary);
+$brand-secondary-light: var(--brand-secondary-light);
+$brand-secondary-dark: var(--brand-secondary-dark);
+$error: var(--error);
+$success: var(--success);
+$temporary: var(--temporary);
+$temporary-light: var(--temporary-light);
+$night-mode-temporary: var(--night-mode-temporary);
+$locked: var(--locked);
+$locked-light: var(--locked-light);
+$night-mode-locked: var(--night-mode-locked);
+$release-danger: var(--release-danger);
+$gray-light: var(--gray-light);
+$gray-medium: var(--gray-medium);
+$gray-dark: var(--gray-dark);
+$night-mode: var(--night-mode);
+$night-mode-01dp: var(--night-mode-01dp);
+$night-mode-02dp: var(--night-mode-02dp);
+$night-mode-03dp: var(--night-mode-03dp);
+$night-mode-04dp: var(--night-mode-04dp);
+$night-mode-06dp: var(--night-mode-06dp);
+$night-mode-08dp: var(--night-mode-08dp);
+$night-mode-12dp: var(--night-mode-12dp);
+$night-mode-16dp: var(--night-mode-16dp);
+$night-mode-24dp: var(--night-mode-24dp);
+$night-mode-dark: var(--night-mode-dark);
+$night-mode-primary: var(--night-mode-primary);
+$night-mode-primary-light: var(--night-mode-primary-light);
+$night-mode-primary-dark: var(--night-mode-primary-dark);
+$night-mode-secondary: var(--night-mode-secondary);
+$night-mode-secondary-light: var(--night-mode-secondary-light);
+$night-mode-secondary-dark: var(--night-mode-secondary-dark);
+$night-mode-link: var(--night-mode-link);
+$night-mode-link-dark: var(--night-mode-link-dark);
+$night-mode-link-gray: var(--night-mode-link-gray);
+$night-mode-link-gray-dark: var(--night-mode-link-gray-dark);
+$night-mode-error: var(--night-mode-error);
+$night-mode-error-dark: var(--night-mode-error-dark);
 
 $pokemon-box-size: 110px;
 $tooltip-width: 120px;
 
-// Derived layout: a box is 6 tiles wide (+2px for its container border), and
-// the tracker lays boxes out two per row.
+// A box is 6 tiles wide (+2px border); the tracker shows two per row.
 $box-width: 6 * $pokemon-box-size + 2;
 $dex-grid-gap: 40px;
 $dex-grid-width: 2 * $box-width + $dex-grid-gap;
 
-// Fade in/out length for dismissable overlays (modal, popover). Keep in sync
-// with FADE_MS in hooks/use-dismissable.ts, which unmounts after the fade.
+// Keep in sync with FADE_MS in hooks/use-dismissable.ts.
 $fade-duration: .15s;

@@ -28,9 +28,7 @@ export function MarkAllButton ({ captures }: Props) {
   const handleButtonClick = async () => {
     const deleting = uncaught === 0;
 
-    // Unmarking a whole box wipes each mon's metadata too — the same reason
-    // releasing is a deliberate button in the popover, so it gets a confirm.
-    // (It stays available as the bulk undo for an accidental Mark All.)
+    // Bulk metadata wipe — confirm, like the deliberate Release button.
     if (deleting && !window.confirm(t('markAll.unmarkConfirm'))) {
       return;
     }
@@ -62,8 +60,7 @@ export function MarkAllButton ({ captures }: Props) {
       await createCapturesMutation.mutateAsync({ payload });
     }
 
-    // Mirror the mutation layer: newly marked mons prefill from the dex's
-    // captureDefaults (these were all uncaught, so their fields were blank).
+    // Mirror the mutation layer: new marks prefill captureDefaults.
     const defaults = activeDex!.captureDefaults;
 
     setCaptures((prev) => prev.map((cap) => {

@@ -17,8 +17,7 @@ import type { Dispatch, MouseEvent, SetStateAction } from 'react';
 import type { TranslationKey } from '../../../i18n/translations';
 import type { UICapture } from './use-tracker';
 
-// The status a hover button sets, and how it's labelled. A tile only shows the
-// statuses it isn't currently in.
+// Hover quick-set statuses; a tile only offers the ones it isn't in.
 const STATUS_META: { status: CaptureStatus; icon: IconDefinition; labelKey: TranslationKey }[] = [
   { status: 'caught', icon: faCheck, labelKey: 'status.caught' },
   { status: 'temporary', icon: faClock, labelKey: 'status.temporary' },
@@ -49,13 +48,9 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
     );
   }
 
-  // Setting a status is also how a mon gets caught (a plain uncaught mon
-  // defaults to the dex's default status, or 'caught'). Every status change
-  // opens the popover on that mon, since it holds the metadata (origin game)
-  // you'll usually set next.
+  // Setting a status is also how a mon gets caught; every status change opens the popover.
   const applyStatus = (status: CaptureStatus) => {
-    // Mirror the mutation layer: a fresh catch prefills the dex's
-    // captureDefaults; a mon that was already caught keeps its data.
+    // Mirror the mutation layer: a fresh catch prefills captureDefaults.
     const defaults = activeDex!.captureDefaults;
 
     setCaptures((prev) => prev.map((cap) => {
@@ -80,11 +75,7 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
     setSelectedPokemon(capture.pokemon.id);
   };
 
-  // A plain tile click never unmarks (that's the deliberate Release button in
-  // the popover). It catches an uncaught mon, or just opens the popover for
-  // one that's already caught. Clicking the tile of the open popover closes
-  // it naturally: the mousedown lands outside the popover (dismissing it) and
-  // this click re-selects the same id, which is a no-op.
+  // Click catches an uncaught mon or opens the popover; never unmarks (Release is deliberate). Re-clicking the open tile closes via the outside-mousedown dismiss.
   const handleTileClick = () => {
     if (capture.captured) {
       setSelectedPokemon(capture.pokemon.id);
@@ -98,9 +89,7 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
     applyStatus(status);
   };
 
-  // Caught but with unfinished bookkeeping (origin game or language unset),
-  // regardless of status — a locked slot with unknown origin still deserves
-  // the nudge.
+  // Caught with unfinished bookkeeping (origin/language unset), any status.
   const metaMissing = capture.captured && (!capture.origin_game || !capture.language);
 
   const classes = {

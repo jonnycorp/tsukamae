@@ -1,7 +1,4 @@
-// Lightweight, dependency-free i18n: a flat key → string dictionary per locale.
-// `en` defines the set of keys; `ja` is typed as Record<TranslationKey, string>
-// so a missing/extra Japanese key is a compile error — the dictionaries can't
-// drift out of sync.
+// en defines the key set; ja is typed against it so the dicts can't drift.
 
 export type Locale = 'en' | 'ja';
 
@@ -27,8 +24,8 @@ const en = {
   'app.name': 'tsukamae',
 
   'search.placeholder': 'Search by name or # (use / to quick search)',
-  'search.hideCaught': 'Hide Caught Pokémon',
-  'search.temporaryOnly': 'Temporary Only',
+  'search.hideCaught': 'Hide Caught',
+  'search.temporaryOnly': 'Temp Only',
 
   'progress.done': 'done!',
   'progress.caught': 'caught',
@@ -45,12 +42,15 @@ const en = {
   'landing.empty': 'No dexes yet — create your first one to start tracking.',
   'landing.createFirst': 'Create Your First Dex',
   'landing.createNew': 'Create a New Dex',
+  'landing.moveUp': 'Move up',
+  'landing.moveDown': 'Move down',
 
   'status.caught': 'Caught',
   'status.temporary': 'Temporary',
   'status.locked': 'Locked',
 
   'common.shiny': 'Shiny',
+  'common.optional': 'optional',
 
   'info.originGame': 'Origin Game',
   'info.language': 'Language',
@@ -61,7 +61,9 @@ const en = {
 
   'dexModal.editTitle': 'Edit Dex',
   'dexModal.createTitle': 'Create New Dex',
-  'dexModal.defaults': 'Defaults',
+  'dexModal.dexData': 'Dex Data',
+  'dexModal.defaults': 'Pokémon Defaults',
+  'dexModal.noDefault': 'No Default',
   'dexModal.titleLabel': 'Title',
   'dexModal.game': 'Game',
   'dexModal.dex': 'Dex',
@@ -95,8 +97,7 @@ const ja: Record<TranslationKey, string> = {
   'nav.importNotExport': 'Tsukamaeのデータファイルではないようです。',
   'nav.importConfirm': '読み込むと現在の図鑑と進捗がすべて置き換えられます。続けますか？',
 
-  // The brand deliberately stays in English in both locales — the uppercase
-  // Latin wordmark is part of the look. (捕まえ dropped the "logo" feel.)
+  // The brand stays in English in both locales (part of the look).
   'app.name': 'tsukamae',
 
   'search.placeholder': '名前または番号で検索（/ でクイック検索）',
@@ -118,12 +119,15 @@ const ja: Record<TranslationKey, string> = {
   'landing.empty': 'まだ図鑑がありません。最初の図鑑を作成して記録を始めましょう。',
   'landing.createFirst': '最初の図鑑を作成',
   'landing.createNew': '新しい図鑑を作成',
+  'landing.moveUp': '上へ移動',
+  'landing.moveDown': '下へ移動',
 
   'status.caught': '捕獲済み',
   'status.temporary': '仮',
   'status.locked': 'ロック',
 
   'common.shiny': '色違い',
+  'common.optional': '任意',
 
   'info.originGame': '出身ソフト',
   'info.language': '言語',
@@ -134,7 +138,9 @@ const ja: Record<TranslationKey, string> = {
 
   'dexModal.editTitle': '図鑑を編集',
   'dexModal.createTitle': '新しい図鑑を作成',
-  'dexModal.defaults': '既定値',
+  'dexModal.dexData': '図鑑データ',
+  'dexModal.defaults': 'ポケモンの既定値',
+  'dexModal.noDefault': '既定値なし',
   'dexModal.titleLabel': 'タイトル',
   'dexModal.game': 'ソフト',
   'dexModal.dex': '図鑑',

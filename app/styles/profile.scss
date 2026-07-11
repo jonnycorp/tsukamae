@@ -38,7 +38,7 @@
   }
 
   .dex-edit a.link {
-    color: lighten(#000, 25%);
+    color: #404040;
     font-size: 14px;
 
     &:hover {
@@ -64,6 +64,8 @@
     font-size: 10px;
     padding: 4px 6px;
     background-color: $gray-light;
+    // Mode-independent bg, so mode-independent text.
+    color: #26221f;
     text-transform: uppercase;
     font-family: $font-secondary;
     font-weight: 500;
@@ -94,7 +96,7 @@
     margin: 0 3px;
 
     &:hover {
-      color: darken($error, 5%);
+      color: var(--error-d5);
     }
   }
 }
@@ -121,11 +123,11 @@
   }
 
   .temporary-count {
-    color: darken($temporary, 15%);
+    color: var(--temporary-d15);
   }
 
   .locked-count {
-    color: darken($locked, 10%);
+    color: var(--locked-d10);
   }
 }
 
@@ -133,8 +135,9 @@
   position: relative;
   width: 100%;
   height: 100%;
-  background-color: #fff;
-  border: 2px solid $brand-primary;
+  background-color: var(--surface-raised);
+  // Caught family: the bar measures caught.
+  border: 2px solid var(--caught);
 
   .progress-numbers {
     position: absolute;
@@ -150,7 +153,7 @@
 
   .progress-inner {
     height: 100%;
-    background-color: $brand-primary;
+    background-color: var(--caught);
   }
 }
 

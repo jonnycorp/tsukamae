@@ -13,14 +13,7 @@
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
-// Scrollbar thumbs are invisible at rest, fade in while their container
-// scrolls, and fade back out after a beat of stillness. useScrollbarFade
-// toggles .is-scrolling on whatever scrolled. This must use the standard
-// scrollbar-color/scrollbar-width properties, not ::-webkit-scrollbar
-// pseudo-elements: Chromium caches pseudo-element scrollbar styles and only
-// repaints them on direct interaction, so class/variable changes (and thus
-// any fade) never show up. scrollbar-color is a real property on the
-// scroller — dynamic and animatable.
+// Thumb fades with .is-scrolling (useScrollbarFade); standard props only — see main.scss.
 @mixin scrollbar-fade {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -36,8 +29,7 @@
 
   overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
-  // overflow-y: scroll already always reserves the scrollbar's 10px; this
-  // keeps that guarantee if a rule ever relaxes to overflow-y: auto.
+  // Gutter stays reserved if a rule ever relaxes to overflow-y: auto.
   scrollbar-gutter: stable;
 }
 

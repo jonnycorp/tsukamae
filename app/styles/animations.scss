@@ -20,9 +20,7 @@
   }
 }
 
-// Entrance for dismissable overlays; the exit is a transition on the same
-// element's .closing class (see .modal-overlay), since a keyframe can't run
-// backwards on unmount.
+// Entrance only — exits are .closing transitions (keyframes can't reverse on unmount).
 @keyframes fade-in {
   0% {
     opacity: 0;

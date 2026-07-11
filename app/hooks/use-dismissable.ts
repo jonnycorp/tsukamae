@@ -2,23 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { RefObject } from 'react';
 
-// How long the fade-out plays before the dismissed element unmounts.
 // Keep in sync with $fade-duration in styles/variables.scss.
 export const FADE_MS = 150;
 
 interface Options {
   // Called once the fade-out has finished — the parent unmounts the element.
   onDismissed: () => void;
-  // Outside-click boundary: a mousedown outside this element dismisses.
-  // (mousedown, not click, so a drag-select that ends outside doesn't close.)
+  // Outside-click boundary (mousedown, so drag-selects ending outside don't close).
   ref?: RefObject<HTMLElement>;
 }
 
-// Dismissal with an exit animation: dismiss() flips `closing` (the CSS fades
-// on that class), then fires onDismissed after the fade so the parent can
-// unmount. Esc always dismisses; outside clicks dismiss when a ref is given.
-// A timeout, not transitionend, so unmount is reliable even if the transition
-// never fires.
+// dismiss() flips `closing` (CSS fades), then onDismissed unmounts after a timeout (reliable where transitionend isn't).
 export function useDismissable ({ onDismissed, ref }: Options) {
   const [closing, setClosing] = useState(false);
 

@@ -18,10 +18,7 @@ import type { CaptureStatus } from '../../../types';
 import type { ChangeEvent } from 'react';
 import type { TranslationKey } from '../../../i18n/translations';
 
-// Scope guardrail: this popover stays minimal — status, origin game, language,
-// release, and the external links. No box-marking-style customizations, ball/
-// mark pickers, or notes fields: the app's value is sorting what's missing
-// from a dex and visualizing box positions, not mirroring in-game bookkeeping.
+// Guardrail: status/origin/language/release only — this app is a visualizer, not HOME bookkeeping.
 
 const SEREBII_LINKS: Record<string, string> = {
   x_y: 'pokedex-xy',
@@ -53,9 +50,7 @@ interface Props {
   selectedPokemon: number;
 }
 
-// The floating capture editor, anchored to the clicked tile. position: fixed
-// and rendered outside the scrolling dex column, so the box grid never
-// reflows around it. Any scroll, outside click, or Esc dismisses it.
+// Anchored to the clicked tile via position: fixed; the box grid never reflows.
 export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { captures, setCaptures } = useTrackerContext();
@@ -69,8 +64,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const { closing, dismiss } = useDismissable({ onDismissed: onClose, ref: popoverRef });
 
-  // null until measured — the popover renders invisibly for one commit so its
-  // real size (which varies with content) can position it before first paint.
+  // null until measured (renders hidden one commit so real size can position it).
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const [above, setAbove] = useState(false);
 
@@ -87,9 +81,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     const popW = el.offsetWidth;
     const popH = el.offsetHeight;
 
-    // Below the tile, centered. Flip above when there's no room underneath.
-    // When NEITHER side fits (short window, mid-grid tile), pin it inside the
-    // viewport instead — overlapping the tile beats running off the page.
+    // Below the tile; flip above when cramped; pin on-screen when neither side fits.
     const fitsBelow = rect.bottom + GAP + popH <= window.innerHeight - GAP;
     const fitsAbove = rect.top - GAP - popH >= GAP;
 
@@ -108,8 +100,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     // capture?.captured changes the content (selects vs. note) and thus the height.
   }, [selectedPokemon, capture?.captured]);
 
-  // The popover doesn't follow its anchor: scrolling or resizing dismisses it
-  // (fixed positioning would drift from the tile otherwise).
+  // Scroll/resize dismisses — fixed positioning would drift from the tile.
   useEffect(() => {
     const close = () => dismiss();
 
@@ -172,9 +163,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     updateCaptureMutation.mutate({ payload: { pokemon: capture.pokemon.id, status } });
   };
 
-  // Releasing fully removes the mon and all of its metadata — the one
-  // deliberate way to undo a capture. The mon is gone, so the popover goes
-  // with it.
+  // Release removes the mon and its metadata; the popover goes with it.
   const handleRelease = () => {
     if (!capture) {
       return;

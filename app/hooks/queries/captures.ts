@@ -45,8 +45,7 @@ export const useCreateCapture = (dexId: string) => {
       await mutateAppState((state) => {
         const dex = findDex(state, dexId);
         for (const id of payload.pokemon) {
-          // The dex's captureDefaults prefill brand-new entries only; an
-          // existing entry's data always wins.
+          // captureDefaults prefill brand-new entries only; existing data always wins.
           dex.progress[id] = {
             status: dex.progress[id]?.status ?? dex.captureDefaults?.status ?? 'caught',
             origin_game: dex.progress[id]?.origin_game ?? dex.captureDefaults?.origin_game ?? null,
@@ -72,8 +71,7 @@ export const useDeleteCapture = (dexId: string) => {
       await mutateAppState((state) => {
         const dex = findDex(state, dexId);
         for (const id of payload.pokemon) {
-          // Unmarking a mon clears its status/origin state too — there's
-          // no mon anymore for that state to describe.
+          // Unmarking clears all of the mon's state.
           delete dex.progress[id];
         }
       });
@@ -99,9 +97,7 @@ export const useUpdateCapture = (dexId: string) => {
       await mutateAppState((state) => {
         const dex = findDex(state, dexId);
         const existing = dex.progress[pokemon];
-        // A missing entry means this update IS the catch — prefill it from
-        // the dex's captureDefaults (explicit changes still win via the
-        // spread). Defaults never touch an existing entry's data.
+        // A missing entry means this update IS the catch — prefill from captureDefaults; explicit changes win.
         const defaults = existing ? null : dex.captureDefaults;
         dex.progress[pokemon] = {
           status: existing?.status ?? 'caught',

@@ -1,13 +1,11 @@
 import type { Locale } from './translations';
 
-// Japanese display names for data-derived labels (dropdown options, indicator
-// labels). Keyed by the stable data ids, with fallback to the English name
-// baked into the data — so an unmapped entry degrades gracefully instead of
-// breaking. Pokémon names themselves ship inside the dataset (name_ja).
+// JA names for data-derived labels, keyed by stable ids, falling back to the English baked into the data.
 
 // data/games.json ids — the per-mon "which game did this come from" options.
 const JA_ORIGIN_GAMES: Record<string, string> = {
   home: 'HOME',
+  legends_za: 'LEGENDS Z-A',
   scarlet: 'スカーレット',
   violet: 'バイオレット',
   legends_arceus: 'LEGENDS アルセウス',
@@ -30,8 +28,7 @@ const JA_ORIGIN_GAMES: Record<string, string> = {
   other: 'その他',
 };
 
-// Catalog game ids — the version *pairs* shown in the dex picker and the dex
-// indicator (mirrors GAME_NAME_OVERRIDES in utils/local-data.ts).
+// Catalog game ids (version pairs shown in the dex picker/indicator).
 const JA_CATALOG_GAMES: Record<string, string> = {
   home: 'HOME',
   scarlet: 'スカーレット・バイオレット',
@@ -59,8 +56,6 @@ const JA_DEX_TYPES: Record<string, string> = {
   'gigantamax forms': 'キョダイマックスの姿',
 };
 
-// Catalog dex display names, keyed by catalog key (data/dexes/<key>). Shown as
-// the title placeholder / default dex title and the edit-modal structure note.
 const JA_CATALOG_DEX_NAMES: Record<string, string> = {
   'home-national': '全国図鑑',
   'home-national-gigantamax': '全国図鑑＋キョダイマックスの姿',
