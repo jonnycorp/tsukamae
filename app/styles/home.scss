@@ -169,21 +169,3 @@
     min-width: 220px;
   }
 }
-
-.night-mode .home-container {
-  background-color: $night-mode-01dp;
-
-  &::before {
-    background-color: var(--night-pattern-icons);
-  }
-
-  .hero .pokeball-logo {
-    .pokeball-mark {
-      fill: $night-mode-primary;
-    }
-
-    .pokeball-hole {
-      fill: $night-mode-01dp;
-    }
-  }
-}

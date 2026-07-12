@@ -1,6 +1,9 @@
 import { createContext, useContext, useMemo } from 'react';
 import { useLocalStorage } from '../use-local-storage';
 
+import { DEFAULT_THEME } from '../../palette/tokens';
+import { SOFT_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
+
 import type { Locale } from '../../i18n/translations';
 import type { ReactNode } from 'react';
 import type { SetLocalStorageFn } from '../use-local-storage';
@@ -8,8 +11,10 @@ import type { SetLocalStorageFn } from '../use-local-storage';
 interface LocalStorageContextState {
   hideNotification: boolean;
   setHideNotification: SetLocalStorageFn<boolean>;
-  isNightMode: boolean;
-  setIsNightMode: SetLocalStorageFn<boolean>;
+  theme: string;
+  setTheme: SetLocalStorageFn<string>;
+  isSoftDark: boolean;
+  setIsSoftDark: SetLocalStorageFn<boolean>;
   // The app's UI language (distinct from a mon's per-capture origin language).
   locale: Locale;
   setLocale: SetLocalStorageFn<Locale>;
@@ -18,8 +23,10 @@ interface LocalStorageContextState {
 const LocalStorageContext = createContext<LocalStorageContextState>({
   hideNotification: false,
   setHideNotification: () => {},
-  isNightMode: false,
-  setIsNightMode: () => {},
+  theme: DEFAULT_THEME,
+  setTheme: () => {},
+  isSoftDark: false,
+  setIsSoftDark: () => {},
   locale: 'en',
   setLocale: () => {},
 });
@@ -30,21 +37,26 @@ interface Props {
 
 export const LocalStorageContextProvider = ({ children }: Props) => {
   const [hideNotification, setHideNotification] = useLocalStorage('notif-2024.01.20', { defaultValue: false, parseAsJson: true });
-  const [isNightMode, setIsNightMode] = useLocalStorage('nightMode', { defaultValue: true, parseAsJson: true });
+  const [theme, setTheme] = useLocalStorage<string>(THEME_STORAGE_KEY, { defaultValue: DEFAULT_THEME, parseAsJson: true });
+  const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, { defaultValue: false, parseAsJson: true });
   const [locale, setLocale] = useLocalStorage<Locale>('locale', { defaultValue: 'en', parseAsJson: true });
 
   const contextValue = useMemo<LocalStorageContextState>(() => ({
     hideNotification,
     setHideNotification,
-    isNightMode,
-    setIsNightMode,
+    theme,
+    setTheme,
+    isSoftDark,
+    setIsSoftDark,
     locale,
     setLocale,
   }), [
     hideNotification,
     setHideNotification,
-    isNightMode,
-    setIsNightMode,
+    theme,
+    setTheme,
+    isSoftDark,
+    setIsSoftDark,
     locale,
     setLocale,
   ]);

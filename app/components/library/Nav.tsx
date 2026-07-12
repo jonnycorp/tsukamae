@@ -1,17 +1,34 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileExport, faFileImport, faGear, faLanguage, faMoon, faPencilAlt, faPlus, faSun, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faFileExport, faFileImport, faGear, faLanguage, faMoon, faPalette, faPencilAlt, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { DexModal } from './DexModal';
+import { PALETTE_PRESETS, PRESET_DOT_BASES } from '../../palette/tokens';
 import { exportAppState, importAppState } from '../../utils/local-data';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../hooks/use-translation';
 
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, RefObject } from 'react';
+
+// Close the given nav popover when clicking anywhere outside it.
+function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, close: () => void) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        close();
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [open]);
+}
 
 export function Nav () {
-  const { isNightMode, setIsNightMode, locale, setLocale } = useLocalStorageContext();
+  const { isSoftDark, setIsSoftDark, theme, setTheme, locale, setLocale } = useLocalStorageContext();
   const { dexes, activeDex, setActiveDex } = useDexContext();
   const { t } = useTranslation();
 
@@ -20,24 +37,14 @@ export function Nav () {
 
   const importInputRef = useRef<HTMLInputElement>(null);
   const dataMenuRef = useRef<HTMLDivElement>(null);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
 
   const [showDataMenu, setShowDataMenu] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
 
-  // Close the data menu when clicking anywhere outside it.
-  useEffect(() => {
-    if (!showDataMenu) {
-      return;
-    }
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (dataMenuRef.current && !dataMenuRef.current.contains(e.target as Node)) {
-        setShowDataMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [showDataMenu]);
+  useOutsideClickClose(showDataMenu, dataMenuRef, () => setShowDataMenu(false));
+  useOutsideClickClose(showThemeMenu, themeMenuRef, () => setShowThemeMenu(false));
 
-  const handleNightModeClick = () => setIsNightMode(!isNightMode);
   const handleLanguageToggle = () => setLocale(locale === 'en' ? 'ja' : 'en');
   // The logo returns to the landing page (no dex open).
   const handleLogoClick = () => setActiveDex('');
@@ -137,10 +144,30 @@ export function Nav () {
         <FontAwesomeIcon icon={faLanguage} />
         <span className="tooltip-text">{locale === 'en' ? '日本語' : 'English'}</span>
       </a>
-      <a className="nav-icon tooltip tooltip-below" onClick={handleNightModeClick}>
-        <FontAwesomeIcon icon={isNightMode ? faSun : faMoon} />
-        <span className="tooltip-text">{t(isNightMode ? 'nav.nightModeOff' : 'nav.nightModeOn')}</span>
-      </a>
+      <div className="nav-menu" ref={themeMenuRef}>
+        <a className="nav-icon tooltip tooltip-below" onClick={() => setShowThemeMenu((open) => !open)}>
+          <FontAwesomeIcon icon={faPalette} />
+          {!showThemeMenu && <span className="tooltip-text">{t('nav.theme')}</span>}
+        </a>
+        {showThemeMenu &&
+          <ul className="nav-menu-dropdown theme-popover">
+            {Object.entries(PALETTE_PRESETS).map(([name, preset]) => (
+              <li className={name === theme ? 'theme-active' : ''} key={name} onClick={() => setTheme(name)}>
+                <span className="theme-dots">
+                  {PRESET_DOT_BASES.map((base) => <span className="theme-dot" key={base} style={{ backgroundColor: preset[base] }} />)}
+                </span>
+                {name}
+                {name === theme && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+              </li>
+            ))}
+            <li className={`theme-soft-dark ${isSoftDark ? 'theme-active' : ''}`} onClick={() => setIsSoftDark(!isSoftDark)}>
+              <FontAwesomeIcon icon={faMoon} />
+              {t('nav.softDark')}
+              {isSoftDark && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+            </li>
+          </ul>
+        }
+      </div>
       {showCreate && <DexModal onRequestClose={handleCreateClose} />}
       {showEdit && activeDex && <DexModal dex={activeDex} onRequestClose={handleEditClose} />}
     </nav>

@@ -5,6 +5,7 @@ import {
   PALETTE_BASES,
   PALETTE_DERIVED,
   PALETTE_PRESETS,
+  PRESET_DOT_BASES,
   TOKEN_NAMES,
   colorsClose,
   contrastRatio,
@@ -15,11 +16,13 @@ import {
   rgbaToHex,
 } from '../../palette/tokens';
 
+import { applyTheme } from '../../palette/apply-theme';
+import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
 import { usePaletteBroadcastSender } from '../../palette/use-palette-broadcast';
 
 import type { Rgba } from '../../palette/tokens';
 
-// Dev-only palette workbench (?palette=1, not localized): live-overrides the :root tokens; commit via the export block.
+// Dev-only palette workbench (?palette=1, not localized): live-overrides the :root tokens on top of the active theme; commit via the export block.
 
 // Real text-on-surface pairs; `large` relaxes WCAG to 3:1.
 const PAIRINGS: { label: string; fg: string; bg: string; large?: boolean }[] = [
@@ -33,13 +36,6 @@ const PAIRINGS: { label: string; fg: string; bg: string; large?: boolean }[] = [
   { label: 'Tile text · caught', fg: 'brand-secondary', bg: 'caught-light' },
   { label: 'Tile text · temporary', fg: 'brand-secondary', bg: 'temporary-light' },
   { label: 'Tile text · locked', fg: 'brand-secondary', bg: 'locked-light' },
-  { label: 'Night body text', fg: '#ffffff', bg: 'night-mode' },
-  { label: 'Night text on 02dp', fg: '#ffffff', bg: 'night-mode-02dp' },
-  { label: 'Night popover body', fg: '#ffffff', bg: 'night-mode-secondary' },
-  { label: 'Night accent on 03dp', fg: 'night-mode-primary', bg: 'night-mode-03dp' },
-  { label: 'Night links', fg: 'night-mode-link', bg: 'night-mode' },
-  { label: 'Night tile · temporary', fg: '#ffffff', bg: 'night-mode-temporary', large: true },
-  { label: 'Night tile · locked', fg: '#ffffff', bg: 'night-mode-locked', large: true },
 ];
 
 function formatRatio (ratio: number): string {
@@ -47,28 +43,32 @@ function formatRatio (ratio: number): string {
 }
 
 export function Palette () {
-  // Base-name → picked hex. Empty = untouched page showing the build's CSS.
+  const { theme } = useLocalStorageContext();
+
+  // Base-name → picked hex. Empty = untouched page showing the active theme.
   const [overrides, setOverrides] = useState<Record<string, string>>({});
-  // Tokens whose build value disagrees with the JS mirror (files drifted).
+  // Tokens whose applied value disagrees with the JS mirror (files drifted).
   const [driftedTokens, setDriftedTokens] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
-  const resolved = useMemo(() => resolvePalette(overrides), [overrides]);
+  // The active theme is the working baseline; picks layer on top of it.
+  const baseline = useMemo(() => ({ ...PALETTE_BASES, ...PALETTE_PRESETS[theme] }), [theme]);
+  const resolved = useMemo(() => resolvePalette({ ...PALETTE_PRESETS[theme], ...overrides }), [theme, overrides]);
   const dirty = Object.keys(overrides).length > 0;
   const broadcast = usePaletteBroadcastSender();
 
-  // Self-check: the SCSS build's :root values vs this page's JS mirror.
+  // Self-check: the applied :root values (build CSS or theme overrides) vs this page's JS mirror.
   useEffect(() => {
     const styles = getComputedStyle(document.documentElement);
-    const defaults = resolvePalette({});
+    const expected = resolvePalette(PALETTE_PRESETS[theme]);
     const drifted = TOKEN_NAMES.filter((name) => {
       const built = parseCssColor(styles.getPropertyValue(`--${name}`));
-      return !built || !colorsClose(built, defaults[name]);
+      return !built || !colorsClose(built, expected[name]);
     });
     setDriftedTokens(drifted);
-  }, []);
+  }, [theme]);
 
-  // Overrides rewrite every token on :root (+ broadcast); reset falls back to the build CSS.
+  // Overrides rewrite every token on :root (+ broadcast); reset falls back to the active theme.
   useEffect(() => {
     const root = document.documentElement;
     if (dirty) {
@@ -79,24 +79,18 @@ export function Palette () {
       }
       broadcast(values);
     } else {
-      for (const name of TOKEN_NAMES) {
-        root.style.removeProperty(`--${name}`);
-      }
+      applyTheme(theme);
       broadcast(null);
     }
-    return () => {
-      for (const name of TOKEN_NAMES) {
-        root.style.removeProperty(`--${name}`);
-      }
-    };
-  }, [resolved, dirty]);
+    return () => applyTheme(theme);
+  }, [resolved, dirty, theme]);
 
   const colorFor = (ref: string): Rgba => (ref.startsWith('#') ? hexToRgba(ref)! : resolved[ref]);
 
   const handleBaseChange = (name: string, hex: string) => {
     setOverrides((prev) => {
       const next = { ...prev, [name]: hex };
-      if (hex.toLowerCase() === PALETTE_BASES[name]) {
+      if (hex.toLowerCase() === baseline[name]) {
         delete next[name];
       }
       return next;
@@ -126,17 +120,17 @@ export function Palette () {
         }
         {driftedTokens.length === 0 && <span className="palette-ok">SCSS ↔ JS mirror in sync</span>}
         <button className="palette-reset" disabled={!dirty} onClick={() => setOverrides({})} type="button">
-          Reset to committed
+          Reset to theme
         </button>
       </div>
 
       <section>
-        <h2>Presets <small>candidate anchor palettes — load one, then tune with the pickers</small></h2>
+        <h2>Presets <small>the shipped themes — load one, then tune with the pickers</small></h2>
         <div className="palette-presets">
           {Object.entries(PALETTE_PRESETS).map(([name, preset]) => (
             <button className="palette-preset" key={name} onClick={() => setOverrides({ ...preset })} type="button">
               <span className="palette-preset-dots">
-                {['brand-primary', 'brand-secondary', 'caught', 'temporary', 'locked'].map((base) => (
+                {PRESET_DOT_BASES.map((base) => (
                   <span className="palette-swatch" key={base} style={{ backgroundColor: preset[base] || PALETTE_BASES[base] }} />
                 ))}
               </span>
@@ -204,7 +198,7 @@ export function Palette () {
       </section>
 
       <section>
-        <h2>Live samples <small>real app classes — toggle night mode in the nav</small></h2>
+        <h2>Live samples <small>real app classes — toggle soft dark in the nav</small></h2>
         <div className="palette-samples">
           <div className="palette-sample-tiles">
             <div className="pokemon">

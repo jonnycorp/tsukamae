@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 
-import { TOKEN_NAMES } from './tokens';
+import { applyTheme, setRootTokens } from './apply-theme';
 
 // Broadcasts workbench picks to every open app tab (dev aid; nothing persists).
 
@@ -9,29 +9,22 @@ const CHANNEL = 'tsukamae-palette';
 // Message: token-name → css value map, or null meaning "clear overrides".
 type PaletteMessage = Record<string, string> | null;
 
-function applyToRoot (values: PaletteMessage) {
-  const root = document.documentElement;
-  if (values === null) {
-    for (const name of TOKEN_NAMES) {
-      root.style.removeProperty(`--${name}`);
-    }
-    return;
-  }
-  for (const [name, value] of Object.entries(values)) {
-    root.style.setProperty(`--${name}`, value);
-  }
-}
-
-// Mounted once in App so every tab follows workbench picks.
-export function usePaletteBroadcastReceiver () {
+// Mounted once in App so every tab follows workbench picks; a reset falls back to the active theme.
+export function usePaletteBroadcastReceiver (theme: string) {
   useEffect(() => {
     if (!('BroadcastChannel' in window)) {
       return;
     }
     const channel = new BroadcastChannel(CHANNEL);
-    channel.onmessage = (e: MessageEvent<PaletteMessage>) => applyToRoot(e.data);
+    channel.onmessage = (e: MessageEvent<PaletteMessage>) => {
+      if (e.data === null) {
+        applyTheme(theme);
+      } else {
+        setRootTokens(e.data);
+      }
+    };
     return () => channel.close();
-  }, []);
+  }, [theme]);
 }
 
 export function usePaletteBroadcastSender () {

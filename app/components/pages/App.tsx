@@ -5,29 +5,34 @@ import { Landing } from './Landing';
 import { Nav } from '../library/Nav';
 import { Palette } from './Palette';
 import { Tracker } from './Tracker';
+import { applyTheme } from '../../palette/apply-theme';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
 import { usePaletteBroadcastReceiver } from '../../palette/use-palette-broadcast';
 import { useScrollbarFade } from '../../hooks/use-scrollbar-fade';
 
 export function App () {
-  const { isNightMode, locale } = useLocalStorageContext();
+  const { isSoftDark, locale, theme } = useLocalStorageContext();
 
   useScrollbarFade();
   // Follows live color picks from a ?palette=1 tab (dev aid; inert otherwise).
-  usePaletteBroadcastReceiver();
+  usePaletteBroadcastReceiver(theme);
 
   // <html lang> drives CJK font behavior.
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
 
-  // Mode class mirrored onto <html> (document surface + native UI); .soft-dark is the surfaces-and-text-only prototype.
   useEffect(() => {
-    document.documentElement.classList.toggle('soft-dark', isNightMode);
-  }, [isNightMode]);
+    applyTheme(theme);
+  }, [theme]);
+
+  // Mode class mirrored onto <html> (document surface + native UI); soft dark only flips surfaces + text.
+  useEffect(() => {
+    document.documentElement.classList.toggle('soft-dark', isSoftDark);
+  }, [isSoftDark]);
 
   return (
-    <div className={`root ${isNightMode ? 'soft-dark' : ''}`}>
+    <div className={`root ${isSoftDark ? 'soft-dark' : ''}`}>
       <DexContextProvider>
         <AppContent />
       </DexContextProvider>

@@ -10,22 +10,20 @@ export interface DerivedSpec {
 }
 
 export const PALETTE_BASES: Record<string, string> = {
-  'brand-primary': '#ffd924',
-  'brand-secondary': '#18447d',
-  caught: '#ffd924',
+  'brand-primary': '#ffcbb0',
+  'brand-secondary': '#8c5b4f',
+  caught: '#ef9d70',
   error: '#ff0000',
   success: '#00cc66',
-  temporary: '#ff9800',
-  locked: '#9bc257',
+  temporary: '#f0a3b8',
+  locked: '#96b96e',
   'release-danger': '#b23b3b',
   'gray-light': '#f1f1f1',
   'gray-medium': '#d2d2d2',
   'gray-dark': '#ababab',
-  'night-mode': '#1e1e1e',
-  'night-mode-link-gray': '#5f5f5f',
 };
 
-// v1.2 themes: first five LOCKED IN, last three candidates.
+// The shipped themes; Peach Milk matches PALETTE_BASES (the compiled default).
 export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
   'Peach Milk': {
     caught: '#ef9d70',
@@ -33,7 +31,6 @@ export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
     'brand-secondary': '#8c5b4f',
     temporary: '#f0a3b8',
     locked: '#96b96e',
-    'night-mode': '#2c2825',
   },
   Sakura: {
     caught: '#f48fd4',
@@ -41,7 +38,6 @@ export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
     'brand-secondary': '#8a4f7d',
     temporary: '#ffb385',
     locked: '#d96a8b',
-    'night-mode': '#2a2529',
   },
   Butter: {
     caught: '#f4c84f',
@@ -49,7 +45,6 @@ export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
     'brand-secondary': '#8f6f4e',
     temporary: '#f2a65a',
     locked: '#6fa8d6',
-    'night-mode': '#2b2923',
   },
   'Mint Milk': {
     caught: '#7fd0a8',
@@ -57,7 +52,6 @@ export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
     'brand-secondary': '#3f7d68',
     temporary: '#f2c073',
     locked: '#4a90c2',
-    'night-mode': '#232a27',
   },
   Twilight: {
     caught: '#a49add',
@@ -65,7 +59,6 @@ export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
     'brand-secondary': '#56548f',
     temporary: '#eea98c',
     locked: '#5da98c',
-    'night-mode': '#26252e',
   },
   Matcha: {
     caught: '#96b542',
@@ -73,7 +66,6 @@ export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
     'brand-secondary': '#5c6b3c',
     temporary: '#e8b465',
     locked: '#52855e',
-    'night-mode': '#262a20',
   },
   Latte: {
     caught: '#cf9d64',
@@ -81,7 +73,6 @@ export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
     'brand-secondary': '#6f4e37',
     temporary: '#e58f7b',
     locked: '#5b8a8a',
-    'night-mode': '#2b2622',
   },
   Slate: {
     caught: '#7396c4',
@@ -89,9 +80,13 @@ export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
     'brand-secondary': '#3d4a5d',
     temporary: '#e0a35c',
     locked: '#63a06f',
-    'night-mode': '#26282c',
   },
 };
+
+export const DEFAULT_THEME = 'Peach Milk';
+
+// The bases shown as identity dots for a theme (nav popover + workbench).
+export const PRESET_DOT_BASES = ['brand-primary', 'brand-secondary', 'caught', 'temporary', 'locked'];
 
 export const PALETTE_DERIVED: [string, DerivedSpec][] = [
   ['brand-primary-light', { source: 'brand-primary', fn: 'tint', amount: 46.5 }],
@@ -125,43 +120,8 @@ export const PALETTE_DERIVED: [string, DerivedSpec][] = [
   ['gray-medium-a40', { source: 'gray-medium', fn: 'alpha', amount: .4 }],
   ['gray-dark-d20', { source: 'gray-dark', fn: 'darken', amount: 20 }],
   ['gray-dark-d40', { source: 'gray-dark', fn: 'darken', amount: 40 }],
-  ['night-mode-01dp', { source: 'night-mode', fn: 'lighten', amount: 5 }],
-  ['night-mode-02dp', { source: 'night-mode', fn: 'lighten', amount: 7 }],
-  ['night-mode-03dp', { source: 'night-mode', fn: 'lighten', amount: 8 }],
-  ['night-mode-04dp', { source: 'night-mode', fn: 'lighten', amount: 9 }],
-  ['night-mode-06dp', { source: 'night-mode', fn: 'lighten', amount: 11 }],
-  ['night-mode-08dp', { source: 'night-mode', fn: 'lighten', amount: 12 }],
-  ['night-mode-12dp', { source: 'night-mode', fn: 'lighten', amount: 14 }],
-  ['night-mode-16dp', { source: 'night-mode', fn: 'lighten', amount: 15 }],
-  ['night-mode-24dp', { source: 'night-mode', fn: 'lighten', amount: 16 }],
-  ['night-mode-dark', { source: 'night-mode', fn: 'darken', amount: 7 }],
-  ['brand-primary-muted', { source: 'brand-primary', fn: 'desaturate', amount: 60 }],
-  ['night-mode-primary', { source: 'brand-primary-muted', fn: 'lighten', amount: 7 }],
-  ['night-mode-secondary', { source: 'brand-secondary', fn: 'desaturate', amount: 20 }],
-  ['brand-secondary-l21', { source: 'brand-secondary', fn: 'lighten', amount: 21 }],
-  ['night-mode-link', { source: 'brand-secondary-l21', fn: 'desaturate', amount: 10 }],
-  ['temporary-muted', { source: 'temporary', fn: 'desaturate', amount: 55 }],
-  ['night-mode-temporary', { source: 'temporary-muted', fn: 'darken', amount: 3 }],
-  ['locked-muted', { source: 'locked', fn: 'desaturate', amount: 20 }],
-  ['night-mode-locked', { source: 'locked-muted', fn: 'darken', amount: 1 }],
-  ['error-muted', { source: 'error', fn: 'desaturate', amount: 30 }],
-  ['night-mode-error', { source: 'error-muted', fn: 'darken', amount: 6 }],
-  ['night-mode-primary-light', { source: 'night-mode-primary', fn: 'lighten', amount: 15 }],
-  ['night-mode-primary-dark', { source: 'night-mode-primary', fn: 'darken', amount: 15 }],
-  ['night-mode-primary-a50', { source: 'night-mode-primary', fn: 'alpha', amount: .5 }],
-  ['night-mode-secondary-light', { source: 'night-mode-secondary', fn: 'lighten', amount: 7 }],
-  ['night-mode-secondary-dark', { source: 'night-mode-secondary', fn: 'darken', amount: 7 }],
-  ['night-mode-secondary-d4', { source: 'night-mode-secondary', fn: 'darken', amount: 4 }],
-  ['night-mode-secondary-d6', { source: 'night-mode-secondary', fn: 'darken', amount: 6 }],
-  ['night-mode-link-dark', { source: 'night-mode-link', fn: 'darken', amount: 7 }],
-  ['night-mode-link-gray-dark', { source: 'night-mode-link-gray', fn: 'darken', amount: 7 }],
-  ['night-mode-error-dark', { source: 'night-mode-error', fn: 'darken', amount: 7 }],
-  ['night-mode-temporary-d15', { source: 'night-mode-temporary', fn: 'darken', amount: 15 }],
-  ['night-mode-temporary-stripe', { source: 'night-mode-temporary-d15', fn: 'alpha', amount: .35 }],
-  ['night-mode-locked-d15', { source: 'night-mode-locked', fn: 'darken', amount: 15 }],
   ['grid-line-light', { source: 'brand-secondary', fn: 'alpha', amount: .18 }],
   ['pattern-icons', { source: 'brand-primary', fn: 'shade', amount: 10 }],
-  ['night-pattern-icons', { source: 'night-mode', fn: 'lighten', amount: 9 }],
   ['brand-primary-dim', { source: 'brand-primary', fn: 'saturation', amount: 25 }],
   ['surface-light', { source: 'brand-primary', fn: 'tint', amount: 62 }],
   ['surface-raised-light', { source: 'brand-primary', fn: 'tint', amount: 85 }],
