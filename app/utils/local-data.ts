@@ -12,6 +12,10 @@ import kitakamiMeta from '../../data/dexes/kitakami/meta.json';
 import kitakamiPokemon from '../../data/dexes/kitakami/pokemon.json';
 import legendsArceusRegionalMeta from '../../data/dexes/legends-arceus-regional/meta.json';
 import legendsArceusRegionalPokemon from '../../data/dexes/legends-arceus-regional/pokemon.json';
+import legendsZAMegaDimensionMeta from '../../data/dexes/legends-z-a-mega-dimension/meta.json';
+import legendsZAMegaDimensionPokemon from '../../data/dexes/legends-z-a-mega-dimension/pokemon.json';
+import legendsZARegionalMeta from '../../data/dexes/legends-z-a-regional/meta.json';
+import legendsZARegionalPokemon from '../../data/dexes/legends-z-a-regional/pokemon.json';
 import letsGoRegionalMeta from '../../data/dexes/lets-go-regional/meta.json';
 import letsGoRegionalPokemon from '../../data/dexes/lets-go-regional/pokemon.json';
 import orasRegionalMeta from '../../data/dexes/oras-regional/meta.json';
@@ -80,10 +84,12 @@ function catalogEntry (meta: unknown, pokemonList: unknown): CatalogDex {
   return entry;
 }
 
-// Same order as DEX_MANIFEST in scripts/generate-dataset.mjs (newest first).
+// Newest game first (merges the two manifests in scripts/generate-dataset.mjs).
 export const DEX_CATALOG: CatalogDex[] = [
   catalogEntry(homeNationalMeta, homeNationalPokemon),
   catalogEntry(homeNationalGigantamaxMeta, homeNationalGigantamaxPokemon),
+  catalogEntry(legendsZARegionalMeta, legendsZARegionalPokemon),
+  catalogEntry(legendsZAMegaDimensionMeta, legendsZAMegaDimensionPokemon),
   catalogEntry(paldeaFullMeta, paldeaFullPokemon),
   catalogEntry(kitakamiMeta, kitakamiPokemon),
   catalogEntry(blueberryMeta, blueberryPokemon),

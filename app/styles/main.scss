@@ -42,6 +42,8 @@ button, input, select, textarea {
 .soft-dark {
   --surface: var(--surface-dark);
   --surface-raised: var(--surface-raised-dark);
+  --danger: var(--release-danger-soft);
+  --danger-hover: var(--release-danger-soft-dark);
   --grid-line: rgba(242, 241, 238, .18);
 
   background-color: var(--surface);
@@ -280,8 +282,9 @@ nav {
         background-color: var(--brand-primary-l15);
       }
 
+      // Raw (not $danger): nav chrome doesn't flip with soft-dark.
       &.nav-menu-danger {
-        color: #e2a0a0;
+        color: $release-danger;
       }
     }
   }
@@ -420,6 +423,12 @@ nav .nav-menu > a.tooltip .tooltip-text {
     background-color: var(--surface-raised);
   }
 
+  // Destructive actions: danger at rest, deepens on hover.
+  &.btn-delete {
+    color: #fff;
+    background-color: $danger;
+  }
+
   .svg-inline--fa {
     @include transition(all .1s ease-out);
 
@@ -463,6 +472,10 @@ nav .nav-menu > a.tooltip .tooltip-text {
 
     &.btn-white {
       background-color: #fcfcfc;
+    }
+
+    &.btn-delete {
+      background-color: $danger-hover;
     }
   }
 }
@@ -1025,8 +1038,10 @@ select {
       width: 280px;
     }
 
+    // Single-column width, centered — full-width bars read oddly on a two-column form.
     .btn {
-      margin-top: 8px;
+      width: 280px;
+      margin: 8px auto 0;
     }
   }
 

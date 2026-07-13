@@ -32,6 +32,8 @@ const SEREBII_LINKS: Record<string, string> = {
   legends_arceus: 'pokedex-swsh',
   scarlet_violet: 'pokedex-sv',
   scarlet_violet_expansion_pass: 'pokedex-sv',
+  // Serebii's Gen-9 dex covers both SV and Legends: Z-A.
+  legends_za: 'pokedex-sv',
   home: 'pokedex-sv',
 };
 

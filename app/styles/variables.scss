@@ -57,6 +57,11 @@ $palette-derived: (
   'gray-medium-a40': ('gray-medium', alpha, .4),
   'gray-dark-d20': ('gray-dark', darken, 20%),
   'gray-dark-d40': ('gray-dark', darken, 40%),
+  // Destructive controls; the soft variant is the dark-mode dampening.
+  'release-danger-muted': ('release-danger', desaturate, 15%),
+  'release-danger-soft': ('release-danger-muted', darken, 5%),
+  'release-danger-dark': ('release-danger', darken, 7%),
+  'release-danger-soft-dark': ('release-danger-soft', darken, 7%),
   'grid-line-light': ('brand-secondary', alpha, .18),
   // Landing wallpaper icons (pattern.png as a mask over this color).
   'pattern-icons': ('brand-primary', shade, 10%),
@@ -117,6 +122,8 @@ $palette: $palette-bases;
   // Mode pointers — live picks write the variants, never these.
   --surface: var(--surface-light);
   --surface-raised: var(--surface-raised-light);
+  --danger: var(--release-danger);
+  --danger-hover: var(--release-danger-dark);
 }
 
 // Aliases → vars; Sass color fns on these fail the build by design.
@@ -134,6 +141,9 @@ $temporary-light: var(--temporary-light);
 $locked: var(--locked);
 $locked-light: var(--locked-light);
 $release-danger: var(--release-danger);
+// Mode-following danger (dampens under .soft-dark); chrome-anchored spots use $release-danger raw.
+$danger: var(--danger);
+$danger-hover: var(--danger-hover);
 $gray-light: var(--gray-light);
 $gray-medium: var(--gray-medium);
 $gray-dark: var(--gray-dark);

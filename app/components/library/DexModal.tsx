@@ -265,7 +265,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
           </button>
           {dex &&
             <button
-              className="btn btn-white"
+              className="btn btn-delete"
               onClick={handleDeleteClick}
               type="button"
             >

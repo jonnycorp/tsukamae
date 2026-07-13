@@ -31,6 +31,7 @@ const JA_ORIGIN_GAMES: Record<string, string> = {
 // Catalog game ids (version pairs shown in the dex picker/indicator).
 const JA_CATALOG_GAMES: Record<string, string> = {
   home: 'HOME',
+  legends_za: 'LEGENDS Z-A',
   scarlet: 'スカーレット・バイオレット',
   scarlet_expansion_pass: 'スカーレット・バイオレット（ゼロの秘宝）',
   sword: 'ソード・シールド',
@@ -53,12 +54,16 @@ const JA_DEX_TYPES: Record<string, string> = {
   'Full Paldea': 'パルデア全図鑑',
   Kitakami: 'キタカミ図鑑',
   Blueberry: 'ブルーベリー図鑑',
+  'Lumiose City': 'ミアレシティ図鑑',
+  'Mega Dimension': 'メガディメンション図鑑',
   'gigantamax forms': 'キョダイマックスの姿',
 };
 
 const JA_CATALOG_DEX_NAMES: Record<string, string> = {
   'home-national': '全国図鑑',
   'home-national-gigantamax': '全国図鑑＋キョダイマックスの姿',
+  'legends-z-a-regional': 'LEGENDS Z-A ミアレシティ図鑑',
+  'legends-z-a-mega-dimension': 'LEGENDS Z-A メガディメンション図鑑（DLC）',
   'paldea-full': 'スカーレット・バイオレット パルデア全図鑑（DLC込み）',
   kitakami: 'スカーレット・バイオレット キタカミ図鑑（碧の仮面）',
   blueberry: 'スカーレット・バイオレット ブルーベリー図鑑（藍の円盤）',

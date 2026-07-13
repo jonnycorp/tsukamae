@@ -31,6 +31,8 @@ const PAIRINGS: { label: string; fg: string; bg: string; large?: boolean }[] = [
   { label: 'Nav links on hover', fg: 'brand-secondary', bg: 'brand-primary-l10' },
   { label: 'Headings on page', fg: 'brand-secondary', bg: '#ffffff', large: true },
   { label: 'Button text', fg: '#ffffff', bg: 'brand-secondary-light' },
+  { label: 'Button text · delete', fg: '#ffffff', bg: 'release-danger' },
+  { label: 'Button text · delete (soft dark)', fg: '#ffffff', bg: 'release-danger-soft' },
   { label: 'Popover body', fg: '#ffffff', bg: 'brand-secondary' },
   { label: 'Popover links', fg: '#ffffff', bg: 'brand-secondary-dark' },
   { label: 'Tile text · caught', fg: 'brand-secondary', bg: 'caught-light' },
@@ -225,7 +227,7 @@ export function Palette () {
 
           <div className="palette-sample-buttons">
             <button className="btn btn-blue" type="button">Mark All</button>
-            <button className="btn btn-white" type="button">Delete Dex</button>
+            <button className="btn btn-delete" type="button">Delete Dex</button>
           </div>
 
           <div className="pokemon-popover palette-static">
