@@ -15,6 +15,9 @@ interface LocalStorageContextState {
   setTheme: SetLocalStorageFn<string>;
   isSoftDark: boolean;
   setIsSoftDark: SetLocalStorageFn<boolean>;
+  // Progress bars: plain caught fill vs per-status segments (click toggles).
+  showProgressBreakdown: boolean;
+  setShowProgressBreakdown: SetLocalStorageFn<boolean>;
   // The app's UI language (distinct from a mon's per-capture origin language).
   locale: Locale;
   setLocale: SetLocalStorageFn<Locale>;
@@ -27,6 +30,8 @@ const LocalStorageContext = createContext<LocalStorageContextState>({
   setTheme: () => {},
   isSoftDark: false,
   setIsSoftDark: () => {},
+  showProgressBreakdown: false,
+  setShowProgressBreakdown: () => {},
   locale: 'en',
   setLocale: () => {},
 });
@@ -39,6 +44,7 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const [hideNotification, setHideNotification] = useLocalStorage('notif-2024.01.20', { defaultValue: false, parseAsJson: true });
   const [theme, setTheme] = useLocalStorage<string>(THEME_STORAGE_KEY, { defaultValue: DEFAULT_THEME, parseAsJson: true });
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, { defaultValue: false, parseAsJson: true });
+  const [showProgressBreakdown, setShowProgressBreakdown] = useLocalStorage('progressBreakdown', { defaultValue: false, parseAsJson: true });
   const [locale, setLocale] = useLocalStorage<Locale>('locale', { defaultValue: 'en', parseAsJson: true });
 
   const contextValue = useMemo<LocalStorageContextState>(() => ({
@@ -48,6 +54,8 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
     setTheme,
     isSoftDark,
     setIsSoftDark,
+    showProgressBreakdown,
+    setShowProgressBreakdown,
     locale,
     setLocale,
   }), [
@@ -57,6 +65,8 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
     setTheme,
     isSoftDark,
     setIsSoftDark,
+    showProgressBreakdown,
+    setShowProgressBreakdown,
     locale,
     setLocale,
   ]);

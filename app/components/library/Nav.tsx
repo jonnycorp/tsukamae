@@ -70,9 +70,13 @@ export function Nav () {
     importInputRef.current?.click();
   };
 
-  const handleWipeClick = () => {
+  const handleWipeClick = async () => {
     setShowDataMenu(false);
-    window.alert(t('nav.wipeAlert'));
+    if (!window.confirm(t('nav.wipeConfirm'))) {
+      return;
+    }
+    await importAppState({});
+    window.location.reload();
   };
 
   const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
