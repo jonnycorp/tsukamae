@@ -2,15 +2,15 @@ import classNames from 'classnames';
 
 import { padding } from './formatting';
 
-import type { Capture, Dex } from '../types';
+import type { Dex } from '../types';
 
 export const BOX_SIZE = 30;
 
-export function groupBoxes (captures: Capture[]) {
+export function groupBoxes<T extends { pokemon: { box: string | null } }> (captures: T[]) {
   let lastBoxName: string | null = null;
   let lastBoxIndex = 0;
 
-  return captures.reduce<Capture[][]>((all, capture) => {
+  return captures.reduce<T[][]>((all, capture) => {
     let boxIndex = all[lastBoxIndex].length === BOX_SIZE ? lastBoxIndex + 1 : lastBoxIndex;
 
     if (capture.pokemon.box !== lastBoxName) {
@@ -24,6 +24,24 @@ export function groupBoxes (captures: Capture[]) {
     all[boxIndex].push(capture);
     return all;
   }, [[]]);
+}
+
+// pokemonId → box index for a catalog list, cached per list (catalog references are stable).
+const boxIndexCache = new WeakMap<object, Map<number, number>>();
+
+export function boxIndexByPokemonId (pokemonList: { id: number; box: string | null }[]): Map<number, number> {
+  const cached = boxIndexCache.get(pokemonList);
+  if (cached) {
+    return cached;
+  }
+  const byId = new Map<number, number>();
+  groupBoxes(pokemonList.map((pokemon) => ({ pokemon }))).forEach((box, boxIndex) => {
+    for (const { pokemon } of box) {
+      byId.set(pokemon.id, boxIndex);
+    }
+  });
+  boxIndexCache.set(pokemonList, byId);
+  return byId;
 }
 
 interface Pokemon {

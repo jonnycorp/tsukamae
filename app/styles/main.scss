@@ -2,10 +2,8 @@
 
 html {
   -webkit-font-smoothing: antialiased;
-  // Clip horizontal overflow at the viewport itself (body's overflow-x doesn't
-  // reliably propagate here). Kills the stray horizontal scrollbar / dead space
-  // on the right; nothing in the app scrolls horizontally on purpose.
   overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
 *, *:before, *:after {
@@ -16,32 +14,63 @@ html {
   outline: 0;
 }
 
-// Hide native scrollbars app-wide. In Chromium — and therefore the Electron
-// build — the classic Windows scrollbar reserves layout width, which pushes
-// full-width children past the viewport and produces a horizontal scrollbar
-// plus dead space on the right. macOS overlay scrollbars are 0px, so it can't
-// be reproduced there. Scrolling still works; only the bar is hidden.
-::-webkit-scrollbar {
-  display: none;
-}
-
-* {
-  scrollbar-width: none;
+:root {
+  --scrollbar-thumb-active: var(--brand-secondary-a45);
+  // Box/tile outlines: dark hairline on light surfaces, light on dark.
+  --grid-line: var(--grid-line-light);
 }
 
 body {
   margin: 0;
   padding: 0;
-  // Stray absolutely-positioned bits (e.g. the rightmost nav tooltip) can poke
-  // past the viewport's right edge and create a horizontal scrollbar + dead
-  // space. Nothing here scrolls horizontally on purpose, so clip it.
   overflow-x: hidden;
+  overscroll-behavior: none;
   font-family: $font-primary;
-  // Light theme is the default surface; without an explicit background the
-  // page falls through to the browser's canvas, which renders black when the
-  // OS is in dark mode. The .night-mode root overrides this for dark theme.
-  background-color: #fff;
+  // Fixed value keeps EN/JA layouts identical (`normal` is font-metric-dependent).
+  line-height: 1.35;
+  background-color: var(--surface);
+  color: $brand-secondary;
   color-scheme: light;
+}
+
+// Form controls don't inherit body's line-height; same EN/JA rule as above.
+button, input, select, textarea {
+  line-height: 1.35;
+}
+
+// Soft dark: palette intact, only surfaces + text flip. A per-theme dark variant.
+.soft-dark {
+  --surface: var(--surface-dark);
+  --surface-raised: var(--surface-raised-dark);
+  --danger: var(--release-danger-soft);
+  --danger-hover: var(--release-danger-soft-dark);
+  --grid-line: rgba(242, 241, 238, .18);
+
+  background-color: var(--surface);
+  color: #f2f1ee;
+  color-scheme: dark;
+
+  // Explicit: UA field colors don't reliably follow the flip.
+  input,
+  select,
+  textarea,
+  .form-control {
+    color: #f2f1ee;
+
+    &::placeholder {
+      color: rgba(#f2f1ee, .55);
+    }
+  }
+
+  // Sits on mode-independent chrome.
+  .nav-dex-select {
+    color: $brand-secondary;
+  }
+
+  // Captured tiles keep their light palette fills, so their text stays dark.
+  .pokemon.captured {
+    color: #26221f;
+  }
 }
 
 #root,
@@ -52,22 +81,12 @@ body {
   height: 100vh;
 
   .tracker-container,
-  .home-container,
-  .register-container,
-  .login-container,
-  .account-container,
-  .profile-container {
+  .home-container {
     @include flex(1 1 auto);
     @include flexbox();
     @include flex-direction(column);
-  }
 
-  // All but the home container.
-  .tracker-container,
-  .register-container,
-  .login-container,
-  .account-container,
-  .profile-container {
+    // Cap at the viewport; content scrolls in its own window, not the page.
     min-height: 0;
   }
 }
@@ -84,20 +103,12 @@ a.link {
   &:focus {
     color: $brand-secondary-dark;
   }
-
-  // Standalone action links (e.g. the modal "Go Back") read as buttons, not
-  // inline prose, so they drop the underline.
-  &.back-link {
-    text-decoration: none;
-  }
 }
 
 .hidden {
   visibility: hidden;
 }
 
-// The bar is a bit taller than the original 42px so the centered dex controls
-// can act as the page title.
 $nav-height: 54px;
 
 nav {
@@ -106,6 +117,7 @@ nav {
 
   position: relative;
   height: $nav-height;
+  z-index: 20;
   background-color: $brand-primary;
   font-family: $font-secondary;
 
@@ -120,9 +132,7 @@ nav {
     text-transform: uppercase;
     letter-spacing: 1px;
     text-decoration: none;
-    // CJK glyphs have taller intrinsic line boxes than Latin at the same
-    // font-size; pinning the line height keeps the bar height identical in
-    // both languages instead of growing when the UI is in Japanese.
+    // Pinned so the bar height is identical in EN/JA.
     line-height: $nav-height;
     white-space: nowrap;
 
@@ -156,73 +166,12 @@ nav {
     }
   }
 
-  .dropdown {
-    @include flexbox();
-
-    &:hover {
-      > a {
-        background-color: lighten($brand-primary, 10%);
-      }
-
-      ul {
-        opacity: 1;
-        visibility: visible;
-        top: 100%;
-      }
-    }
-
-    .svg-inline--fa {
-      margin-left: 3px;
-    }
-
-    .dropdown-scroll {
-      @include overflow-y-scroll();
-
-      max-height: 242px;
-    }
-
-    ul {
-      @include transition(all .1s ease-out);
-
-      opacity: 0;
-      visibility: hidden;
-      position: absolute;
-      right: 0;
-      top: 70%;
-    	margin: 0;
-    	padding: 0;
-      list-style: none;
-      text-align: right;
-      z-index: 10;
-      width: 230px;
-
-      li  a {
-        display: block;
-        border-top: 2px solid $brand-primary;
-        background-color: lighten($brand-primary, 10%);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-
-        &:hover {
-          background-color: lighten($brand-primary, 15%);
-        }
-
-        .svg-inline--fa {
-          float: left;
-          margin-top: 2px;
-          margin-left: 0;
-          margin-right: 15px;
-        }
-      }
-    }
-  }
 }
 
 .no-touch nav a {
   &:hover,
   &:focus {
-    background-color: lighten($brand-primary, 10%);
+    background-color: var(--brand-primary-l10);
     cursor: pointer;
   }
 }
@@ -242,7 +191,7 @@ nav {
     margin: 0;
     padding: 0;
     list-style: none;
-    background-color: lighten($brand-primary, 10%);
+    background-color: var(--brand-primary-l10);
 
     li {
       @include flexbox();
@@ -265,20 +214,56 @@ nav {
       }
 
       &:hover {
-        background-color: lighten($brand-primary, 15%);
+        background-color: var(--brand-primary-l15);
       }
 
+      // Raw (not $danger): nav chrome doesn't flip with soft-dark.
       &.nav-menu-danger {
-        color: #e2a0a0;
+        color: $release-danger;
       }
     }
   }
 }
 
-// The dex dropdown + edit/add live in a group centered in the nav — both
-// axes — independent of the logo (left) and data/night-mode (right) widths.
-// It doubles as the page title, so its type runs slightly bigger than the
-// rest of the bar.
+// Theme switcher — rides the .nav-menu-dropdown look; stays open for live comparison.
+.theme-popover {
+  li {
+    .theme-dots {
+      @include flexbox();
+      @include flex-shrink(0);
+
+      margin-right: 10px;
+    }
+
+    .theme-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+
+      + .theme-dot {
+        margin-left: 3px;
+      }
+    }
+
+    .theme-check {
+      margin-left: auto;
+      margin-right: 0;
+      font-size: 11px;
+    }
+
+    &.theme-active {
+      background-color: var(--brand-primary-l15);
+    }
+
+    // Divider: the mode flip sits apart from the theme list.
+    &.theme-soft-dark {
+      border-top-width: 6px;
+    }
+  }
+}
+
+// Centered independently of the side widths; doubles as the page title.
 .nav-dex-controls {
   @include flexbox();
   @include align-items(center);
@@ -293,8 +278,33 @@ nav {
   }
 }
 
+// One shape for all icon-only nav buttons — uniform hover, no width shift.
+nav a.nav-icon {
+  @include justify-content(center);
+  // Never squeezed by flex neighbors (the dex select grows to fill).
+  @include flex-shrink(0);
+
+  width: 44px;
+  height: $nav-height;
+  padding: 0;
+}
+
 .nav-logo {
   font-size: 13px;
+}
+
+// Hung from the right edge so bubbles stay on-screen (bare icons and .nav-menu-wrapped ones).
+nav > a.tooltip .tooltip-text,
+nav .nav-menu > a.tooltip .tooltip-text {
+  left: auto;
+  right: 0;
+  margin-left: 0;
+
+  &::after {
+    left: auto;
+    right: 16px;
+    margin-left: 0;
+  }
 }
 
 .nav-dex-select {
@@ -304,9 +314,8 @@ nav {
   font-size: 13px;
   line-height: 1;
   border: 0;
-  // Blend into the bar rather than a stark white box: a slightly darker "well"
-  // with soft inset edges, echoing the box sections.
-  background-color: darken($brand-primary, 4%);
+  // A slightly darker inset "well" in the bar.
+  background-color: var(--brand-primary-d4);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), inset 0 1px 3px rgba(0, 0, 0, .18);
   color: $brand-secondary;
   font-family: $font-secondary;
@@ -315,11 +324,6 @@ nav {
   &:hover {
     cursor: pointer;
   }
-}
-
-.night-mode .nav-dex-select {
-  background-color: $night-mode-06dp;
-  color: white;
 }
 
 .btn {
@@ -343,14 +347,10 @@ nav {
     color: #fff;
   }
 
-  &.btn-yellow {
-    background-color: $brand-primary;
-    color: $brand-secondary;
-  }
-
-  &.btn-white {
-    color: $brand-secondary;
-    background-color: #fff;
+  // Destructive actions: danger at rest, deepens on hover.
+  &.btn-delete {
+    color: #fff;
+    background-color: $danger;
   }
 
   .svg-inline--fa {
@@ -390,67 +390,8 @@ nav {
       background-color: $brand-secondary;
     }
 
-    &.btn-yellow {
-      background-color: $brand-primary-dark;
-    }
-
-    &.btn-white {
-      background-color: darken(#fff, 1%);
-    }
-  }
-}
-
-.alert {
-  position: relative;
-  padding: 11px;
-  margin-bottom: 20px;
-  border: 2px solid $brand-secondary;
-  text-align: center;
-  font-size: 14px;
-
-  a {
-    font-size: 14px;
-  }
-
-  &.alert-error {
-    border: 2px solid $error;
-    color: $error;
-  }
-
-  &.alert-success {
-    border: 2px solid $success;
-    color: $success;
-  }
-
-  &.form-confirm {
-    margin-top: 40px;
-  }
-
-  &.alert-muted {
-    margin-bottom: 50px;
-    border: 2px solid $gray-medium;
-    color: darken($gray-dark, 20%);
-
-    a {
-      color: darken($gray-dark, 40%);
-
-      &:hover {
-        color: black;
-      }
-    }
-  }
-
-  .fa-xmark {
-    @include transition(all .1s ease-out);
-
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    color: $gray-medium;
-
-    &:hover {
-      cursor: pointer;
-      color: $gray-dark;
+    &.btn-delete {
+      background-color: $danger-hover;
     }
   }
 }
@@ -465,7 +406,7 @@ nav {
   padding: 50px 0 100px;
 
   h1 {
-    color: $brand-secondary;
+    // Inherits themed text so it flips with soft dark (body is brand-secondary in light).
     margin-bottom: 17px;
   }
 
@@ -528,7 +469,7 @@ select {
   -webkit-appearance: none;
   border: 2px solid $brand-secondary-light;
   border-radius: 0;
-  background-color: white;
+  background-color: var(--surface);
   padding: 6px;
   font-family: $font-primary;
 
@@ -606,7 +547,7 @@ select {
       width: 16px;
       height: 16px;
       border: 1px solid $gray-medium;
-      background-color: lighten($gray-light, 25%);
+      background-color: var(--gray-light-l25);
       border-radius: 50%;
 
       > span {
@@ -667,7 +608,7 @@ select {
       width: 16px;
       height: 16px;
       border: 1px solid $gray-medium;
-      background-color: lighten($gray-light, 25%);
+      background-color: var(--gray-light-l25);
 
       > span {
         @include transition(all .15s ease-out);
@@ -731,34 +672,6 @@ select {
   }
 }
 
-.form-warning {
-  @include flexbox();
-  @include align-items(center);
-
-  position: absolute;
-  height: 100%;
-  bottom: 0;
-  left: -23px;
-  padding-top: 21px;
-
-  .tooltip {
-    margin-left: 0;
-
-    .svg-inline--fa {
-      color: $error;
-      font-size: 10px;
-    }
-
-    .tooltip-text {
-      background-color: darken($error, 5%);
-
-      &::after {
-        border-color: darken($error, 5%) transparent transparent transparent;
-      }
-    }
-  }
-}
-
 .tooltip {
   display: inline-block;
   position: relative;
@@ -783,9 +696,8 @@ select {
     text-align: center;
     font-weight: 400;
     font-size: 13px;
-    // Nav links pin line-height to the bar height; the tooltip bubble must not
-    // inherit that.
-    line-height: normal;
+    // Escapes the nav's pinned line-height (1.35 stays font-metric-independent).
+    line-height: 1.35;
     white-space: normal;
 
     &::after {
@@ -817,6 +729,10 @@ select {
 }
 
 .loading {
+  // Silent at first; the label only fades in if loading persists.
+  @include animation(fade-in .3s ease-out .4s forwards);
+
+  opacity: 0;
   margin-top: 47vh;
   text-align: center;
   font-family: $font-secondary;
@@ -827,83 +743,40 @@ select {
   color: $brand-secondary;
 }
 
-.not-found {
-  text-align: center;
-
-  img {
-    @include animation(slide 1s cubic-bezier(0,0,.05,1) forwards);
-
-    position: relative;
-    top: -100px;
-    margin-top: 50px;
-    height: 35vh;
-  }
-
-  .not-found-caption {
-    @include animation(slide 1s cubic-bezier(0,0,.05,1) forwards);
-
-    position: relative;
-    top: 100px;
-  }
-
-  h1 {
-    margin: 15px 0 0;
-    font-family: $font-secondary;
-    font-size: 50px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    text-decoration: none;
-    color: $brand-secondary;
-  }
-
-  p {
-    max-width: 600px;
-    margin: 25px auto 0;
-    padding: 0 15px;
-    font-size: 16px;
-    font-weight: 400;
-  }
-}
-
-.reload {
-  text-align: center;
-  padding: 10px 30px;
-  background-color: lighten($brand-primary-light, 15%);
-  font-size: 14px;
-
-  .svg-inline--fa {
-    font-size: 10px;
-    margin-right: 2px;
-  }
-}
-
 .wrapper {
-  width: 6 * $pokemon-box-size + 2;
+  width: $box-width;
   margin: 0 auto;
 }
 
 .modal-overlay {
+  @include animation(fade-in $fade-duration ease-out);
+  @include transition(opacity $fade-duration ease-out);
+
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
   background-color: rgba(0, 0, 0, 0.35);
-  // The modal renders inline (no portal), so it needs to stack above the
-  // tracker's positioned elements (tooltips, the scroll button).
+  // Above the tracker's positioned elements (renders inline, no portal).
   z-index: 100;
+
+  // useDismissable sets this while the fade-out plays, then unmounts.
+  &.closing {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .modal {
-  @include overflow-y-scroll();
-
   position: relative;
-  margin: 10vh auto;
-  width: 500px;
-  max-height: 80vh;
+  margin: 6vh auto;
+  // Wide enough for the two-column dex form (2 × 280px columns + gutters).
+  width: 660px;
+  max-height: 88vh;
+  overflow-y: auto;
   border: 2px solid $brand-secondary-light;
-  background: #fff;
+  background: var(--surface-raised);
   outline: none;
 
   p {
@@ -912,345 +785,154 @@ select {
     font-size: 14px;
   }
 
-  &.night-mode {
-    background-color: $night-mode;
-    color: $gray-medium;
-    border-color: $night-mode-secondary-dark;
+  .modal-close {
+    @include transition(all .1s ease-out);
+
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+    padding: 6px 8px;
+    border: 0;
+    background: none;
+    color: $gray-dark;
+    font-size: 16px;
+    cursor: pointer;
+
+    &:hover {
+      color: $brand-secondary;
+    }
+  }
+
+  // Inside the modal the shell owns the box; the form hugs its content.
+  .form {
+    overflow-y: visible;
+    scrollbar-gutter: auto;
+    padding: 24px 0 32px;
+
+    h1 {
+      margin-top: 0;
+    }
+  }
+
+  .dex-form {
+    .form-row .form-column {
+      width: 280px;
+    }
+
+    // Single-column width, centered — full-width bars read oddly on a two-column form.
+    .btn {
+      width: 280px;
+      margin: 8px auto 0;
+    }
+  }
+
+  // Heads a group of related optional fields (the capture defaults).
+  .form-section-label {
+    margin-bottom: 18px;
+    font-family: $font-secondary;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+
+    .optional-tag {
+      margin-left: 4px;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      opacity: .55;
+    }
+  }
+
+}
+
+// Progress bar (dex header + landing cards); click toggles the per-status breakdown.
+.progress-container {
+  width: 100%;
+  height: 28px;
+  cursor: pointer;
+
+  .temporary-count {
+    color: var(--temporary-d15);
+  }
+
+  .locked-count {
+    color: var(--locked-d10);
   }
 }
 
-.night-mode {
-  background-color: $night-mode;
-  color: white;
-  // Dark theme is the default; this also styles native controls (the dex
-  // switcher and origin-game / status dropdowns) to match.
-  color-scheme: dark;
+.progress-outer {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  background-color: var(--surface-raised);
+  // Caught family: the bar measures caught.
+  border: 2px solid var(--caught);
 
-  .profile {
-    background-color: $night-mode;
+  .progress-numbers {
+    position: absolute;
+    width: 100%;
+    padding: 5px;
+    text-align: center;
+    font-family: $font-secondary;
+    font-size: 11px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
-  a {
-    color: $night-mode-link;
+  .progress-inner-row {
+    @include flexbox();
 
-    &:hover {
-      color: $night-mode-link-dark;
-    }
+    height: 100%;
   }
 
-  nav {
-    background-color: $night-mode-03dp;
-
-    a {
-      color: white;
-
-      &:hover {
-        background-color: $night-mode-06dp;
-        color: $night-mode-primary;
-      }
-
-      &.tooltip.tooltip-below .tooltip-text {
-        background-color: $night-mode-primary;
-        color: $night-mode-03dp;
-
-        &::after {
-          border-color: transparent transparent $night-mode-primary transparent;
-        }
-      }
-    }
-
-    .dropdown {
-      &:hover > a {
-        background-color: $night-mode-04dp;
-      }
-
-      ul li a {
-        border-color: $night-mode-03dp;
-        background-color: $night-mode-04dp;
-
-        &:hover {
-          background-color: $night-mode-06dp;
-        }
-      }
-    }
+  .progress-inner {
+    height: 100%;
+    background-color: var(--caught);
   }
 
-  header {
-    h1 {
-      color: white;
-    }
+  .progress-inner-locked {
+    background-color: var(--locked);
   }
 
-  .loading {
-    color: $night-mode-link;
+  .progress-inner-temporary {
+    background-color: var(--temporary);
+    // Stripes are temporary's texture identity (same recipe as the tiles).
+    background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--temporary-stripe) 8px 16px);
+  }
+}
+
+// Dex tags (shiny star + game/type labels) in the search-bar header and landing cards.
+.dex-indicator {
+  @include flex-shrink(0);
+
+  margin-left: auto;
+  padding-left: 30px;
+
+  .fa-star {
+    color: #d81118;
+    font-size: 8px;
   }
 
-  .alert {
-    background-color: $night-mode-02dp;
-    color: white;
-
-    &.alert-muted {
-      background-color: $night-mode-01dp;
-      color: white;
-      border-color: $night-mode-01dp;
-
-      a {
-      color: $night-mode-link;
-
-        &:hover {
-          color: $night-mode-link-dark;
-        }
-      }
-    }
+  .label {
+    margin-left: 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    padding: 4px 6px;
+    background-color: $gray-light;
+    // Mode-independent bg, so mode-independent text.
+    color: #26221f;
+    text-transform: uppercase;
+    font-family: $font-secondary;
+    font-weight: 500;
   }
+}
 
-  .main-footer {
-    background-color: $night-mode-01dp;
-
-    .fa {
-      color: $night-mode-24dp;
-    }
-  }
-
-  .home-container {
-    background: $night-mode url('/pattern-night.png') repeat center center;
-    background-size: 500px 250px;
-
-    .footer {
-      background-color: $night-mode-dark;
-    }
-
-    .hero h1 {
-      color: $night-mode-link;
-    }
-  }
-
-  .dex-search-bar {
-    background-color: $night-mode;
-    border-bottom: 1px solid $night-mode-dark;
-
-    .form-group {
-      .fa-magnifying-glass {
-        color: white;
-      }
-    }
-  }
-
-  header  {
-    .share-container .share {
-      background-color: $night-mode;
-      border-color: $night-mode-02dp;
-      color: white;
-
-      &::after {
-        border-color: $night-mode-02dp transparent transparent transparent;
-      }
-    }
-
-    a {
-      color: $night-mode-link-gray;
-
-      &:hover {
-        color: $night-mode-link-gray-dark;
-      }
-    }
-  }
-
-  .dex-indicator .label {
-    background-color: $night-mode-04dp;
-  }
-
-  .dex .scroll-up {
-    background-color: $night-mode-06dp;
-  }
-
-  .dex-preview-header .dex-edit a.link {
-    color: $night-mode-link-gray;
-
-    &:hover {
-      color: $night-mode-link-gray-dark;
-    }
-  }
-
-  .box .box-container,
-  .set-captured,
-  .set-captured-mobile {
-    border-color: $night-mode-01dp;
-  }
-
-  .pokemon {
-    &.pending {
-      background: rgba($night-mode-primary, .5);
-    }
-
-    &.captured {
-      background-color: $night-mode-primary;
-      color: black;
-
-      .set-captured,
-      .set-captured-mobile {
-        border-color: $night-mode-primary-dark;
-      }
-
-      .pkicon.game-family-legends_arceus {
-        background-color: rgba(#ffffff, .35);
-      }
-    }
-
-    &.captured.temporary {
-      background-color: $night-mode-temporary;
-
-      .set-captured,
-      .set-captured-mobile {
-        border-color: darken($night-mode-temporary, 15%);
-        border-style: dashed;
-      }
-    }
-
-    &.captured.locked {
-      background-color: $night-mode-locked;
-
-      .set-captured,
-      .set-captured-mobile {
-        border-color: darken($night-mode-locked, 15%);
-      }
-    }
-
-    &:not(.empty):not(.disabled):hover {
-      &:not(.viewing) {
-        .set-captured {
-          border-color: $night-mode-primary-dark;
-        }
-      }
-    }
-
-    .pkicon.game-family-legends_arceus {
-      background-color: rgba($gray-light, .2);
-    }
-  }
-
-  .progress-outer {
-    background-color: $night-mode-01dp;
-    border-color: $night-mode-primary-dark;
-
-    .progress-inner {
-      background-color: $night-mode-primary-dark;
-    }
-  }
-
-  .info {
-    .info-collapse {
-      background-color: $night-mode-secondary-dark;
-    }
-
-    .info-main {
-      background-color: $night-mode-02dp;
-
-      .info-header,
-      .info-locations,
-      .info-evolutions,
-      .info-footer {
-        background-color: $night-mode-secondary;
-        border-color: $night-mode-secondary-dark;
-      }
-
-      .info-footer {
-        a {
-          background-color: darken($night-mode-secondary, 4%);
-          border-color: $night-mode-secondary-dark;
-
-          &:hover {
-            background-color: darken($night-mode-secondary, 6%);
-            color: white;
-          }
-        }
-      }
-    }
-  }
-
-  .form-control {
-    background-color: $night-mode-02dp;
-    border-color: $night-mode-02dp;
-    color: white;
-  }
-
-  .form h1 {
-    color: #3777ca;
-  }
-
-  .form-group .radio .radio-custom {
-    background-color: $night-mode-24dp;
-    border-color: $night-mode-24dp;
-  }
-
-  .form-group .checkbox .checkbox-custom {
-    background-color: $night-mode-24dp;
-    border-color: $night-mode-24dp;
-  }
-
-  .form-warning .tooltip {
-    .fa {
-      color: $night-mode-error;
-    }
-
-    .tooltip-text {
-      background-color: $night-mode-error;
-
-      &::after {
-        border-color: $night-mode-error transparent transparent transparent;
-      }
-    }
-  }
-
-  .btn {
-    &.btn-blue {
-      background-color: $night-mode-secondary;
-      color: white;
-    }
-
-    &.btn-white {
-      background-color: $gray-light;
-      color: $night-mode-secondary;
-    }
-
-    &.btn-yellow {
-      background-color: $night-mode-primary;
-      color: white;
-    }
-
-    &:hover,
-    &:focus {
-      &.btn-blue {
-        background-color: $night-mode-secondary-dark;
-        color: white;
-      }
-
-      &.btn-white {
-        background-color: darken($gray-light, 6%);
-        color: $night-mode-secondary;
-      }
-
-      &.btn-yellow {
-        background-color: $night-mode-primary-dark;
-        color: white;
-      }
-    }
-  }
-
-  .alert.alert-error {
-    border-color: $night-mode-error;
-  }
-
-  .dex-delete-container a:first-child {
-    color: $night-mode-error;
-
-    &:hover {
-      color: $night-mode-error-dark
-    }
-  }
-
-  .reload {
-    background-color: $night-mode-16dp;
+@media (max-width: 500px) {
+  .dex-indicator {
+    display: none;
   }
 }
 
@@ -1287,12 +969,6 @@ select {
   }
 }
 
-@media (max-width: 700px) {
-  .not-found h1 {
-    font-size: 35px;
-  }
-}
-
 @media (max-width: 600px) {
   .form .form-row {
     display: block;
@@ -1312,13 +988,5 @@ select {
   .modal {
     margin-top: 0;
     width: 100%;
-  }
-
-  .form-warning .tooltip .tooltip-text {
-    margin-left: -20px;
-
-    &::after {
-      left: 20px;
-    }
   }
 }

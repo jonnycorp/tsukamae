@@ -4,6 +4,10 @@
     "name": "HOME"
   },
   {
+    "id": "legends_za",
+    "name": "Legends: Z-A"
+  },
+  {
     "id": "scarlet",
     "name": "Scarlet"
   },
@@ -77,7 +81,15 @@
   },
   {
     "id": "trade",
-    "name": "Trade (stranger)"
+    "name": "Friend Trade"
+  },
+  {
+    "id": "event",
+    "name": "Event"
+  },
+  {
+    "id": "special",
+    "name": "Special"
   },
   {
     "id": "other",

@@ -5,8 +5,6 @@ import { useTranslation } from '../../hooks/use-translation';
 
 interface Props {
   name: string;
-  // Katakana species name; shown when the UI locale is Japanese. Falls back to
-  // the English name for entries that don't have one.
   nameJa?: string | null;
 }
 

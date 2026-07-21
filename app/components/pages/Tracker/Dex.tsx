@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
 
 import { Box } from './Box';
-import { Header } from '../../library/Header';
-import { Progress } from '../../library/Progress';
 import { Scroll } from './Scroll';
 import { SearchResults } from './SearchResults';
 import { groupBoxes } from '../../../utils/pokemon';
@@ -39,15 +37,11 @@ export function Dex ({
   const { activeDexView } = useDexContext();
   const { captures } = useTrackerContext();
 
-  const caught = useMemo(() => captures.filter(({ captured }) => captured).length, [captures]);
-  const temporary = useMemo(() => captures.filter((capture) => capture.status === 'temporary').length, [captures]);
-  const locked = useMemo(() => captures.filter((capture) => capture.status === 'locked').length, [captures]);
-  const total = captures.length;
-
   const groupedCaptures = useMemo(() => groupBoxes(captures), [captures]);
   const boxes = useMemo(() => {
     return groupedCaptures.map((box, i) => (
       <Box
+        boxIndex={i}
         captures={box}
         deferred={i > DEFER_CUTOFF}
         dexTotal={activeDexView!.total}
@@ -61,12 +55,6 @@ export function Dex ({
     <div className="dex">
       <div className="wrapper">
         <Scroll onClick={onScrollButtonClick} showScroll={showScrollButton} />
-        <header>
-          <Header />
-        </header>
-        <div className="percentage">
-          <Progress caught={caught} locked={locked} temporary={temporary} total={total} />
-        </div>
         {query.length > 0 || hideCaught || temporaryOnly ?
           <SearchResults
             captures={captures}
@@ -78,7 +66,7 @@ export function Dex ({
             setTemporaryOnly={setTemporaryOnly}
             temporaryOnly={temporaryOnly}
           /> :
-          boxes
+          <div className="box-grid">{boxes}</div>
         }
       </div>
     </div>
