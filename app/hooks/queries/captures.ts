@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import { loadAppState, mutateAppState, progressToCaptures } from '../../utils/local-data';
+import { clearCheckedBoxes, loadAppState, mutateAppState, progressToCaptures } from '../../utils/local-data';
+import { useDexContext } from '../contexts/use-dex-context';
 
 import type { AppState, PersonalDex } from '../../utils/local-data';
 import type { Capture, CaptureStatus } from '../../types';
@@ -40,6 +41,7 @@ interface CreateCaptureMutationVariables {
 }
 
 export const useCreateCapture = (dexId: string) => {
+  const { refreshDexes } = useDexContext();
   return useMutation<void, Error, CreateCaptureMutationVariables>({
     mutationFn: async ({ payload }) => {
       await mutateAppState((state) => {
@@ -52,7 +54,9 @@ export const useCreateCapture = (dexId: string) => {
             language: dex.progress[id]?.language ?? dex.captureDefaults?.language ?? null,
           };
         }
+        clearCheckedBoxes(dex, payload.pokemon);
       });
+      refreshDexes();
     },
   });
 };
@@ -66,6 +70,7 @@ interface DeleteCaptureMutationVariables {
 }
 
 export const useDeleteCapture = (dexId: string) => {
+  const { refreshDexes } = useDexContext();
   return useMutation<void, Error, DeleteCaptureMutationVariables>({
     mutationFn: async ({ payload }) => {
       await mutateAppState((state) => {
@@ -74,7 +79,9 @@ export const useDeleteCapture = (dexId: string) => {
           // Unmarking clears all of the mon's state.
           delete dex.progress[id];
         }
+        clearCheckedBoxes(dex, payload.pokemon);
       });
+      refreshDexes();
     },
   });
 };
@@ -91,6 +98,7 @@ interface UpdateCaptureMutationVariables {
 }
 
 export const useUpdateCapture = (dexId: string) => {
+  const { refreshDexes } = useDexContext();
   return useMutation<void, Error, UpdateCaptureMutationVariables>({
     mutationFn: async ({ payload }) => {
       const { pokemon, ...changes } = payload;
@@ -105,7 +113,9 @@ export const useUpdateCapture = (dexId: string) => {
           language: existing?.language ?? defaults?.language ?? null,
           ...changes,
         };
+        clearCheckedBoxes(dex, [pokemon]);
       });
+      refreshDexes();
     },
   });
 };

@@ -81,7 +81,15 @@
   },
   {
     "id": "trade",
-    "name": "Trade (stranger)"
+    "name": "Friend Trade"
+  },
+  {
+    "id": "event",
+    "name": "Event"
+  },
+  {
+    "id": "special",
+    "name": "Special"
   },
   {
     "id": "other",

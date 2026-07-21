@@ -75,6 +75,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const [gameId, setGameId] = useState(initialCatalog.game.id);
   const [catalogKey, setCatalogKey] = useState(initialCatalog.key);
   const [shiny, setShiny] = useState(dex?.shiny || false);
+  const [boxCheck, setBoxCheck] = useState(dex?.boxCheck || false);
   const [defaultStatus, setDefaultStatus] = useState<CaptureStatus>(dex?.captureDefaults?.status || 'caught');
   const [defaultOriginGame, setDefaultOriginGame] = useState(dex?.captureDefaults?.origin_game || '');
   const [defaultLanguage, setDefaultLanguage] = useState(dex?.captureDefaults?.language || '');
@@ -113,6 +114,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
 
   const handleCatalogChange = (e: ChangeEvent<HTMLSelectElement>) => setCatalogKey(e.target.value);
   const handleShinyChange = (e: ChangeEvent<HTMLInputElement>) => setShiny(e.target.checked);
+  const handleBoxCheckChange = (e: ChangeEvent<HTMLInputElement>) => setBoxCheck(e.target.checked);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -127,10 +129,10 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     };
 
     if (dex) {
-      updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults });
+      updateDex(dex.id, { title: resolvedTitle, shiny, boxCheck, captureDefaults });
     } else {
       pendingActionRef.current = () => {
-        const newDex = createDex({ title: resolvedTitle, catalogKey, shiny, captureDefaults });
+        const newDex = createDex({ title: resolvedTitle, catalogKey, shiny, boxCheck, captureDefaults });
         queryClient.setQueryData([QueryKey.ListCaptures, newDex.id], progressToCaptures(newDex));
       };
     }
@@ -209,6 +211,20 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                       type="checkbox"
                     />
                     <span className="checkbox-custom"><span /></span>{t('common.shiny')}
+                  </label>
+                </div>
+              </div>
+              <div className="form-group">
+                <div className="checkbox">
+                  <label>
+                    <input
+                      checked={boxCheck}
+                      id="box_check"
+                      name="box_check"
+                      onChange={handleBoxCheckChange}
+                      type="checkbox"
+                    />
+                    <span className="checkbox-custom"><span /></span>{t('dexModal.boxCheck')}
                   </label>
                 </div>
               </div>

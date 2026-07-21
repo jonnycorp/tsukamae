@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 
 import { Header } from '../../library/Header';
 import { Progress } from '../../library/Progress';
+import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerContext } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -21,6 +22,7 @@ interface Props {
 export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemporaryOnly, temporaryOnly }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { captures } = useTrackerContext();
+  const { setShowLanguageTags, setShowOriginMarks, showLanguageTags, showOriginMarks } = useLocalStorageContext();
   const { t } = useTranslation();
 
   // The bar owns the dex summary counts.
@@ -43,6 +45,8 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value);
   const handleHideCaughtChange = (e: ChangeEvent<HTMLInputElement>) => setHideCaught(e.target.checked);
   const handleTemporaryOnlyChange = (e: ChangeEvent<HTMLInputElement>) => setTemporaryOnly(e.target.checked);
+  const handleOriginMarksChange = (e: ChangeEvent<HTMLInputElement>) => setShowOriginMarks(e.target.checked);
+  const handleLanguageTagsChange = (e: ChangeEvent<HTMLInputElement>) => setShowLanguageTags(e.target.checked);
 
   const handleClearClick = () => {
     setQuery('');
@@ -106,6 +110,34 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
                     type="checkbox"
                   />
                   <span className="checkbox-custom"><span /></span>{t('search.temporaryOnly')}
+                </label>
+              </div>
+            </div>
+            <div className="form-group">
+              <div className="checkbox">
+                <label>
+                  <input
+                    checked={showOriginMarks}
+                    id="origin-marks"
+                    name="origin-marks"
+                    onChange={handleOriginMarksChange}
+                    type="checkbox"
+                  />
+                  <span className="checkbox-custom"><span /></span>{t('search.originMarks')}
+                </label>
+              </div>
+            </div>
+            <div className="form-group">
+              <div className="checkbox">
+                <label>
+                  <input
+                    checked={showLanguageTags}
+                    id="language-tags"
+                    name="language-tags"
+                    onChange={handleLanguageTagsChange}
+                    type="checkbox"
+                  />
+                  <span className="checkbox-custom"><span /></span>{t('search.langTags')}
                 </label>
               </div>
             </div>

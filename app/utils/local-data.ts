@@ -39,6 +39,8 @@ import ultraSunUltraMoonRegionalPokemon from '../../data/dexes/ultra-sun-ultra-m
 import xYRegionalMeta from '../../data/dexes/x-y-regional/meta.json';
 import xYRegionalPokemon from '../../data/dexes/x-y-regional/pokemon.json';
 
+import { boxIndexByPokemonId } from './pokemon';
+
 import type { Capture, CapturePokemon, CaptureStatus, Dex, DexType, Game } from '../types';
 
 export interface CatalogDex {
@@ -150,6 +152,9 @@ export interface PersonalDex {
   progress: Progress;
   // Absent on dexes created before this feature — treated as all-unset.
   captureDefaults?: CaptureDefaults;
+  // Box check: per-box "verified against HOME" marks. Absent = feature off / none.
+  boxCheck?: boolean;
+  checkedBoxes?: number[];
 }
 
 export interface AppState {
@@ -321,6 +326,16 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
       language: entry ? entry.language ?? null : null,
     };
   });
+}
+
+// Any progress change inside a verified box voids its mark (it no longer matches HOME).
+export function clearCheckedBoxes (dex: PersonalDex, pokemonIds: number[]): void {
+  if (!dex.checkedBoxes?.length) {
+    return;
+  }
+  const boxIndexes = boxIndexByPokemonId(getCatalogDex(dex.catalogKey).pokemonList);
+  const touched = new Set(pokemonIds.map((id) => boxIndexes.get(id)));
+  dex.checkedBoxes = dex.checkedBoxes.filter((index) => !touched.has(index));
 }
 
 export function dexCounts (dex: PersonalDex): { caught: number; temporary: number; locked: number; total: number } {

@@ -18,6 +18,11 @@ interface LocalStorageContextState {
   // Progress bars: plain caught fill vs per-status segments (click toggles).
   showProgressBreakdown: boolean;
   setShowProgressBreakdown: SetLocalStorageFn<boolean>;
+  // Tile metadata displays (independent switches; groundwork for the v1.3 filters).
+  showOriginMarks: boolean;
+  setShowOriginMarks: SetLocalStorageFn<boolean>;
+  showLanguageTags: boolean;
+  setShowLanguageTags: SetLocalStorageFn<boolean>;
   // The app's UI language (distinct from a mon's per-capture origin language).
   locale: Locale;
   setLocale: SetLocalStorageFn<Locale>;
@@ -32,6 +37,10 @@ const LocalStorageContext = createContext<LocalStorageContextState>({
   setIsSoftDark: () => {},
   showProgressBreakdown: false,
   setShowProgressBreakdown: () => {},
+  showOriginMarks: false,
+  setShowOriginMarks: () => {},
+  showLanguageTags: false,
+  setShowLanguageTags: () => {},
   locale: 'en',
   setLocale: () => {},
 });
@@ -45,6 +54,8 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const [theme, setTheme] = useLocalStorage<string>(THEME_STORAGE_KEY, { defaultValue: DEFAULT_THEME, parseAsJson: true });
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, { defaultValue: false, parseAsJson: true });
   const [showProgressBreakdown, setShowProgressBreakdown] = useLocalStorage('progressBreakdown', { defaultValue: false, parseAsJson: true });
+  const [showOriginMarks, setShowOriginMarks] = useLocalStorage('originMarks', { defaultValue: false, parseAsJson: true });
+  const [showLanguageTags, setShowLanguageTags] = useLocalStorage('languageTags', { defaultValue: false, parseAsJson: true });
   const [locale, setLocale] = useLocalStorage<Locale>('locale', { defaultValue: 'en', parseAsJson: true });
 
   const contextValue = useMemo<LocalStorageContextState>(() => ({
@@ -56,6 +67,10 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
     setIsSoftDark,
     showProgressBreakdown,
     setShowProgressBreakdown,
+    showOriginMarks,
+    setShowOriginMarks,
+    showLanguageTags,
+    setShowLanguageTags,
     locale,
     setLocale,
   }), [
@@ -67,6 +82,10 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
     setIsSoftDark,
     showProgressBreakdown,
     setShowProgressBreakdown,
+    showOriginMarks,
+    setShowOriginMarks,
+    showLanguageTags,
+    setShowLanguageTags,
     locale,
     setLocale,
   ]);

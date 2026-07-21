@@ -24,7 +24,9 @@ const JA_ORIGIN_GAMES: Record<string, string> = {
   x: 'X',
   y: 'Y',
   go: 'Pokémon GO',
-  trade: '交換（他人）',
+  trade: 'フレンド交換',
+  event: 'イベント',
+  special: 'スペシャル',
   other: 'その他',
 };
 

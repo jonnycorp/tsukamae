@@ -41,6 +41,7 @@ export function Dex ({
   const boxes = useMemo(() => {
     return groupedCaptures.map((box, i) => (
       <Box
+        boxIndex={i}
         captures={box}
         deferred={i > DEFER_CUTOFF}
         dexTotal={activeDexView!.total}

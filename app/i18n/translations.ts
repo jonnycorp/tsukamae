@@ -26,6 +26,8 @@ const en = {
   'search.placeholder': 'Search by name or # (use / to quick search)',
   'search.hideCaught': 'Hide Caught',
   'search.temporaryOnly': 'Temp Only',
+  'search.originMarks': 'Origin Marks',
+  'search.langTags': 'Lang Tags',
 
   'progress.done': 'done!',
   'progress.caught': 'caught',
@@ -71,6 +73,11 @@ const en = {
   'dexModal.create': 'Create',
   'dexModal.delete': 'Delete Dex',
   'dexModal.deleteConfirm': 'Delete "{title}" and ALL of its progress? This cannot be undone.',
+  'dexModal.boxCheck': 'Box Check',
+
+  'box.verifyTooltip': 'Mark as matching HOME',
+  'box.verifiedTooltip': 'Matches HOME — click to clear',
+  'box.allLocked': 'All Locked',
 
   'searchResults.none': 'No results.',
   'searchResults.clearSearch': 'Clear your search?',
@@ -103,6 +110,8 @@ const ja: Record<TranslationKey, string> = {
   'search.placeholder': '名前または番号で検索（/ でクイック検索）',
   'search.hideCaught': '捕獲済みを隠す',
   'search.temporaryOnly': '仮のみ表示',
+  'search.originMarks': '出身マーク',
+  'search.langTags': '言語タグ',
 
   'progress.done': '完了！',
   'progress.caught': '捕獲',
@@ -148,6 +157,11 @@ const ja: Record<TranslationKey, string> = {
   'dexModal.create': '作成',
   'dexModal.delete': '図鑑を削除',
   'dexModal.deleteConfirm': '「{title}」とその進捗をすべて削除しますか？元に戻せません。',
+  'dexModal.boxCheck': 'ボックスチェック',
+
+  'box.verifyTooltip': 'HOMEと照合済みにする',
+  'box.verifiedTooltip': 'HOMEと照合済み — クリックで解除',
+  'box.allLocked': 'すべてロック済み',
 
   'searchResults.none': '結果がありません。',
   'searchResults.clearSearch': '検索をクリアしますか？',

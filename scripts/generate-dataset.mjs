@@ -91,7 +91,10 @@ games.splice(1, 0, ...SYNTHETIC_GAMES);
 // API has no concept of Pokémon GO or traded mons, so those are appended.
 const EXTRA_ORIGINS = [
   { id: 'go', name: 'Pokémon GO' },
-  { id: 'trade', name: 'Trade (stranger)' },
+  // Historic id: predates the friends-only trading habit. Never rename ids.
+  { id: 'trade', name: 'Friend Trade' },
+  { id: 'event', name: 'Event' },
+  { id: 'special', name: 'Special' },
   { id: 'other', name: 'Other' },
 ];
 const origins = games

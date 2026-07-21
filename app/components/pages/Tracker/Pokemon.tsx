@@ -1,12 +1,15 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faCircleExclamation, faClock, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCircleExclamation, faClock, faExchangeAlt, faGift, faLock, faMapMarkerAlt, faStar } from '@fortawesome/free-solid-svg-icons';
 
+import { LANGUAGES, ORIGIN_GAMES } from '../../../utils/local-data';
 import { PokemonName } from '../../library/PokemonName';
 import { iconClass } from '../../../utils/pokemon';
+import { localizeOriginGame } from '../../../i18n/names';
 import { nationalId, padding } from '../../../utils/formatting';
 import { useDelayedRender } from '../../../hooks/use-delayed-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
+import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerContext } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 import { useUpdateCapture } from '../../../hooks/queries/captures';
@@ -24,6 +27,17 @@ const STATUS_META: { status: CaptureStatus; icon: IconDefinition; labelKey: Tran
   { status: 'locked', icon: faLock, labelKey: 'status.locked' },
 ];
 
+// Non-main-game origins get a tile mark; cartridge origins stay unmarked by design.
+const ORIGIN_MARK_ICONS: Record<string, IconDefinition> = {
+  trade: faExchangeAlt,
+  go: faMapMarkerAlt,
+  event: faGift,
+  special: faStar,
+};
+
+const ORIGIN_NAMES = new Map(ORIGIN_GAMES.map((game) => [game.id, game.name]));
+const LANGUAGE_ABBRS = new Map(LANGUAGES.map((language) => [language.id, language.abbr]));
+
 interface Props {
   capture: UICapture | null;
   delay?: number;
@@ -35,7 +49,8 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
 
   const { activeDex, activeDexView } = useDexContext();
   const { setCaptures } = useTrackerContext();
-  const { t } = useTranslation();
+  const { showLanguageTags, showOriginMarks } = useLocalStorageContext();
+  const { t, locale } = useTranslation();
 
   const updateCaptureMutation = useUpdateCapture(activeDex!.id);
 
@@ -47,6 +62,12 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
       </div>
     );
   }
+
+  const originIcon = showOriginMarks && capture.origin_game ? ORIGIN_MARK_ICONS[capture.origin_game] : null;
+  const originName = originIcon && capture.origin_game
+    ? localizeOriginGame(locale, capture.origin_game, ORIGIN_NAMES.get(capture.origin_game) || capture.origin_game)
+    : '';
+  const langAbbr = showLanguageTags && capture.language ? LANGUAGE_ABBRS.get(capture.language) : null;
 
   // Setting a status is also how a mon gets caught; every status change opens the popover.
   const applyStatus = (status: CaptureStatus) => {
@@ -134,14 +155,22 @@ export function Pokemon ({ capture, delay = 0, setSelectedPokemon }: Props) {
         <div className="icon-wrapper">
           <i className={iconClass(capture.pokemon, dexView)} />
         </div>
-        <p>#{padding(idToDisplay, paddingDigits)}</p>
+        <p>
+          {originIcon && <FontAwesomeIcon className="origin-mark" icon={originIcon} title={originName} />}
+          #{padding(idToDisplay, paddingDigits)}
+          {langAbbr && <span className="language-tag">{langAbbr}</span>}
+        </p>
       </div>
       <div className="set-captured-mobile" onClick={handleTileClick}>
         <div className="icon-wrapper">
           <i className={iconClass(capture.pokemon, dexView)} />
         </div>
         <h4><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></h4>
-        <p>#{padding(idToDisplay, paddingDigits)}</p>
+        <p>
+          {originIcon && <FontAwesomeIcon className="origin-mark" icon={originIcon} title={originName} />}
+          #{padding(idToDisplay, paddingDigits)}
+          {langAbbr && <span className="language-tag">{langAbbr}</span>}
+        </p>
       </div>
     </div>
   );

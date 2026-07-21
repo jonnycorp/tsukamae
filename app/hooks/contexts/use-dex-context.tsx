@@ -10,12 +10,14 @@ export interface CreateDexInput {
   title: string;
   catalogKey: string;
   shiny: boolean;
+  boxCheck?: boolean;
   captureDefaults?: CaptureDefaults;
 }
 
 export interface UpdateDexInput {
   title?: string;
   shiny?: boolean;
+  boxCheck?: boolean;
   captureDefaults?: CaptureDefaults;
 }
 
@@ -31,6 +33,10 @@ interface DexContextState {
   deleteDex: (id: string) => void;
   // Shift a dex up (-1) or down (+1) in the landing-page list order.
   moveDex: (id: string, delta: number) => void;
+  // Box check: toggle a box's "verified against HOME" mark on the active dex.
+  toggleBoxChecked: (boxIndex: number) => void;
+  // Re-snapshot after writes that bypass this context (the capture mutations).
+  refreshDexes: () => void;
 }
 
 const DexContext = createContext<DexContextState>({
@@ -44,6 +50,8 @@ const DexContext = createContext<DexContextState>({
   updateDex: () => {},
   deleteDex: () => {},
   moveDex: () => {},
+  toggleBoxChecked: () => {},
+  refreshDexes: () => {},
 });
 
 interface Snapshot {
@@ -84,8 +92,8 @@ export const DexContextProvider = ({ children }: Props) => {
       setActiveDex: (id) => apply((state) => {
         state.activeDexId = id;
       }),
-      createDex: ({ title, catalogKey, shiny, captureDefaults }) => {
-        const dex: PersonalDex = { id: newDexId(), title, catalogKey, shiny, progress: {}, captureDefaults };
+      createDex: ({ title, catalogKey, shiny, boxCheck, captureDefaults }) => {
+        const dex: PersonalDex = { id: newDexId(), title, catalogKey, shiny, boxCheck, progress: {}, captureDefaults };
         apply((state) => {
           state.dexes = [...state.dexes, dex];
           state.activeDexId = dex.id;
@@ -112,6 +120,20 @@ export const DexContextProvider = ({ children }: Props) => {
         dexes.splice(target, 0, moved);
         state.dexes = dexes;
       }),
+      toggleBoxChecked: (boxIndex) => apply((state) => {
+        const dex = state.dexes.find((entry) => entry.id === state.activeDexId);
+        if (!dex) {
+          return;
+        }
+        const checked = dex.checkedBoxes ?? [];
+        dex.checkedBoxes = checked.includes(boxIndex)
+          ? checked.filter((index) => index !== boxIndex)
+          : [...checked, boxIndex].sort((a, b) => a - b);
+      }),
+      refreshDexes: () => {
+        const state = getAppState();
+        setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes] });
+      },
     };
   }, [snapshot]);
 
