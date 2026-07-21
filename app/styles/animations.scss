@@ -19,3 +19,14 @@
     opacity: 1;
   }
 }
+
+// Entrance only — exits are .closing transitions (keyframes can't reverse on unmount).
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}

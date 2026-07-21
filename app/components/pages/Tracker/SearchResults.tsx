@@ -9,8 +9,7 @@ import type { UICapture } from './use-tracker';
 
 const DEFER_CUTOFF = 120;
 
-// Japanese names are katakana, but typing produces hiragana first — normalize
-// so ふしぎだね matches フシギダネ. (Hiragana and katakana blocks are 0x60 apart.)
+// Typing produces hiragana; names are katakana — normalize for matching.
 function toKatakana (value: string): string {
   return value.replace(/[ぁ-ゖ]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0x60));
 }
@@ -63,9 +62,6 @@ export function SearchResults ({ captures, hideCaught, query, setHideCaught, set
   }, [captures, hideCaught, query, temporaryOnly]);
 
   if (filteredCaptures.length === 0) {
-    // Standalone sentence + standalone link actions: English mid-sentence links
-    // don't survive translation (Japanese word order differs), so both locales
-    // get the same simple structure.
     let message = <p>{t('searchResults.none')} <a className="link" onClick={handleClearClick}>{t('searchResults.clearSearch')}</a></p>;
 
     if (hideCaught) {

@@ -1,0 +1,261 @@
+// Dev-only palette workbench (?palette=1). Deliberately utilitarian.
+
+.palette-page {
+  @include flex(1 1 auto);
+  @include overflow-y-scroll;
+
+  min-height: 0;
+  padding: 20px 32px 80px;
+
+  section {
+    margin-top: 28px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    color: $brand-secondary;
+  }
+
+  h2 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-family: $font-secondary;
+
+    small {
+      margin-left: 8px;
+      font-size: 11px;
+      font-weight: 400;
+      opacity: .65;
+    }
+  }
+
+  code,
+  pre {
+    font-size: 12px;
+  }
+}
+
+.palette-toolbar {
+  @include flexbox();
+  @include align-items(center);
+
+  gap: 16px;
+
+  .palette-ok {
+    font-size: 12px;
+    color: $success;
+  }
+
+  .palette-drift {
+    font-size: 12px;
+    color: $error;
+    font-weight: 700;
+  }
+
+  .palette-reset,
+  .palette-copy {
+    padding: 6px 12px;
+    border: 1px solid $gray-medium;
+    background: none;
+    font-family: $font-secondary;
+    font-size: 11px;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+  }
+}
+
+.palette-presets {
+  @include flexbox();
+  @include flex-wrap(wrap);
+
+  gap: 10px;
+
+  .palette-preset {
+    @include flexbox();
+    @include align-items(center);
+
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid $gray-medium;
+    border-radius: 4px;
+    background: none;
+    font-family: $font-secondary;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      border-color: $gray-dark;
+    }
+
+    .palette-preset-dots {
+      @include flexbox();
+
+      gap: 3px;
+    }
+
+    .palette-swatch {
+      width: 14px;
+      height: 14px;
+      background-image: none;
+    }
+  }
+}
+
+.palette-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, .2);
+  // Checkerboard shows through alpha tokens.
+  background-image:
+    linear-gradient(45deg, rgba(127, 127, 127, .25) 25%, transparent 25% 75%, rgba(127, 127, 127, .25) 75%),
+    linear-gradient(45deg, rgba(127, 127, 127, .25) 25%, transparent 25% 75%, rgba(127, 127, 127, .25) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
+}
+
+.palette-bases {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 6px 20px;
+}
+
+.palette-base {
+  @include flexbox();
+  @include align-items(center);
+
+  gap: 8px;
+  padding: 3px 0;
+
+  .palette-swatch {
+    background: none;
+    border: 1px solid rgba(127, 127, 127, .4);
+  }
+
+  .palette-base-name {
+    @include flex(1 1 auto);
+
+    font-size: 13px;
+  }
+
+  input[type='color'] {
+    width: 40px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid $gray-medium;
+    background: none;
+    cursor: pointer;
+  }
+}
+
+.palette-derived {
+  @include flexbox();
+  @include flex-wrap(wrap);
+
+  gap: 6px;
+
+  .palette-chip {
+    @include flexbox();
+    @include align-items(center);
+
+    gap: 6px;
+    padding: 3px 8px;
+    border: 1px solid rgba(127, 127, 127, .3);
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: $font-secondary;
+
+    .palette-swatch {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+.palette-pairings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 6px 24px;
+}
+
+.palette-pair {
+  @include flexbox();
+  @include align-items(center);
+
+  gap: 10px;
+  font-size: 13px;
+
+  .palette-pair-sample {
+    display: inline-block;
+    min-width: 64px;
+    padding: 4px 8px;
+    border: 1px solid rgba(127, 127, 127, .3);
+    border-radius: 4px;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .palette-pair-label {
+    @include flex(1 1 auto);
+  }
+
+  .palette-pair-ratio {
+    font-family: $font-secondary;
+    font-size: 12px;
+
+    &.pass {
+      color: $success;
+    }
+
+    &.fail {
+      color: $error;
+      font-weight: 700;
+    }
+  }
+}
+
+.palette-samples {
+  @include flexbox();
+  @include flex-wrap(wrap);
+  @include align-items(flex-start);
+
+  gap: 28px;
+
+  .palette-sample-tiles {
+    @include flexbox();
+
+    border: 1px solid $gray-light;
+  }
+
+  .palette-sample-progress {
+    width: 420px;
+  }
+
+  .palette-sample-buttons {
+    width: 180px;
+
+    .btn + .btn {
+      margin-top: 8px;
+    }
+  }
+
+  // Popover chrome shown in flow instead of floating.
+  .pokemon-popover.palette-static {
+    position: static;
+    animation: none;
+  }
+}
+
+.palette-export {
+  max-width: 480px;
+  margin: 0 0 8px;
+  padding: 12px;
+  border: 1px solid $gray-medium;
+  overflow-x: auto;
+}

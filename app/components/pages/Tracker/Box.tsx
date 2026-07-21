@@ -1,23 +1,36 @@
+import classNames from 'classnames';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLock } from '@fortawesome/free-solid-svg-icons';
 import { useMemo } from 'react';
 
 import { BOX_SIZE } from '../../../utils/pokemon';
 import { MarkAllButton } from './MarkAllButton';
 import { Pokemon } from './Pokemon';
+import { PokeballIcon } from '../../library/PokeballIcon';
 import { padding } from '../../../utils/formatting';
 import { useDeferredRender } from '../../../hooks/use-deferred-render';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
+import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Dispatch, SetStateAction } from 'react';
 import type { UICapture } from './use-tracker';
 
 interface Props {
+  boxIndex: number;
   captures: UICapture[];
   deferred?: boolean;
   dexTotal: number;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
-export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon }: Props) {
+export function Box ({ boxIndex, captures, deferred = false, dexTotal, setSelectedPokemon }: Props) {
+  const { activeDex, toggleBoxChecked } = useDexContext();
+  const { t } = useTranslation();
   const render = useDeferredRender(!deferred);
+
+  const checked = activeDex?.checkedBoxes?.includes(boxIndex) ?? false;
+  // Goal state reached: every real slot locked (trailing empties are padding, uncaught = status null).
+  const allLocked = captures.every((capture) => capture.status === 'locked');
 
   const empties = useMemo(() => Array.from({ length: BOX_SIZE - captures.length }).map((_, i) => i), [captures]);
 
@@ -54,9 +67,22 @@ export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon 
   }
 
   return (
-    <div className="box">
+    <div className={classNames('box', { 'box-locked': allLocked })}>
       <div className="box-header">
-        <h1>{title}</h1>
+        <div className="box-title">
+          <h1>{title}</h1>
+          {allLocked && <FontAwesomeIcon className="box-locked-icon" icon={faLock} title={t('box.allLocked')} />}
+          {activeDex?.boxCheck &&
+            <button
+              className={classNames('box-check', { checked })}
+              onClick={() => toggleBoxChecked(boxIndex)}
+              title={t(checked ? 'box.verifiedTooltip' : 'box.verifyTooltip')}
+              type="button"
+            >
+              <PokeballIcon />
+            </button>
+          }
+        </div>
         <MarkAllButton captures={captures} />
       </div>
       <div className="box-container">

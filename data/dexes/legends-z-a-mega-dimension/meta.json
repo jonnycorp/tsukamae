@@ -1,0 +1,30 @@
+{
+  "key": "legends-z-a-mega-dimension",
+  "name": "Legends: Z-A Mega Dimension Dex (DLC)",
+  "game": {
+    "id": "legends_za",
+    "name": "Legends: Z-A",
+    "game_family": {
+      "id": "legends_za",
+      "generation": 9,
+      "regional_total": 0,
+      "national_total": 0,
+      "regional_support": false,
+      "national_support": false,
+      "order": 24,
+      "published": true
+    },
+    "order": 42
+  },
+  "dex_type": {
+    "id": 101,
+    "name": "Mega Dimension",
+    "description": "Mega Dimension dex only",
+    "game_family_id": "legends_za",
+    "order": 0,
+    "tags": [
+      "regional"
+    ]
+  },
+  "total": 132
+}

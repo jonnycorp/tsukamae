@@ -29,83 +29,76 @@
   }
 }
 
-.info {
-  @include flexbox();
+// Floating capture editor anchored to the clicked tile (top/left set inline).
+.pokemon-popover {
+  @include animation(fade-in $fade-duration ease-out);
+  @include transition(opacity $fade-duration ease-out);
 
-  position: relative;
-  z-index: 2;
+  position: fixed;
+  width: 280px;
+  // Above tile hover states and the scroll button, below the modal overlay.
+  z-index: 50;
+  border: 2px solid var(--brand-secondary-dark-d3);
+  background-color: $brand-secondary;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
 
-  &.collapsed .info-main {
-    display: none;
+  // useDismissable sets this while the fade-out plays, then unmounts.
+  &.closing {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .pkicon.game-family-legends_arceus {
-    background-color: rgba($gray-light, .3);
+    background-color: var(--gray-light-a30);
   }
 
-  .info-collapse {
+  .popover-header {
     @include flexbox();
     @include align-items(center);
 
-    padding: 8px;
-    background-color: darken($brand-secondary-dark, 3%);
-    color: white;
-    font-size: 12px;
-
-    &:hover {
-      cursor: pointer;
-      padding-right: 10px;
-      margin-left: -2px;
-    }
-  }
-
-  .info-main {
-    @include flexbox();
-    @include flex-direction(column);
-
-    width: 350px;
-    background-color: $brand-secondary;
-    color: #fff;
-
-    > * {
-      @include flex-shrink(0);
-    }
-  }
-
-  .info-header {
-    @include flexbox();
-    @include align-items(center);
-
-    padding: 17px 17px 17px 8px;
-    background-color: $brand-secondary;
-    border-bottom: 2px solid darken($brand-secondary-dark, 3%);
+    padding: 10px 10px 10px 4px;
+    border-bottom: 2px solid var(--brand-secondary-dark-d3);
 
     .pkicon {
-      margin: 0 12px;
+      margin: 0 8px;
     }
 
     h1 {
       @include flex-grow(1);
 
       margin: 0;
-      font-size: 32px;
+      font-size: 22px;
       font-weight: 500;
+      // Absolute: header height survives the smaller JA font-size.
+      line-height: 30px;
     }
 
     h2 {
-      margin: 0;
+      margin: 0 6px 0 8px;
       font-family: $font-secondary;
-      font-size: 17px;
+      font-size: 14px;
       font-weight: 400;
+    }
+
+    .popover-close {
+      @include transition(all .1s ease-out);
+
+      padding: 4px 6px;
+      border: 0;
+      background: none;
+      color: rgba(#fff, .7);
+      font-size: 15px;
+      cursor: pointer;
+
+      &:hover {
+        color: #fff;
+      }
     }
   }
 
-  .info-capture-details {
-    @include flex(1 1 auto);
-
-    padding: 30px;
-    background-color: $brand-secondary;
-    border-bottom: 2px solid darken($brand-secondary-dark, 3%);
+  .popover-body {
+    padding: 14px 16px 16px;
 
     label {
       font-family: $font-secondary;
@@ -118,38 +111,28 @@
     select.form-control {
       display: block;
       width: 100%;
-      margin: 10px 0 20px;
-      padding: 8px;
-      font-size: 16px;
+      margin: 6px 0 12px;
+      padding: 6px 8px;
+      font-size: 15px;
     }
 
-    .checkbox label {
-      display: inline-flex;
-      align-items: center;
-      text-transform: none;
-      font-family: $font-primary;
-      font-size: 16px;
-      font-weight: 400;
-      cursor: pointer;
-    }
-
-    .info-uncaught-note {
-      margin: 0;
-      font-size: 16px;
+    .popover-uncaught-note {
+      margin: 0 0 12px;
+      font-size: 15px;
       opacity: .7;
     }
   }
 
-  .info-links {
+  .popover-links {
     @include flexbox();
 
-    margin-top: 20px;
+    margin-top: 2px;
 
     a {
       @include transition(all .1s ease-out);
 
       flex: 1;
-      padding: 12px;
+      padding: 10px;
       background-color: $brand-secondary-dark;
       color: #fff;
       font-family: $font-secondary;
@@ -164,127 +147,29 @@
         margin-right: 6px;
       }
 
+      // Arrow under the label in both links, wrap or not.
       .svg-inline--fa {
+        display: block;
+        margin: 4px auto 0;
         font-size: 10px;
-        margin-left: 3px;
       }
 
       &:hover {
-        background-color: darken($brand-secondary-dark, 4%);
+        background-color: var(--brand-secondary-dark-d4);
       }
     }
   }
 
-  .info-locations {
-    @include flex(1 1 auto);
-    @include overflow-y-scroll;
-
-    padding: 30px;
-    background-color: $brand-secondary;
-    border-bottom: 2px solid darken($brand-secondary-dark, 3%);
-
-    h3 {
-      margin: 0;
-      font-family: $font-secondary;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    ul {
-      margin: 10px 0 20px;
-      padding-left: 33px;
-      font-size: 16px;
-      line-height: 1.4;
-    }
-  }
-
-  .info-evolutions {
-    @include flexbox();
-    @include justify-content(center);
-
-    padding: 20px;
-    background-color: $brand-secondary;
-    text-align: center;
-    font-size: 13px;
-
-    .evolution-pokemon-column,
-    .evolution-trigger-column {
-      @include flexbox();
-      @include flex-direction(column);
-      @include justify-content(space-around);
-
-      &.push {
-        @include justify-content(flex-end);
-      }
-    }
-
-    .evolution-pokemon-column {
-      .pkicon-809 {
-        margin-left: 3px;
-      }
-
-      a {
-        cursor: pointer;
-        padding: 0 5px;
-      }
-    }
-
-    .evolution-trigger-column {
-      @include flex-grow(1);
-
-      max-width: 90px;
-
-      .evolution-trigger {
-        @include flexbox();
-        @include flex-direction(column);
-        @include justify-content(center);
-
-        margin: 8px 0;
-
-        &:first-child {
-          margin-top: 0;
-        }
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        > .svg-inline--fa {
-          margin-bottom: 3px;
-          width: unset;
-        }
-
-        .tooltip {
-          .fa-plus-circle {
-            color: white;
-          }
-
-          .tooltip-text {
-            color: black;
-            background-color: white;
-
-            &::after {
-              border-color: #fff transparent transparent transparent;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  .info-footer {
+  .popover-footer {
     @include flexbox();
 
-    margin-top: auto;
-    border-top: 2px solid darken($brand-secondary-dark, 3%);
+    border-top: 2px solid var(--brand-secondary-dark-d3);
 
-    .info-release {
+    .popover-release {
       @include transition(all .1s ease-out);
 
       flex: 1;
-      padding: 18px;
+      padding: 12px;
       border: 0;
       background-color: $brand-secondary-dark;
       color: rgba(#fff, .7);
@@ -301,59 +186,58 @@
       }
 
       &:hover {
-        background-color: #b23b3b;
+        background-color: $release-danger;
         color: #fff;
       }
     }
-
-    a {
-      @include transition(all .1s ease-out);
-
-      width: 50%;
-      padding: 20px;
-      background-color: $brand-secondary-dark;
-      color: #fff;
-      font-family: $font-secondary;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      text-decoration: none;
-      text-align: center;
-
-      &:first-child {
-        border-right: 1px solid darken($brand-secondary-dark, 3%);
-      }
-
-      &:last-child {
-        border-left: 1px solid darken($brand-secondary-dark, 3%);
-      }
-
-      .svg-inline--fa {
-        @include transition(all .1s ease-out);
-
-        font-size: 10px;
-        margin-left: 3px;
-      }
-    }
   }
 }
 
-.no-touch .info-footer a {
-  &:hover,
-  &:focus {
-    background-color: darken($brand-secondary-dark, 3%);
-
-    .fa-right-long {
-      margin-left: 7px;
-    }
-  }
-}
-
+// The dex header: title + progress pinned left, narrow search stack right.
 .dex-search-bar {
-  background-color: white;
-  border-bottom: 1px solid $gray-light;
-  padding: 10px;
+  background-color: var(--surface-raised);
+  padding: 12px 24px;
+
+  .dex-search-bar-inner {
+    @include flexbox();
+    @include align-items(center);
+    @include justify-content(space-between);
+
+    // Aligns the bar's content with the two-column box grid below it.
+    max-width: $dex-grid-width;
+    margin: 0 auto;
+  }
+
+  .dex-search-bar-summary {
+    @include flex(1 1 auto);
+
+    min-width: 0;
+    margin-right: 32px;
+
+    .header-row {
+      @include flexbox();
+      @include align-items(center);
+
+      margin-bottom: 8px;
+
+      h1 {
+        // Inherits themed text so it flips with the mode.
+        margin: 0 12px 0 0;
+        font-size: 24px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .progress-container {
+      max-width: 520px;
+    }
+  }
+
+  .dex-search-bar-search {
+    @include flex(0 0 320px);
+  }
 
   .form-group {
     margin-bottom: 0;
@@ -396,14 +280,32 @@
   }
 
   .dex-search-bar-filters {
-    padding-top: 10px;
+    @include flexbox();
+    @include flex-wrap(wrap);
+
+    gap: 6px 14px;
+    padding-top: 8px;
+
+    .form-group {
+      margin-bottom: 0;
+    }
+
+    .checkbox label {
+      white-space: nowrap;
+    }
   }
 }
 
 .dex {
   @include flex(1 0 auto);
 
-  padding: 100px 0;
+  padding: 10px 0 100px;
+
+  // Widen the shared 1-box .wrapper to the two-column grid.
+  .wrapper {
+    width: auto;
+    max-width: $dex-grid-width;
+  }
 
   .scroll-up {
     @include transition(all .5s ease-out);
@@ -437,123 +339,19 @@
   }
 }
 
-header {
-  .header-row {
-    @include flexbox();
-    @include align-items(center);
+// Two boxes per row (A B / C D), wrapping to one column when narrow.
+.box-grid {
+  @include flexbox();
+  @include flex-wrap(wrap);
+  @include justify-content(center);
 
-    .donated-flair {
-      margin-left: auto;
-      height: 18px;
-    }
-  }
-
-  h1 {
-    position: relative;
-    display: inline-block;
-    margin: 0;
-    color: $brand-secondary;
-    font-size: 40px;
-  }
-
-  h3 {
-    margin: 0 0 8px;
-
-    a {
-      color: lighten(#000, 35%);
-
-      &:hover {
-        color: lighten(#000, 25%);
-      }
-    }
-
-    .donated-flair {
-      margin-left: 4px;
-      height: 15px;
-      vertical-align: middle;
-    }
-  }
-
-  a {
-    font-size: 16px;
-    color: lighten(#000, 25%);
-
-    .svg-inline--fa {
-      position: relative;
-      margin-left: 5px;
-      bottom: 4px;
-      font-size: 14px;
-    }
-
-    .fa-pencil {
-      bottom: 1px;
-      font-size: 12px;
-    }
-
-    &:hover {
-      color: black;
-      cursor: pointer;
-    }
-  }
-
-  .share-container {
-    position: relative;
-    display: inline-block;
-
-    a {
-      position: relative;
-    }
-
-    .share {
-      $share-width: 300px;
-
-      position: absolute;
-      bottom: 200%;
-      left: 50%;
-      width: $share-width;
-      padding: 10px;
-      margin-left: math.div($share-width, -2);
-      z-index: 1;
-      border: 2px solid $gray-light;
-      background-color: lighten($gray-light, 10%);
-      font-size: 14px;
-
-      input {
-        margin-top: 5px;
-        font-size: 12px;
-      }
-
-      &::after {
-        content: " ";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -8px;
-        border-width: 8px;
-        border-style: solid;
-        border-color: $gray-light transparent transparent transparent;
-      }
-    }
-  }
-
-  h2 {
-    margin: 0;
-    font-size: 15px;
-    font-family: $font-secondary;
-    font-weight: 400;
-
-    span.fc-missing {
-      color: $gray-medium;
-    }
-
-    b {
-      font-weight: 500;
-    }
-  }
+  column-gap: $dex-grid-gap;
 }
 
 .box {
   display: block;
+  // Pinned: the in-game 6-tile grid must never reflow wider.
+  width: $box-width;
   margin-top: 60px;
 
   .box-header {
@@ -561,13 +359,65 @@ header {
 
     margin-bottom: 10px;
 
-    h1 {
+    .box-title {
       @include flex(1 0);
+      @include flexbox();
+      @include align-items(center);
+    }
 
+    h1 {
       margin: 0;
       font-family: $font-secondary;
       font-size: 25px;
       font-weight: 700;
+    }
+
+    // Box check: pokéball toggle, verified = caught-filled top half.
+    .box-check {
+      @include transition(opacity .1s ease-out);
+
+      margin-left: 10px;
+      padding: 0;
+      border: 0;
+      background: none;
+      line-height: 0;
+      color: inherit;
+      opacity: .35;
+      cursor: pointer;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .pokeball-top {
+        fill: transparent;
+      }
+
+      .pokeball-outline,
+      .pokeball-band {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+      }
+
+      .pokeball-button {
+        fill: var(--surface-raised);
+        stroke: currentColor;
+        stroke-width: 2;
+      }
+
+      &:hover {
+        opacity: .7;
+      }
+
+      &.checked {
+        opacity: 1;
+
+        .pokeball-top {
+          fill: var(--caught);
+        }
+      }
     }
 
     .btn {
@@ -575,6 +425,8 @@ header {
 
       height: auto;
       width: auto;
+      // One tile wide: stable across locales and the Mark ⇄ Unmark toggle.
+      min-width: $pokemon-box-size;
       padding: 8px 12px;
       margin-left: 10px;
       font-size: 10px;
@@ -585,7 +437,25 @@ header {
     @include flexbox();
     @include flex-wrap(wrap);
 
-    border: 1px solid $gray-light;
+    border: 1px solid var(--grid-line);
+  }
+
+  // All slots locked: goal-state frame. Shadow ring thickens without moving the pinned box geometry.
+  &.box-locked {
+    .box-container {
+      border-color: var(--locked);
+      box-shadow: 0 0 0 1px var(--locked);
+    }
+
+    h1,
+    .box-locked-icon {
+      color: var(--locked-d10);
+    }
+
+    .box-locked-icon {
+      margin-left: 8px;
+      font-size: 14px;
+    }
   }
 }
 
@@ -597,15 +467,15 @@ header {
   height: $pokemon-box-size;
 
   &.pending {
-    background: rgba($brand-primary-light, .5);
+    background: var(--caught-light-a50);
   }
 
   &.captured {
-    background-color: $brand-primary-light;
+    background-color: var(--caught-light);
 
     .set-captured,
     .set-captured-mobile {
-      border-color: darken($brand-primary-light, 5%);
+      border-color: var(--caught-light-d5);
     }
 
     .game-family-legends_arceus {
@@ -615,10 +485,12 @@ header {
 
   &.captured.temporary {
     background-color: $temporary-light;
+    // Stripes are temporary's texture identity.
+    background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--temporary-stripe) 8px 16px);
 
     .set-captured,
     .set-captured-mobile {
-      border-color: rgba($temporary, .6);
+      border-color: var(--temporary-a60);
       border-style: dashed;
     }
   }
@@ -628,7 +500,7 @@ header {
 
     .set-captured,
     .set-captured-mobile {
-      border-color: rgba($locked, .6);
+      border-color: var(--locked-a60);
     }
   }
 
@@ -650,13 +522,42 @@ header {
 
       .set-captured,
       .set-capture-mobile:hover {
-        border-color: darken($brand-primary-light, 5%);
+        border-color: var(--caught-light-d5);
       }
     }
   }
 
   .game-family-legends_arceus {
-    background-color: rgba($gray-medium, .4);
+    background-color: var(--gray-medium-a40);
+  }
+
+  // Missing-metadata nudge — deliberately plain, it's a nag to clear.
+  .missing-meta-badge {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 11px;
+    color: var(--brand-secondary-a45);
+  }
+
+  // Optional metadata displays around the number line; muted so status keeps owning tile color.
+  .origin-mark {
+    margin-right: 5px;
+    font-size: 10px;
+    opacity: .8;
+  }
+
+  // Boxed like the in-game language tag.
+  .language-tag {
+    display: inline-block;
+    margin-left: 5px;
+    padding: 0 3px;
+    border: 1px solid var(--gray-dark);
+    border-radius: 2px;
+    font-size: 9px;
+    line-height: 1.2;
+    letter-spacing: .5px;
+    opacity: .8;
   }
 }
 
@@ -667,14 +568,13 @@ header {
   @include align-items(center);
   @include justify-content(center);
 
-  border: 1px solid $gray-light;
+  border: 1px solid var(--grid-line);
 
   h4 {
     margin: 0;
     font-size: 17px;
     font-weight: 400;
-    // Absolute line-height so the tile's interior layout is identical in both
-    // languages (CJK glyph metrics would otherwise grow the line box).
+    // Absolute so EN/JA tile layout is identical.
     line-height: 22px;
     white-space: nowrap;
   }
@@ -684,6 +584,11 @@ header {
     @include align-items(center);
 
     height: 49px;
+
+    // Scale paints bigger without touching layout — text and overlays stay put.
+    .pkicon {
+      transform: scale(1.3);
+    }
   }
 
   p {
@@ -699,7 +604,7 @@ header {
   @include align-items(center);
 
   display: none;
-  border: 1px solid $gray-light;
+  border: 1px solid var(--grid-line);
 
   .icon-wrapper {
     min-width: 52px;
@@ -723,8 +628,6 @@ header {
   }
 }
 
-// Hover-revealed quick status buttons: one click sets Caught / Temporary /
-// Locked directly (the tile only offers the statuses it isn't already in).
 .set-status {
   @include flexbox();
   @include justify-content(center);
@@ -738,12 +641,16 @@ header {
   z-index: 2;
   padding: 6px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, .28), rgba(0, 0, 0, 0));
+  // Scrim only; the tile stays clickable under it.
+  pointer-events: none;
 
   .status-btn {
     @include flexbox();
     @include align-items(center);
     @include justify-content(center);
     @include transition(transform .1s ease-out);
+
+    pointer-events: auto;
 
     width: 26px;
     height: 26px;
@@ -779,7 +686,9 @@ header {
   @include flexbox();
   @include flex-wrap(wrap);
 
-  margin-top: 60px;
+  // Results keep the 6-tile column (row-break rules assume 6 per row).
+  width: $box-width;
+  margin: 60px auto 0;
 
   &-empty {
     @include justify-content(center);
@@ -807,47 +716,13 @@ header {
   }
 }
 
-@media (max-width: 1100px) {
-  .info {
-    .info-collapse {
-      position: relative;
-      right: 350px;
-    }
-
-    &.collapsed .info-collapse {
-      right: 0;
-    }
-
-    .info-main {
-      position: absolute;
-      right: 0;
-      height: 100%;
-    }
-  }
-}
-
 @media (max-width: 750px) {
   .dex {
     padding: 15px;
-
-    .percentage {
-      margin-top: 15px;
-    }
   }
 
-  header,
   .box {
     width: 100%;
-  }
-
-  header {
-    h1 {
-      font-size: 30px;
-    }
-
-    .share-container {
-      display: none
-    }
   }
 
   .box {
@@ -859,14 +734,14 @@ header {
   }
 
   .search-results:not(.search-results-empty) {
-    border: 1px solid $gray-light;
+    border: 1px solid var(--grid-line);
   }
 
   .pokemon {
     width: 100%;
     height: 80px;
 
-    // No hover on touch; status is set from the info panel instead.
+    // No hover on touch; status is set from the popover instead.
     .set-status {
       display: none;
     }
@@ -885,50 +760,7 @@ header {
   }
 }
 
-@media (max-width: 400px) {
-  .dex {
-    padding: 15px 35px 15px 15px;
-  }
-
-  .dex-search-bar {
-    padding: 10px 35px 10px 10px;
-  }
-
-  .info {
-    position: absolute;
-    left: auto;
-    right: 0;
-    height: 100%;
-    width: 100%;
-
-    .info-collapse {
-      right: 0;
-
-      &:hover {
-        margin-left: 0;
-        padding-right: 8px;
-      }
-    }
-
-    .info-main {
-      position: relative;
-      width: 100%;
-    }
-
-    &.collapsed {
-      width: inherit;
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Japanese type sizing. CJK glyphs fill the full em square (Latin lowercase
-// only fills the x-height), so at an equal font-size Japanese reads ~20%
-// larger and overflows the fixed 110px tiles. CSS can't shrink text to fit a
-// box, so the boxes stay fixed and the Japanese type steps down to the same
-// optical size instead. Scoped via the <html lang> attribute the app sets.
-// ---------------------------------------------------------------------------
-
+// CJK fills the em square — JA type steps down to the same optical size.
 html[lang='ja'] {
   .set-captured h4 {
     font-size: 14px;
@@ -938,7 +770,7 @@ html[lang='ja'] {
     font-size: 17px;
   }
 
-  .info-header h1 {
-    font-size: 26px;
+  .pokemon-popover .popover-header h1 {
+    font-size: 18px;
   }
 }

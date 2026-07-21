@@ -1,13 +1,11 @@
 import type { Locale } from './translations';
 
-// Japanese display names for data-derived labels (dropdown options, indicator
-// labels). Keyed by the stable data ids, with fallback to the English name
-// baked into the data — so an unmapped entry degrades gracefully instead of
-// breaking. Pokémon names themselves ship inside the dataset (name_ja).
+// JA names for data-derived labels, keyed by stable ids, falling back to the English baked into the data.
 
 // data/games.json ids — the per-mon "which game did this come from" options.
 const JA_ORIGIN_GAMES: Record<string, string> = {
   home: 'HOME',
+  legends_za: 'LEGENDS Z-A',
   scarlet: 'スカーレット',
   violet: 'バイオレット',
   legends_arceus: 'LEGENDS アルセウス',
@@ -26,14 +24,16 @@ const JA_ORIGIN_GAMES: Record<string, string> = {
   x: 'X',
   y: 'Y',
   go: 'Pokémon GO',
-  trade: '交換（他人）',
+  trade: 'フレンド交換',
+  event: 'イベント',
+  special: 'スペシャル',
   other: 'その他',
 };
 
-// Catalog game ids — the version *pairs* shown in the dex picker and the dex
-// indicator (mirrors GAME_NAME_OVERRIDES in utils/local-data.ts).
+// Catalog game ids (version pairs shown in the dex picker/indicator).
 const JA_CATALOG_GAMES: Record<string, string> = {
   home: 'HOME',
+  legends_za: 'LEGENDS Z-A',
   scarlet: 'スカーレット・バイオレット',
   scarlet_expansion_pass: 'スカーレット・バイオレット（ゼロの秘宝）',
   sword: 'ソード・シールド',
@@ -56,14 +56,16 @@ const JA_DEX_TYPES: Record<string, string> = {
   'Full Paldea': 'パルデア全図鑑',
   Kitakami: 'キタカミ図鑑',
   Blueberry: 'ブルーベリー図鑑',
+  'Lumiose City': 'ミアレシティ図鑑',
+  'Mega Dimension': 'メガディメンション図鑑',
   'gigantamax forms': 'キョダイマックスの姿',
 };
 
-// Catalog dex display names, keyed by catalog key (data/dexes/<key>). Shown as
-// the title placeholder / default dex title and the edit-modal structure note.
 const JA_CATALOG_DEX_NAMES: Record<string, string> = {
   'home-national': '全国図鑑',
   'home-national-gigantamax': '全国図鑑＋キョダイマックスの姿',
+  'legends-z-a-regional': 'LEGENDS Z-A ミアレシティ図鑑',
+  'legends-z-a-mega-dimension': 'LEGENDS Z-A メガディメンション図鑑（DLC）',
   'paldea-full': 'スカーレット・バイオレット パルデア全図鑑（DLC込み）',
   kitakami: 'スカーレット・バイオレット キタカミ図鑑（碧の仮面）',
   blueberry: 'スカーレット・バイオレット ブルーベリー図鑑（藍の円盤）',

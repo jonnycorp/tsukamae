@@ -26,10 +26,15 @@ export function MarkAllButton ({ captures }: Props) {
   }, [captures]);
 
   const handleButtonClick = async () => {
+    const deleting = uncaught === 0;
+
+    // Bulk metadata wipe — confirm, like the deliberate Release button.
+    if (deleting && !window.confirm(t('markAll.unmarkConfirm'))) {
+      return;
+    }
+
     createCapturesMutation.reset();
     deleteCapturesMutation.reset();
-
-    const deleting = uncaught === 0;
     const pokemon = captures
     .filter((capture) => capture.captured === deleting)
     .map((capture) => capture.pokemon.id);
@@ -55,6 +60,9 @@ export function MarkAllButton ({ captures }: Props) {
       await createCapturesMutation.mutateAsync({ payload });
     }
 
+    // Mirror the mutation layer: new marks prefill captureDefaults.
+    const defaults = activeDex!.captureDefaults;
+
     setCaptures((prev) => prev.map((cap) => {
       if (!pokemon.includes(cap.pokemon.id)) {
         // We're not modifying this one.
@@ -65,8 +73,9 @@ export function MarkAllButton ({ captures }: Props) {
         pending: false,
         captured: !deleting,
         // Unmarking clears status/origin state along with the capture.
-        status: deleting ? null : (cap.status || 'caught'),
-        origin_game: deleting ? null : cap.origin_game,
+        status: deleting ? null : (cap.status || defaults?.status || 'caught'),
+        origin_game: deleting ? null : (cap.origin_game ?? defaults?.origin_game ?? null),
+        language: deleting ? null : (cap.language ?? defaults?.language ?? null),
       };
     }));
   };

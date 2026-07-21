@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Dex } from './Dex';
 import { Footer } from '../../library/Footer';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { Info } from './Info';
+import { PokemonPopover } from './PokemonPopover';
 import { SCROLL_DEBOUNCE, SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SearchBar } from './SearchBar';
 import { TrackerContextProvider, useTrackerContext } from './use-tracker';
@@ -15,9 +15,7 @@ export function Tracker () {
   return <TrackerLoader />;
 }
 
-// Keying by the active dex remounts the whole tracker on a dex switch, so
-// per-dex UI state (captures, search query, filters, selected mon) resets
-// cleanly instead of carrying over from the previous dex.
+// Keyed remount on dex switch resets per-dex UI state cleanly.
 function TrackerLoader () {
   const { activeDex } = useDexContext();
 
@@ -72,13 +70,9 @@ export function TrackerInner () {
   }, SCROLL_DEBOUNCE);
 
   const handleScrollButtonClick = useCallback(() => {
-    if (trackerRef.current) {
-      trackerRef.current.scrollTop = 0;
-    }
-  }, [trackerRef.current]);
+    trackerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
-  // Wait until the captures list is populated (via the effect above). Nothing
-  // is selected on load, so the info panel stays closed until a mon is clicked.
   if (capturesIsLoading || captures.length === 0) {
     return <div className="loading">Loading...</div>;
   }
@@ -110,7 +104,14 @@ export function TrackerInner () {
             <Footer />
           </div>
         </div>
-        <Info selectedPokemon={selectedPokemon} setSelectedPokemon={setSelectedPokemon} />
+        {selectedPokemon !== 0 &&
+          // Keyed so moving to another mon remounts with fresh position/dismiss state.
+          <PokemonPopover
+            key={selectedPokemon}
+            onClose={() => setSelectedPokemon(0)}
+            selectedPokemon={selectedPokemon}
+          />
+        }
       </div>
     </div>
   );
