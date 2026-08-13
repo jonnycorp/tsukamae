@@ -26,24 +26,6 @@ export function groupBoxes<T extends { pokemon: { box: string | null } }> (captu
   }, [[]]);
 }
 
-// pokemonId → box index for a catalog list, cached per list (catalog references are stable).
-const boxIndexCache = new WeakMap<object, Map<number, number>>();
-
-export function boxIndexByPokemonId (pokemonList: { id: number; box: string | null }[]): Map<number, number> {
-  const cached = boxIndexCache.get(pokemonList);
-  if (cached) {
-    return cached;
-  }
-  const byId = new Map<number, number>();
-  groupBoxes(pokemonList.map((pokemon) => ({ pokemon }))).forEach((box, boxIndex) => {
-    for (const { pokemon } of box) {
-      byId.set(pokemon.id, boxIndex);
-    }
-  });
-  boxIndexCache.set(pokemonList, byId);
-  return byId;
-}
-
 interface Pokemon {
   national_id: number;
   form: string | null;

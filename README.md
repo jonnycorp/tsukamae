@@ -6,20 +6,22 @@ A personal living dex tracker, running as a Windows desktop app (Electron). Fork
 
 Beyond the upstream caught/uncaught toggle, each slot tracks how it's held and where the mon came from:
 
-- **Capture status** — every caught slot is one of:
-  - _Caught_ — a regular, properly obtained mon.
-  - _Temporary_ — a placeholder (e.g. from GO or a stranger trade) to replace with a proper one later.
-  - _Locked_ — the slot is final and never changing.
+- **Capture status** — every marked slot is one of:
+  - _Caught_ — properly obtained, and the only status sealing is reachable from.
+  - _Temporary_ — a placeholder (often a GO transfer) taking the slot for completion's sake, openly subject to upgrade when a better method appears.
+  - _Unobtainable_ — no legitimate way to get it right now (event-locked raid mons, some mythicals). Logged rather than left blank, so the slot still carries a completion state.
+- **Sealed** — a commitment above Caught, and only reachable from it: this exact specimen is the slot holder forever, even if a perfect one turns up later. Sealing needs every field answered plus a confirmation, after which the mon is completely frozen — no hover buttons, no form, no Release, just a read-only record. Unsealing is a press-and-hold with a ring closing around the cursor, and drops it back to Caught.
 - **Quick marking** — clicking a tile catches it; hovering reveals one-click buttons for the other statuses. Marking opens a popover anchored to the tile for follow-up edits.
-- **Per-mon metadata** (tile popover) — _Origin Game_ and _Language of origin_ (English, Japanese, and the other mainline languages), since foreign-language mons are worth distinguishing. _Release_ clears the slot and its metadata. A tile shows a corner mark until its metadata is filled in.
-- **Multiple personal dexes** — each is its own instance of a catalog dex with independent progress, switchable from the nav and reorderable on the landing page. Each dex can define _defaults_ (status / origin game / language) prefilled whenever a mon is newly marked — e.g. a regional living dex where every catch is a locked local catch.
+- **My Games** (settings menu) — each playthrough you own: game, language, and the trainer name it stamps on everything caught there. One record names an origin, lists where a Pokémon can be sitting, and fills in OT. Picking a game as a mon's origin answers game, language and OT at once, without ever overwriting an OT you typed yourself.
+- **Per-mon metadata** (tile popover) — _Origin Game_, _Language_, _Been to Champions_, _Location_ (in HOME, in Champions, or which of your games it's sitting in), _Ball_, _Catch Date_, _Nickname_, _OT_, _Trained_ and _Favorite_. Champions is deliberately two facts: having been there is permanent and survives the mon coming back, while _Location_ only offers "In Champions" once it actually has. Every field starts unanswered, and unanswered is distinct from "no" — that's what gives the seal gate meaning. A tile shows a corner mark until the record is complete. _Release_ clears the slot and its metadata.
+- **Multiple personal dexes** — each is its own instance of a catalog dex with independent progress, switchable from the nav and reorderable on the landing page. Each dex can define _defaults_ for any field, prefilled whenever a mon is newly marked — e.g. a regional living dex where every catch is a locked local catch. Leave a default unset where the dex is a wildcard and you want to fill it by hand.
 - **Localization** — the whole UI (including Pokémon names) toggles between English and Japanese from the nav.
 
 ## Data Persistence
 
 All state lives on this machine; there is no server or account.
 
-- **Desktop (Electron)** — a single JSON file, `captures.json`, in the per-user app data directory (e.g. `%APPDATA%/tsukamae` on Windows). The renderer sends the full state through a preload bridge; the main process coalesces rapid changes into debounced, atomic writes (temp file + rename) and does a final synchronous flush on quit, so progress can't be corrupted or lost mid-session.
+- **Desktop (Electron)** — a single JSON file, `dex_data.json`, in the per-user app data directory (e.g. `%APPDATA%/tsukamae` on Windows). The renderer sends the full state through a preload bridge; the main process coalesces rapid changes into debounced, atomic writes (temp file + rename) and does a final synchronous flush on quit, so progress can't be corrupted or lost mid-session.
 - **Browser dev** (`yarn start`) — the same state falls back to `localStorage`. `yarn start:fresh` keeps everything in memory only, so testing never touches real data.
 - **Export / Import** — the nav's data menu downloads the whole tracker as a JSON snapshot and restores from one (import replaces all current state). This is also the upgrade path across dataset regenerations.
 
@@ -48,8 +50,8 @@ yarn lint:all
 The dex structure is a static snapshot in `data/` — `dexes/<key>/` (one directory per catalog dex: `meta.json` + `pokemon.json`), `games.json` (origin-game options), `languages.json`, and `dex-types.json` — generated from the live pokedextracker API:
 
 ```bash
-yarn dataset      # scripts/generate-dataset.mjs + scripts/add-japanese-names.mjs
-yarn dataset:ja   # re-attach Japanese names only
+yarn dataset          # scripts/generate-dataset.mjs + scripts/enrich-species.mjs
+yarn dataset:species  # re-attach Japanese names and legendary/mythical class only
 ```
 
 When a new generation arrives:

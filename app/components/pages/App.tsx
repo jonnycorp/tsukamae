@@ -14,10 +14,10 @@ export function App () {
   const { isSoftDark, locale, theme } = useLocalStorageContext();
 
   useScrollbarFade();
-  // Follows live color picks from a ?palette=1 tab (dev aid; inert otherwise).
+  // follows live color picks from a ?palette=1 tab (dev aid; inert otherwise)
   usePaletteBroadcastReceiver(theme);
 
-  // <html lang> drives CJK font behavior.
+  // <html lang> drives CJK font behavior
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
@@ -26,7 +26,7 @@ export function App () {
     applyTheme(theme);
   }, [theme]);
 
-  // Mode class mirrored onto <html> (document surface + native UI); soft dark only flips surfaces + text.
+  // mode class mirrored onto <html> (document surface + native UI); soft dark only flips surfaces + text
   useEffect(() => {
     document.documentElement.classList.toggle('soft-dark', isSoftDark);
   }, [isSoftDark]);
@@ -40,11 +40,11 @@ export function App () {
   );
 }
 
-// Nav is shared; the body is the open dex's tracker or the landing page.
+// nav is shared; the body is the open dex's tracker or the landing page
 function AppContent () {
   const { dexes, activeDex } = useDexContext();
 
-  // Palette workbench gate; the nav comes along for its mode toggle.
+  // palette workbench gate; the nav comes along for its mode toggle
   if (window.location.search.includes('palette')) {
     return (
       <>
@@ -54,7 +54,7 @@ function AppContent () {
     );
   }
 
-  // dexes is null until the persisted state has loaded.
+  // dexes is null until the persisted state has loaded
   if (dexes === null) {
     return <div className="loading">Loading...</div>;
   }

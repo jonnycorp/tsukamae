@@ -20,7 +20,7 @@
   }
 }
 
-// Entrance only — exits are .closing transitions (keyframes can't reverse on unmount).
+// entrance only — exits are .closing transitions (keyframes can't reverse on unmount)
 @keyframes fade-in {
   0% {
     opacity: 0;
@@ -28,5 +28,68 @@
 
   100% {
     opacity: 1;
+  }
+}
+
+// sealed glint: one viewport-wide sweep, then the band dwells offscreen the rest of the cycle
+@keyframes seal-shine {
+  0% {
+    background-position-x: 100%;
+  }
+
+  50%,
+  100% {
+    background-position-x: 0%;
+  }
+}
+
+// sealed name line, species ⇄ nickname; the final 22px step lands on the cloned first frame
+@keyframes name-scroll-2 {
+  0%,
+  43% {
+    transform: translateY(0);
+  }
+
+  49%,
+  93% {
+    transform: translateY(-22px);
+  }
+
+  100% {
+    transform: translateY(-44px);
+  }
+}
+
+// badge strip ⇄ catch date, phase-matched to name-scroll-2 in 20px rows
+@keyframes badge-flip {
+  0%,
+  43% {
+    transform: translateY(0);
+  }
+
+  49%,
+  93% {
+    transform: translateY(-20px);
+  }
+
+  100% {
+    transform: translateY(-40px);
+  }
+}
+
+// number line ⇄ OT, phase-matched to name-scroll-2 in 16px rows
+@keyframes number-flip {
+  0%,
+  43% {
+    transform: translateY(0);
+  }
+
+  49%,
+  93% {
+    transform: translateY(-16px);
+  }
+
+  100% {
+    transform: translateY(-32px);
   }
 }

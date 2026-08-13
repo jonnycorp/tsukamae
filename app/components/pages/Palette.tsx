@@ -22,9 +22,9 @@ import { usePaletteBroadcastSender } from '../../palette/use-palette-broadcast';
 
 import type { Rgba } from '../../palette/tokens';
 
-// Dev-only palette workbench (?palette=1, not localized): live-overrides the :root tokens on top of the active theme; commit via the export block.
+// dev-only workbench (?palette=1): live-overrides :root tokens, commit via the export block
 
-// Real text-on-surface pairs; `large` relaxes WCAG to 3:1.
+// real text-on-surface pairs; `large` relaxes WCAG to 3:1
 const PAIRINGS: { label: string; fg: string; bg: string; large?: boolean }[] = [
   { label: 'Body text on page', fg: 'brand-secondary', bg: 'surface-light' },
   { label: 'Nav links on bar', fg: 'brand-secondary', bg: 'brand-primary' },
@@ -35,9 +35,9 @@ const PAIRINGS: { label: string; fg: string; bg: string; large?: boolean }[] = [
   { label: 'Button text · delete (soft dark)', fg: '#ffffff', bg: 'release-danger-soft' },
   { label: 'Popover body', fg: '#ffffff', bg: 'brand-secondary' },
   { label: 'Popover links', fg: '#ffffff', bg: 'brand-secondary-dark' },
-  { label: 'Tile text · caught', fg: 'brand-secondary', bg: 'caught-light' },
+  { label: 'Tile text · unobtainable', fg: 'brand-secondary', bg: 'unobtainable-light' },
   { label: 'Tile text · temporary', fg: 'brand-secondary', bg: 'temporary-light' },
-  { label: 'Tile text · locked', fg: 'brand-secondary', bg: 'locked-light' },
+  { label: 'Tile text · caught', fg: 'brand-secondary', bg: 'caught-light' },
 ];
 
 function formatRatio (ratio: number): string {
@@ -47,19 +47,19 @@ function formatRatio (ratio: number): string {
 export function Palette () {
   const { theme } = useLocalStorageContext();
 
-  // Base-name → picked hex. Empty = untouched page showing the active theme.
+  // base-name → picked hex. Empty = untouched page showing the active theme
   const [overrides, setOverrides] = useState<Record<string, string>>({});
-  // Tokens whose applied value disagrees with the JS mirror (files drifted).
+  // tokens whose applied value disagrees with the JS mirror (files drifted)
   const [driftedTokens, setDriftedTokens] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
-  // The active theme is the working baseline; picks layer on top of it.
+  // the active theme is the working baseline; picks layer on top of it
   const baseline = useMemo(() => ({ ...PALETTE_BASES, ...PALETTE_PRESETS[theme] }), [theme]);
   const resolved = useMemo(() => resolvePalette({ ...PALETTE_PRESETS[theme], ...overrides }), [theme, overrides]);
   const dirty = Object.keys(overrides).length > 0;
   const broadcast = usePaletteBroadcastSender();
 
-  // Self-check: the applied :root values (build CSS or theme overrides) vs this page's JS mirror.
+  // self-check: the applied :root values (build CSS or theme overrides) vs this page's JS mirror
   useEffect(() => {
     const styles = getComputedStyle(document.documentElement);
     const expected = resolvePalette(PALETTE_PRESETS[theme]);
@@ -70,7 +70,7 @@ export function Palette () {
     setDriftedTokens(drifted);
   }, [theme]);
 
-  // Overrides rewrite every token on :root (+ broadcast); reset falls back to the active theme.
+  // overrides rewrite every token on :root (+ broadcast); reset falls back to the active theme
   useEffect(() => {
     const root = document.documentElement;
     if (dirty) {
@@ -207,26 +207,22 @@ export function Palette () {
               <div className="set-captured"><h4>Missing</h4><p>#0001</p></div>
             </div>
             <div className="pokemon captured">
-              <div className="missing-meta-badge">!</div>
-              <div className="set-captured"><h4>Caught</h4><p>#0002</p></div>
+              <div className="set-captured"><h4>Unobtainable</h4><p>#0002</p></div>
             </div>
             <div className="pokemon captured temporary">
               <div className="set-captured"><h4>Temporary</h4><p>#0003</p></div>
             </div>
-            <div className="pokemon captured locked">
-              <div className="set-captured"><h4>Locked</h4><p>#0004</p></div>
-            </div>
-            <div className="pokemon pending">
-              <div className="set-captured"><h4>Pending</h4><p>#0005</p></div>
+            <div className="pokemon captured caught">
+              <div className="set-captured"><h4>Caught</h4><p>#0004</p></div>
             </div>
           </div>
 
           <div className="palette-sample-progress">
-            <Progress caught={412} locked={187} temporary={64} total={1025} />
+            <Progress caught={187} marked={412} temporary={64} total={1025} />
           </div>
 
           <div className="palette-sample-buttons">
-            <button className="btn btn-blue" type="button">Mark All</button>
+            <button className="btn btn-blue" type="button">New Dex</button>
             <button className="btn btn-delete" type="button">Delete Dex</button>
           </div>
 

@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
 
-// How long a scrollbar stays visible after its container stops scrolling.
+// how long a scrollbar stays visible after its container stops scrolling
 const FADE_DELAY_MS = 1000;
 
-// Tags the scrolling element with .is-scrolling; the scrollbar-fade mixin keys off it.
+// tags the scrolling element with .is-scrolling; the scrollbar-fade mixin keys off it
 export function useScrollbarFade () {
   useEffect(() => {
     const timers = new Map<Element, number>();
 
-    // Scroll doesn't bubble but reaches document in the capture phase — one listener covers all.
+    // scroll doesn't bubble but reaches document in the capture phase — one listener covers all
     const handleScroll = (event: Event) => {
       const el = event.target instanceof Element ? event.target : document.documentElement;
 

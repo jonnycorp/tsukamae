@@ -16,10 +16,10 @@ if (process.env.TSUKAMAE_USER_DATA) {
   app.setPath('userData', process.env.TSUKAMAE_USER_DATA);
 }
 
-// All progress lives in a single JSON file in the per-user app data directory
-// (e.g. %APPDATA%\tsukamae\captures.json on Windows) — never in the repo.
+// All dex data lives in a single JSON file in the per-user app data directory
+// (e.g. %APPDATA%\tsukamae\dex_data.json on Windows) — never in the repo.
 function progressFile () {
-  return path.join(app.getPath('userData'), 'captures.json');
+  return path.join(app.getPath('userData'), 'dex_data.json');
 }
 
 // ---------------------------------------------------------------------------

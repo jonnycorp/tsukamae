@@ -1,8 +1,11 @@
+import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faFileExport, faFileImport, faGear, faLanguage, faMoon, faPalette, faPencilAlt, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faFileExport, faFileImport, faGamepad, faGear, faLanguage, faMoon, faPalette, faPencilAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { DexModal } from './DexModal';
+import { Dropdown } from './Dropdown';
+import { SavesModal } from './SavesModal';
 import { PALETTE_PRESETS, PRESET_DOT_BASES } from '../../palette/tokens';
 import { exportAppState, importAppState } from '../../utils/local-data';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
@@ -11,7 +14,7 @@ import { useTranslation } from '../../hooks/use-translation';
 
 import type { ChangeEvent, RefObject } from 'react';
 
-// Close the given nav popover when clicking anywhere outside it.
+// closes a nav popover on any outside click
 function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, close: () => void) {
   useEffect(() => {
     if (!open) {
@@ -34,6 +37,7 @@ export function Nav () {
 
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showSaves, setShowSaves] = useState(false);
 
   const importInputRef = useRef<HTMLInputElement>(null);
   const dataMenuRef = useRef<HTMLDivElement>(null);
@@ -46,9 +50,8 @@ export function Nav () {
   useOutsideClickClose(showThemeMenu, themeMenuRef, () => setShowThemeMenu(false));
 
   const handleLanguageToggle = () => setLocale(locale === 'en' ? 'ja' : 'en');
-  // The logo returns to the landing page (no dex open).
+  // the logo returns to the landing page
   const handleLogoClick = () => setActiveDex('');
-  const handleDexChange = (e: ChangeEvent<HTMLSelectElement>) => setActiveDex(e.target.value);
   const handleNewDexClick = () => setShowCreate(true);
   const handleEditDexClick = () => setShowEdit(true);
   const handleCreateClose = () => setShowCreate(false);
@@ -68,15 +71,6 @@ export function Nav () {
   const handleImportClick = () => {
     setShowDataMenu(false);
     importInputRef.current?.click();
-  };
-
-  const handleWipeClick = async () => {
-    setShowDataMenu(false);
-    if (!window.confirm(t('nav.wipeConfirm'))) {
-      return;
-    }
-    await importAppState({});
-    window.location.reload();
   };
 
   const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -108,13 +102,17 @@ export function Nav () {
   };
 
   return (
-    <nav>
+    <nav className={classNames({ 'dropdown-open': showDataMenu || showThemeMenu })}>
       <a className="nav-logo" onClick={handleLogoClick}>{t('app.name')}</a>
       {activeDex &&
         <div className="nav-dex-controls">
-          <select className="nav-dex-select" onChange={handleDexChange} value={activeDex.id}>
-            {dexes!.map((dex) => <option key={dex.id} value={dex.id}>{dex.title}</option>)}
-          </select>
+          <Dropdown
+            id="nav_dex"
+            onSelect={setActiveDex}
+            options={dexes!.map((dex) => ({ value: dex.id, label: dex.title }))}
+            triggerClassName="nav-dex-select"
+            value={activeDex.id}
+          />
           <a className="nav-icon tooltip tooltip-below" onClick={handleEditDexClick}>
             <FontAwesomeIcon icon={faPencilAlt} />
             <span className="tooltip-text">{t('nav.editDex')}</span>
@@ -133,10 +131,13 @@ export function Nav () {
           <ul className="nav-menu-dropdown">
             <li onClick={handleExportClick}><FontAwesomeIcon icon={faFileExport} /> {t('nav.export')}</li>
             <li onClick={handleImportClick}><FontAwesomeIcon icon={faFileImport} /> {t('nav.import')}</li>
-            <li className="nav-menu-danger" onClick={handleWipeClick}><FontAwesomeIcon icon={faTrash} /> {t('nav.wipe')}</li>
           </ul>
         }
       </div>
+      <a className="nav-icon tooltip tooltip-below" onClick={() => setShowSaves(true)}>
+        <FontAwesomeIcon icon={faGamepad} />
+        <span className="tooltip-text">{t('nav.saves')}</span>
+      </a>
       <input
         accept="application/json,.json"
         onChange={handleImportFile}
@@ -174,6 +175,7 @@ export function Nav () {
       </div>
       {showCreate && <DexModal onRequestClose={handleCreateClose} />}
       {showEdit && activeDex && <DexModal dex={activeDex} onRequestClose={handleEditClose} />}
+      {showSaves && <SavesModal onRequestClose={() => setShowSaves(false)} />}
     </nav>
   );
 }

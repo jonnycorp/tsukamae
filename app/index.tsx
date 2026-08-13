@@ -9,7 +9,7 @@ import { bootstrapTheme } from './palette/apply-theme';
 import { queryClient } from './utils/query-client';
 
 function run () {
-  // Before first paint: the stored theme + soft dark, so launch doesn't flash the defaults.
+  // before first paint: the stored theme + soft dark, so launch doesn't flash the defaults
   bootstrapTheme();
 
   const root = createRoot(document.getElementById('root') as HTMLElement);

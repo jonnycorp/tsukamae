@@ -2,33 +2,40 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useMemo, useRef } from 'react';
 
+import { FILTER_META, useTrackerActions, useTrackerState } from './use-tracker';
 import { Header } from '../../library/Header';
 import { Progress } from '../../library/Progress';
+import { TESTING } from '../../../utils/testing';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
-import { useTrackerContext } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
+import type { TrackerFilters } from './use-tracker';
 
 interface Props {
-  hideCaught: boolean;
+  filters: TrackerFilters;
   query: string;
-  setHideCaught: Dispatch<SetStateAction<boolean>>;
+  setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   setQuery: Dispatch<SetStateAction<string>>;
-  setTemporaryOnly: Dispatch<SetStateAction<boolean>>;
-  temporaryOnly: boolean;
 }
 
-export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemporaryOnly, temporaryOnly }: Props) {
+export function SearchBar ({ filters, query, setFilters, setQuery }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { captures } = useTrackerContext();
+  const { activeDex } = useDexContext();
+  const { captures } = useTrackerState();
+  const { sealFx, setSealFx } = useTrackerActions();
   const { setShowLanguageTags, setShowOriginMarks, showLanguageTags, showOriginMarks } = useLocalStorageContext();
   const { t } = useTranslation();
 
-  // The bar owns the dex summary counts.
-  const caught = useMemo(() => captures.filter(({ captured }) => captured).length, [captures]);
+  // a checklist has no metadata, so only presence can filter
+  const checklist = Boolean(activeDex?.checklist);
+  const filterMeta = checklist ? FILTER_META.filter((meta) => meta.id === 'hideMarked') : FILTER_META;
+
+  // the bar owns the dex summary counts
+  const marked = useMemo(() => captures.filter(({ captured }) => captured).length, [captures]);
   const temporary = useMemo(() => captures.filter((capture) => capture.status === 'temporary').length, [captures]);
-  const locked = useMemo(() => captures.filter((capture) => capture.status === 'locked').length, [captures]);
+  const caught = useMemo(() => captures.filter((capture) => capture.status === 'caught').length, [captures]);
 
   useEffect(() => {
     const handleKeyup = (e: KeyboardEvent) => {
@@ -43,8 +50,7 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
   }, [inputRef.current]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value);
-  const handleHideCaughtChange = (e: ChangeEvent<HTMLInputElement>) => setHideCaught(e.target.checked);
-  const handleTemporaryOnlyChange = (e: ChangeEvent<HTMLInputElement>) => setTemporaryOnly(e.target.checked);
+  const handleFilterChange = (id: keyof TrackerFilters, checked: boolean) => setFilters((prev) => ({ ...prev, [id]: checked }));
   const handleOriginMarksChange = (e: ChangeEvent<HTMLInputElement>) => setShowOriginMarks(e.target.checked);
   const handleLanguageTagsChange = (e: ChangeEvent<HTMLInputElement>) => setShowLanguageTags(e.target.checked);
 
@@ -58,7 +64,7 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
       <div className="dex-search-bar-inner">
         <div className="dex-search-bar-summary">
           <Header />
-          <Progress caught={caught} locked={locked} temporary={temporary} total={captures.length} />
+          <Progress caught={caught} marked={marked} temporary={temporary} total={captures.length} />
         </div>
         <div className="dex-search-bar-search">
           <div className="form-group">
@@ -85,62 +91,69 @@ export function SearchBar ({ hideCaught, query, setHideCaught, setQuery, setTemp
             }
           </div>
           <div className="dex-search-bar-filters">
-            <div className="form-group">
-              <div className="checkbox">
-                <label>
-                  <input
-                    checked={hideCaught}
-                    id="hide-caught"
-                    name="hide-caught"
-                    onChange={handleHideCaughtChange}
-                    type="checkbox"
-                  />
-                  <span className="checkbox-custom"><span /></span>{t('search.hideCaught')}
-                </label>
+            {filterMeta.map((meta) => (
+              <div className="form-group" key={meta.id}>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      checked={filters[meta.id]}
+                      id={meta.id}
+                      name={meta.id}
+                      onChange={(e) => handleFilterChange(meta.id, e.target.checked)}
+                      type="checkbox"
+                    />
+                    <span className="checkbox-custom"><span /></span>{t(meta.labelKey)}
+                  </label>
+                </div>
               </div>
-            </div>
-            <div className="form-group">
-              <div className="checkbox">
-                <label>
-                  <input
-                    checked={temporaryOnly}
-                    id="temporary-only"
-                    name="temporary-only"
-                    onChange={handleTemporaryOnlyChange}
-                    type="checkbox"
-                  />
-                  <span className="checkbox-custom"><span /></span>{t('search.temporaryOnly')}
-                </label>
+            ))}
+            {!checklist && <>
+              <div className="form-group">
+                <div className="checkbox">
+                  <label>
+                    <input
+                      checked={showOriginMarks}
+                      id="origin-marks"
+                      name="origin-marks"
+                      onChange={handleOriginMarksChange}
+                      type="checkbox"
+                    />
+                    <span className="checkbox-custom"><span /></span>{t('search.originMarks')}
+                  </label>
+                </div>
               </div>
-            </div>
-            <div className="form-group">
-              <div className="checkbox">
-                <label>
-                  <input
-                    checked={showOriginMarks}
-                    id="origin-marks"
-                    name="origin-marks"
-                    onChange={handleOriginMarksChange}
-                    type="checkbox"
-                  />
-                  <span className="checkbox-custom"><span /></span>{t('search.originMarks')}
-                </label>
+              <div className="form-group">
+                <div className="checkbox">
+                  <label>
+                    <input
+                      checked={showLanguageTags}
+                      id="language-tags"
+                      name="language-tags"
+                      onChange={handleLanguageTagsChange}
+                      type="checkbox"
+                    />
+                    <span className="checkbox-custom"><span /></span>{t('search.langTags')}
+                  </label>
+                </div>
               </div>
-            </div>
-            <div className="form-group">
-              <div className="checkbox">
-                <label>
-                  <input
-                    checked={showLanguageTags}
-                    id="language-tags"
-                    name="language-tags"
-                    onChange={handleLanguageTagsChange}
-                    type="checkbox"
-                  />
-                  <span className="checkbox-custom"><span /></span>{t('search.langTags')}
-                </label>
+            </>}
+            {TESTING &&
+              // dev scaffolding: flips sealed visuals off in place for comparison, no writes
+              <div className="form-group">
+                <div className="checkbox">
+                  <label>
+                    <input
+                      checked={sealFx}
+                      id="seal-fx"
+                      name="seal-fx"
+                      onChange={(e) => setSealFx(e.target.checked)}
+                      type="checkbox"
+                    />
+                    <span className="checkbox-custom"><span /></span>Seal FX
+                  </label>
+                </div>
               </div>
-            </div>
+            }
           </div>
         </div>
       </div>

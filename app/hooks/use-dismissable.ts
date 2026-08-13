@@ -2,17 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { RefObject } from 'react';
 
-// Keep in sync with $fade-duration in styles/variables.scss.
+// keep in sync with $fade-duration in styles/variables.scss
 export const FADE_MS = 150;
 
 interface Options {
-  // Called once the fade-out has finished — the parent unmounts the element.
+  // called once the fade-out has finished — the parent unmounts the element
   onDismissed: () => void;
-  // Outside-click boundary (mousedown, so drag-selects ending outside don't close).
+  // outside-click boundary (mousedown, so drag-selects ending outside don't close)
   ref?: RefObject<HTMLElement>;
 }
 
-// dismiss() flips `closing` (CSS fades), then onDismissed unmounts after a timeout (reliable where transitionend isn't).
+// dismiss() flips `closing` (CSS fades), then onDismissed unmounts after a timeout (reliable where transitionend isn't)
 export function useDismissable ({ onDismissed, ref }: Options) {
   const [closing, setClosing] = useState(false);
 

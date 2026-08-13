@@ -1,92 +1,92 @@
-// JS mirror of variables.scss palette maps — KEEP IN SYNC; ?palette=1 self-checks both.
+// JS mirror of variables.scss palette maps — KEEP IN SYNC; ?palette=1 self-checks both
 
 export type DeriveFn = 'lighten' | 'darken' | 'desaturate' | 'saturate' | 'saturation' | 'tint' | 'shade' | 'alpha';
 
 export interface DerivedSpec {
   source: string;
   fn: DeriveFn;
-  // % points for lighten/darken/etc, proportional for tint/shade, 0–1 for alpha.
+  // % points for lighten/darken/etc, proportional for tint/shade, 0–1 for alpha
   amount: number;
 }
 
 export const PALETTE_BASES: Record<string, string> = {
   'brand-primary': '#ffcbb0',
   'brand-secondary': '#8c5b4f',
-  caught: '#ef9d70',
+  unobtainable: '#ef9d70',
   error: '#ff0000',
   success: '#00cc66',
   temporary: '#f0a3b8',
-  locked: '#96b96e',
+  caught: '#96b96e',
   'release-danger': '#b23b3b',
   'gray-light': '#f1f1f1',
   'gray-medium': '#d2d2d2',
   'gray-dark': '#ababab',
 };
 
-// The shipped themes; Peach Milk matches PALETTE_BASES (the compiled default).
+// the shipped themes; Peach Milk matches PALETTE_BASES (the compiled default)
 export const PALETTE_PRESETS: Record<string, Record<string, string>> = {
   'Peach Milk': {
-    caught: '#ef9d70',
+    unobtainable: '#ef9d70',
     'brand-primary': '#ffcbb0',
     'brand-secondary': '#8c5b4f',
     temporary: '#f0a3b8',
-    locked: '#96b96e',
+    caught: '#96b96e',
   },
   Sakura: {
-    caught: '#f48fd4',
+    unobtainable: '#f48fd4',
     'brand-primary': '#ffc2ee',
     'brand-secondary': '#8a4f7d',
     temporary: '#ffb385',
-    locked: '#d96a8b',
+    caught: '#d96a8b',
   },
   Butter: {
-    caught: '#f4c84f',
+    unobtainable: '#f4c84f',
     'brand-primary': '#ffe3a3',
     'brand-secondary': '#8f6f4e',
     temporary: '#f2a65a',
-    locked: '#6fa8d6',
+    caught: '#6fa8d6',
   },
   'Mint Milk': {
-    caught: '#7fd0a8',
+    unobtainable: '#7fd0a8',
     'brand-primary': '#bfe8d2',
     'brand-secondary': '#3f7d68',
     temporary: '#f2c073',
-    locked: '#4a90c2',
+    caught: '#4a90c2',
   },
   Twilight: {
-    caught: '#a49add',
+    unobtainable: '#a49add',
     'brand-primary': '#c9c3e8',
     'brand-secondary': '#56548f',
     temporary: '#eea98c',
-    locked: '#5da98c',
+    caught: '#5da98c',
   },
   Matcha: {
-    caught: '#96b542',
+    unobtainable: '#96b542',
     'brand-primary': '#cfd9a8',
     'brand-secondary': '#5c6b3c',
     temporary: '#e8b465',
-    locked: '#52855e',
+    caught: '#52855e',
   },
   Latte: {
-    caught: '#cf9d64',
+    unobtainable: '#cf9d64',
     'brand-primary': '#e6d3bd',
     'brand-secondary': '#6f4e37',
     temporary: '#e58f7b',
-    locked: '#5b8a8a',
+    caught: '#5b8a8a',
   },
   Slate: {
-    caught: '#7396c4',
+    unobtainable: '#7396c4',
     'brand-primary': '#c6cdd8',
     'brand-secondary': '#3d4a5d',
     temporary: '#e0a35c',
-    locked: '#63a06f',
+    caught: '#63a06f',
   },
 };
 
 export const DEFAULT_THEME = 'Peach Milk';
 
-// The bases shown as identity dots for a theme (nav popover + workbench).
-export const PRESET_DOT_BASES = ['brand-primary', 'brand-secondary', 'caught', 'temporary', 'locked'];
+// the bases shown as identity dots for a theme (nav popover + workbench)
+export const PRESET_DOT_BASES = ['brand-primary', 'brand-secondary', 'unobtainable', 'temporary', 'caught'];
 
 export const PALETTE_DERIVED: [string, DerivedSpec][] = [
   ['brand-primary-light', { source: 'brand-primary', fn: 'tint', amount: 46.5 }],
@@ -94,9 +94,8 @@ export const PALETTE_DERIVED: [string, DerivedSpec][] = [
   ['brand-primary-l10', { source: 'brand-primary', fn: 'lighten', amount: 10 }],
   ['brand-primary-l15', { source: 'brand-primary', fn: 'lighten', amount: 15 }],
   ['brand-primary-d4', { source: 'brand-primary', fn: 'darken', amount: 4 }],
-  ['caught-light', { source: 'caught', fn: 'tint', amount: 46.5 }],
-  ['caught-light-d5', { source: 'caught-light', fn: 'darken', amount: 5 }],
-  ['caught-light-a50', { source: 'caught-light', fn: 'alpha', amount: .5 }],
+  ['unobtainable-light', { source: 'unobtainable', fn: 'tint', amount: 46.5 }],
+  ['unobtainable-light-d5', { source: 'unobtainable-light', fn: 'darken', amount: 5 }],
   ['brand-secondary-light', { source: 'brand-secondary', fn: 'lighten', amount: 7 }],
   ['brand-secondary-dark', { source: 'brand-secondary', fn: 'darken', amount: 7 }],
   ['brand-secondary-dark-d3', { source: 'brand-secondary-dark', fn: 'darken', amount: 3 }],
@@ -108,9 +107,9 @@ export const PALETTE_DERIVED: [string, DerivedSpec][] = [
   ['temporary-d15', { source: 'temporary', fn: 'darken', amount: 15 }],
   ['temporary-a60', { source: 'temporary', fn: 'alpha', amount: .6 }],
   ['temporary-stripe', { source: 'temporary', fn: 'alpha', amount: .16 }],
-  ['locked-light', { source: 'locked', fn: 'tint', amount: 55.7 }],
-  ['locked-d10', { source: 'locked', fn: 'darken', amount: 10 }],
-  ['locked-a60', { source: 'locked', fn: 'alpha', amount: .6 }],
+  ['caught-light', { source: 'caught', fn: 'tint', amount: 55.7 }],
+  ['caught-d10', { source: 'caught', fn: 'darken', amount: 10 }],
+  ['caught-a60', { source: 'caught', fn: 'alpha', amount: .6 }],
   ['gray-light-l25', { source: 'gray-light', fn: 'lighten', amount: 25 }],
   ['gray-light-a30', { source: 'gray-light', fn: 'alpha', amount: .3 }],
   ['gray-medium-a40', { source: 'gray-medium', fn: 'alpha', amount: .4 }],
@@ -129,7 +128,7 @@ export const PALETTE_DERIVED: [string, DerivedSpec][] = [
 
 export const TOKEN_NAMES: string[] = [...Object.keys(PALETTE_BASES), ...PALETTE_DERIVED.map(([name]) => name)];
 
-// Channels are floats 0–255 (dart-sass emits fractional rgb); alpha 0–1.
+// channels are floats 0–255 (dart-sass emits fractional rgb); alpha 0–1
 export interface Rgba {
   r: number;
   g: number;
@@ -159,7 +158,7 @@ export function cssValue (color: Rgba): string {
   return `rgba(${round(color.r)}, ${round(color.g)}, ${round(color.b)}, ${color.a})`;
 }
 
-// HSL round trip matching Sass semantics (lightness/saturation in % points).
+// HSL round trip matching Sass semantics (lightness/saturation in % points)
 
 function rgbToHsl ({ r, g, b }: Rgba): { h: number; s: number; l: number } {
   const rn = r / 255;
@@ -220,14 +219,14 @@ function setSaturation (color: Rgba, percent: number): Rgba {
   return hslToRgb(h, percent / 100, l, color.a);
 }
 
-// Sass scale-color semantics: share of remaining headroom toward white/black.
+// sass scale-color semantics: share of remaining headroom toward white/black
 function scaleLightness (color: Rgba, percent: number): Rgba {
   const { h, s, l } = rgbToHsl(color);
   const scaled = percent >= 0 ? l + (1 - l) * (percent / 100) : l * (1 + percent / 100);
   return hslToRgb(h, s, Math.min(1, Math.max(0, scaled)), color.a);
 }
 
-// Same order and math as the SCSS build.
+// same order and math as the SCSS build
 export function resolvePalette (overrides: Record<string, string> = {}): Record<string, Rgba> {
   const resolved: Record<string, Rgba> = {};
   for (const [name, fallback] of Object.entries(PALETTE_BASES)) {
@@ -250,7 +249,7 @@ export function resolvePalette (overrides: Record<string, string> = {}): Record<
   return resolved;
 }
 
-// Parses hex / keywords / fractional rgb() from getComputedStyle.
+// parses hex / keywords / fractional rgb() from getComputedStyle
 export function parseCssColor (raw: string): Rgba | null {
   const value = raw.trim().toLowerCase();
   if (value === 'white') {
@@ -284,7 +283,7 @@ export function colorsClose (a: Rgba, b: Rgba, tolerance = 1.5): boolean {
     && Math.abs(a.a - b.a) <= .01;
 }
 
-// --- WCAG contrast (alpha composited over the given backdrop first).
+// --- WCAG contrast (alpha composited over the given backdrop first)
 
 function luminance ({ r, g, b }: Rgba): number {
   const channel = (v: number) => {

@@ -1,8 +1,8 @@
 import type { Locale } from './translations';
 
-// JA names for data-derived labels, keyed by stable ids, falling back to the English baked into the data.
+// JA names for data-derived labels, keyed by stable ids, falling back to the English baked into the data
 
-// data/games.json ids — the per-mon "which game did this come from" options.
+// data/games.json ids — the per-mon "which game did this come from" options
 const JA_ORIGIN_GAMES: Record<string, string> = {
   home: 'HOME',
   legends_za: 'LEGENDS Z-A',
@@ -30,7 +30,7 @@ const JA_ORIGIN_GAMES: Record<string, string> = {
   other: 'その他',
 };
 
-// Catalog game ids (version pairs shown in the dex picker/indicator).
+// catalog game ids (version pairs shown in the dex picker/indicator)
 const JA_CATALOG_GAMES: Record<string, string> = {
   home: 'HOME',
   legends_za: 'LEGENDS Z-A',
@@ -47,7 +47,7 @@ const JA_CATALOG_GAMES: Record<string, string> = {
   x: 'X・Y',
 };
 
-// dex_type.name values (and the indicator's tag labels that share them).
+// dex_type.name values (and the indicator's tag labels that share them)
 const JA_DEX_TYPES: Record<string, string> = {
   Regional: '地方図鑑',
   'Full National': '全国図鑑',
@@ -83,7 +83,7 @@ const JA_CATALOG_DEX_NAMES: Record<string, string> = {
   'x-y-regional': 'X・Y 地方図鑑',
 };
 
-// data/languages.json ids — a mon's language of origin.
+// data/languages.json ids — a mon's language of origin
 const JA_CAPTURE_LANGUAGES: Record<string, string> = {
   japanese: '日本語',
   english: '英語',
@@ -94,6 +94,46 @@ const JA_CAPTURE_LANGUAGES: Record<string, string> = {
   korean: '韓国語',
   chinese_simplified: '中国語（簡体字）',
   chinese_traditional: '中国語（繁体字）',
+};
+
+// data/balls.json ids — the ball a mon was caught in
+const JA_BALLS: Record<string, string> = {
+  poke_ball: 'モンスターボール',
+  great_ball: 'スーパーボール',
+  ultra_ball: 'ハイパーボール',
+  master_ball: 'マスターボール',
+  premier_ball: 'プレミアボール',
+  heal_ball: 'ヒールボール',
+  net_ball: 'ネットボール',
+  nest_ball: 'ネストボール',
+  dive_ball: 'ダイブボール',
+  dusk_ball: 'ダークボール',
+  timer_ball: 'タイマーボール',
+  quick_ball: 'クイックボール',
+  repeat_ball: 'リピートボール',
+  luxury_ball: 'ゴージャスボール',
+  level_ball: 'レベルボール',
+  lure_ball: 'ルアーボール',
+  moon_ball: 'ムーンボール',
+  friend_ball: 'フレンドボール',
+  love_ball: 'ラブラブボール',
+  fast_ball: 'スピードボール',
+  heavy_ball: 'ヘビーボール',
+  dream_ball: 'ドリームボール',
+  safari_ball: 'サファリボール',
+  sport_ball: 'コンペボール',
+  // not ハイパーボール — that's the Ultra Ball
+  beast_ball: 'ウルトラボール',
+  cherish_ball: 'プレシャスボール',
+  park_ball: 'パークボール',
+  strange_ball: 'フシギボール',
+  feather_ball: 'フェザーボール',
+  wing_ball: 'ウイングボール',
+  jet_ball: 'ジェットボール',
+  leaden_ball: 'レドームボール',
+  gigaton_ball: 'ギガトンボール',
+  origin_ball: 'オリジンボール',
+  unknown: '不明',
 };
 
 function localized (map: Record<string, string>, locale: Locale, key: string, fallback: string): string {
@@ -118,4 +158,8 @@ export function localizeDexType (locale: Locale, name: string, fallback = name):
 
 export function localizeCaptureLanguage (locale: Locale, id: string, fallback: string): string {
   return localized(JA_CAPTURE_LANGUAGES, locale, id, fallback);
+}
+
+export function localizeBall (locale: Locale, id: string, fallback: string): string {
+  return localized(JA_BALLS, locale, id, fallback);
 }

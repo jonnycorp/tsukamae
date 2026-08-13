@@ -1,41 +1,43 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-import { getAppState, loadAppState, mutateAppState, newDexId, toDexView } from '../../utils/local-data';
+import { getAppState, loadAppState, mutateAppState, newDexId, newSaveId, toDexView } from '../../utils/local-data';
 
 import type { CaptureDefaults, PersonalDex } from '../../utils/local-data';
-import type { Dex } from '../../types';
+import type { Dex, GameSave } from '../../types';
 import type { ReactNode } from 'react';
 
 export interface CreateDexInput {
   title: string;
   catalogKey: string;
   shiny: boolean;
-  boxCheck?: boolean;
+  checklist?: boolean;
   captureDefaults?: CaptureDefaults;
 }
 
 export interface UpdateDexInput {
   title?: string;
   shiny?: boolean;
-  boxCheck?: boolean;
   captureDefaults?: CaptureDefaults;
 }
 
 interface DexContextState {
-  // null until the persisted state has been loaded (and migrated if needed).
+  // null until the persisted state has loaded
   dexes: PersonalDex[] | null;
   activeDex: PersonalDex | null;
   activeDexView: Dex | null;
   setActiveDex: (id: string) => void;
-  // Returns the dex so callers can seed caches before the view switch.
+  // returns the dex so callers can seed caches before the view switch
   createDex: (input: CreateDexInput) => PersonalDex;
   updateDex: (id: string, changes: UpdateDexInput) => void;
   deleteDex: (id: string) => void;
-  // Shift a dex up (-1) or down (+1) in the landing-page list order.
+  // shift a dex up (-1) or down (+1) in the landing list
   moveDex: (id: string, delta: number) => void;
-  // Box check: toggle a box's "verified against HOME" mark on the active dex.
-  toggleBoxChecked: (boxIndex: number) => void;
-  // Re-snapshot after writes that bypass this context (the capture mutations).
+  // playthroughs are global, not per-dex
+  saves: GameSave[];
+  createSave: (input: Omit<GameSave, 'id'>) => void;
+  moveSave: (id: string, delta: number) => void;
+  deleteSave: (id: string) => void;
+  // re-snapshot after writes that bypass this context
   refreshDexes: () => void;
 }
 
@@ -50,13 +52,17 @@ const DexContext = createContext<DexContextState>({
   updateDex: () => {},
   deleteDex: () => {},
   moveDex: () => {},
-  toggleBoxChecked: () => {},
+  saves: [],
+  createSave: () => {},
+  moveSave: () => {},
+  deleteSave: () => {},
   refreshDexes: () => {},
 });
 
 interface Snapshot {
   activeDexId: string;
   dexes: PersonalDex[];
+  saves: GameSave[];
 }
 
 interface Props {
@@ -68,19 +74,19 @@ export const DexContextProvider = ({ children }: Props) => {
 
   useEffect(() => {
     loadAppState().then((state) => {
-      // Always open on the landing page; activeDexId persists only within a session.
+      // always open on the landing page
       state.activeDexId = '';
-      setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes] });
+      setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes], saves: [...(state.saves ?? [])] });
     });
   }, []);
 
   const contextValue = useMemo<DexContextState>(() => {
-    // Mutates in-memory state synchronously; the disk write settles in the background.
+    // mutates in memory synchronously; the disk write settles in the background
     const apply = (mutator: Parameters<typeof mutateAppState>[0]) => {
       // eslint-disable-next-line no-console
       mutateAppState(mutator).catch((err) => console.error('failed to save dexes:', err));
       const state = getAppState();
-      setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes] });
+      setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes], saves: [...(state.saves ?? [])] });
     };
 
     const activeDex = snapshot?.dexes.find((dex) => dex.id === snapshot.activeDexId) || null;
@@ -92,8 +98,8 @@ export const DexContextProvider = ({ children }: Props) => {
       setActiveDex: (id) => apply((state) => {
         state.activeDexId = id;
       }),
-      createDex: ({ title, catalogKey, shiny, boxCheck, captureDefaults }) => {
-        const dex: PersonalDex = { id: newDexId(), title, catalogKey, shiny, boxCheck, progress: {}, captureDefaults };
+      createDex: ({ title, catalogKey, shiny, checklist, captureDefaults }) => {
+        const dex: PersonalDex = { id: newDexId(), title, catalogKey, shiny, checklist, progress: {}, captureDefaults };
         apply((state) => {
           state.dexes = [...state.dexes, dex];
           state.activeDexId = dex.id;
@@ -120,19 +126,28 @@ export const DexContextProvider = ({ children }: Props) => {
         dexes.splice(target, 0, moved);
         state.dexes = dexes;
       }),
-      toggleBoxChecked: (boxIndex) => apply((state) => {
-        const dex = state.dexes.find((entry) => entry.id === state.activeDexId);
-        if (!dex) {
+      saves: snapshot?.saves || [],
+      createSave: (input) => apply((state) => {
+        state.saves = [...(state.saves ?? []), { id: newSaveId(), ...input }];
+      }),
+      moveSave: (id, delta) => apply((state) => {
+        const saves = [...(state.saves ?? [])];
+        const index = saves.findIndex((save) => save.id === id);
+        const target = index + delta;
+        if (index === -1 || target < 0 || target >= saves.length) {
           return;
         }
-        const checked = dex.checkedBoxes ?? [];
-        dex.checkedBoxes = checked.includes(boxIndex)
-          ? checked.filter((index) => index !== boxIndex)
-          : [...checked, boxIndex].sort((a, b) => a - b);
+        const [moved] = saves.splice(index, 1);
+        saves.splice(target, 0, moved);
+        state.saves = saves;
+      }),
+      // removes the list entry only — nothing outside a dex edits capture data
+      deleteSave: (id) => apply((state) => {
+        state.saves = (state.saves ?? []).filter((save) => save.id !== id);
       }),
       refreshDexes: () => {
         const state = getAppState();
-        setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes] });
+        setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes], saves: [...(state.saves ?? [])] });
       },
     };
   }, [snapshot]);
