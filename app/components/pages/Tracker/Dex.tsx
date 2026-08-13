@@ -3,45 +3,41 @@ import { useMemo } from 'react';
 import { Box } from './Box';
 import { Scroll } from './Scroll';
 import { SearchResults } from './SearchResults';
+import { anyFilterActive, useTrackerState } from './use-tracker';
 import { groupBoxes } from '../../../utils/pokemon';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { useTrackerContext } from './use-tracker';
 
 import type { Dispatch, MouseEventHandler, SetStateAction } from 'react';
+import type { TrackerFilters } from './use-tracker';
 
 const DEFER_CUTOFF = 1;
 
 interface Props {
-  hideCaught: boolean;
+  filters: TrackerFilters;
   onScrollButtonClick: MouseEventHandler<HTMLDivElement>;
   query: string;
-  setHideCaught: Dispatch<SetStateAction<boolean>>;
+  setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   setQuery: Dispatch<SetStateAction<string>>;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
-  setTemporaryOnly: Dispatch<SetStateAction<boolean>>;
   showScrollButton: boolean;
-  temporaryOnly: boolean;
 }
 
 export function Dex ({
-  hideCaught,
+  filters,
   onScrollButtonClick,
   query,
-  setHideCaught,
+  setFilters,
   setQuery,
   setSelectedPokemon,
-  setTemporaryOnly,
   showScrollButton,
-  temporaryOnly,
 }: Props) {
   const { activeDexView } = useDexContext();
-  const { captures } = useTrackerContext();
+  const { captures } = useTrackerState();
 
   const groupedCaptures = useMemo(() => groupBoxes(captures), [captures]);
   const boxes = useMemo(() => {
     return groupedCaptures.map((box, i) => (
       <Box
-        boxIndex={i}
         captures={box}
         deferred={i > DEFER_CUTOFF}
         dexTotal={activeDexView!.total}
@@ -55,16 +51,14 @@ export function Dex ({
     <div className="dex">
       <div className="wrapper">
         <Scroll onClick={onScrollButtonClick} showScroll={showScrollButton} />
-        {query.length > 0 || hideCaught || temporaryOnly ?
+        {query.length > 0 || anyFilterActive(filters) ?
           <SearchResults
             captures={captures}
-            hideCaught={hideCaught}
+            filters={filters}
             query={query}
-            setHideCaught={setHideCaught}
+            setFilters={setFilters}
             setQuery={setQuery}
             setSelectedPokemon={setSelectedPokemon}
-            setTemporaryOnly={setTemporaryOnly}
-            temporaryOnly={temporaryOnly}
           /> :
           <div className="box-grid">{boxes}</div>
         }

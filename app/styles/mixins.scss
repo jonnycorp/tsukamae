@@ -13,7 +13,7 @@
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
-// Thumb fades with .is-scrolling (useScrollbarFade); standard props only — see main.scss.
+// thumb fades with .is-scrolling (useScrollbarFade); standard props only — see main.scss
 @mixin scrollbar-fade {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -29,7 +29,7 @@
 
   overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
-  // Gutter stays reserved if a rule ever relaxes to overflow-y: auto.
+  // gutter stays reserved if a rule ever relaxes to overflow-y: auto
   scrollbar-gutter: stable;
 }
 

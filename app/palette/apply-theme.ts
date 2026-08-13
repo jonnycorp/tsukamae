@@ -1,7 +1,7 @@
 import { DEFAULT_THEME, PALETTE_PRESETS, TOKEN_NAMES, cssValue, resolvePalette } from './tokens';
 import { localStorage } from '../utils/local-storage';
 
-// Themes override the :root tokens at runtime; the compiled CSS is the default theme.
+// themes override the :root tokens at runtime; the compiled CSS is the default theme
 
 export const THEME_STORAGE_KEY = 'theme';
 export const SOFT_DARK_STORAGE_KEY = 'nightMode';
@@ -20,7 +20,7 @@ export function setRootTokens (values: Record<string, string> | null) {
 }
 
 export function applyTheme (name: string) {
-  // Unknown names (stale storage after a theme rename) also fall back to the default.
+  // unknown names (stale storage after a theme rename) also fall back to the default
   if (name === DEFAULT_THEME || !PALETTE_PRESETS[name]) {
     setRootTokens(null);
     return;
@@ -42,7 +42,7 @@ function readJson<T> (key: string, fallback: T): T {
   }
 }
 
-// Pre-render pass (index.tsx) so a non-default theme or soft dark doesn't flash on launch.
+// pre-render pass (index.tsx) so a non-default theme or soft dark doesn't flash on launch
 export function bootstrapTheme () {
   applyTheme(readJson(THEME_STORAGE_KEY, DEFAULT_THEME));
   document.documentElement.classList.toggle('soft-dark', readJson(SOFT_DARK_STORAGE_KEY, false));

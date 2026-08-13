@@ -1,17 +1,20 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faLongArrowAltRight, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faLongArrowAltRight, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { DEFAULT_CATALOG_KEY, DEX_CATALOG, LANGUAGES, ORIGIN_GAMES, getCatalogDex, progressToCaptures } from '../../utils/local-data';
-import { localizeCaptureLanguage, localizeCatalogDexName, localizeCatalogGame, localizeDexType, localizeOriginGame } from '../../i18n/names';
+import { CaptureFieldControl } from './CaptureFieldControl';
+import { Dropdown } from './Dropdown';
+import { DEFAULTABLE_FIELDS, withFieldInvariants } from '../../utils/capture-fields';
+import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex, progressToCaptures } from '../../utils/local-data';
+import { localizeCatalogDexName, localizeCatalogGame, localizeDexType } from '../../i18n/names';
 import { QueryKey } from '../../hooks/queries/captures';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../hooks/use-dismissable';
 import { useTranslation } from '../../hooks/use-translation';
 
-import type { CaptureStatus } from '../../types';
+import type { CaptureMetadata, CaptureStatus } from '../../types';
 import type { CatalogDex, PersonalDex } from '../../utils/local-data';
 import type { ChangeEvent, FormEvent, MouseEvent, ReactNode } from 'react';
 import type { TranslationKey } from '../../i18n/translations';
@@ -19,12 +22,12 @@ import type { TranslationKey } from '../../i18n/translations';
 const STATUS_OPTIONS: { value: CaptureStatus; labelKey: TranslationKey }[] = [
   { value: 'caught', labelKey: 'status.caught' },
   { value: 'temporary', labelKey: 'status.temporary' },
-  { value: 'locked', labelKey: 'status.locked' },
+  { value: 'unobtainable', labelKey: 'status.unobtainable' },
 ];
 
 interface ModalShellProps {
   children: ReactNode;
-  // While true the overlay plays its fade-out (the .closing styles).
+  // plays the overlay fade-out while true
   closing: boolean;
   contentLabel: string;
   onDismiss: () => void;
@@ -52,13 +55,13 @@ function ModalShell ({ children, closing, contentLabel, onDismiss }: ModalShellP
 }
 
 interface Props {
-  // When set, the modal edits this existing dex; otherwise it creates one.
+  // set to edit, absent to create
   dex?: PersonalDex;
   onRequestClose: () => void;
 }
 
 export function DexModal ({ dex, onRequestClose }: Props) {
-  const { createDex, updateDex, deleteDex } = useDexContext();
+  const { createDex, updateDex } = useDexContext();
   const { t, locale } = useTranslation();
   const queryClient = useQueryClient();
   const pendingActionRef = useRef<() => void>();
@@ -75,10 +78,10 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const [gameId, setGameId] = useState(initialCatalog.game.id);
   const [catalogKey, setCatalogKey] = useState(initialCatalog.key);
   const [shiny, setShiny] = useState(dex?.shiny || false);
-  const [boxCheck, setBoxCheck] = useState(dex?.boxCheck || false);
+  // creation-only and immutable — an existing dex must never convert
+  const [checklist, setChecklist] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState<CaptureStatus>(dex?.captureDefaults?.status || 'caught');
-  const [defaultOriginGame, setDefaultOriginGame] = useState(dex?.captureDefaults?.origin_game || '');
-  const [defaultLanguage, setDefaultLanguage] = useState(dex?.captureDefaults?.language || '');
+  const [defaults, setDefaults] = useState<Partial<CaptureMetadata>>(() => ({ ...dex?.captureDefaults }));
 
   const gamesWithDexes = useMemo(() => {
     const groups: { game: CatalogDex['game']; entries: CatalogDex[] }[] = [];
@@ -102,51 +105,36 @@ export function DexModal ({ dex, onRequestClose }: Props) {
 
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value);
 
-  const handleGameChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const newGameId = e.target.value;
+  const handleGameChange = (newGameId: string) => {
     setGameId(newGameId);
-    // Default to the first dex of the newly selected game.
+    // default to the first dex of the newly selected game
     const firstEntry = gamesWithDexes.find((group) => group.game.id === newGameId)?.entries[0];
     if (firstEntry) {
       setCatalogKey(firstEntry.key);
     }
   };
 
-  const handleCatalogChange = (e: ChangeEvent<HTMLSelectElement>) => setCatalogKey(e.target.value);
   const handleShinyChange = (e: ChangeEvent<HTMLInputElement>) => setShiny(e.target.checked);
-  const handleBoxCheckChange = (e: ChangeEvent<HTMLInputElement>) => setBoxCheck(e.target.checked);
+  const handleDefaultChange = (patch: Partial<CaptureMetadata>) =>
+    setDefaults((prev) => ({ ...prev, ...patch, ...withFieldInvariants(prev, patch) }));
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Empty title falls back to the localized catalog name.
+    // empty title falls back to the localized catalog name
     const resolvedTitle = title.trim() || localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name);
 
-    const captureDefaults = {
-      status: defaultStatus,
-      origin_game: defaultOriginGame || null,
-      language: defaultLanguage || null,
-    };
+    const captureDefaults = { ...defaults, status: defaultStatus };
 
     if (dex) {
-      updateDex(dex.id, { title: resolvedTitle, shiny, boxCheck, captureDefaults });
+      updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults });
     } else {
       pendingActionRef.current = () => {
-        const newDex = createDex({ title: resolvedTitle, catalogKey, shiny, boxCheck, captureDefaults });
+        const newDex = createDex({ title: resolvedTitle, catalogKey, shiny, checklist, captureDefaults: checklist ? undefined : captureDefaults });
         queryClient.setQueryData([QueryKey.ListCaptures, newDex.id], progressToCaptures(newDex));
       };
     }
     dismiss();
-  };
-
-  const handleDeleteClick = () => {
-    if (!dex) {
-      return;
-    }
-    if (window.confirm(t('dexModal.deleteConfirm', { title: dex.title }))) {
-      pendingActionRef.current = () => deleteDex(dex.id);
-      dismiss();
-    }
   };
 
   return (
@@ -154,140 +142,117 @@ export function DexModal ({ dex, onRequestClose }: Props) {
       <div className="form">
         <h1>{t(dex ? 'dexModal.editTitle' : 'dexModal.createTitle')}</h1>
         <form className="dex-form" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-column">
-              <div className="form-section-label">{t('dexModal.dexData')}</div>
-              <div className="form-group">
-                <label htmlFor="dex_title">{t('dexModal.titleLabel')}</label>
-                <input
-                  className="form-control"
-                  id="dex_title"
-                  maxLength={300}
-                  name="dex_title"
-                  onChange={handleTitleChange}
-                  placeholder={localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name)}
-                  type="text"
-                  value={title}
-                />
+          <div className="form-column">
+            <div className="form-section-label">{t('dexModal.dexData')}</div>
+            <div className="form-group">
+              <label htmlFor="dex_title">{t('dexModal.titleLabel')}</label>
+              <input
+                className="form-control"
+                id="dex_title"
+                maxLength={300}
+                name="dex_title"
+                onChange={handleTitleChange}
+                placeholder={localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name)}
+                type="text"
+                value={title}
+              />
+            </div>
+            {!dex &&
+              <>
+                <div className="form-group">
+                  <label htmlFor="dex_game">{t('dexModal.game')}</label>
+                  <Dropdown
+                    id="dex_game"
+                    onSelect={handleGameChange}
+                    options={gamesWithDexes.map((group) => ({ value: group.game.id, label: localizeCatalogGame(locale, group.game.id, group.game.name) }))}
+                    value={gameId}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="dex_catalog">{t('dexModal.dex')}</label>
+                  <Dropdown
+                    id="dex_catalog"
+                    onSelect={setCatalogKey}
+                    options={dexesForGame.map((entry) => ({ value: entry.key, label: `${localizeDexType(locale, entry.dex_type.name)} (${entry.total})` }))}
+                    value={catalogKey}
+                  />
+                </div>
+              </>
+            }
+            <div className="form-group">
+              <div className="checkbox">
+                <label>
+                  <input
+                    checked={shiny}
+                    id="shiny"
+                    name="shiny"
+                    onChange={handleShinyChange}
+                    type="checkbox"
+                  />
+                  <span className="checkbox-custom"><span /></span>{t('common.shiny')}
+                </label>
               </div>
-              {!dex &&
-                <>
-                  <div className="form-group">
-                    <label htmlFor="dex_game">{t('dexModal.game')}</label>
-                    <select
-                      className="form-control"
-                      id="dex_game"
-                      name="dex_game"
-                      onChange={handleGameChange}
-                      value={gameId}
-                    >
-                      {gamesWithDexes.map((group) => <option key={group.game.id} value={group.game.id}>{localizeCatalogGame(locale, group.game.id, group.game.name)}</option>)}
-                    </select>
-                    <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="dex_catalog">{t('dexModal.dex')}</label>
-                    <select
-                      className="form-control"
-                      id="dex_catalog"
-                      name="dex_catalog"
-                      onChange={handleCatalogChange}
-                      value={catalogKey}
-                    >
-                      {dexesForGame.map((entry) => <option key={entry.key} value={entry.key}>{localizeDexType(locale, entry.dex_type.name)} ({entry.total})</option>)}
-                    </select>
-                    <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
-                  </div>
-                </>
-              }
+            </div>
+            {!dex &&
               <div className="form-group">
                 <div className="checkbox">
                   <label>
                     <input
-                      checked={shiny}
-                      id="shiny"
-                      name="shiny"
-                      onChange={handleShinyChange}
+                      checked={checklist}
+                      id="checklist"
+                      name="checklist"
+                      onChange={(e) => setChecklist(e.target.checked)}
                       type="checkbox"
                     />
-                    <span className="checkbox-custom"><span /></span>{t('common.shiny')}
+                    <span className="checkbox-custom"><span /></span>{t('dexModal.checklist')}
                   </label>
                 </div>
               </div>
-              <div className="form-group">
-                <div className="checkbox">
-                  <label>
-                    <input
-                      checked={boxCheck}
-                      id="box_check"
-                      name="box_check"
-                      onChange={handleBoxCheckChange}
-                      type="checkbox"
-                    />
-                    <span className="checkbox-custom"><span /></span>{t('dexModal.boxCheck')}
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div className="form-column">
-              <div className="form-section-label">
-                {t('dexModal.defaults')} <span className="optional-tag">({t('common.optional')})</span>
-              </div>
-              <div className="form-group">
-                <label htmlFor="default_status">{t('info.status')}</label>
-                <select
-                  className="form-control"
-                  id="default_status"
-                  name="default_status"
-                  onChange={(e) => setDefaultStatus(e.target.value as CaptureStatus)}
-                  value={defaultStatus}
-                >
-                  {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
-                </select>
-                <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="default_origin_game">{t('info.originGame')}</label>
-                <select
-                  className="form-control"
-                  id="default_origin_game"
-                  name="default_origin_game"
-                  onChange={(e) => setDefaultOriginGame(e.target.value)}
-                  value={defaultOriginGame}
-                >
-                  <option value="">{t('dexModal.noDefault')}</option>
-                  {ORIGIN_GAMES.map((game) => <option key={game.id} value={game.id}>{localizeOriginGame(locale, game.id, game.name)}</option>)}
-                </select>
-                <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="default_language">{t('info.language')}</label>
-                <select
-                  className="form-control"
-                  id="default_language"
-                  name="default_language"
-                  onChange={(e) => setDefaultLanguage(e.target.value)}
-                  value={defaultLanguage}
-                >
-                  <option value="">{t('dexModal.noDefault')}</option>
-                  {LANGUAGES.map((language) => <option key={language.id} value={language.id}>{localizeCaptureLanguage(locale, language.id, language.name)}</option>)}
-                </select>
-                <FontAwesomeIcon className="input-icon" icon={faChevronDown} />
-              </div>
-            </div>
+            }
           </div>
+          {!checklist && <>
+            <div className="form-section-label">
+              {t('dexModal.defaults')} <span className="optional-tag">({t('common.optional')})</span>
+            </div>
+            <div className="form-row">
+              <div className="form-column">
+                <div className="form-group">
+                  <label htmlFor="default_status">{t('info.status')}</label>
+                  <Dropdown
+                    id="default_status"
+                    onSelect={(next) => setDefaultStatus(next as CaptureStatus)}
+                    options={STATUS_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+                    value={defaultStatus}
+                  />
+                </div>
+                {DEFAULTABLE_FIELDS.slice(0, 2).map((field) => (
+                  <CaptureFieldControl
+                    defaultsMode
+                    field={field}
+                    idPrefix="default"
+                    key={field.id}
+                    onChange={handleDefaultChange}
+                    value={defaults}
+                  />
+                ))}
+              </div>
+              <div className="form-column">
+                {DEFAULTABLE_FIELDS.slice(2).map((field) => (
+                  <CaptureFieldControl
+                    defaultsMode
+                    field={field}
+                    idPrefix="default"
+                    key={field.id}
+                    onChange={handleDefaultChange}
+                    value={defaults}
+                  />
+                ))}
+              </div>
+            </div>
+          </>}
           <button className="btn btn-blue" type="submit">
             {t(dex ? 'dexModal.save' : 'dexModal.create')} <FontAwesomeIcon icon={faLongArrowAltRight} />
           </button>
-          {dex &&
-            <button
-              className="btn btn-delete"
-              onClick={handleDeleteClick}
-              type="button"
-            >
-              {t('dexModal.delete')}
-            </button>
-          }
         </form>
       </div>
     </ModalShell>

@@ -1,35 +1,35 @@
 import { useMemo } from 'react';
 
+import { EMPTY_FILTERS, matchesFilters } from './use-tracker';
 import { Pokemon } from './Pokemon';
 import { nationalId, padding } from '../../../utils/formatting';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Dispatch, SetStateAction } from 'react';
-import type { UICapture } from './use-tracker';
+import type { TrackerFilters, UICapture } from './use-tracker';
 
 const DEFER_CUTOFF = 120;
 
-// Typing produces hiragana; names are katakana — normalize for matching.
+// typing produces hiragana; names are katakana
 function toKatakana (value: string): string {
   return value.replace(/[ぁ-ゖ]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0x60));
 }
 
 interface Props {
   captures: UICapture[];
-  hideCaught: boolean;
+  filters: TrackerFilters;
   query: string;
-  setHideCaught: Dispatch<SetStateAction<boolean>>;
+  setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   setQuery: Dispatch<SetStateAction<string>>;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
-  setTemporaryOnly: Dispatch<SetStateAction<boolean>>;
-  temporaryOnly: boolean;
 }
 
-export function SearchResults ({ captures, hideCaught, query, setHideCaught, setQuery, setSelectedPokemon, setTemporaryOnly, temporaryOnly }: Props) {
+export function SearchResults ({ captures, filters, query, setFilters, setQuery, setSelectedPokemon }: Props) {
   const { t } = useTranslation();
 
-  const handleClearCaughtFilter = () => setHideCaught(false);
-  const handleClearTemporaryFilter = () => setTemporaryOnly(false);
+  const handleClearMarkedFilter = () => setFilters((prev) => ({ ...prev, hideMarked: false }));
+  const handleClearTemporaryFilter = () => setFilters((prev) => ({ ...prev, temporaryOnly: false }));
+  const handleClearAllFilters = () => setFilters(EMPTY_FILTERS);
   const handleClearClick = () => setQuery('');
 
   const filteredCaptures = useMemo(() => {
@@ -37,41 +37,43 @@ export function SearchResults ({ captures, hideCaught, query, setHideCaught, set
       const dexId = capture.pokemon.dex_number;
       const natId = nationalId(capture.pokemon.national_id);
 
-      const matchesCaught = !hideCaught || !capture.captured;
-      const matchesTemporary = !temporaryOnly || capture.status === 'temporary';
       const matchesQuery =
-        // Case-insensitive name prefix match (e.g. bulba)
+        // case-insensitive name prefix match (e.g. bulba)
         capture.pokemon.name.toLowerCase().indexOf(query.toLowerCase()) === 0 ||
-        // Japanese name prefix match, hiragana or katakana (e.g. ふしぎ / フシギ)
+        // japanese name prefix match, hiragana or katakana (e.g. ふしぎ / フシギ)
         (capture.pokemon.name_ja || '').indexOf(toKatakana(query)) === 0 ||
-        // Exact dex ID match (e.g. 1, 2, 3)
+        // nickname match
+        (capture.nickname || '').toLowerCase().indexOf(query.toLowerCase()) === 0 ||
+        // exact dex ID match (e.g. 1, 2, 3)
         dexId.toString() === query ||
-        // Exact national ID match (e.g. 1, 2, 3)
+        // exact national ID match (e.g. 1, 2, 3)
         natId.toString() === query ||
-        // Exact 3-digit formatted dex ID match (e.g. 001, 002, 003)
+        // exact 3-digit formatted dex ID match (e.g. 001, 002, 003)
         padding(dexId, 3) === query ||
-        // Exact 4-digit formatted dex ID match (e.g. 0001, 0002, 0003)
+        // exact 4-digit formatted dex ID match (e.g. 0001, 0002, 0003)
         padding(dexId, 4) === query ||
-        // Exact 3-digit formatted national ID match (e.g. 001, 002, 003)
+        // exact 3-digit formatted national ID match (e.g. 001, 002, 003)
         padding(natId, 3) === query ||
-        // Exact 4-digit formatted national ID match (e.g. 0001, 0002, 0003)
+        // exact 4-digit formatted national ID match (e.g. 0001, 0002, 0003)
         padding(natId, 4) === query;
 
-      return matchesCaught && matchesTemporary && matchesQuery;
+      return matchesFilters(capture, filters) && matchesQuery;
     });
-  }, [captures, hideCaught, query, temporaryOnly]);
+  }, [captures, filters, query]);
 
   if (filteredCaptures.length === 0) {
     let message = <p>{t('searchResults.none')} <a className="link" onClick={handleClearClick}>{t('searchResults.clearSearch')}</a></p>;
 
-    if (hideCaught) {
+    if (filters.hideMarked) {
       if (query) {
-        message = <p>{t('searchResults.noneUncaught')} <a className="link" onClick={handleClearCaughtFilter}>{t('searchResults.includeCaught')}</a> <a className="link" onClick={handleClearClick}>{t('searchResults.clearSearch')}</a></p>;
+        message = <p>{t('searchResults.noneUnmarked')} <a className="link" onClick={handleClearMarkedFilter}>{t('searchResults.includeMarked')}</a> <a className="link" onClick={handleClearClick}>{t('searchResults.clearSearch')}</a></p>;
       } else {
-        message = <p>{t('searchResults.allCaught')} <a className="link" onClick={handleClearCaughtFilter}>{t('searchResults.showAll')}</a></p>;
+        message = <p>{t('searchResults.allMarked')} <a className="link" onClick={handleClearMarkedFilter}>{t('searchResults.showAll')}</a></p>;
       }
-    } else if (temporaryOnly) {
+    } else if (filters.temporaryOnly) {
       message = <p>{t(query ? 'searchResults.noTemporaryMatching' : 'searchResults.noTemporary')} <a className="link" onClick={handleClearTemporaryFilter}>{t('searchResults.showAll')}</a></p>;
+    } else if (filters.unsealedOnly || filters.incompleteOnly || filters.favoritesOnly) {
+      message = <p>{t('searchResults.noneMatching')} <a className="link" onClick={handleClearAllFilters}>{t('searchResults.clearFilters')}</a></p>;
     }
 
     return (

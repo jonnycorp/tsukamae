@@ -1,11 +1,56 @@
 [
-  { "id": "japanese", "name": "Japanese", "abbr": "JPN" },
-  { "id": "english", "name": "English", "abbr": "ENG" },
-  { "id": "french", "name": "French", "abbr": "FRE" },
-  { "id": "italian", "name": "Italian", "abbr": "ITA" },
-  { "id": "german", "name": "German", "abbr": "GER" },
-  { "id": "spanish", "name": "Spanish", "abbr": "SPA" },
-  { "id": "korean", "name": "Korean", "abbr": "KOR" },
-  { "id": "chinese_simplified", "name": "Chinese (Simplified)", "abbr": "CHS" },
-  { "id": "chinese_traditional", "name": "Chinese (Traditional)", "abbr": "CHT" }
+  {
+    "id": "japanese",
+    "name": "Japanese",
+    "abbr": "JPN",
+    "name_max": 6
+  },
+  {
+    "id": "english",
+    "name": "English",
+    "abbr": "ENG",
+    "name_max": 12
+  },
+  {
+    "id": "french",
+    "name": "French",
+    "abbr": "FRE",
+    "name_max": 12
+  },
+  {
+    "id": "italian",
+    "name": "Italian",
+    "abbr": "ITA",
+    "name_max": 12
+  },
+  {
+    "id": "german",
+    "name": "German",
+    "abbr": "GER",
+    "name_max": 12
+  },
+  {
+    "id": "spanish",
+    "name": "Spanish",
+    "abbr": "SPA",
+    "name_max": 12
+  },
+  {
+    "id": "korean",
+    "name": "Korean",
+    "abbr": "KOR",
+    "name_max": 6
+  },
+  {
+    "id": "chinese_simplified",
+    "name": "Chinese (Simplified)",
+    "abbr": "CHS",
+    "name_max": 6
+  },
+  {
+    "id": "chinese_traditional",
+    "name": "Chinese (Traditional)",
+    "abbr": "CHT",
+    "name_max": 6
+  }
 ]

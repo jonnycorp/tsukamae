@@ -1,38 +1,37 @@
 $font-primary: 'Alegreya Sans', 'Helvetica', sans-serif;
 $font-secondary: 'Montserrat', 'Helvetica', sans-serif;
 
-// Color system — KEEP IN SYNC with app/palette/tokens.ts (?palette=1 self-checks).
+// color system — KEEP IN SYNC with app/palette/tokens.ts (?palette=1 self-checks)
 
-// Committed values = the Peach Milk default theme; others apply at runtime.
+// committed values = the Peach Milk default theme; others apply at runtime
 $palette-bases: (
   'brand-primary': #ffcbb0,
   'brand-secondary': #8c5b4f,
-  // Own base, not chrome: surfaces derive from brand-primary.
-  'caught': #ef9d70,
+  // own base, not chrome: surfaces derive from brand-primary
+  'unobtainable': #ef9d70,
   'error': #ff0000,
   'success': #00cc66,
-  // Placeholder mons, to be replaced later.
+  // placeholder mons, to be replaced later
   'temporary': #f0a3b8,
-  // Final slots — the goal state.
-  'locked': #96b96e,
-  // Destructive hover (the Release button).
+  // final slots — the goal state
+  'caught': #96b96e,
+  // destructive hover (the Release button)
   'release-danger': #b23b3b,
   'gray-light': #f1f1f1,
   'gray-medium': #d2d2d2,
   'gray-dark': #ababab,
 );
 
-// (source, fn, amount); chains go through named intermediates.
+// (source, fn, amount); chains go through named intermediates
 $palette-derived: (
-  // tint scales sanely for pastel bases where fixed lighten() blows out.
+  // tint scales sanely for pastel bases where fixed lighten() blows out
   'brand-primary-light': ('brand-primary', tint, 46.5%),
   'brand-primary-dark': ('brand-primary', darken, 7%),
   'brand-primary-l10': ('brand-primary', lighten, 10%),
   'brand-primary-l15': ('brand-primary', lighten, 15%),
   'brand-primary-d4': ('brand-primary', darken, 4%),
-  'caught-light': ('caught', tint, 46.5%),
-  'caught-light-d5': ('caught-light', darken, 5%),
-  'caught-light-a50': ('caught-light', alpha, .5),
+  'unobtainable-light': ('unobtainable', tint, 46.5%),
+  'unobtainable-light-d5': ('unobtainable-light', darken, 5%),
   'brand-secondary-light': ('brand-secondary', lighten, 7%),
   'brand-secondary-dark': ('brand-secondary', darken, 7%),
   'brand-secondary-dark-d3': ('brand-secondary-dark', darken, 3%),
@@ -44,22 +43,22 @@ $palette-derived: (
   'temporary-d15': ('temporary', darken, 15%),
   'temporary-a60': ('temporary', alpha, .6),
   'temporary-stripe': ('temporary', alpha, .16),
-  // Slightly stronger than the other fills: locked is the goal state.
-  'locked-light': ('locked', tint, 55.7%),
-  'locked-d10': ('locked', darken, 10%),
-  'locked-a60': ('locked', alpha, .6),
+  // slightly stronger than the other fills: caught is the goal state
+  'caught-light': ('caught', tint, 55.7%),
+  'caught-d10': ('caught', darken, 10%),
+  'caught-a60': ('caught', alpha, .6),
   'gray-light-l25': ('gray-light', lighten, 25%),
   'gray-light-a30': ('gray-light', alpha, .3),
   'gray-medium-a40': ('gray-medium', alpha, .4),
-  // Destructive controls; the soft variant is the dark-mode dampening.
+  // destructive controls; the soft variant is the dark-mode dampening
   'release-danger-muted': ('release-danger', desaturate, 15%),
   'release-danger-soft': ('release-danger-muted', darken, 5%),
   'release-danger-dark': ('release-danger', darken, 7%),
   'release-danger-soft-dark': ('release-danger-soft', darken, 7%),
   'grid-line-light': ('brand-secondary', alpha, .18),
-  // Landing wallpaper icons (pattern.png as a mask over this color).
+  // landing wallpaper icons (pattern.png as a mask over this color)
   'pattern-icons': ('brand-primary', shade, 10%),
-  // Surface pair per mode; saturation SET (not subtracted) so pastel chromes keep their hue.
+  // surface pair per mode; saturation SET (not subtracted) so pastel chromes keep their hue
   'brand-primary-dim': ('brand-primary', saturation, 25%),
   'surface-light': ('brand-primary', tint, 62%),
   'surface-raised-light': ('brand-primary', tint, 85%),
@@ -77,10 +76,10 @@ $palette-derived: (
   } @else if $fn == saturate {
     @return saturate($value, $amount);
   } @else if $fn == saturation {
-    // Sets saturation absolutely — subtractive desaturate zeroes pastels.
+    // sets saturation absolutely — subtractive desaturate zeroes pastels
     @return change-color($value, $saturation: $amount);
   } @else if $fn == tint {
-    // Proportional toward white — pastel-safe.
+    // proportional toward white — pastel-safe
     @return scale-color($value, $lightness: $amount);
   } @else if $fn == shade {
     @return scale-color($value, $lightness: -$amount);
@@ -90,7 +89,7 @@ $palette-derived: (
   @error 'unknown palette fn: #{$fn}';
 }
 
-// The fully resolved name → concrete color map (build-time values).
+// the fully resolved name → concrete color map (build-time values)
 $palette: $palette-bases;
 @each $name, $spec in $palette-derived {
   $source-name: nth($spec, 1);
@@ -100,7 +99,7 @@ $palette: $palette-bases;
   $palette: map-merge($palette, ($name: palette-apply(map-get($palette, $source-name), nth($spec, 2), nth($spec, 3))));
 }
 
-// Concrete (non-var) value, for the rare spot that needs one at build time.
+// concrete (non-var) value, for the rare spot that needs one at build time
 @function palette($name) {
   @if not map-has-key($palette, $name) {
     @error 'unknown palette token: #{$name}';
@@ -113,14 +112,14 @@ $palette: $palette-bases;
     --#{$name}: #{$value};
   }
 
-  // Mode pointers — live picks write the variants, never these.
+  // mode pointers — live picks write the variants, never these
   --surface: var(--surface-light);
   --surface-raised: var(--surface-raised-light);
   --danger: var(--release-danger);
   --danger-hover: var(--release-danger-dark);
 }
 
-// Aliases → vars; Sass color fns on these fail the build by design.
+// aliases → vars; Sass color fns on these fail the build by design
 
 $brand-primary: var(--brand-primary);
 $brand-primary-light: var(--brand-primary-light);
@@ -132,10 +131,10 @@ $error: var(--error);
 $success: var(--success);
 $temporary: var(--temporary);
 $temporary-light: var(--temporary-light);
-$locked: var(--locked);
-$locked-light: var(--locked-light);
+$caught: var(--caught);
+$caught-light: var(--caught-light);
 $release-danger: var(--release-danger);
-// Mode-following danger (dampens under .soft-dark); chrome-anchored spots use $release-danger raw.
+// mode-following danger (dampens under .soft-dark); chrome-anchored spots use $release-danger raw
 $danger: var(--danger);
 $danger-hover: var(--danger-hover);
 $gray-light: var(--gray-light);
@@ -145,10 +144,16 @@ $gray-dark: var(--gray-dark);
 $pokemon-box-size: 110px;
 $tooltip-width: 120px;
 
-// A box is 6 tiles wide (+2px border); the tracker shows two per row.
+// a box is 6 tiles wide (+2px border); the tracker shows two per row
 $box-width: 6 * $pokemon-box-size + 2;
 $dex-grid-gap: 40px;
 $dex-grid-width: 2 * $box-width + $dex-grid-gap;
 
-// Keep in sync with FADE_MS in hooks/use-dismissable.ts.
+// keep in sync with FADE_MS in hooks/use-dismissable.ts
 $fade-duration: .15s;
+
+// spacing scale for settings surfaces (modals, future filter panel) — no ad-hoc margins
+$space-xs: 6px;       // control ↔ its dependent input
+$space-sm: 12px;      // related items inside one block
+$space-field: 24px;   // between fields; intra-section rhythm
+$space-section: 40px; // between sections, after titles, before primary actions

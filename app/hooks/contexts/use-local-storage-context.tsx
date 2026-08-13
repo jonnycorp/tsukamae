@@ -15,15 +15,15 @@ interface LocalStorageContextState {
   setTheme: SetLocalStorageFn<string>;
   isSoftDark: boolean;
   setIsSoftDark: SetLocalStorageFn<boolean>;
-  // Progress bars: plain caught fill vs per-status segments (click toggles).
+  // progress bars: plain caught fill vs per-status segments (click toggles)
   showProgressBreakdown: boolean;
   setShowProgressBreakdown: SetLocalStorageFn<boolean>;
-  // Tile metadata displays (independent switches; groundwork for the v1.3 filters).
+  // tile metadata displays (independent switches; groundwork for the v1.3 filters)
   showOriginMarks: boolean;
   setShowOriginMarks: SetLocalStorageFn<boolean>;
   showLanguageTags: boolean;
   setShowLanguageTags: SetLocalStorageFn<boolean>;
-  // The app's UI language (distinct from a mon's per-capture origin language).
+  // the app's UI language (distinct from a mon's per-capture origin language)
   locale: Locale;
   setLocale: SetLocalStorageFn<Locale>;
 }

@@ -1,5 +1,6 @@
+import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronUp, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 import { DexIndicator } from '../library/DexIndicator';
@@ -13,17 +14,25 @@ import { useTranslation } from '../../hooks/use-translation';
 import type { MouseEvent } from 'react';
 
 export function Landing () {
-  const { dexes, setActiveDex, moveDex } = useDexContext();
+  const { dexes, setActiveDex, moveDex, deleteDex } = useDexContext();
   const { t } = useTranslation();
 
   const [showCreate, setShowCreate] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const hasDexes = (dexes?.length ?? 0) > 0;
 
-  // Reordering lives on the row's click target, so don't let it open the dex.
+  // the row itself opens the dex, so stop propagation
   const handleMoveClick = (e: MouseEvent<HTMLButtonElement>, id: string, delta: number) => {
     e.stopPropagation();
     moveDex(id, delta);
+  };
+
+  const handleDeleteClick = (e: MouseEvent<HTMLButtonElement>, id: string, title: string) => {
+    e.stopPropagation();
+    if (window.confirm(t('landing.deleteConfirm', { title }))) {
+      deleteDex(id);
+    }
   };
 
   return (
@@ -36,36 +45,47 @@ export function Landing () {
 
         <div className="sub">
           {hasDexes ?
-            <ul className="dex-list">
+            <ul className={classNames('dex-list', { editing })}>
               {dexes!.map((dex, index) => {
                 const counts = dexCounts(dex);
                 return (
-                  <li className="dex-list-item" key={dex.id} onClick={() => setActiveDex(dex.id)}>
+                  <li className="dex-list-item" key={dex.id} onClick={() => (editing ? undefined : setActiveDex(dex.id))}>
                     <div className="dex-list-item-title">
                       <h3>{dex.title}</h3>
                       <DexIndicator dex={toDexView(dex)} />
-                      <div className="dex-reorder">
-                        <button
-                          aria-label={t('landing.moveUp')}
-                          disabled={index === 0}
-                          onClick={(e) => handleMoveClick(e, dex.id, -1)}
-                          title={t('landing.moveUp')}
-                          type="button"
-                        >
-                          <FontAwesomeIcon icon={faChevronUp} />
-                        </button>
-                        <button
-                          aria-label={t('landing.moveDown')}
-                          disabled={index === dexes!.length - 1}
-                          onClick={(e) => handleMoveClick(e, dex.id, 1)}
-                          title={t('landing.moveDown')}
-                          type="button"
-                        >
-                          <FontAwesomeIcon icon={faChevronDown} />
-                        </button>
-                      </div>
+                      {editing &&
+                        <div className="dex-reorder">
+                          <button
+                            aria-label={t('landing.moveUp')}
+                            disabled={index === 0}
+                            onClick={(e) => handleMoveClick(e, dex.id, -1)}
+                            title={t('landing.moveUp')}
+                            type="button"
+                          >
+                            <FontAwesomeIcon icon={faChevronUp} />
+                          </button>
+                          <button
+                            aria-label={t('landing.moveDown')}
+                            disabled={index === dexes!.length - 1}
+                            onClick={(e) => handleMoveClick(e, dex.id, 1)}
+                            title={t('landing.moveDown')}
+                            type="button"
+                          >
+                            <FontAwesomeIcon icon={faChevronDown} />
+                          </button>
+                          <button
+                            aria-label={t('landing.delete')}
+                            className="dex-delete"
+                            onClick={(e) => handleDeleteClick(e, dex.id, dex.title)}
+                            title={t('landing.delete')}
+                            type="button"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      }
                     </div>
-                    <Progress caught={counts.caught} locked={counts.locked} temporary={counts.temporary} total={counts.total} />
+                    <Progress caught={counts.caught} marked={counts.marked} temporary={counts.temporary} total={counts.total} />
                   </li>
                 );
               })}
@@ -76,6 +96,12 @@ export function Landing () {
           <button className="btn btn-blue" onClick={() => setShowCreate(true)} type="button">
             {hasDexes ? t('landing.createNew') : t('landing.createFirst')}
           </button>
+
+          {hasDexes &&
+            <button className="btn btn-edit-list" onClick={() => setEditing((open) => !open)} type="button">
+              {t(editing ? 'landing.doneEditing' : 'landing.editList')}
+            </button>
+          }
         </div>
       </div>
 

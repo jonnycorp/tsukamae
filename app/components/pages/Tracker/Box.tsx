@@ -4,9 +4,7 @@ import { faLock } from '@fortawesome/free-solid-svg-icons';
 import { useMemo } from 'react';
 
 import { BOX_SIZE } from '../../../utils/pokemon';
-import { MarkAllButton } from './MarkAllButton';
 import { Pokemon } from './Pokemon';
-import { PokeballIcon } from '../../library/PokeballIcon';
 import { padding } from '../../../utils/formatting';
 import { useDeferredRender } from '../../../hooks/use-deferred-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
@@ -16,21 +14,20 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { UICapture } from './use-tracker';
 
 interface Props {
-  boxIndex: number;
   captures: UICapture[];
   deferred?: boolean;
   dexTotal: number;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
-export function Box ({ boxIndex, captures, deferred = false, dexTotal, setSelectedPokemon }: Props) {
-  const { activeDex, toggleBoxChecked } = useDexContext();
+export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon }: Props) {
+  const { activeDex } = useDexContext();
   const { t } = useTranslation();
   const render = useDeferredRender(!deferred);
 
-  const checked = activeDex?.checkedBoxes?.includes(boxIndex) ?? false;
-  // Goal state reached: every real slot locked (trailing empties are padding, uncaught = status null).
-  const allLocked = captures.every((capture) => capture.status === 'locked');
+  // trailing empties are padding; unmarked slots have a null status
+  const allCaught = captures.every((capture) => capture.status === 'caught');
+  const sealed = captures.filter((capture) => capture.sealed).length;
 
   const empties = useMemo(() => Array.from({ length: BOX_SIZE - captures.length }).map((_, i) => i), [captures]);
 
@@ -67,23 +64,18 @@ export function Box ({ boxIndex, captures, deferred = false, dexTotal, setSelect
   }
 
   return (
-    <div className={classNames('box', { 'box-locked': allLocked })}>
+    <div className={classNames('box', { 'box-all-caught': allCaught })}>
       <div className="box-header">
         <div className="box-title">
           <h1>{title}</h1>
-          {allLocked && <FontAwesomeIcon className="box-locked-icon" icon={faLock} title={t('box.allLocked')} />}
-          {activeDex?.boxCheck &&
-            <button
-              className={classNames('box-check', { checked })}
-              onClick={() => toggleBoxChecked(boxIndex)}
-              title={t(checked ? 'box.verifiedTooltip' : 'box.verifyTooltip')}
-              type="button"
-            >
-              <PokeballIcon />
-            </button>
-          }
+          {allCaught && <FontAwesomeIcon className="box-all-caught-icon" icon={faLock} title={t('box.allCaught')} />}
         </div>
-        <MarkAllButton captures={captures} />
+        {/* a checklist speaks through the tiles themselves */}
+        {!activeDex?.checklist &&
+          <span className={classNames('box-sealed-count', { complete: sealed === captures.length })}>
+            {sealed}/{captures.length} {t('box.sealed')}
+          </span>
+        }
       </div>
       <div className="box-container">
         {captures.map((capture) => <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />)}

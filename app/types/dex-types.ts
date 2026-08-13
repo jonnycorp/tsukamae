@@ -9,7 +9,7 @@ export interface DexType {
   base_dex_type?: DexType;
 }
 
-// This is a frontend-only type that is constructed from dex type tags.
+// this is a frontend-only type that is constructed from dex type tags
 export interface Customization {
   label: string;
   value: string;

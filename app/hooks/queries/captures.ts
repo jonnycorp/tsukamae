@@ -1,10 +1,10 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import { clearCheckedBoxes, loadAppState, mutateAppState, progressToCaptures } from '../../utils/local-data';
-import { useDexContext } from '../contexts/use-dex-context';
+import { DEFAULTABLE_FIELDS, EMPTY_METADATA, genderFromLock, lookupOT } from '../../utils/capture-fields';
+import { getCatalogDex, loadAppState, mutateAppState, progressToCaptures } from '../../utils/local-data';
 
-import type { AppState, PersonalDex } from '../../utils/local-data';
-import type { Capture, CaptureStatus } from '../../types';
+import type { AppState, CaptureDefaults, CatalogDex, PersonalDex, ProgressEntry } from '../../utils/local-data';
+import type { Capture, CaptureMetadata, CaptureStatus, GameSave } from '../../types';
 import type { UseQueryOptions } from '@tanstack/react-query';
 
 export enum QueryKey {
@@ -21,6 +21,29 @@ function findDex (state: AppState, dexId: string): PersonalDex {
   return dex;
 }
 
+// per-dex prefills for a new entry, walked from the registry
+function metadataFromDefaults (defaults: CaptureDefaults | undefined, saves: GameSave[], catalog: CatalogDex, pokemonId: number): CaptureMetadata {
+  const meta: CaptureMetadata = { ...EMPTY_METADATA };
+  if (defaults) {
+    for (const field of DEFAULTABLE_FIELDS) {
+      for (const key of field.keys) {
+        const value = defaults[key];
+        if (value !== undefined && value !== null) {
+          (meta as unknown as Record<string, unknown>)[key] = value;
+        }
+      }
+    }
+  }
+  // OT comes solely from the matching save; no match leaves it blank
+  meta.ot = lookupOT(saves, meta.origin_game, meta.language);
+  // location derives from the dex, never from stored defaults
+  meta.location = catalog.game.id === 'home' ? 'home' : 'game';
+  meta.location_save = null;
+  // a species gender lock is a fact, not a guess — mixed species stay blank
+  meta.gender = genderFromLock(catalog.pokemonList.find((mon) => mon.id === pokemonId)?.gender_lock);
+  return meta;
+}
+
 export const useCaptures = (dexId: string, options: UseQueryOptions<ListCapturesData, Error> = {}) => {
   return useQuery<ListCapturesData, Error, ListCapturesData>({
     ...options,
@@ -28,35 +51,6 @@ export const useCaptures = (dexId: string, options: UseQueryOptions<ListCaptures
     queryFn: async () => {
       const state = await loadAppState();
       return progressToCaptures(findDex(state, dexId));
-    },
-  });
-};
-
-export interface CreateCapturesPayload {
-  pokemon: number[];
-}
-
-interface CreateCaptureMutationVariables {
-  payload: CreateCapturesPayload;
-}
-
-export const useCreateCapture = (dexId: string) => {
-  const { refreshDexes } = useDexContext();
-  return useMutation<void, Error, CreateCaptureMutationVariables>({
-    mutationFn: async ({ payload }) => {
-      await mutateAppState((state) => {
-        const dex = findDex(state, dexId);
-        for (const id of payload.pokemon) {
-          // captureDefaults prefill brand-new entries only; existing data always wins.
-          dex.progress[id] = {
-            status: dex.progress[id]?.status ?? dex.captureDefaults?.status ?? 'caught',
-            origin_game: dex.progress[id]?.origin_game ?? dex.captureDefaults?.origin_game ?? null,
-            language: dex.progress[id]?.language ?? dex.captureDefaults?.language ?? null,
-          };
-        }
-        clearCheckedBoxes(dex, payload.pokemon);
-      });
-      refreshDexes();
     },
   });
 };
@@ -70,52 +64,55 @@ interface DeleteCaptureMutationVariables {
 }
 
 export const useDeleteCapture = (dexId: string) => {
-  const { refreshDexes } = useDexContext();
   return useMutation<void, Error, DeleteCaptureMutationVariables>({
     mutationFn: async ({ payload }) => {
       await mutateAppState((state) => {
         const dex = findDex(state, dexId);
         for (const id of payload.pokemon) {
-          // Unmarking clears all of the mon's state.
+          // a sealed mon is never released
+          if (dex.progress[id]?.sealed) {
+            continue;
+          }
           delete dex.progress[id];
         }
-        clearCheckedBoxes(dex, payload.pokemon);
       });
-      refreshDexes();
     },
   });
 };
 
-export interface UpdateCapturePayload {
+export interface UpdateCapturePayload extends Partial<CaptureMetadata> {
   pokemon: number;
-  origin_game?: string | null;
   status?: CaptureStatus;
-  language?: string | null;
+  sealed?: boolean;
 }
 
 interface UpdateCaptureMutationVariables {
   payload: UpdateCapturePayload;
 }
 
-export const useUpdateCapture = (dexId: string) => {
-  const { refreshDexes } = useDexContext();
+// editingSealed (TESTING seal-fx toggle) opens sealed records for data fixing
+export const useUpdateCapture = (dexId: string, editingSealed = false) => {
   return useMutation<void, Error, UpdateCaptureMutationVariables>({
     mutationFn: async ({ payload }) => {
       const { pokemon, ...changes } = payload;
       await mutateAppState((state) => {
         const dex = findDex(state, dexId);
         const existing = dex.progress[pokemon];
-        // A missing entry means this update IS the catch — prefill from captureDefaults; explicit changes win.
-        const defaults = existing ? null : dex.captureDefaults;
-        dex.progress[pokemon] = {
-          status: existing?.status ?? 'caught',
-          origin_game: existing?.origin_game ?? defaults?.origin_game ?? null,
-          language: existing?.language ?? defaults?.language ?? null,
-          ...changes,
+
+        // only an explicit unseal gets through the freeze
+        if (existing?.sealed && changes.sealed !== false && !editingSealed) {
+          return;
+        }
+
+        // a missing entry means this update is the catch
+        const base: ProgressEntry = existing ?? {
+          ...metadataFromDefaults(dex.captureDefaults, state.saves ?? [], getCatalogDex(dex.catalogKey), pokemon),
+          status: dex.captureDefaults?.status ?? 'caught',
+          sealed: false,
         };
-        clearCheckedBoxes(dex, [pokemon]);
+
+        dex.progress[pokemon] = { ...base, ...changes };
       });
-      refreshDexes();
     },
   });
 };

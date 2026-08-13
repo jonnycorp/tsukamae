@@ -1,5 +1,5 @@
 import throttle from 'lodash/throttle';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Dex } from './Dex';
 import { Footer } from '../../library/Footer';
@@ -7,7 +7,7 @@ import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { PokemonPopover } from './PokemonPopover';
 import { SCROLL_DEBOUNCE, SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SearchBar } from './SearchBar';
-import { TrackerContextProvider, useTrackerContext } from './use-tracker';
+import { EMPTY_FILTERS, TrackerContextProvider, useTrackerActions, useTrackerState } from './use-tracker';
 import { useCaptures } from '../../../hooks/queries/captures';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -15,7 +15,7 @@ export function Tracker () {
   return <TrackerLoader />;
 }
 
-// Keyed remount on dex switch resets per-dex UI state cleanly.
+// keyed remount on dex switch resets per-dex UI state
 function TrackerLoader () {
   const { activeDex } = useDexContext();
 
@@ -34,14 +34,14 @@ export function TrackerInner () {
   const trackerRef = useRef<HTMLDivElement>(null);
 
   const { activeDex } = useDexContext();
-  const { captures, setCaptures } = useTrackerContext();
+  const { captures } = useTrackerState();
+  const { setCaptures } = useTrackerActions();
   const { t } = useTranslation();
 
   const { data: storedCaptures, isLoading: capturesIsLoading } = useCaptures(activeDex!.id);
 
   const [query, setQuery] = useState('');
-  const [hideCaught, setHideCaught] = useState(false);
-  const [temporaryOnly, setTemporaryOnly] = useState(false);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [showScroll, setShowScroll] = useState(false);
   const [selectedPokemon, setSelectedPokemon] = useState(0);
 
@@ -61,13 +61,10 @@ export function TrackerInner () {
     }
   }, [storedCaptures]);
 
-  const handleScroll = throttle(() => {
-    if (!showScroll && trackerRef.current && trackerRef.current.scrollTop >= SHOW_SCROLL_THRESHOLD) {
-      setShowScroll(true);
-    } else if (showScroll && trackerRef.current && trackerRef.current.scrollTop < SHOW_SCROLL_THRESHOLD) {
-      setShowScroll(false);
-    }
-  }, SCROLL_DEBOUNCE);
+  // memoized so re-renders don't reset the throttle window
+  const handleScroll = useMemo(() => throttle(() => {
+    setShowScroll((trackerRef.current?.scrollTop ?? 0) >= SHOW_SCROLL_THRESHOLD);
+  }, SCROLL_DEBOUNCE), []);
 
   const handleScrollButtonClick = useCallback(() => {
     trackerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -82,30 +79,26 @@ export function TrackerInner () {
       <div className="tracker">
         <div className="dex-wrapper">
           <SearchBar
-            hideCaught={hideCaught}
+            filters={filters}
             query={query}
-            setHideCaught={setHideCaught}
+            setFilters={setFilters}
             setQuery={setQuery}
-            setTemporaryOnly={setTemporaryOnly}
-            temporaryOnly={temporaryOnly}
           />
           <div className="dex-column" onScroll={handleScroll} ref={trackerRef}>
             <Dex
-              hideCaught={hideCaught}
+              filters={filters}
               onScrollButtonClick={handleScrollButtonClick}
               query={query}
-              setHideCaught={setHideCaught}
+              setFilters={setFilters}
               setQuery={setQuery}
               setSelectedPokemon={setSelectedPokemon}
-              setTemporaryOnly={setTemporaryOnly}
               showScrollButton={showScroll}
-              temporaryOnly={temporaryOnly}
             />
             <Footer />
           </div>
         </div>
         {selectedPokemon !== 0 &&
-          // Keyed so moving to another mon remounts with fresh position/dismiss state.
+          // keyed so another mon remounts with fresh position state
           <PokemonPopover
             key={selectedPokemon}
             onClose={() => setSelectedPokemon(0)}

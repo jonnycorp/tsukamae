@@ -1,4 +1,4 @@
-// Based on https://www.30secondsofcode.org/react/s/use-local-storage
+// based on https://www.30secondsofcode.org/react/s/use-local-storage
 import { useState } from 'react';
 
 import { localStorage } from '../utils/local-storage';
