@@ -1,8 +1,9 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faClock, faExchangeAlt, faGift, faHeart, faLock, faMapMarkerAlt, faMars, faStar, faVenus } from '@fortawesome/free-solid-svg-icons';
+import { createPortal } from 'react-dom';
+import { faCheck, faClock, faExchangeAlt, faGift, faHeart, faLock, faMapMarkerAlt, faMars, faVenus } from '@fortawesome/free-solid-svg-icons';
 
-import { BALLS, EMPTY_METADATA, LANGUAGES, ORIGIN_GAMES, genderFromLock, lookupOT } from '../../../utils/capture-fields';
+import { BALLS, EMPTY_METADATA, LANGUAGES, ORIGIN_GAMES, genderFromLock, lookupOT, metadataFromDefaults } from '../../../utils/capture-fields';
 import { PokemonName } from '../../library/PokemonName';
 import { iconClass } from '../../../utils/pokemon';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
@@ -11,12 +12,12 @@ import { useDelayedRender } from '../../../hooks/use-delayed-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useLongPress } from '../../../hooks/use-long-press';
-import { useTrackerActions } from './use-tracker';
+import { isDisplaySealed, useTrackerActions } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
-import { memo, useMemo, useRef } from 'react';
+import { memo, useRef } from 'react';
 
-import type { CSSProperties, Dispatch, MouseEvent, ReactNode, SetStateAction } from 'react';
+import type { Dispatch, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from 'react';
 import type { CaptureStatus } from '../../../types';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { TranslationKey } from '../../../i18n/translations';
@@ -33,11 +34,10 @@ const STATUS_META: { status: CaptureStatus; icon: IconDefinition; labelKey: Tran
 const ORIGIN_MARK_ICONS: Record<string, IconDefinition> = {
   trade: faExchangeAlt,
   go: faMapMarkerAlt,
-  event: faGift,
-  special: faStar,
+  mystery_gift: faGift,
 };
 
-// real origin marks (public/marks/, yarn sprites:marks) for sealed badges; trade/event/special fall back to the glyphs
+// real origin marks (public/marks/, yarn sprites:marks) for sealed badges; trade/mystery gift fall back to the glyphs
 const ORIGIN_MARK_SPRITES: Record<string, string> = {
   x: 'pentagon',
   y: 'pentagon',
@@ -76,28 +76,28 @@ export const Pokemon = memo(function Pokemon ({ capture, delay = 0, setSelectedP
 
   const { activeDex, activeDexView, saves } = useDexContext();
   const { setCaptures, sealFx, updateCapture, deleteCaptures } = useTrackerActions();
-  const { showLanguageTags, showOriginMarks } = useLocalStorageContext();
+  const { showLanguageTags } = useLocalStorageContext();
   const { t, locale } = useTranslation();
 
   // caught-or-not only: a check wears the sealed visuals, no seal semantics
   const checklist = Boolean(activeDex!.checklist);
 
   // everything visual keys off this; data guards keep reading capture.sealed (sealFx is TESTING-only)
-  const displaySealed = sealFx && Boolean(capture && (checklist ? capture.captured : capture.sealed));
-
-  // negative delays phase-lock all tiles to a shared clock; periods must match the 7s/13s in tracker.scss
-  const shineDelay = useMemo(() => -(Date.now() % 7000), [displaySealed]);
-  const scrollDelay = useMemo(() => -(Date.now() % 13000), [displaySealed]);
+  const displaySealed = Boolean(capture) && isDisplaySealed(capture!, checklist, sealFx);
 
   // holding the tile itself unseals (or unchecks); the delay keeps ordinary clicks from flashing the wheel
-  const justUnsealedRef = useRef(false);
+  const suppressClickRef = useRef(false);
   const { progress: unsealProgress, point: unsealPoint, handlers: unsealHandlers } = useLongPress({
     delay: 250,
+    // once the wheel has shown, the release was a hold being abandoned, not a click
+    onRelease: (engaged) => {
+      suppressClickRef.current = engaged;
+    },
     onComplete: () => {
       if (!capture) {
         return;
       }
-      justUnsealedRef.current = true;
+      suppressClickRef.current = true;
       if (checklist) {
         // unchecking clears the slot entirely
         setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === capture.pokemon.id
@@ -120,10 +120,10 @@ export const Pokemon = memo(function Pokemon ({ capture, delay = 0, setSelectedP
     );
   }
 
-  const originIcon = showOriginMarks && capture.origin_game ? ORIGIN_MARK_ICONS[capture.origin_game] : null;
   const originName = capture.origin_game
     ? localizeOriginGame(locale, capture.origin_game, ORIGIN_NAMES.get(capture.origin_game) || capture.origin_game)
     : '';
+  // the tag only ever shows in the sealed number line now
   const langAbbr = showLanguageTags && capture.language ? LANGUAGE_ABBRS.get(capture.language) : null;
 
   // setting a status is also how a mon gets marked
@@ -133,12 +133,16 @@ export const Pokemon = memo(function Pokemon ({ capture, delay = 0, setSelectedP
       return;
     }
 
-    // mirrors the mutation layer's prefill
-    const defaults = activeDex!.captureDefaults;
+    // mirrors the mutation layer's prefill, registry-filtered so removed keys can't leak in
+    const defaults = metadataFromDefaults(activeDex!.captureDefaults);
 
     setCaptures((prev) => prev.map((cap) => {
       if (cap.pokemon.id !== capture.pokemon.id) {
         return cap;
+      }
+      // unobtainable wipes the record rather than prefilling one
+      if (status === 'unobtainable') {
+        return { ...cap, ...EMPTY_METADATA, captured: true, status };
       }
       if (cap.captured) {
         return { ...cap, status };
@@ -152,7 +156,7 @@ export const Pokemon = memo(function Pokemon ({ capture, delay = 0, setSelectedP
         location: activeDexView!.game.id === 'home' ? 'home' : 'game',
         location_save: null,
         gender: genderFromLock(cap.pokemon.gender_lock),
-        ot: lookupOT(saves, defaults?.origin_game ?? null, defaults?.language ?? null),
+        ot: lookupOT(saves, defaults.origin_game ?? null, defaults.language ?? null),
       };
     }));
 
@@ -164,11 +168,20 @@ export const Pokemon = memo(function Pokemon ({ capture, delay = 0, setSelectedP
     }
   };
 
+  // a press that drew the wheel ends here, not in the popover
+  const pressHandlers = displaySealed
+    ? { ...unsealHandlers, onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => {
+      // a stale suppression would otherwise eat the next real click
+      suppressClickRef.current = false;
+      unsealHandlers.onPointerDown(e);
+    } }
+    : {};
+
   // never unmarks — release is the only way out
   const handleTileClick = () => {
-    // swallow the click that ends a completed unseal hold
-    if (justUnsealedRef.current) {
-      justUnsealedRef.current = false;
+    // swallow the click that closes out any hold, completed or abandoned
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
       return;
     }
     // a checked box is inert; hold is the only way out
@@ -319,7 +332,6 @@ export const Pokemon = memo(function Pokemon ({ capture, delay = 0, setSelectedP
     <div
       className={classNames(classes)}
       data-pokemon-id={capture.pokemon.id}
-      style={displaySealed ? { '--shine-delay': `${shineDelay}ms`, '--scroll-delay': `${scrollDelay}ms` } as CSSProperties : undefined}
     >
       {sealBadges}
       {/* sealed tiles get no hover scrim — there is nothing to offer */}
@@ -338,32 +350,25 @@ export const Pokemon = memo(function Pokemon ({ capture, delay = 0, setSelectedP
           ))}
         </div>
       }
-      <div className="set-captured" onClick={handleTileClick} {...(displaySealed ? unsealHandlers : {})}>
+      <div className="set-captured" onClick={handleTileClick} {...pressHandlers}>
         {nameLine}
         <div className="icon-wrapper">
           <i className={iconClass(capture.pokemon, dexView)} />
         </div>
         {displaySealed
           ? sealedNumberLine
-          : <p>
-            {originIcon && <FontAwesomeIcon className="origin-mark" icon={originIcon} title={originName} />}
-            #{padding(idToDisplay, paddingDigits)}
-            {langAbbr && <span className="language-tag">{langAbbr}</span>}
-          </p>
+          : <p>#{padding(idToDisplay, paddingDigits)}</p>
         }
       </div>
-      <div className="set-captured-mobile" onClick={handleTileClick} {...(displaySealed ? unsealHandlers : {})}>
+      <div className="set-captured-mobile" onClick={handleTileClick} {...pressHandlers}>
         <div className="icon-wrapper">
           <i className={iconClass(capture.pokemon, dexView)} />
         </div>
         <h4><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></h4>
-        <p>
-          {originIcon && <FontAwesomeIcon className="origin-mark" icon={originIcon} title={originName} />}
-          #{padding(idToDisplay, paddingDigits)}
-          {langAbbr && <span className="language-tag">{langAbbr}</span>}
-        </p>
+        <p>#{padding(idToDisplay, paddingDigits)}</p>
       </div>
-      {unsealPoint && unsealProgress > 0 &&
+      {/* portalled out: .box has paint containment, which would anchor a fixed ring to the box */}
+      {unsealPoint && unsealProgress > 0 && createPortal(
         <div
           className="unseal-ring"
           style={{
@@ -371,8 +376,9 @@ export const Pokemon = memo(function Pokemon ({ capture, delay = 0, setSelectedP
             top: unsealPoint.y,
             background: `conic-gradient(var(--caught) ${unsealProgress * 360}deg, transparent 0deg)`,
           }}
-        />
-      }
+        />,
+        document.body,
+      )}
     </div>
   );
 });

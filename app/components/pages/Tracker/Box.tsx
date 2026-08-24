@@ -3,8 +3,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
 import { useMemo } from 'react';
 
-import { BOX_SIZE } from '../../../utils/pokemon';
+import { BOX_COLUMNS, BOX_SIZE, TILE_SIZE } from '../../../utils/pokemon';
 import { Pokemon } from './Pokemon';
+import { isDisplaySealed, useTrackerActions } from './use-tracker';
 import { padding } from '../../../utils/formatting';
 import { useDeferredRender } from '../../../hooks/use-deferred-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
@@ -22,8 +23,23 @@ interface Props {
 
 export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon }: Props) {
   const { activeDex } = useDexContext();
+  const { sealFx } = useTrackerActions();
   const { t } = useTranslation();
   const render = useDeferredRender(!deferred);
+
+  // one band per box, clipped to the sealed slots — one moved layer beats a gradient repainted per tile
+  const shineClip = useMemo(() => {
+    const checklist = Boolean(activeDex?.checklist);
+    const holes = captures.reduce<string[]>((all, capture, index) => {
+      if (isDisplaySealed(capture, checklist, sealFx)) {
+        const x = (index % BOX_COLUMNS) * TILE_SIZE;
+        const y = Math.floor(index / BOX_COLUMNS) * TILE_SIZE;
+        all.push(`M${x} ${y}h${TILE_SIZE}v${TILE_SIZE}h-${TILE_SIZE}Z`);
+      }
+      return all;
+    }, []);
+    return holes.length > 0 ? `path('${holes.join('')}')` : null;
+  }, [captures, activeDex?.checklist, sealFx]);
 
   // trailing empties are padding; unmarked slots have a null status
   const allCaught = captures.every((capture) => capture.status === 'caught');
@@ -80,6 +96,11 @@ export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon 
       <div className="box-container">
         {captures.map((capture) => <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />)}
         {empties.map((index) => <Pokemon capture={null} key={index} setSelectedPokemon={setSelectedPokemon} />)}
+        {shineClip &&
+          <div className="box-shine" style={{ clipPath: shineClip }}>
+            <div className="box-shine-band" />
+          </div>
+        }
       </div>
     </div>
   );

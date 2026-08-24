@@ -63,7 +63,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: $brand-secondary;
+      color: var(--text);
     }
   }
 
@@ -121,7 +121,7 @@
         font-family: $font-secondary;
         font-size: 18px;
         font-weight: 700;
-        color: $brand-secondary;
+        color: var(--text);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -139,7 +139,7 @@
         padding: 4px 6px;
         border: 0;
         background: none;
-        color: $brand-secondary;
+        color: var(--text-muted);
         font-size: 11px;
         opacity: .6;
         cursor: pointer;
@@ -171,7 +171,7 @@
     max-width: 480px;
     margin: 0 0 24px;
     font-size: 15px;
-    color: $brand-secondary;
+    color: var(--text-muted);
   }
 
   .btn {

@@ -1,7 +1,7 @@
 import { DateInput } from './DateInput';
 import { DraftInput } from './DraftInput';
 import { Dropdown } from './Dropdown';
-import { NAME_MAX_FALLBACK, favoriteOptions, findSave, genderOptions, locationOptions, saveLabel } from '../../utils/capture-fields';
+import { NAME_MAX_FALLBACK, coerceFavorite, favoriteOptions, findSave, genderOptions, locationOptions, saveLabel } from '../../utils/capture-fields';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../hooks/use-translation';
 
@@ -55,14 +55,18 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
   switch (field.kind) {
     case 'select': {
       const key = field.keys[0];
-      // favorite has no blank: unanswered shows as none, and a nickname floors the options
+      // a nickname or Mystery Gift origin drops 'no'; the value is coerced into whatever
+      // is offered, so a stored value that is no longer an option can never render blank
       if (field.id === 'favorite') {
+        const favorites = favoriteOptions(locale, value);
+        const stored = coerceFavorite(value.favorite) ?? 'no';
+        const current = favorites.some((option) => option.value === stored) ? stored : favorites[0].value;
         return wrap(
           <Dropdown
             id={id}
             onSelect={(next) => onChange({ favorite: next as CaptureMetadata['favorite'] })}
-            options={favoriteOptions(locale, value)}
-            value={value.favorite ?? 'none'}
+            options={favorites}
+            value={current}
           />,
         );
       }
@@ -85,12 +89,11 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
     case 'number': {
       const key = field.keys[0];
       const committed = value[key] as number | null | undefined;
+      // deliberately type=text: a number input silently steps its value on wheel and arrow keys
       return wrap(
         <DraftInput
           id={id}
           inputMode="numeric"
-          max={field.max}
-          min={field.min}
           name={id}
           onCommit={(raw) => {
             const parsed = parseInt(raw, 10);
@@ -100,7 +103,8 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
             }
             onChange({ [key]: Math.min(field.max ?? Infinity, Math.max(field.min ?? -Infinity, parsed)) });
           }}
-          type="number"
+          sanitize={(raw) => raw.replace(/\D/g, '').slice(0, String(field.max ?? 999).length)}
+          type="text"
           value={typeof committed === 'number' ? String(committed) : ''}
         />,
       );

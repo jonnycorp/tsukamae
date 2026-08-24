@@ -2,12 +2,6 @@
 
 export type Locale = 'en' | 'ja';
 
-// order drives the language toggle; label is each language's endonym
-export const LOCALES: { id: Locale; label: string }[] = [
-  { id: 'en', label: 'English' },
-  { id: 'ja', label: '日本語' },
-];
-
 const en = {
   'nav.editDex': 'Edit Dex',
   'nav.newDex': 'New Dex',
@@ -28,7 +22,6 @@ const en = {
   'search.unsealedOnly': 'Unsealed Only',
   'search.incompleteOnly': 'Incomplete Only',
   'search.favoritesOnly': 'Favorites Only',
-  'search.originMarks': 'Origin Marks',
   'search.langTags': 'Lang Tags',
 
   'progress.done': 'done!',
@@ -90,7 +83,7 @@ const en = {
   'gender.male': 'Male',
   'gender.female': 'Female',
 
-  'favorite.none': 'None',
+  'favorite.no': 'No',
   'favorite.favorite': 'Favorite',
   'favorite.partner': 'Partner',
 
@@ -158,7 +151,6 @@ const ja: Record<TranslationKey, string> = {
   'search.unsealedOnly': '未確定のみ表示',
   'search.incompleteOnly': '未記入のみ表示',
   'search.favoritesOnly': 'お気に入りのみ表示',
-  'search.originMarks': '出身マーク',
   'search.langTags': '言語タグ',
 
   'progress.done': '完了！',
@@ -216,7 +208,7 @@ const ja: Record<TranslationKey, string> = {
   'gender.male': 'オス',
   'gender.female': 'メス',
 
-  'favorite.none': 'なし',
+  'favorite.no': 'いいえ',
   'favorite.favorite': 'お気に入り',
   'favorite.partner': '相棒',
 

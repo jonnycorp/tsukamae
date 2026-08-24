@@ -12,6 +12,11 @@ import type { UpdateCapturePayload } from '../../../hooks/queries/captures';
 
 export type UICapture = Capture;
 
+// a checklist check wears the sealed look; sealFx is the TESTING kill switch
+export function isDisplaySealed (capture: UICapture, checklist: boolean, sealFx: boolean): boolean {
+  return sealFx && (checklist ? capture.captured : capture.sealed);
+}
+
 export interface TrackerFilters {
   hideMarked: boolean;
   temporaryOnly: boolean;
@@ -51,7 +56,8 @@ export function matchesFilters (capture: UICapture, filters: TrackerFilters): bo
   if (filters.unsealedOnly && (!capture.captured || capture.sealed)) {
     return false;
   }
-  if (filters.incompleteOnly && (!capture.captured || capture.sealed || isRecordComplete(capture))) {
+  if (filters.incompleteOnly && (!capture.captured || capture.sealed ||
+    capture.status === 'unobtainable' || isRecordComplete(capture))) {
     return false;
   }
   if (filters.favoritesOnly && capture.favorite !== 'favorite' && capture.favorite !== 'partner') {

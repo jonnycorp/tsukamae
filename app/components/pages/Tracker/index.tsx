@@ -1,5 +1,8 @@
+import classNames from 'classnames';
 import throttle from 'lodash/throttle';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import type { AnimationEvent as ReactAnimationEvent } from 'react';
 
 import { Dex } from './Dex';
 import { Footer } from '../../library/Footer';
@@ -44,6 +47,35 @@ export function TrackerInner () {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [showScroll, setShowScroll] = useState(false);
   const [selectedPokemon, setSelectedPokemon] = useState(0);
+  const [flipsPaused, setFlipsPaused] = useState(false);
+
+  // a CSS animation starts whenever its element is first styled — which is at seal time for a
+  // new seal, and at scroll-in time for anything content-visibility skipped. Pinning startTime
+  // to the timeline origin re-phases every one of them onto the same clock.
+  const syncAnimation = useCallback((e: ReactAnimationEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (!target.matches?.('.name-scroll-track, .seal-badges-track, .number-scroll-track, .box-shine-band')) {
+      return;
+    }
+    for (const animation of target.getAnimations()) {
+      animation.startTime = 0;
+    }
+  }, []);
+
+  // space freezes the flips mid-cycle instead of paging the dex down
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      const tag = e.target instanceof HTMLElement ? e.target.tagName : '';
+      if (e.key !== ' ' || tag === 'INPUT' || tag === 'TEXTAREA') {
+        return;
+      }
+      e.preventDefault();
+      setFlipsPaused((prev) => !prev);
+    };
+
+    document.addEventListener('keydown', handleKeydown);
+    return () => document.removeEventListener('keydown', handleKeydown);
+  }, []);
 
   useEffect(() => {
     document.title = `${activeDex!.title} | ${t('app.name')}`;
@@ -75,7 +107,7 @@ export function TrackerInner () {
   }
 
   return (
-    <div className="tracker-container">
+    <div className={classNames('tracker-container', { 'flips-paused': flipsPaused })} onAnimationStart={syncAnimation}>
       <div className="tracker">
         <div className="dex-wrapper">
           <SearchBar

@@ -31,15 +31,15 @@
   }
 }
 
-// sealed glint: one viewport-wide sweep, then the band dwells offscreen the rest of the cycle
+// sealed glint: one sweep across the grid, then the band dwells offscreen the rest of the cycle
 @keyframes seal-shine {
   0% {
-    background-position-x: 100%;
+    transform: translateX(-100%);
   }
 
   50%,
   100% {
-    background-position-x: 0%;
+    transform: translateX(100%);
   }
 }
 

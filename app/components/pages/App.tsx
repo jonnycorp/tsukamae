@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { DexContextProvider, useDexContext } from '../../hooks/contexts/use-dex-context';
 import { Landing } from './Landing';
 import { Nav } from '../library/Nav';
 import { Palette } from './Palette';
 import { Tracker } from './Tracker';
+import { TESTING } from '../../utils/testing';
 import { applyTheme } from '../../palette/apply-theme';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
 import { usePaletteBroadcastReceiver } from '../../palette/use-palette-broadcast';
@@ -43,12 +44,15 @@ export function App () {
 // nav is shared; the body is the open dex's tracker or the landing page
 function AppContent () {
   const { dexes, activeDex } = useDexContext();
+  // dev-only workbench; the ?palette=1 form still works in the browser, but Electron
+  // loads no query string, so the nav button is the way in there
+  const [showPalette, setShowPalette] = useState(TESTING && window.location.search.includes('palette'));
 
-  // palette workbench gate; the nav comes along for its mode toggle
-  if (window.location.search.includes('palette')) {
+  // the nav comes along for its mode toggle
+  if (showPalette) {
     return (
       <>
-        <Nav />
+        <Nav onTogglePalette={() => setShowPalette(false)} />
         <Palette />
       </>
     );
@@ -61,7 +65,7 @@ function AppContent () {
 
   return (
     <>
-      <Nav />
+      <Nav onTogglePalette={TESTING ? () => setShowPalette(true) : undefined} />
       {activeDex ? <Tracker /> : <Landing />}
     </>
   );

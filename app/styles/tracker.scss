@@ -29,6 +29,51 @@
   }
 }
 
+// the grid width is fixed, so wider viewports are used by scaling the dex rather than
+// reflowing it; each step stays below viewport / 1388 so two boxes still fit a row.
+// the popover sits outside .dex-wrapper on purpose — zoom would offset its fixed coords
+@media (min-width: 1500px) {
+  .dex-wrapper {
+    zoom: 1.04;
+  }
+}
+
+@media (min-width: 1600px) {
+  .dex-wrapper {
+    zoom: 1.1;
+  }
+}
+
+@media (min-width: 1728px) {
+  .dex-wrapper {
+    zoom: 1.2;
+  }
+}
+
+@media (min-width: 1920px) {
+  .dex-wrapper {
+    zoom: 1.34;
+  }
+}
+
+@media (min-width: 2048px) {
+  .dex-wrapper {
+    zoom: 1.44;
+  }
+}
+
+@media (min-width: 2304px) {
+  .dex-wrapper {
+    zoom: 1.62;
+  }
+}
+
+@media (min-width: 2560px) {
+  .dex-wrapper {
+    zoom: 1.8;
+  }
+}
+
 // floating capture editor anchored to the clicked tile (top/left set inline)
 .pokemon-popover {
   @include animation(fade-in $fade-duration ease-out);
@@ -44,7 +89,7 @@
   z-index: 50;
   border: 2px solid var(--brand-secondary-dark-d3);
   background-color: $brand-secondary;
-  color: #fff;
+  color: var(--text-inverse);
   box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
 
   // useDismissable sets this while the fade-out plays, then unmounts
@@ -97,7 +142,7 @@
       cursor: pointer;
 
       &:hover {
-        color: #fff;
+        color: var(--text-inverse);
       }
     }
   }
@@ -144,7 +189,7 @@
       flex: 1;
       padding: 10px;
       background-color: $brand-secondary-dark;
-      color: #fff;
+      color: var(--text-inverse);
       font-family: $font-secondary;
       font-size: 11px;
       font-weight: 700;
@@ -229,7 +274,7 @@
 
       &:hover:not(:disabled) {
         background-color: var(--caught);
-        color: #fff;
+        color: var(--text-inverse);
       }
 
       &:disabled {
@@ -260,7 +305,7 @@
 
       &:hover {
         background-color: $release-danger;
-        color: #fff;
+        color: var(--text-inverse);
       }
     }
   }
@@ -269,16 +314,19 @@
 // the dex header: title + progress pinned left, narrow search stack right
 .dex-search-bar {
   background-color: var(--surface-raised);
-  padding: 12px 24px;
+  padding: 10px 12px;
 
   .dex-search-bar-inner {
-    @include flexbox();
-    @include align-items(center);
-    @include justify-content(space-between);
-
     // aligns the bar's content with the two-column box grid below it
     max-width: $dex-grid-width;
     margin: 0 auto;
+  }
+
+  // summary and search share a row; the filters get the full width underneath
+  .dex-search-bar-top {
+    @include flexbox();
+    @include align-items(center);
+    @include justify-content(space-between);
   }
 
   .dex-search-bar-summary {
@@ -324,7 +372,7 @@
       bottom: 15px;
       left: 14px;
       font-size: 12px;
-      color: $brand-secondary;
+      color: var(--text-muted);
     }
 
     .clear-btn {
@@ -355,8 +403,9 @@
   .dex-search-bar-filters {
     @include flexbox();
     @include flex-wrap(wrap);
+    @include align-items(center);
 
-    gap: 6px 14px;
+    gap: 4px 18px;
     padding-top: 8px;
 
     .form-group {
@@ -395,7 +444,7 @@
     border-radius: 50%;
     box-shadow: 1px 1px 3px rgba(0,0,0,0.5);
     background-color: $brand-secondary;
-    color: #fff;
+    color: var(--text-inverse);
     font-size: 11px;
     z-index: 1;
 
@@ -419,6 +468,11 @@
   @include justify-content(center);
 
   column-gap: $dex-grid-gap;
+
+  // the right-hand box shows the next stride of the same band, so the wave crosses both
+  .box:nth-child(even) .box-shine-band {
+    left: -#{$box-width + $dex-grid-gap};
+  }
 }
 
 .box {
@@ -426,16 +480,23 @@
   // pinned: the in-game 6-tile grid must never reflow wider
   width: $box-width;
   margin-top: 60px;
+  // offscreen boxes skip style/layout/paint entirely, so their shines stop ticking
+  content-visibility: auto;
+  contain-intrinsic-size: auto #{$box-width} auto #{5 * $pokemon-box-size + 41};
 
+  // equal side tracks put the title on the box's centre line, count still right-aligned
   .box-header {
-    @include flexbox();
-
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
     margin-bottom: 10px;
 
     .box-title {
-      @include flex(1 0);
       @include flexbox();
       @include align-items(center);
+      @include justify-content(center);
+
+      grid-column: 2;
     }
 
     h1 {
@@ -446,17 +507,18 @@
     }
 
     .box-sealed-count {
-      @include align-self(center);
+      grid-column: 3;
+      justify-self: end;
 
       font-family: $font-secondary;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: var(--brand-secondary-a45);
+      color: var(--text-muted);
 
       &.complete {
-        color: var(--caught-d10);
+        color: var(--accent-caught);
       }
     }
   }
@@ -465,7 +527,27 @@
     @include flexbox();
     @include flex-wrap(wrap);
 
+    position: relative;
     border: 1px solid var(--grid-line);
+  }
+
+  // the glint: rasterized once per box and then only moved, clipped to the sealed slots
+  .box-shine {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .box-shine-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2 * ($box-width + $dex-grid-gap);
+    background: linear-gradient(105deg, transparent 47%, var(--shine-a50) 50%, transparent 53%);
+    will-change: transform;
+    animation: seal-shine 7s ease-in-out infinite;
   }
 
   // shadow ring thickens without moving the pinned box geometry
@@ -477,7 +559,7 @@
 
     h1,
     .box-all-caught-icon {
-      color: var(--caught-d10);
+      color: var(--accent-caught);
     }
 
     .box-all-caught-icon {
@@ -495,6 +577,8 @@
   height: $pokemon-box-size;
 
   &.captured {
+    // only a filled tile sits on a fill; empty slots inherit the page's text role
+    color: var(--text-on-tile);
     background-color: var(--unobtainable-light);
 
     .set-captured,
@@ -528,31 +612,10 @@
     }
   }
 
+  // no heavier border than a caught tile: two sealed neighbours would stack theirs into a dark 2px line
+  // the glint itself is drawn once per box (.box-shine), not per tile
   &.captured.sealed {
     background-color: $caught-light;
-    // periodic glint; the band lives in ::after so it can't touch layout
-    --seal-shine: rgba(255, 255, 255, .5);
-
-    .set-captured,
-    .set-captured-mobile {
-      border-color: var(--caught);
-    }
-
-    // fixed attachment makes every tile a window onto one viewport-wide band
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      background: linear-gradient(105deg, transparent 47%, var(--seal-shine) 50%, transparent 53%);
-      background-attachment: fixed;
-      background-size: 300% 100%;
-      background-position-x: 0%;
-      animation: seal-shine 7s ease-in-out infinite;
-      // set per tile: phase-locks every shine to the same wall-clock epoch, keeping the band continuous
-      animation-delay: var(--shine-delay, 0s);
-    }
 
     // the trophy itself grows; scale paints without moving the pinned grid
     .icon-wrapper .pkicon {
@@ -570,16 +633,14 @@
     padding-bottom: 0;
   }
 
-  // resting in HOME — a cool wash settling from above, with a cooled glint
+  // resting in HOME — a cool wash settling from above
   &.captured.sealed.loc-home {
     background-image: linear-gradient(180deg, rgba(140, 190, 255, .3), rgba(140, 190, 255, .05));
-    --seal-shine: rgba(205, 233, 255, .6);
   }
 
-  // in Champions — gilded wash and a golden glint
+  // in Champions — a gilded wash
   &.captured.sealed.loc-champions {
     background-image: linear-gradient(180deg, rgba(255, 200, 100, .35), rgba(255, 200, 100, .06));
-    --seal-shine: rgba(255, 226, 150, .65);
   }
 
   &.disabled {
@@ -619,11 +680,10 @@
     overflow: hidden;
 
     .seal-badges-track {
+      will-change: transform;
       animation: badge-flip 13s ease-in-out infinite;
-      animation-delay: var(--scroll-delay, 0s);
-    }
+      }
 
-    // 5 × 22px = the tile exactly: every slot fits the ball, centers a uniform 22px apart
     .badge-row {
       display: grid;
       grid-template-columns: repeat(5, 22px);
@@ -672,15 +732,16 @@
       image-rendering: pixelated;
     }
 
+    // raw token on purpose: badges sit on the tile fill, which never flips with the mode
     svg {
       font-size: 11px;
       color: var(--brand-secondary-a45);
     }
 
     // in-game gender colors; genderless leaves its slot empty on purpose
-    // the FA gender glyphs are drawn narrow — extra size buys back optical weight
+    // drop the legacy .fa-venus/.fa-mars nudge at the top of this file; it belongs beside names, not here
     .gender-badge {
-      font-size: 14px;
+      left: 0;
 
       &.male {
         color: #5a8fd6;
@@ -705,13 +766,6 @@
         background: #e2799f;
       }
     }
-  }
-
-  // optional metadata displays around the number line; muted so status keeps owning tile color
-  .origin-mark {
-    margin-right: 5px;
-    font-size: 10px;
-    opacity: .8;
   }
 
   // boxed like the in-game language tag; symmetric padding + middle alignment keep it on the row
@@ -753,10 +807,11 @@
     overflow: hidden;
   }
 
+  // promoted up front so the flip never contends with the shine layer under it
   .name-scroll-track {
     text-align: center;
+    will-change: transform;
     animation: name-scroll-2 13s ease-in-out infinite;
-    animation-delay: var(--scroll-delay, 0s);
 
     h4 {
       height: 22px;
@@ -776,8 +831,8 @@
   }
 
   .number-scroll-track {
+    will-change: transform;
     animation: number-flip 13s ease-in-out infinite;
-    animation-delay: var(--scroll-delay, 0s);
   }
 
   .number-line-ot {
@@ -896,7 +951,7 @@
     border: 2px solid rgba(#fff, .85);
     border-radius: 50%;
     font-size: 11px;
-    color: #fff;
+    color: var(--text-inverse);
     cursor: pointer;
     box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
 
@@ -906,7 +961,7 @@
 
     &.status-btn-unobtainable {
       background-color: $brand-primary;
-      color: $brand-secondary;
+      color: var(--text-on-chrome);
     }
 
     &.status-btn-temporary {
@@ -1014,6 +1069,17 @@ html[lang='ja'] {
 
   .pokemon-popover .popover-header h1 {
     font-size: 18px;
+  }
+}
+
+// space-bar freeze: every flip holds whatever face it is showing.
+// last in the file and deliberately specific — the flip rules use the animation
+// shorthand, which resets play-state whenever it wins the cascade
+.tracker-container.flips-paused .pokemon {
+  .name-scroll-track,
+  .seal-badges-track,
+  .number-scroll-track {
+    animation-play-state: paused;
   }
 }
 

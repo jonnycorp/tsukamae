@@ -29,7 +29,7 @@ body {
   // fixed value keeps EN/JA layouts identical (`normal` is font-metric-dependent)
   line-height: 1.35;
   background-color: var(--surface);
-  color: $brand-secondary;
+  color: var(--text);
   color-scheme: light;
 }
 
@@ -42,12 +42,16 @@ button, input, select, textarea {
 .soft-dark {
   --surface: var(--surface-dark);
   --surface-raised: var(--surface-raised-dark);
+  --text: var(--text-dark);
+  --text-muted: var(--text-muted-dark);
+  --accent-caught: var(--accent-caught-dark);
+  --accent-temporary: var(--accent-temporary-dark);
   --danger: var(--release-danger-soft);
   --danger-hover: var(--release-danger-soft-dark);
   --grid-line: rgba(242, 241, 238, .18);
 
   background-color: var(--surface);
-  color: #f2f1ee;
+  color: var(--text);
   color-scheme: dark;
 
   // explicit: UA field colors don't reliably follow the flip
@@ -55,21 +59,11 @@ button, input, select, textarea {
   select,
   textarea,
   .form-control {
-    color: #f2f1ee;
+    color: var(--text);
 
     &::placeholder {
-      color: rgba(#f2f1ee, .55);
+      color: color-mix(in srgb, var(--text) 55%, transparent);
     }
-  }
-
-  // sits on mode-independent chrome
-  .nav-dex-select {
-    color: $brand-secondary;
-  }
-
-  // captured tiles keep their light palette fills, so their text stays dark
-  .pokemon.captured {
-    color: #26221f;
   }
 }
 
@@ -94,14 +88,14 @@ button, input, select, textarea {
 a.link {
   @include transition(all .1s ease-out);
 
-  color: $brand-secondary-light;
+  color: var(--text);
   font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
 
   &:hover,
   &:focus {
-    color: $brand-secondary-dark;
+    color: var(--text-muted);
   }
 }
 
@@ -136,7 +130,7 @@ nav {
     line-height: $nav-height;
     white-space: nowrap;
 
-    color: $brand-secondary;
+    color: var(--text-on-chrome);
 
     &:first-child {
       margin-right: auto;
@@ -156,7 +150,7 @@ nav {
           letter-spacing: 0;
           z-index: 10;
           background-color: $brand-primary-light;
-          color: $brand-secondary;
+          color: var(--text-on-chrome);
 
           &::after {
             border-color: transparent transparent $brand-primary-light transparent;
@@ -204,7 +198,7 @@ nav {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: $brand-secondary;
+      color: var(--text-on-chrome);
       white-space: nowrap;
       cursor: pointer;
 
@@ -317,7 +311,7 @@ nav .nav-menu > a.tooltip .tooltip-text {
   // a slightly darker inset "well" in the bar
   background-color: var(--brand-primary-d4);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), inset 0 1px 3px rgba(0, 0, 0, .18);
-  color: $brand-secondary;
+  color: var(--text-on-chrome);
   font-family: $font-secondary;
   font-weight: 700;
 
@@ -343,13 +337,13 @@ nav .nav-menu > a.tooltip .tooltip-text {
   text-decoration: none;
 
   &.btn-blue {
-    background-color: $brand-secondary-light;
-    color: #fff;
+    background-color: $brand-secondary;
+    color: var(--text-inverse);
   }
 
   // destructive actions: danger at rest, deepens on hover
   &.btn-delete {
-    color: #fff;
+    color: var(--text-inverse);
     background-color: $danger;
   }
 
@@ -371,7 +365,7 @@ nav .nav-menu > a.tooltip .tooltip-text {
     }
 
     &.btn-blue {
-      background-color: $brand-secondary;
+      background-color: $brand-secondary-dark;
     }
 
     &.btn-delete {
@@ -514,7 +508,7 @@ form {
     border-top: 2px solid $brand-primary;
     font-family: $font-primary;
     font-size: 14px;
-    color: $brand-secondary;
+    color: var(--text-on-chrome);
     white-space: nowrap;
     cursor: pointer;
 
@@ -643,67 +637,6 @@ select {
     }
   }
 
-  .radio {
-    display: inline-block;
-    margin: 0 13px;
-
-    label {
-      font-family: $font-primary;
-      text-transform: none;
-      font-size: 15px;
-      font-weight: 400;
-      letter-spacing: 0;
-      margin-bottom: 0;
-      cursor: pointer;
-    }
-
-    input[type=radio] {
-      display: none;
-
-      &:checked+.radio-custom span {
-        opacity: 1;
-      }
-    }
-
-    .radio-custom {
-      display: inline-block;
-      position: relative;
-      top: 3px;
-      right: 7px;
-      width: 16px;
-      height: 16px;
-      border: 1px solid $gray-medium;
-      background-color: var(--gray-light-l25);
-      border-radius: 50%;
-
-      > span {
-        @include transition(all .15s ease-out);
-        display: inline-block;
-        opacity: 0;
-        position: absolute;
-        background-color: $brand-primary;
-        border-radius: 50%;
-        height: 10px;
-        width: 10px;
-        top: 50%;
-        left: 50%;
-        margin: -5px 0 0 -5px;
-      }
-    }
-
-    &.disabled {
-      color: $gray-medium;
-
-      .radio-custom {
-        border: 1px solid $gray-light;
-      }
-
-      label {
-        cursor: not-allowed;
-      }
-    }
-  }
-
   .checkbox {
     display: inline-block;
     margin: 0 13px;
@@ -774,13 +707,13 @@ select {
 
     &.tooltip-icon {
       font-size: 12px;
-      color: $brand-secondary;
+      color: var(--text-muted);
     }
 
     &.fa-chevron-down {
       bottom: 17px;
       font-size: 9px;
-      color: $brand-secondary;
+      color: var(--text-muted);
     }
   }
 
@@ -866,7 +799,7 @@ select {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: $brand-secondary;
+  color: var(--text);
 }
 
 .wrapper {
@@ -926,7 +859,7 @@ select {
     cursor: pointer;
 
     &:hover {
-      color: $brand-secondary;
+      color: var(--text);
     }
   }
 
@@ -993,11 +926,11 @@ select {
   cursor: pointer;
 
   .temporary-count {
-    color: var(--temporary-d15);
+    color: var(--accent-temporary);
   }
 
   .caught-count {
-    color: var(--caught-d10);
+    color: var(--accent-caught);
   }
 }
 
@@ -1138,7 +1071,6 @@ select {
   }
 }
 
-
 .saves-warning {
   margin: 0 0 $space-sm;
   font-size: 13px;
@@ -1172,7 +1104,7 @@ $saves-table-width: 640px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: $brand-secondary;
+    color: var(--text-muted);
     opacity: .75;
   }
 
@@ -1184,7 +1116,7 @@ $saves-table-width: 640px;
     // the game/language pair is the mapping key, shown but never editable
     .saves-list-key {
       font-size: 14px;
-      color: $brand-secondary;
+      color: var(--text);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1210,7 +1142,7 @@ $saves-table-width: 640px;
         padding: 6px 4px;
         border: 0;
         background: none;
-        color: $brand-secondary;
+        color: var(--text-muted);
         font-size: 12px;
         opacity: .6;
         cursor: pointer;
@@ -1241,7 +1173,7 @@ button.btn.btn-edit-list {
   margin-top: $space-sm;
   padding: 0;
   background: none;
-  color: $brand-secondary;
+  color: var(--text);
   font-size: 12px;
   text-decoration: underline;
   opacity: .7;
@@ -1264,7 +1196,6 @@ button.btn.btn-edit-list {
     min-width: 0;
   }
 }
-
 
 // sized to its content rather than filling the container
 .btn.btn-compact {

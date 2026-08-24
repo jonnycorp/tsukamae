@@ -1,12 +1,15 @@
 // JS mirror of variables.scss palette maps — KEEP IN SYNC; ?palette=1 self-checks both
 
-export type DeriveFn = 'lighten' | 'darken' | 'desaturate' | 'saturate' | 'saturation' | 'tint' | 'shade' | 'alpha';
+export type DeriveFn = 'lighten' | 'darken' | 'desaturate' | 'saturate' | 'saturation' | 'tint' | 'shade' | 'alpha' | 'readable';
 
 export interface DerivedSpec {
   source: string;
   fn: DeriveFn;
-  // % points for lighten/darken/etc, proportional for tint/shade, 0–1 for alpha
+  // % points for lighten/darken/etc, proportional for tint/shade, 0–1 for alpha,
+  // target contrast ratio for readable
   amount: number;
+  // readable only: every backdrop the token must clear its ratio against
+  against?: string[];
 }
 
 export const PALETTE_BASES: Record<string, string> = {
@@ -104,7 +107,6 @@ export const PALETTE_DERIVED: [string, DerivedSpec][] = [
   ['brand-secondary-a15', { source: 'brand-secondary', fn: 'alpha', amount: .15 }],
   ['brand-secondary-a45', { source: 'brand-secondary', fn: 'alpha', amount: .45 }],
   ['temporary-light', { source: 'temporary', fn: 'tint', amount: 68 }],
-  ['temporary-d15', { source: 'temporary', fn: 'darken', amount: 15 }],
   ['temporary-a60', { source: 'temporary', fn: 'alpha', amount: .6 }],
   ['temporary-stripe', { source: 'temporary', fn: 'alpha', amount: .16 }],
   ['caught-light', { source: 'caught', fn: 'tint', amount: 55.7 }],
@@ -122,8 +124,30 @@ export const PALETTE_DERIVED: [string, DerivedSpec][] = [
   ['brand-primary-dim', { source: 'brand-primary', fn: 'saturation', amount: 25 }],
   ['surface-light', { source: 'brand-primary', fn: 'tint', amount: 62 }],
   ['surface-raised-light', { source: 'brand-primary', fn: 'tint', amount: 85 }],
-  ['surface-dark', { source: 'brand-primary-dim', fn: 'shade', amount: 58 }],
-  ['surface-raised-dark', { source: 'brand-primary-dim', fn: 'shade', amount: 50 }],
+  ['surface-dark', { source: 'brand-primary-dim', fn: 'shade', amount: 64 }],
+  ['surface-raised-dark', { source: 'brand-primary-dim', fn: 'shade', amount: 56 }],
+  // text roles: every one is contrast-guaranteed against the surfaces it can land on,
+  // so no theme and no mode can render a field unreadable
+  ['text-light', { source: 'brand-secondary', fn: 'readable', amount: 4.5, against: ['surface-light', 'surface-raised-light'] }],
+  ['text-muted-src-light', { source: 'brand-secondary', fn: 'tint', amount: 38 }],
+  ['text-muted-light', { source: 'text-muted-src-light', fn: 'readable', amount: 3, against: ['surface-light', 'surface-raised-light'] }],
+  // near-white but carrying the theme's own hue, rather than a flat neutral
+  ['text-dark-src', { source: 'brand-primary-dim', fn: 'tint', amount: 88 }],
+  ['text-dark', { source: 'text-dark-src', fn: 'readable', amount: 4.5, against: ['surface-dark', 'surface-raised-dark'] }],
+  ['text-muted-dark-src', { source: 'text-dark-src', fn: 'shade', amount: 28 }],
+  ['text-muted-dark', { source: 'text-muted-dark-src', fn: 'readable', amount: 3, against: ['surface-dark', 'surface-raised-dark'] }],
+  // the nav bar and the tile fills don't flip with the mode, so these are mode-independent
+  ['text-on-chrome', { source: 'brand-secondary', fn: 'readable', amount: 4.5, against: ['brand-primary', 'brand-primary-l10', 'brand-primary-l15', 'brand-primary-light', 'brand-primary-d4'] }],
+  ['text-inverse', { source: 'gray-light', fn: 'readable', amount: 4.5, against: ['brand-secondary', 'brand-secondary-dark', 'brand-secondary-dark-d3', 'brand-secondary-dark-d4', 'release-danger', 'release-danger-soft'] }],
+  ['text-on-tile', { source: 'brand-secondary', fn: 'readable', amount: 4.5, against: ['unobtainable-light', 'temporary-light', 'caught-light'] }],
+  // status colours used as text on the page, rather than on a tile fill
+  ['accent-caught-light', { source: 'caught', fn: 'readable', amount: 4.5, against: ['surface-light', 'surface-raised-light'] }],
+  ['accent-caught-dark', { source: 'caught', fn: 'readable', amount: 4.5, against: ['surface-dark', 'surface-raised-dark'] }],
+  ['accent-temporary-light', { source: 'temporary', fn: 'readable', amount: 4.5, against: ['surface-light', 'surface-raised-light'] }],
+  ['accent-temporary-dark', { source: 'temporary', fn: 'readable', amount: 4.5, against: ['surface-dark', 'surface-raised-dark'] }],
+  // the sealed glint: near-white, but carrying the active theme's hue
+  ['shine', { source: 'brand-primary', fn: 'tint', amount: 90 }],
+  ['shine-a50', { source: 'shine', fn: 'alpha', amount: .5 }],
 ];
 
 export const TOKEN_NAMES: string[] = [...Object.keys(PALETTE_BASES), ...PALETTE_DERIVED.map(([name]) => name)];
@@ -226,6 +250,23 @@ function scaleLightness (color: Rgba, percent: number): Rgba {
   return hslToRgb(h, s, Math.min(1, Math.max(0, scaled)), color.a);
 }
 
+// walks the source toward the backdrop's opposite until it clears the ratio against all of them
+function readable (color: Rgba, backdrops: Rgba[], target: number): Rgba {
+  if (backdrops.length === 0) {
+    return color;
+  }
+  const average = backdrops.reduce((sum, bg) => sum + luminance(bg), 0) / backdrops.length;
+  const step = average < .5 ? 6 : -6;
+  let current = color;
+  for (let i = 0; i < 60; i++) {
+    if (backdrops.every((bg) => contrastRatio(current, bg, bg) >= target)) {
+      break;
+    }
+    current = scaleLightness(current, step);
+  }
+  return current;
+}
+
 // same order and math as the SCSS build
 export function resolvePalette (overrides: Record<string, string> = {}): Record<string, Rgba> {
   const resolved: Record<string, Rgba> = {};
@@ -240,6 +281,8 @@ export function resolvePalette (overrides: Record<string, string> = {}): Record<
       resolved[name] = adjustSaturation(source, spec.fn === 'saturate' ? spec.amount : -spec.amount);
     } else if (spec.fn === 'saturation') {
       resolved[name] = setSaturation(source, spec.amount);
+    } else if (spec.fn === 'readable') {
+      resolved[name] = readable(source, (spec.against ?? []).map((key) => resolved[key]), spec.amount);
     } else if (spec.fn === 'tint' || spec.fn === 'shade') {
       resolved[name] = scaleLightness(source, spec.fn === 'tint' ? spec.amount : -spec.amount);
     } else {
@@ -301,8 +344,8 @@ export function composite (fg: Rgba, bg: Rgba): Rgba {
   return { r: mix(fg.r, bg.r), g: mix(fg.g, bg.g), b: mix(fg.b, bg.b), a: 1 };
 }
 
-export function contrastRatio (fg: Rgba, bg: Rgba): number {
-  const solidBg = composite(bg, { r: 255, g: 255, b: 255, a: 1 });
+export function contrastRatio (fg: Rgba, bg: Rgba, behind: Rgba = { r: 255, g: 255, b: 255, a: 1 }): number {
+  const solidBg = composite(bg, behind);
   const solidFg = composite(fg, solidBg);
   const l1 = luminance(solidFg);
   const l2 = luminance(solidBg);

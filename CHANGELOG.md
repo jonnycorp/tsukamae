@@ -19,18 +19,20 @@ All notable changes to tsukamae. Versions follow [semver](https://semver.org); d
 
 ### Capture metadata
 
-- New per-Pokémon fields alongside origin game and language: **been to Champions**, **location** (in HOME, in Champions, or which game it's sitting in), **ball**, **catch date**, **gender** (species-locked mons answer themselves from PokéAPI data), **nickname**, **OT**, **level**, **trained** (untrained / 3+ perfect IVs / EV-trained) and **favorite**. **Favorite is a three-step scale — none, favorite (blue heart) or partner (red heart, 相棒)** — with partner strictly hand-picked. Giving a mon a nickname floors it at favorite until the nickname is removed; a partner is never touched by that rule.
+- New per-Pokémon fields alongside origin game and language: **been to Champions**, **location** (in HOME, in Champions, or which game it's sitting in), **ball**, **catch date**, **gender** (species-locked mons answer themselves from PokéAPI data), **nickname**, **OT**, **level**, **trained** (untrained / 3+ perfect IVs / EV-trained) and **favorite**. **Favorite is a three-step scale — no, favorite (blue heart) or partner (red heart, 相棒)** — with partner strictly hand-picked. Giving a mon a nickname floors it at favorite until the nickname is removed, as does a Mystery Gift origin; a partner is never touched by that rule.
 - Champions is two facts, not one. *Been to Champions* is provenance and survives the mon coming back, since it keeps its Champions data forever; *location* is where it is right now, and only offers "In Champions" once the mon has actually been there.
-- Most fields are unanswered by default, and unanswered is distinct from "no" — that distinction is what makes the seal gate mean something. The exceptions are **been to Champions** (a plain yes/no defaulting to no) and **favorite** (defaulting to none) — neither ever blocks a seal.
+- Most fields are unanswered by default, and unanswered is distinct from "no" — that distinction is what makes the seal gate mean something. The exceptions are **been to Champions** (a plain yes/no defaulting to no) and **favorite** (defaulting to no) — neither ever blocks a seal.
 - Fields are declared in one registry that drives the popover form, the seal gate, the filters and the per-dex defaults, so a future column is a single entry rather than a change in five files.
 - OT prefills from a game/language lookup table, since one run-through per game/language pair makes the trainer name predictable.
+- **Unobtainable slots hold no metadata at all.** There is no specimen to describe, so the fields disappear from the record and every one is stored blank — switching an existing Pokémon to unobtainable clears it.
+- The non-cartridge origins are **Pokémon GO, Friend Trade, Mystery Gift (ふしぎなおくりもの) and Other**. Picking a **Cherish Ball** sets the origin to Mystery Gift, since nothing catchable comes in one; the reverse isn't assumed, because plenty of distributions arrive in ordinary balls.
 - Per-dex capture defaults cover the prefillable fields — status, my game, origin game, language, ball and trained — each independently leave-able unset for wildcard dexes. Per-specimen facts (catch date, gender, nickname, OT, level, favorite, Champions) deliberately take no default.
 - Legendary and mythical class is derived from PokéAPI rather than authored.
 
 ### My Games
 
 - **Playthroughs are now a first-class record** — game + language + OT, managed from My Games in the settings menu. One record does three jobs: it names an origin, lists the places a Pokémon can be sitting, and fills in OT.
-- Picking one of your games as a Pokémon's origin answers game, language and OT in a single action, and never overwrites an OT you typed by hand — so foreign-OT mons (legacy trades, event distributions) stay editable.
+- Picking one of your games as a Pokémon's origin answers game, language and OT in a single action. An explicit pick always restamps all three, since choosing a playthrough is a statement about where the Pokémon came from; a foreign OT (legacy trades, event distributions) is typed afterwards and nothing overwrites it.
 - Location's "in a game" now lists your actual playthroughs rather than bare cartridge names, which distinguishes a Japanese Violet from an English one.
 - **OT has no per-dex default.** It comes from the matching playthrough or from your own hand, nothing else. A blanket default would be wrong for any dex spanning more than one game, and worse, it would answer the seal gate with a guess — a blank OT blocks sealing and makes you look, whereas a wrong one sails through and then freezes.
 
@@ -38,6 +40,11 @@ All notable changes to tsukamae. Versions follow [semver](https://semver.org); d
 
 - All dropdowns are now one custom component styled on the nav menus — the popover fields, dex modal, My Games and the nav dex switcher — replacing the OS-native selects. Menus are fixed-position so no modal or popover edge clips them, scroll past 240px, and open at the current selection.
 - Ball options show their in-game pixel sprite, pulled once from pokesprite into `public/balls/` by `yarn sprites:balls` and bundled offline like everything else.
+
+### Themes
+
+- Text colours are now **derived with a guaranteed contrast ratio** against every surface they can land on, rather than picked by hand. A theme cannot produce unreadable text in either mode — dark-mode text carries each theme's own hue instead of a flat neutral, and the sealed shine does the same.
+- `yarn lint:contrast` checks every theme against every mode on each build. It caught ten real failures on its first run, including surfaces too light for *any* text to sit on.
 
 ### Checklist dexes
 

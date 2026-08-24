@@ -27,6 +27,10 @@ export const LANGUAGES = languagesJson as Language[];
 
 export const NAME_MAX_FALLBACK = 12;
 
+// distributions: the Cherish Ball is only ever used for them, and they floor favorite
+export const MYSTERY_GIFT = 'mystery_gift';
+export const CHERISH_BALL = 'cherish_ball';
+
 export function nameMaxLength (language: string | null | undefined): number {
   return LANGUAGES.find((entry) => entry.id === language)?.name_max ?? NAME_MAX_FALLBACK;
 }
@@ -263,7 +267,7 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     gatesSeal: false,
     defaultable: false,
     options: (locale) => [
-      { value: 'none', label: translate(locale, 'favorite.none') },
+      { value: 'no', label: translate(locale, 'favorite.no') },
       { value: 'favorite', label: translate(locale, 'favorite.favorite') },
       { value: 'partner', label: translate(locale, 'favorite.partner') },
     ],
@@ -297,7 +301,7 @@ export function formatFieldValue (field: CaptureField, meta: Partial<CaptureMeta
   switch (field.kind) {
     case 'select': {
       // favorite's unanswered reads as none, never blank
-      const value = (meta[field.keys[0]] as string | null) ?? (field.id === 'favorite' ? 'none' : null);
+      const value = (meta[field.keys[0]] as string | null) ?? (field.id === 'favorite' ? 'no' : null);
       return value ? field.options!(locale).find((option) => option.value === value)?.label ?? value : blank;
     }
     case 'text':
@@ -341,10 +345,28 @@ export function genderFromLock (lock: GenderLock | null | undefined): GenderStat
   return lock ?? null;
 }
 
-// a nicknamed mon can't be 'none'; partner stays reachable
+// only the registry's defaultable keys — stored settings still carry keys that have since been removed
+export function metadataFromDefaults (defaults: Partial<CaptureMetadata> | undefined): Partial<CaptureMetadata> {
+  const meta: Partial<CaptureMetadata> = {};
+  if (!defaults) {
+    return meta;
+  }
+  for (const field of DEFAULTABLE_FIELDS) {
+    for (const key of field.keys) {
+      const value = defaults[key];
+      if (value !== undefined && value !== null) {
+        (meta as Record<string, unknown>)[key] = value;
+      }
+    }
+  }
+  return meta;
+}
+
+// a floored record can't be 'no'; the control coerces its value into whatever this returns
 export function favoriteOptions (locale: Locale, meta: Partial<CaptureMetadata>): CaptureFieldOption[] {
   const all = CAPTURE_FIELDS.find((field) => field.id === 'favorite')!.options!(locale);
-  return meta.has_nickname === true ? all.filter((option) => option.value !== 'none') : all;
+  const floored = meta.has_nickname === true || meta.origin_game === MYSTERY_GIFT;
+  return floored ? all.filter((option) => option.value !== 'no') : all;
 }
 
 // legacy boolean favorites read as the new enum; never written back
@@ -352,7 +374,11 @@ export function coerceFavorite (value: unknown): FavoriteState | null {
   if (value === true) {
     return 'favorite';
   }
-  if (value === 'none' || value === 'favorite' || value === 'partner') {
+  // 'none' is the pre-rename literal
+  if (value === 'none') {
+    return 'no';
+  }
+  if (value === 'no' || value === 'favorite' || value === 'partner') {
     return value;
   }
   return null;
@@ -379,14 +405,20 @@ export function withFieldInvariants (
   patch: Partial<CaptureMetadata>,
 ): Partial<CaptureMetadata> {
   const next = { ...patch };
-  const merged = { ...current, ...patch };
 
-  // a nickname floors favorite at 'favorite'; partner is deliberate and survives either way
-  if (patch.has_nickname === true && merged.favorite !== 'partner') {
-    next.favorite = 'favorite';
+  // nothing catchable comes in a Cherish Ball; the reverse doesn't hold, so this runs one way only
+  if (patch.ball === CHERISH_BALL) {
+    next.origin_game = MYSTERY_GIFT;
   }
-  if (patch.has_nickname === false && merged.favorite !== 'partner') {
-    next.favorite = 'none';
+
+  const merged = { ...current, ...next };
+
+  // a nickname or a Mystery Gift origin floors favorite; partner is deliberate and survives either.
+  // keyed on the transition so re-picking a save can't quietly demote a hand-set heart
+  const wasFloored = current.has_nickname === true || current.origin_game === MYSTERY_GIFT;
+  const isFloored = merged.has_nickname === true || merged.origin_game === MYSTERY_GIFT;
+  if (wasFloored !== isFloored && merged.favorite !== 'partner') {
+    next.favorite = isFloored ? 'favorite' : 'no';
   }
 
   // can't be somewhere it has never been

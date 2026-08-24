@@ -5,6 +5,9 @@ import { padding } from './formatting';
 import type { Dex } from '../types';
 
 export const BOX_SIZE = 30;
+export const BOX_COLUMNS = 6;
+// keep in sync with $pokemon-box-size in styles/variables.scss
+export const TILE_SIZE = 110;
 
 export function groupBoxes<T extends { pokemon: { box: string | null } }> (captures: T[]) {
   let lastBoxName: string | null = null;
