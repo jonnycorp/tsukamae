@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faLongArrowAltRight, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { CAPTURE_FIELDS, formatFieldValue, unansweredFields, withFieldInvariants } from '../../../utils/capture-fields';
+import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, unansweredFields, withFieldInvariants } from '../../../utils/capture-fields';
 import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { PokemonName } from '../../library/PokemonName';
@@ -69,7 +69,10 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     if (!capture) {
       return;
     }
-    const resolved = { ...changes, ...withFieldInvariants(capture, changes) };
+    // switching to unobtainable wipes the record here too, so the mirror matches storage
+    const resolved = changes.status === 'unobtainable'
+      ? { ...changes, ...EMPTY_METADATA }
+      : { ...changes, ...withFieldInvariants(capture, changes) };
     setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === capture.pokemon.id ? { ...cap, ...resolved } : cap)));
     updateCapture({ pokemon: capture.pokemon.id, ...resolved });
   };
@@ -158,7 +161,8 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
       if (cap.pokemon.id !== capture.pokemon.id) {
         return cap;
       }
-      return { ...cap, captured: false, status: null, sealed: false };
+      // storage deletes the entry outright; the mirror has to blank it, not just unmark it
+      return { ...cap, ...EMPTY_METADATA, captured: false, status: null, sealed: false };
     }));
 
     deleteCaptures([capture.pokemon.id]);
@@ -221,7 +225,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
                   value={capture.status || 'caught'}
                 />
               </div>
-              {CAPTURE_FIELDS.map((field) => (
+              {capture.status !== 'unobtainable' && CAPTURE_FIELDS.map((field) => (
                 <CaptureFieldControl
                   field={field}
                   genderLock={capture.pokemon.gender_lock}

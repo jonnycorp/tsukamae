@@ -16,7 +16,7 @@ export type GenderState = 'none' | 'male' | 'female';
 export type GenderLock = 'genderless' | 'male' | 'female';
 
 // favorite = blue heart, nickname floors it there; partner = red heart, hand-picked only
-export type FavoriteState = 'none' | 'favorite' | 'partner';
+export type FavoriteState = 'no' | 'favorite' | 'partner';
 
 // null means unanswered, which blocks sealing
 export interface CaptureMetadata {

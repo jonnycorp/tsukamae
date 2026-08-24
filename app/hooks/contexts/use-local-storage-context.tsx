@@ -19,8 +19,6 @@ interface LocalStorageContextState {
   showProgressBreakdown: boolean;
   setShowProgressBreakdown: SetLocalStorageFn<boolean>;
   // tile metadata displays (independent switches; groundwork for the v1.3 filters)
-  showOriginMarks: boolean;
-  setShowOriginMarks: SetLocalStorageFn<boolean>;
   showLanguageTags: boolean;
   setShowLanguageTags: SetLocalStorageFn<boolean>;
   // the app's UI language (distinct from a mon's per-capture origin language)
@@ -37,8 +35,6 @@ const LocalStorageContext = createContext<LocalStorageContextState>({
   setIsSoftDark: () => {},
   showProgressBreakdown: false,
   setShowProgressBreakdown: () => {},
-  showOriginMarks: false,
-  setShowOriginMarks: () => {},
   showLanguageTags: false,
   setShowLanguageTags: () => {},
   locale: 'en',
@@ -54,7 +50,6 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const [theme, setTheme] = useLocalStorage<string>(THEME_STORAGE_KEY, { defaultValue: DEFAULT_THEME, parseAsJson: true });
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, { defaultValue: false, parseAsJson: true });
   const [showProgressBreakdown, setShowProgressBreakdown] = useLocalStorage('progressBreakdown', { defaultValue: false, parseAsJson: true });
-  const [showOriginMarks, setShowOriginMarks] = useLocalStorage('originMarks', { defaultValue: false, parseAsJson: true });
   const [showLanguageTags, setShowLanguageTags] = useLocalStorage('languageTags', { defaultValue: false, parseAsJson: true });
   const [locale, setLocale] = useLocalStorage<Locale>('locale', { defaultValue: 'en', parseAsJson: true });
 
@@ -67,8 +62,6 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
     setIsSoftDark,
     showProgressBreakdown,
     setShowProgressBreakdown,
-    showOriginMarks,
-    setShowOriginMarks,
     showLanguageTags,
     setShowLanguageTags,
     locale,
@@ -82,8 +75,6 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
     setIsSoftDark,
     showProgressBreakdown,
     setShowProgressBreakdown,
-    showOriginMarks,
-    setShowOriginMarks,
     showLanguageTags,
     setShowLanguageTags,
     locale,

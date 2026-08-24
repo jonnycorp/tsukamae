@@ -84,12 +84,8 @@
     "name": "Friend Trade"
   },
   {
-    "id": "event",
-    "name": "Event"
-  },
-  {
-    "id": "special",
-    "name": "Special"
+    "id": "mystery_gift",
+    "name": "Mystery Gift"
   },
   {
     "id": "other",

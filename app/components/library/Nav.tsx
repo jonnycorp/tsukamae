@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faFileExport, faFileImport, faGamepad, faGear, faLanguage, faMoon, faPalette, faPencilAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faFileExport, faFileImport, faFlask, faGamepad, faGear, faLanguage, faMoon, faPalette, faPencilAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { DexModal } from './DexModal';
@@ -30,7 +30,12 @@ function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, cl
   }, [open]);
 }
 
-export function Nav () {
+interface Props {
+  // dev-only: present when the TESTING flag is on
+  onTogglePalette?: () => void;
+}
+
+export function Nav ({ onTogglePalette }: Props) {
   const { isSoftDark, setIsSoftDark, theme, setTheme, locale, setLocale } = useLocalStorageContext();
   const { dexes, activeDex, setActiveDex } = useDexContext();
   const { t } = useTranslation();
@@ -149,6 +154,12 @@ export function Nav () {
         <FontAwesomeIcon icon={faLanguage} />
         <span className="tooltip-text">{locale === 'en' ? '日本語' : 'English'}</span>
       </a>
+      {onTogglePalette &&
+        <a className="nav-icon tooltip tooltip-below" onClick={onTogglePalette}>
+          <FontAwesomeIcon icon={faFlask} />
+          <span className="tooltip-text">Palette</span>
+        </a>
+      }
       <div className="nav-menu" ref={themeMenuRef}>
         <a className="nav-icon tooltip tooltip-below" onClick={() => setShowThemeMenu((open) => !open)}>
           <FontAwesomeIcon icon={faPalette} />

@@ -16,6 +16,7 @@ import {
   rgbaToHex,
 } from '../../palette/tokens';
 
+import { CONTRAST_PAIRS } from '../../palette/contrast-pairs';
 import { applyTheme } from '../../palette/apply-theme';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
 import { usePaletteBroadcastSender } from '../../palette/use-palette-broadcast';
@@ -24,21 +25,13 @@ import type { Rgba } from '../../palette/tokens';
 
 // dev-only workbench (?palette=1): live-overrides :root tokens, commit via the export block
 
-// real text-on-surface pairs; `large` relaxes WCAG to 3:1
-const PAIRINGS: { label: string; fg: string; bg: string; large?: boolean }[] = [
-  { label: 'Body text on page', fg: 'brand-secondary', bg: 'surface-light' },
-  { label: 'Nav links on bar', fg: 'brand-secondary', bg: 'brand-primary' },
-  { label: 'Nav links on hover', fg: 'brand-secondary', bg: 'brand-primary-l10' },
-  { label: 'Headings on page', fg: 'brand-secondary', bg: '#ffffff', large: true },
-  { label: 'Button text', fg: '#ffffff', bg: 'brand-secondary-light' },
-  { label: 'Button text · delete', fg: '#ffffff', bg: 'release-danger' },
-  { label: 'Button text · delete (soft dark)', fg: '#ffffff', bg: 'release-danger-soft' },
-  { label: 'Popover body', fg: '#ffffff', bg: 'brand-secondary' },
-  { label: 'Popover links', fg: '#ffffff', bg: 'brand-secondary-dark' },
-  { label: 'Tile text · unobtainable', fg: 'brand-secondary', bg: 'unobtainable-light' },
-  { label: 'Tile text · temporary', fg: 'brand-secondary', bg: 'temporary-light' },
-  { label: 'Tile text · caught', fg: 'brand-secondary', bg: 'caught-light' },
-];
+// flattened from the audit's list so the workbench and `yarn lint:contrast` never disagree
+const PAIRINGS = CONTRAST_PAIRS.flatMap((pair) => pair.bg.map((bg) => ({
+  label: `${pair.label} · ${bg}${pair.mode === 'both' ? '' : ` (${pair.mode})`}`,
+  fg: pair.fg,
+  bg,
+  target: pair.target,
+})));
 
 function formatRatio (ratio: number): string {
   return `${(Math.round(ratio * 100) / 100).toFixed(2)}:1`;
@@ -176,8 +169,8 @@ export function Palette () {
         <h2>Pairings <small>WCAG advisory — {'≥'}4.5:1 text, {'≥'}3:1 large/UI</small></h2>
         <div className="palette-pairings">
           {PAIRINGS.map((pair) => {
-            const ratio = contrastRatio(colorFor(pair.fg), colorFor(pair.bg));
-            const target = pair.large ? 3 : 4.5;
+            const ratio = contrastRatio(colorFor(pair.fg), colorFor(pair.bg), colorFor(pair.bg));
+            const target = pair.target;
             return (
               <div className="palette-pair" key={pair.label}>
                 <span

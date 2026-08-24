@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import { DEFAULTABLE_FIELDS, EMPTY_METADATA, genderFromLock, lookupOT } from '../../utils/capture-fields';
+import { EMPTY_METADATA, genderFromLock, lookupOT, metadataFromDefaults } from '../../utils/capture-fields';
 import { getCatalogDex, loadAppState, mutateAppState, progressToCaptures } from '../../utils/local-data';
 
 import type { AppState, CaptureDefaults, CatalogDex, PersonalDex, ProgressEntry } from '../../utils/local-data';
@@ -22,18 +22,8 @@ function findDex (state: AppState, dexId: string): PersonalDex {
 }
 
 // per-dex prefills for a new entry, walked from the registry
-function metadataFromDefaults (defaults: CaptureDefaults | undefined, saves: GameSave[], catalog: CatalogDex, pokemonId: number): CaptureMetadata {
-  const meta: CaptureMetadata = { ...EMPTY_METADATA };
-  if (defaults) {
-    for (const field of DEFAULTABLE_FIELDS) {
-      for (const key of field.keys) {
-        const value = defaults[key];
-        if (value !== undefined && value !== null) {
-          (meta as unknown as Record<string, unknown>)[key] = value;
-        }
-      }
-    }
-  }
+function newEntryMetadata (defaults: CaptureDefaults | undefined, saves: GameSave[], catalog: CatalogDex, pokemonId: number): CaptureMetadata {
+  const meta: CaptureMetadata = { ...EMPTY_METADATA, ...metadataFromDefaults(defaults) };
   // OT comes solely from the matching save; no match leaves it blank
   meta.ot = lookupOT(saves, meta.origin_game, meta.language);
   // location derives from the dex, never from stored defaults
@@ -106,12 +96,14 @@ export const useUpdateCapture = (dexId: string, editingSealed = false) => {
 
         // a missing entry means this update is the catch
         const base: ProgressEntry = existing ?? {
-          ...metadataFromDefaults(dex.captureDefaults, state.saves ?? [], getCatalogDex(dex.catalogKey), pokemon),
+          ...newEntryMetadata(dex.captureDefaults, state.saves ?? [], getCatalogDex(dex.catalogKey), pokemon),
           status: dex.captureDefaults?.status ?? 'caught',
           sealed: false,
         };
 
-        dex.progress[pokemon] = { ...base, ...changes };
+        const next: ProgressEntry = { ...base, ...changes };
+        // an unobtainable slot has no specimen, so it holds no metadata
+        dex.progress[pokemon] = next.status === 'unobtainable' ? { ...next, ...EMPTY_METADATA } : next;
       });
     },
   });

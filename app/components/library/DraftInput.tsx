@@ -8,10 +8,12 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'o
   // the committed value, as its display string
   value: string;
   onCommit: (raw: string) => void;
+  // runs on every keystroke, before the draft is shown
+  sanitize?: (raw: string) => string;
 }
 
 // keystrokes stay local; the app-wide write + refresh happens on pause, blur or unmount
-export function DraftInput ({ value, onCommit, ...rest }: Props) {
+export function DraftInput ({ value, onCommit, sanitize, ...rest }: Props) {
   const [draft, setDraft] = useState(value);
   const [focused, setFocused] = useState(false);
   const { schedule, flush } = useDebouncedCommit();
@@ -35,7 +37,7 @@ export function DraftInput ({ value, onCommit, ...rest }: Props) {
         setFocused(false);
       }}
       onChange={(e) => {
-        const next = e.target.value;
+        const next = sanitize ? sanitize(e.target.value) : e.target.value;
         setDraft(next);
         schedule(() => {
           if (next !== committedRef.current) {

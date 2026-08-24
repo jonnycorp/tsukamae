@@ -1,3 +1,6 @@
+@use "sass:color";
+@use "sass:math";
+
 $font-primary: 'Alegreya Sans', 'Helvetica', sans-serif;
 $font-secondary: 'Montserrat', 'Helvetica', sans-serif;
 
@@ -40,7 +43,6 @@ $palette-derived: (
   'brand-secondary-a15': ('brand-secondary', alpha, .15),
   'brand-secondary-a45': ('brand-secondary', alpha, .45),
   'temporary-light': ('temporary', tint, 68%),
-  'temporary-d15': ('temporary', darken, 15%),
   'temporary-a60': ('temporary', alpha, .6),
   'temporary-stripe': ('temporary', alpha, .16),
   // slightly stronger than the other fills: caught is the goal state
@@ -62,9 +64,77 @@ $palette-derived: (
   'brand-primary-dim': ('brand-primary', saturation, 25%),
   'surface-light': ('brand-primary', tint, 62%),
   'surface-raised-light': ('brand-primary', tint, 85%),
-  'surface-dark': ('brand-primary-dim', shade, 58%),
-  'surface-raised-dark': ('brand-primary-dim', shade, 50%),
+  'surface-dark': ('brand-primary-dim', shade, 64%),
+  'surface-raised-dark': ('brand-primary-dim', shade, 56%),
+  // text roles: contrast-guaranteed against every surface they can land on, so no
+  // theme and no mode can render a field unreadable
+  'text-light': ('brand-secondary', readable, 4.5, ('surface-light', 'surface-raised-light')),
+  'text-muted-src-light': ('brand-secondary', tint, 38%),
+  'text-muted-light': ('text-muted-src-light', readable, 3, ('surface-light', 'surface-raised-light')),
+  // near-white but carrying the theme's own hue, rather than a flat neutral
+  'text-dark-src': ('brand-primary-dim', tint, 88%),
+  'text-dark': ('text-dark-src', readable, 4.5, ('surface-dark', 'surface-raised-dark')),
+  'text-muted-dark-src': ('text-dark-src', shade, 28%),
+  'text-muted-dark': ('text-muted-dark-src', readable, 3, ('surface-dark', 'surface-raised-dark')),
+  // the nav bar and the tile fills never flip, so these are mode-independent
+  'text-on-chrome': ('brand-secondary', readable, 4.5, ('brand-primary', 'brand-primary-l10', 'brand-primary-l15', 'brand-primary-light', 'brand-primary-d4')),
+  'text-inverse': ('gray-light', readable, 4.5, ('brand-secondary', 'brand-secondary-dark', 'brand-secondary-dark-d3', 'brand-secondary-dark-d4', 'release-danger', 'release-danger-soft')),
+  'text-on-tile': ('brand-secondary', readable, 4.5, ('unobtainable-light', 'temporary-light', 'caught-light')),
+  // status colours used as text on the page, rather than on a tile fill
+  'accent-caught-light': ('caught', readable, 4.5, ('surface-light', 'surface-raised-light')),
+  'accent-caught-dark': ('caught', readable, 4.5, ('surface-dark', 'surface-raised-dark')),
+  'accent-temporary-light': ('temporary', readable, 4.5, ('surface-light', 'surface-raised-light')),
+  'accent-temporary-dark': ('temporary', readable, 4.5, ('surface-dark', 'surface-raised-dark')),
+  // the sealed glint: near-white, but carrying the active theme's hue
+  'shine': ('brand-primary', tint, 90%),
+  'shine-a50': ('shine', alpha, .5),
 );
+
+// WCAG relative luminance — mirrors the JS in app/palette/tokens.ts
+@function channel-lum($channel) {
+  $v: math.div($channel, 255);
+  @if $v <= .03928 {
+    @return math.div($v, 12.92);
+  }
+  @return math.pow(math.div($v + .055, 1.055), 2.4);
+}
+
+@function rel-lum($color) {
+  @return .2126 * channel-lum(color.channel($color, "red", $space: rgb)) +
+    .7152 * channel-lum(color.channel($color, "green", $space: rgb)) +
+    .0722 * channel-lum(color.channel($color, "blue", $space: rgb));
+}
+
+@function contrast-ratio($a, $b) {
+  $l1: rel-lum($a);
+  $l2: rel-lum($b);
+  @return math.div(math.max($l1, $l2) + .05, math.min($l1, $l2) + .05);
+}
+
+// walks the colour away from its backdrops until it clears the ratio against every one
+@function readable($color, $backdrops, $target) {
+  $sum: 0;
+  @each $bg in $backdrops {
+    $sum: $sum + rel-lum($bg);
+  }
+  $step: -6%;
+  @if math.div($sum, length($backdrops)) < .5 {
+    $step: 6%;
+  }
+  $current: $color;
+  @for $i from 1 through 60 {
+    $ok: true;
+    @each $bg in $backdrops {
+      @if contrast-ratio($current, $bg) < $target {
+        $ok: false;
+      }
+    }
+    @if not $ok {
+      $current: scale-color($current, $lightness: $step);
+    }
+  }
+  @return $current;
+}
 
 @function palette-apply($value, $fn, $amount) {
   @if $fn == lighten {
@@ -96,7 +166,16 @@ $palette: $palette-bases;
   @if not map-has-key($palette, $source-name) {
     @error 'palette token #{$name} derives from unknown/later token #{$source-name}';
   }
-  $palette: map-merge($palette, ($name: palette-apply(map-get($palette, $source-name), nth($spec, 2), nth($spec, 3))));
+  $fn: nth($spec, 2);
+  @if $fn == readable {
+    $backdrops: ();
+    @each $bg-name in nth($spec, 4) {
+      $backdrops: append($backdrops, map-get($palette, $bg-name));
+    }
+    $palette: map-merge($palette, ($name: readable(map-get($palette, $source-name), $backdrops, nth($spec, 3))));
+  } @else {
+    $palette: map-merge($palette, ($name: palette-apply(map-get($palette, $source-name), $fn, nth($spec, 3))));
+  }
 }
 
 // concrete (non-var) value, for the rare spot that needs one at build time
@@ -115,6 +194,10 @@ $palette: $palette-bases;
   // mode pointers — live picks write the variants, never these
   --surface: var(--surface-light);
   --surface-raised: var(--surface-raised-light);
+  --text: var(--text-light);
+  --text-muted: var(--text-muted-light);
+  --accent-caught: var(--accent-caught-light);
+  --accent-temporary: var(--accent-temporary-light);
   --danger: var(--release-danger);
   --danger-hover: var(--release-danger-dark);
 }

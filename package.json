@@ -15,7 +15,8 @@
     "electron:dev": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron .\"",
     "electron:dev:fresh": "TSUKAMAE_USER_DATA=\"$(mktemp -d)\" yarn electron:dev",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx --max-warnings 0 .",
-    "lint:all": "yarn lint && yarn lint:types",
+    "lint:all": "yarn lint && yarn lint:types && yarn lint:contrast",
+    "lint:contrast": "node scripts/check-contrast.mjs",
     "lint:types": "tsc --noEmit",
     "start": "webpack serve",
     "start:fresh": "TSUKAMAE_FRESH=1 webpack serve"
