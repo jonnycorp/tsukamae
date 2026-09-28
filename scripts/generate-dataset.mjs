@@ -1,20 +1,6 @@
 'use strict';
 
-// Dev-only script: snapshots the structure of every supported living dex
-// (plus the games and dex-type catalogs) from the live pokedextracker.com API
-// into static JSON files in data/. All personal progress is stripped —
-// data/dexes/*/pokemon.json only describes dex structure, so a fresh clone
-// always starts with an empty tracker.
-//
-// The pokedextracker API only exposes a dex's pokemon list through a user's
-// dex, so each catalog entry is snapshotted from the site's own example
-// account (ashketchum10 — the dexes linked on the original home page). The
-// example account has one dex per published dex type; old-gen "Full National"
-// dexes have no example dex and are deliberately not bundled (they're
-// effectively uncompletable due to event-exclusive mons).
-//
-// To bundle another dex (e.g. when a new generation lands), add an entry to
-// DEX_MANIFEST and rerun: yarn dataset
+// dev-only: snapshots every bundled dex's structure (never anyone's progress) into data/
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -22,15 +8,13 @@ import { fileURLToPath } from 'node:url';
 
 const API_HOST = 'https://pokedextracker.com/api';
 const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
+// the api only exposes a dex's pokemon through a user's dex; the site's example account has one per dex type
 const EXAMPLE_USER = 'ashketchum10';
 
-// --pokeapi-only: regenerate just the PokéAPI-sourced dexes below, without
-// re-snapshotting the pokedextracker catalogs (avoids upstream drift).
+// regenerates only the PokéAPI-sourced dexes, without re-snapshotting upstream
 const POKEAPI_ONLY = process.argv.includes('--pokeapi-only');
 
-// Ordered newest-generation-first; this order is preserved in the in-app
-// catalog picker. `key` names the data/dexes/<key>/ folder and is referenced
-// by saved progress files — never rename a key once released.
+// keys name the data/dexes/<key>/ folders and are stored in progress files — never rename one
 const DEX_MANIFEST = [
   { key: 'home-national', slug: 'home-national-living-dex', name: 'HOME National Dex' },
   { key: 'home-national-gigantamax', slug: 'shinies', name: 'HOME National Dex + Gigantamax Forms' },
@@ -59,11 +43,9 @@ async function get (path) {
   return response.json();
 }
 
-const [apiGames, dexTypes] = await Promise.all([get('/games'), get('/dex-types')]);
+const apiGames = await get('/games');
 
-// Games pokedextracker doesn't know about (site development stalled after SV).
-// Shaped like real API game objects so PokéAPI-sourced dexes can use them as
-// `meta.game`; also injected into the origins list so full reruns keep them.
+// games pokedextracker never added, shaped like its own so they can serve as meta.game
 const SYNTHETIC_GAMES = [
   {
     id: 'legends_za',
@@ -82,19 +64,15 @@ const SYNTHETIC_GAMES = [
   },
 ];
 
-// Newest first: synthetic games slot in right after HOME.
+// newest first, so synthetic games slot in right after HOME
 const games = [...apiGames];
 games.splice(1, 0, ...SYNTHETIC_GAMES);
 
-// Curate the games list into "Caught In" dropdown options: where a mon was
-// caught from. Expansion-pass entries are redundant as catch sources, and the
-// API has no concept of Pokémon GO or traded mons, so those are appended.
+// origin ids are stored in progress files — never rename one
 const EXTRA_ORIGINS = [
   { id: 'go', name: 'Pokémon GO' },
-  // Historic id: predates the friends-only trading habit. Never rename ids.
   { id: 'trade', name: 'Friend Trade' },
-  { id: 'event', name: 'Event' },
-  { id: 'special', name: 'Special' },
+  { id: 'mystery_gift', name: 'Mystery Gift' },
   { id: 'other', name: 'Other' },
 ];
 const origins = games
@@ -104,10 +82,8 @@ const origins = games
 
 await mkdir(DATA_DIR, { recursive: true });
 if (!POKEAPI_ONLY) {
-  await writeFile(join(DATA_DIR, 'games.json'), JSON.stringify(origins, null, 2));
-  await writeFile(join(DATA_DIR, 'dex-types.json'), JSON.stringify(dexTypes, null, 2));
+  await writeFile(join(DATA_DIR, 'games.json'), `${JSON.stringify(origins, null, 2)}\n`);
   console.log(`Wrote ${origins.length} origin games to data/games.json`);
-  console.log(`Wrote ${dexTypes.length} dex types to data/dex-types.json`);
 }
 
 for (const { key, slug, name } of POKEAPI_ONLY ? [] : DEX_MANIFEST) {
@@ -116,12 +92,8 @@ for (const { key, slug, name } of POKEAPI_ONLY ? [] : DEX_MANIFEST) {
     get(`/users/${EXAMPLE_USER}/dexes/${slug}/captures`),
   ]);
 
-  // Strip all personal progress: keep only the ordered pokemon structure.
   const pokemon = captures.map((capture) => capture.pokemon);
 
-  // Shininess is a display flag on the user's own dex in this app, not a
-  // property of the catalog entry (the example account's "shinies" dex is
-  // only used for its Gigantamax-forms structure).
   const meta = {
     key,
     name,
@@ -137,16 +109,10 @@ for (const { key, slug, name } of POKEAPI_ONLY ? [] : DEX_MANIFEST) {
   console.log(`Wrote ${pokemon.length} pokemon to data/dexes/${key}/ (dex total: ${dex.total})`);
 }
 
-// --- PokéAPI-sourced dexes --------------------------------------------------
-// pokedextracker never published these dexes, but its games catalog already
-// carries the game, so `game`/`game_family` stay real API objects. Only the
-// ordered species list comes from PokéAPI; per-mon fields (name, name_ja,
-// debut game_family) are joined from the bundled home-national dex, and
-// species-level entries use id = national_id (pokedextracker's convention).
-
+// dexes pokedextracker never published: the species order comes from PokéAPI, every per-mon field from home-national
 const POKEAPI_HOST = 'https://pokeapi.co/api/v2';
 
-// Synthetic dex_type ids start at 100, far above pokedextracker's own (≤ 22).
+// synthetic dex_type ids start at 100, clear of pokedextracker's own (≤ 22)
 const POKEAPI_DEX_MANIFEST = [
   {
     key: 'legends-z-a-regional',

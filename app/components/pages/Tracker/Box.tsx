@@ -1,35 +1,58 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
-import { BOX_COLUMNS, BOX_SIZE, TILE_SIZE } from '../../../utils/pokemon';
+import { BOX_COLUMNS, BOX_SIZE, TILE_SIZE, dexNumber } from '../../../utils/pokemon';
 import { Pokemon } from './Pokemon';
 import { isDisplaySealed, useTrackerActions } from './use-tracker';
-import { padding } from '../../../utils/formatting';
 import { useDeferredRender } from '../../../hooks/use-deferred-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
+import type { Capture, Dex } from '../../../types';
 import type { Dispatch, SetStateAction } from 'react';
-import type { UICapture } from './use-tracker';
 
 interface Props {
-  captures: UICapture[];
-  deferred?: boolean;
-  dexTotal: number;
+  captures: Capture[];
+  deferred: boolean;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
-export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon }: Props) {
-  const { activeDex } = useDexContext();
-  const { sealFx } = useTrackerActions();
+// reset boxes are "reset:<number>:<prefix>" and restart the numbering under a prefix
+function boxTitle (captures: Capture[], dex: Dex): string {
+  const first = captures[0].pokemon;
+  const last = captures[captures.length - 1].pokemon;
+  if (first.box && !first.box.startsWith('reset')) {
+    return first.box;
+  }
+  const from = dexNumber(first, dex);
+  const to = dexNumber(last, dex);
+  const range = from === to ? from : `${from} - ${to}`;
+  const prefix = first.box?.split(':')[2];
+  return prefix ? `${prefix} ${range}` : range;
+}
+
+function sameProps (prev: Props, next: Props): boolean {
+  return prev.deferred === next.deferred &&
+    prev.setSelectedPokemon === next.setSelectedPokemon &&
+    prev.captures.length === next.captures.length &&
+    prev.captures.every((capture, i) => capture === next.captures[i]);
+}
+
+export const Box = memo(function Box ({ captures, deferred, setSelectedPokemon }: Props) {
+  const { activeDex, activeDexView } = useDexContext();
+  const { sealFx, narrow } = useTrackerActions();
   const { t } = useTranslation();
   const render = useDeferredRender(!deferred);
+  const checklist = Boolean(activeDex!.checklist);
 
-  // one band per box, clipped to the sealed slots — one moved layer beats a gradient repainted per tile
+  // one band per box, clipped to the sealed slots — a per-tile shine layer exhausts GPU memory in a checklist
   const shineClip = useMemo(() => {
-    const checklist = Boolean(activeDex?.checklist);
+    // the clip is drawn for the 6-column grid, not the narrow row layout
+    if (narrow) {
+      return null;
+    }
     const holes = captures.reduce<string[]>((all, capture, index) => {
       if (isDisplaySealed(capture, checklist, sealFx)) {
         const x = (index % BOX_COLUMNS) * TILE_SIZE;
@@ -39,55 +62,23 @@ export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon 
       return all;
     }, []);
     return holes.length > 0 ? `path('${holes.join('')}')` : null;
-  }, [captures, activeDex?.checklist, sealFx]);
-
-  // trailing empties are padding; unmarked slots have a null status
-  const allCaught = captures.every((capture) => capture.status === 'caught');
-  const sealed = captures.filter((capture) => capture.sealed).length;
-
-  const empties = useMemo(() => Array.from({ length: BOX_SIZE - captures.length }).map((_, i) => i), [captures]);
-
-  const paddingDigits = dexTotal >= 1000 ? 4 : 3;
-  const firstPokemon = captures[0].pokemon;
-  const lastPokemon = captures[captures.length - 1].pokemon;
-  let title = firstPokemon.box;
-
-  if (!title) {
-    const firstNumber = firstPokemon.dex_number;
-    const lastNumber = lastPokemon.dex_number;
-    if (firstNumber === lastNumber) {
-      title = padding(firstNumber, paddingDigits);
-    } else {
-      title = `${padding(firstNumber, paddingDigits)} - ${padding(lastNumber, paddingDigits)}`;
-    }
-  } else if (title.indexOf('reset') === 0) {
-    const parts = title.split(':');
-    const prefix = parts[2];
-
-    if (firstPokemon.dex_number === lastPokemon.dex_number) {
-      title = padding(firstPokemon.dex_number, paddingDigits);
-    } else {
-      title = `${padding(firstPokemon.dex_number, paddingDigits)} - ${padding(lastPokemon.dex_number, paddingDigits)}`;
-    }
-
-    if (prefix) {
-      title = `${prefix} ${title}`;
-    }
-  }
+  }, [captures, checklist, sealFx, narrow]);
 
   if (!render) {
     return null;
   }
 
+  const allCaught = captures.every((capture) => capture.status === 'caught');
+  const sealed = captures.filter((capture) => capture.sealed).length;
+
   return (
     <div className={classNames('box', { 'box-all-caught': allCaught })}>
       <div className="box-header">
         <div className="box-title">
-          <h1>{title}</h1>
+          <h1>{boxTitle(captures, activeDexView!)}</h1>
           {allCaught && <FontAwesomeIcon className="box-all-caught-icon" icon={faLock} title={t('box.allCaught')} />}
         </div>
-        {/* a checklist speaks through the tiles themselves */}
-        {!activeDex?.checklist &&
+        {!checklist &&
           <span className={classNames('box-sealed-count', { complete: sealed === captures.length })}>
             {sealed}/{captures.length} {t('box.sealed')}
           </span>
@@ -95,7 +86,11 @@ export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon 
       </div>
       <div className="box-container">
         {captures.map((capture) => <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />)}
-        {empties.map((index) => <Pokemon capture={null} key={index} setSelectedPokemon={setSelectedPokemon} />)}
+        {Array.from({ length: BOX_SIZE - captures.length }, (_, i) => (
+          <div className="pokemon empty" key={i}>
+            <div className="set-captured" />
+          </div>
+        ))}
         {shineClip &&
           <div className="box-shine" style={{ clipPath: shineClip }}>
             <div className="box-shine-band" />
@@ -104,4 +99,4 @@ export function Box ({ captures, deferred = false, dexTotal, setSelectedPokemon 
       </div>
     </div>
   );
-}
+}, sameProps);

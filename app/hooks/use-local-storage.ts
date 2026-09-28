@@ -1,40 +1,19 @@
-// based on https://www.30secondsofcode.org/react/s/use-local-storage
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { localStorage } from '../utils/local-storage';
-
-export type SetLocalStorageFn<T> = (newValue: T) => void;
-
-interface Options<T> {
-  defaultValue?: T;
-  parseAsJson?: boolean;
-}
-
-export function useLocalStorage<T> (key: string, options: Options<T>): [T, SetLocalStorageFn<T>] {
-  const [storedValue, setStoredValue] = useState<T>(() => {
+export function useLocalStorage<T> (key: string, defaultValue: T): [T, (value: T) => void] {
+  const [stored, setStored] = useState<T>(() => {
     try {
-      const value = localStorage.getItem(key);
-      if (value) {
-        if (options.parseAsJson) {
-          return JSON.parse(value);
-        }
-        return value;
-      }
-      return options.defaultValue;
-    } catch (error) {
-      return options.defaultValue;
+      const raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : defaultValue;
+    } catch {
+      return defaultValue;
     }
   });
 
-  const setValue = (newValue: T) => {
-    if (newValue === null) {
-      localStorage.removeItem(key);
-    } else {
-      const serialized = options.parseAsJson || typeof newValue !== 'string' ? JSON.stringify(newValue) : newValue;
-      localStorage.setItem(key, serialized);
-    }
-    setStoredValue(newValue);
-  };
+  const setValue = useCallback((value: T) => {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    setStored(value);
+  }, [key]);
 
-  return [storedValue, setValue];
+  return [stored, setValue];
 }

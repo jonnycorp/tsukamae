@@ -32,12 +32,11 @@ async function getSpecies (nationalId) {
   return { nameJa: entry?.name ?? null, legendaryClass, genderLock };
 }
 
-// collect every national_id used across the bundled dexes
 const dexKeys = (await readdir(DEXES_DIR, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name);
 
-const files = new Map(); // key -> { path, pokemon }
+const files = new Map();
 const nationalIds = new Set();
 
 for (const key of dexKeys) {
@@ -51,7 +50,6 @@ for (const key of dexKeys) {
 
 console.log(`Fetching species data for ${nationalIds.size} species from PokéAPI...`);
 
-// small worker pool; PokéAPI is fine with modest concurrency
 const ids = [...nationalIds];
 const species = new Map();
 let cursor = 0;

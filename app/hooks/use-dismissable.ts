@@ -6,13 +6,12 @@ import type { RefObject } from 'react';
 export const FADE_MS = 150;
 
 interface Options {
-  // called once the fade-out has finished — the parent unmounts the element
   onDismissed: () => void;
   // outside-click boundary (mousedown, so drag-selects ending outside don't close)
   ref?: RefObject<HTMLElement>;
 }
 
-// dismiss() flips `closing` (CSS fades), then onDismissed unmounts after a timeout (reliable where transitionend isn't)
+// unmounts after a timeout rather than on transitionend, which doesn't reliably fire
 export function useDismissable ({ onDismissed, ref }: Options) {
   const [closing, setClosing] = useState(false);
 

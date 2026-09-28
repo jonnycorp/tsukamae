@@ -34,7 +34,6 @@ interface Props {
   onChange: (iso: string | null) => void;
 }
 
-// yyyy/mm/dd text entry backed by the native calendar via showPicker()
 export function DateInput ({ id, value, onChange }: Props) {
   const [draft, setDraft] = useState(() => (value ? value.replaceAll('-', '/') : ''));
   const pickerRef = useRef<HTMLInputElement>(null);
@@ -51,7 +50,6 @@ export function DateInput ({ id, value, onChange }: Props) {
     }
   }, [value]);
 
-  // typing commits on pause or blur, never per keystroke
   const handleTextChange = (raw: string) => {
     const digits = raw.replace(/\D/g, '').slice(0, 8);
     setDraft(format(digits));
@@ -63,7 +61,6 @@ export function DateInput ({ id, value, onChange }: Props) {
     });
   };
 
-  // a calendar pick is one deliberate act — commit now, dropping any pending typing
   const handlePick = (iso: string) => {
     if (!iso) {
       return;

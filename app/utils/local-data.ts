@@ -37,7 +37,7 @@ import ultraSunUltraMoonRegionalPokemon from '../../data/dexes/ultra-sun-ultra-m
 import xYRegionalMeta from '../../data/dexes/x-y-regional/meta.json';
 import xYRegionalPokemon from '../../data/dexes/x-y-regional/pokemon.json';
 
-import { EMPTY_METADATA, coerceFavorite } from './capture-fields';
+import { EMPTY_METADATA, coerceFavorite, genderFromLock, lookupOT, metadataFromDefaults } from './capture-fields';
 
 import type { Capture, CaptureMetadata, CapturePokemon, CaptureStatus, Dex, DexType, Game, GameSave } from '../types';
 
@@ -50,15 +50,8 @@ export interface CatalogDex {
   pokemonList: CapturePokemon[];
 }
 
-interface CatalogMeta {
-  key: string;
-  name: string;
-  game: Game;
-  dex_type: DexType;
-  total: number;
-}
+type CatalogMeta = Omit<CatalogDex, 'pokemonList'>;
 
-// data names games by their lead version; display them as pairs
 const GAME_NAME_OVERRIDES: Record<string, string> = {
   scarlet: 'Scarlet/Violet',
   scarlet_expansion_pass: 'Scarlet/Violet (Expansion Pass)',
@@ -70,7 +63,6 @@ const GAME_NAME_OVERRIDES: Record<string, string> = {
   sun: 'Sun/Moon',
   omega_ruby: 'Omega Ruby/Alpha Sapphire',
   x: 'X/Y',
-  // home and legends_arceus keep their names
 };
 
 function catalogEntry (meta: unknown, pokemonList: unknown): CatalogDex {
@@ -79,12 +71,10 @@ function catalogEntry (meta: unknown, pokemonList: unknown): CatalogDex {
   if (gameName) {
     entry.game = { ...entry.game, name: gameName };
   }
-  // drop the legacy "HOME " prefix from national-dex names
   entry.name = entry.name.replace(/^HOME /, '');
   return entry;
 }
 
-// newest game first, merging both manifests in generate-dataset.mjs
 export const DEX_CATALOG: CatalogDex[] = [
   catalogEntry(homeNationalMeta, homeNationalPokemon),
   catalogEntry(homeNationalGigantamaxMeta, homeNationalGigantamaxPokemon),
@@ -115,12 +105,11 @@ export function getCatalogDex (key: string): CatalogDex {
 
 export interface ProgressEntry extends CaptureMetadata {
   status: CaptureStatus;
-  // only reachable from 'caught'
   sealed: boolean;
 }
+
 export type Progress = Record<string, ProgressEntry>;
 
-// per-dex prefills for newly marked mons only
 export type CaptureDefaults = Partial<CaptureMetadata> & {
   status?: CaptureStatus | null;
 };
@@ -130,7 +119,7 @@ export interface PersonalDex {
   title: string;
   catalogKey: string;
   shiny: boolean;
-  // caught-or-not only, no metadata; set at creation, never convertible
+  // set at creation only; never convertible in either direction
   checklist?: boolean;
   progress: Progress;
   captureDefaults?: CaptureDefaults;
@@ -143,48 +132,33 @@ export interface AppState {
   saves?: GameSave[];
 }
 
-export function newDexId (): string {
-  return `dex-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-export function newSaveId (): string {
-  return `save-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function seedState (): AppState {
-  return { activeDexId: '', dexes: [] };
+export function newId (prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function normalizeState (raw: unknown): AppState {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return seedState();
+  if (!raw || typeof raw !== 'object' || !Array.isArray((raw as Record<string, unknown>).dexes)) {
+    return { activeDexId: '', dexes: [] };
   }
-  const record = raw as Record<string, unknown>;
-  if (!Array.isArray(record.dexes)) {
-    return seedState();
-  }
-  const state = raw as unknown as AppState;
-  // clear activeDexId only when its dex is gone
+  const state = raw as AppState;
   if (state.activeDexId && !state.dexes.some((dex) => dex.id === state.activeDexId)) {
     state.activeDexId = '';
   }
   return state;
 }
 
-export interface TrackerBridge {
-  load: () => Promise<unknown>;
-  save: (state: AppState) => Promise<void>;
-}
-
 declare global {
   interface Window {
-    tracker?: TrackerBridge;
+    tracker?: {
+      load: () => Promise<unknown>;
+      save: (state: AppState) => Promise<void>;
+    };
   }
 }
 
 const BROWSER_STORAGE_KEY = 'dex_data';
 
-// fresh/test mode keeps everything in memory
+// yarn start:fresh keeps everything in memory so real data is never touched
 const FRESH = process.env.TSUKAMAE_FRESH === '1';
 let memoryStore: unknown = {};
 
@@ -229,45 +203,43 @@ export function getAppState (): AppState {
   return appState;
 }
 
-export async function mutateAppState (mutator: (state: AppState) => void): Promise<AppState> {
+// mutates in memory synchronously; the disk write settles in the background
+export function commitAppState (mutator: (state: AppState) => void): void {
   const state = getAppState();
-  mutator(state);
-  await saveRaw(state);
-  return state;
+  try {
+    mutator(state);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('failed to apply change:', err);
+    return;
+  }
+  // eslint-disable-next-line no-console
+  saveRaw(state).catch((err) => console.error('failed to save:', err));
 }
 
 export function exportAppState (): string {
   return JSON.stringify(getAppState(), null, 2);
 }
 
-export async function importAppState (raw: unknown): Promise<AppState> {
-  const next = normalizeState(raw);
-  appState = next;
-  await saveRaw(next);
-  return next;
+export async function importAppState (raw: unknown): Promise<void> {
+  appState = normalizeState(raw);
+  await saveRaw(appState);
 }
 
 export function toDexView (dex: PersonalDex): Dex {
   const catalog = getCatalogDex(dex.catalogKey);
   return {
-    id: 1,
-    user_id: 1,
     title: dex.title,
-    slug: dex.id,
     shiny: dex.shiny,
     game: catalog.game,
     dex_type: catalog.dex_type,
     regional: catalog.dex_type.tags.includes('regional'),
-    caught: 0,
     total: catalog.total,
-    date_created: '',
-    date_modified: '',
   };
 }
 
 export function progressToCaptures (dex: PersonalDex): Capture[] {
-  const catalog = getCatalogDex(dex.catalogKey);
-  return catalog.pokemonList.map((pokemon) => {
+  return getCatalogDex(dex.catalogKey).pokemonList.map((pokemon) => {
     const entry = dex.progress[pokemon.id];
     if (!entry) {
       return { ...EMPTY_METADATA, pokemon, captured: false, status: null, sealed: false };
@@ -285,14 +257,74 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
   });
 }
 
-export function dexCounts (dex: PersonalDex): { marked: number; temporary: number; caught: number; sealed: number; total: number } {
+export function dexCounts (dex: PersonalDex): { marked: number; temporary: number; caught: number; total: number } {
   const entries = Object.values(dex.progress);
-  return {
-    // every slot with an entry, whatever its status
-    marked: entries.length,
-    temporary: entries.filter((entry) => entry.status === 'temporary').length,
-    caught: entries.filter((entry) => entry.status === 'caught').length,
-    sealed: entries.filter((entry) => entry.sealed).length,
-    total: getCatalogDex(dex.catalogKey).total,
-  };
+  let temporary = 0;
+  let caught = 0;
+  for (const entry of entries) {
+    if (entry.status === 'temporary') {
+      temporary++;
+    } else if (entry.status === 'caught') {
+      caught++;
+    }
+  }
+  return { marked: entries.length, temporary, caught, total: getCatalogDex(dex.catalogKey).total };
+}
+
+function findDex (state: AppState, dexId: string): PersonalDex {
+  const dex = state.dexes.find((entry) => entry.id === dexId);
+  if (!dex) {
+    throw new Error(`unknown dex id ${dexId}`);
+  }
+  return dex;
+}
+
+// a new entry's prefills; Pokemon.applyStatus mirrors this for the optimistic tile
+function newEntryMetadata (dex: PersonalDex, saves: GameSave[], pokemonId: number): CaptureMetadata {
+  const catalog = getCatalogDex(dex.catalogKey);
+  const meta: CaptureMetadata = { ...EMPTY_METADATA, ...metadataFromDefaults(dex.captureDefaults) };
+  meta.ot = lookupOT(saves, meta.origin_game, meta.language);
+  meta.location = catalog.game.id === 'home' ? 'home' : 'game';
+  meta.location_save = null;
+  meta.gender = genderFromLock(catalog.pokemonList.find((mon) => mon.id === pokemonId)?.gender_lock);
+  return meta;
+}
+
+export interface UpdateCapturePayload extends Partial<CaptureMetadata> {
+  pokemon: number;
+  status?: CaptureStatus;
+  sealed?: boolean;
+}
+
+// editingSealed is the TESTING seal-fx bypass for fixing sealed records
+export function writeCapture (dexId: string, payload: UpdateCapturePayload, editingSealed = false): void {
+  const { pokemon, ...changes } = payload;
+  commitAppState((state) => {
+    const dex = findDex(state, dexId);
+    const existing = dex.progress[pokemon];
+
+    if (existing?.sealed && changes.sealed !== false && !editingSealed) {
+      return;
+    }
+
+    const base: ProgressEntry = existing ?? {
+      ...newEntryMetadata(dex, state.saves ?? [], pokemon),
+      status: dex.captureDefaults?.status ?? 'caught',
+      sealed: false,
+    };
+
+    const next: ProgressEntry = { ...base, ...changes };
+    dex.progress[pokemon] = next.status === 'unobtainable' ? { ...next, ...EMPTY_METADATA } : next;
+  });
+}
+
+export function deleteCaptures (dexId: string, pokemonIds: number[]): void {
+  commitAppState((state) => {
+    const dex = findDex(state, dexId);
+    for (const id of pokemonIds) {
+      if (!dex.progress[id]?.sealed) {
+        delete dex.progress[id];
+      }
+    }
+  });
 }

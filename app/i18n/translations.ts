@@ -1,4 +1,3 @@
-// en defines the key set; ja is typed against it so the dicts can't drift
 
 export type Locale = 'en' | 'ja';
 
@@ -32,7 +31,6 @@ const en = {
 
   'footer.basedOn': 'Based on PokédexTracker',
 
-  'landing.empty': 'No dexes yet — create your first one to start tracking.',
   'landing.createFirst': 'Create Your First Dex',
   'landing.createNew': 'Create a New Dex',
   'landing.moveUp': 'Move up',
@@ -161,7 +159,6 @@ const ja: Record<TranslationKey, string> = {
 
   'footer.basedOn': 'PokédexTracker がベース',
 
-  'landing.empty': 'まだ図鑑がありません。最初の図鑑を作成して記録を始めましょう。',
   'landing.createFirst': '最初の図鑑を作成',
   'landing.createNew': '新しい図鑑を作成',
   'landing.moveUp': '上へ移動',

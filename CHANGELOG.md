@@ -56,6 +56,15 @@ All notable changes to tsukamae. Versions follow [semver](https://semver.org); d
 
 - New filters: Unsealed Only, Incomplete Only, Favorites Only. Search also matches nicknames.
 
+### Performance
+
+- The nickname, OT and catch-date flips run on one shared clock instead of an infinite animation per track. Nothing animates between flips, flip tracks no longer hold GPU layers, and a freshly sealed mon or a box scrolling into view is in sync by construction.
+- The box shine's moving layer is a 260px band instead of a 1404px one: about a fifth of the memory and raster work for the same motion.
+- Each tile renders one layout instead of two, and its status buttons only mount once it has been hovered, so a full dex builds roughly a third of the DOM it used to.
+- Search and filter results render in the background, keeping typing responsive on large result lists; the per-tile render delays are gone.
+- Switching theme no longer re-renders every tile, and unsealing's hold ring fills with CSS instead of re-rendering its tile every frame.
+- Sprite rules are keyed so each icon only checks its own species' rules, instead of every shiny or Legends: Arceus rule.
+
 ### Removed
 
 - **Box Check** — per-Pokémon sealing supersedes it. Sealed mons are the constants; the rest of a box is explicitly moving parts, so box-level verification no longer means anything. Its place in the box header is taken by a derived sealed count.
@@ -68,6 +77,12 @@ All notable changes to tsukamae. Versions follow [semver](https://semver.org); d
 
 - The data file is now `dex_data.json` (was `captures.json`); the browser fallback key matches. No migration — 2.0 starts from a clean file.
 - `scripts/add-japanese-names.mjs` is now `scripts/enrich-species.mjs` (`yarn dataset:species`), attaching legendary class alongside Japanese names from the same PokéAPI call.
+- react-query is gone: a dex's captures come straight from the in-memory state, so opening one has no loading step.
+- The palette is computed only in TypeScript and applied before the first render; the duplicate Sass derivation engine and the workbench's drift check are gone.
+- Stylesheets are Sass modules with no deprecated functions, and the vendor-prefix mixins are gone since Chromium is the only target.
+- Babel targets current Chromium; core-js, lodash and other unused packages were dropped, and everything moved to devDependencies so installers no longer ship the build tooling.
+- The dataset script writes the current origin list (Mystery Gift, no Event or Special) and no longer emits the unused `dex-types.json`, so a rerun can't clobber either.
+- Hover effects no longer switch off on touchscreen laptops, the tab title resets when leaving a dex, and national-dex box titles number by national id like their tiles.
 
 ## [1.2.0] — 2026-07-19
 

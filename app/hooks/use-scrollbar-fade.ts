@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 
-// how long a scrollbar stays visible after its container stops scrolling
 const FADE_DELAY_MS = 1000;
 
 // tags the scrolling element with .is-scrolling; the scrollbar-fade mixin keys off it

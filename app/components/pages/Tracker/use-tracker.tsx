@@ -1,19 +1,16 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { TESTING } from '../../../utils/testing';
+import { deleteCaptures as deleteStoredCaptures, progressToCaptures, writeCapture } from '../../../utils/local-data';
 import { isRecordComplete } from '../../../utils/capture-fields';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { useDeleteCapture, useUpdateCapture } from '../../../hooks/queries/captures';
 
 import type { Capture } from '../../../types';
-import type { ReactNode, Dispatch, SetStateAction } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { TranslationKey } from '../../../i18n/translations';
-import type { UpdateCapturePayload } from '../../../hooks/queries/captures';
+import type { UpdateCapturePayload } from '../../../utils/local-data';
 
-export type UICapture = Capture;
-
-// a checklist check wears the sealed look; sealFx is the TESTING kill switch
-export function isDisplaySealed (capture: UICapture, checklist: boolean, sealFx: boolean): boolean {
+export function isDisplaySealed (capture: Capture, checklist: boolean, sealFx: boolean): boolean {
   return sealFx && (checklist ? capture.captured : capture.sealed);
 }
 
@@ -45,14 +42,13 @@ export function anyFilterActive (filters: TrackerFilters): boolean {
   return FILTER_META.some((meta) => filters[meta.id]);
 }
 
-export function matchesFilters (capture: UICapture, filters: TrackerFilters): boolean {
+export function matchesFilters (capture: Capture, filters: TrackerFilters): boolean {
   if (filters.hideMarked && capture.captured) {
     return false;
   }
   if (filters.temporaryOnly && capture.status !== 'temporary') {
     return false;
   }
-  // unmarked slots aren't work in progress
   if (filters.unsealedOnly && (!capture.captured || capture.sealed)) {
     return false;
   }
@@ -66,18 +62,33 @@ export function matchesFilters (capture: UICapture, filters: TrackerFilters): bo
   return true;
 }
 
-// split contexts: a captures change must not re-render tiles that only consume actions
+const NARROW_QUERY = '(max-width: 750px)';
+
+function useMediaQuery (query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const list = window.matchMedia(query);
+    const update = () => setMatches(list.matches);
+    list.addEventListener('change', update);
+    return () => list.removeEventListener('change', update);
+  }, [query]);
+
+  return matches;
+}
+
+// split so a captures change doesn't re-render tiles that only consume actions
 interface TrackerState {
-  captures: UICapture[];
+  captures: Capture[];
 }
 
 interface TrackerActions {
-  setCaptures: Dispatch<SetStateAction<UICapture[]>>;
+  setCaptures: Dispatch<SetStateAction<Capture[]>>;
   updateCapture: (payload: UpdateCapturePayload) => void;
   deleteCaptures: (pokemon: number[]) => void;
-  // TESTING only: render-time kill switch for the sealed visuals; never touches data
   sealFx: boolean;
   setSealFx: Dispatch<SetStateAction<boolean>>;
+  narrow: boolean;
 }
 
 const TrackerStateContext = createContext<TrackerState>({ captures: [] });
@@ -88,6 +99,7 @@ const TrackerActionsContext = createContext<TrackerActions>({
   deleteCaptures: () => {},
   sealFx: true,
   setSealFx: () => {},
+  narrow: false,
 });
 
 interface Props {
@@ -96,19 +108,21 @@ interface Props {
 
 export const TrackerContextProvider = ({ children }: Props) => {
   const { activeDex } = useDexContext();
-  const [captures, setCaptures] = useState<UICapture[]>([]);
+  const dexId = activeDex!.id;
+  const [captures, setCaptures] = useState(() => progressToCaptures(activeDex!));
   const [sealFx, setSealFx] = useState(true);
+  const narrow = useMediaQuery(NARROW_QUERY);
 
-  // one shared mutation instead of one observer per tile
-  const { mutate } = useUpdateCapture(activeDex!.id, TESTING && !sealFx);
-  const updateCapture = useCallback((payload: UpdateCapturePayload) => mutate({ payload }), [mutate]);
-  const { mutate: deleteMutate } = useDeleteCapture(activeDex!.id);
-  const deleteCaptures = useCallback((pokemon: number[]) => deleteMutate({ payload: { pokemon } }), [deleteMutate]);
+  const updateCapture = useCallback(
+    (payload: UpdateCapturePayload) => writeCapture(dexId, payload, TESTING && !sealFx),
+    [dexId, sealFx],
+  );
+  const deleteCaptures = useCallback((pokemon: number[]) => deleteStoredCaptures(dexId, pokemon), [dexId]);
 
   const stateValue = useMemo<TrackerState>(() => ({ captures }), [captures]);
   const actionsValue = useMemo<TrackerActions>(
-    () => ({ setCaptures, updateCapture, deleteCaptures, sealFx, setSealFx }),
-    [updateCapture, deleteCaptures, sealFx],
+    () => ({ setCaptures, updateCapture, deleteCaptures, sealFx, setSealFx, narrow }),
+    [updateCapture, deleteCaptures, sealFx, narrow],
   );
 
   return (
@@ -120,10 +134,6 @@ export const TrackerContextProvider = ({ children }: Props) => {
   );
 };
 
-export const useTrackerState = () => {
-  return useContext(TrackerStateContext);
-};
+export const useTrackerState = () => useContext(TrackerStateContext);
 
-export const useTrackerActions = () => {
-  return useContext(TrackerActionsContext);
-};
+export const useTrackerActions = () => useContext(TrackerActionsContext);

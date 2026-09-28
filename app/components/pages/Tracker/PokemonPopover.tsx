@@ -3,19 +3,18 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock, faLongArrowAltRight, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, unansweredFields, withFieldInvariants } from '../../../utils/capture-fields';
+import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, statusOptions, unansweredFields, withFieldInvariants } from '../../../utils/capture-fields';
 import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { PokemonName } from '../../library/PokemonName';
-import { iconClass } from '../../../utils/pokemon';
-import { nationalId, padding, serebiiLink } from '../../../utils/formatting';
+import { dexNumber, iconClass } from '../../../utils/pokemon';
+import { serebiiLink } from '../../../utils/formatting';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../../hooks/use-dismissable';
 import { useTrackerActions, useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { CaptureMetadata, CaptureStatus } from '../../../types';
-import type { TranslationKey } from '../../../i18n/translations';
 
 const SEREBII_LINKS: Record<string, string> = {
   x_y: 'pokedex-xy',
@@ -34,13 +33,6 @@ const SEREBII_LINKS: Record<string, string> = {
   home: 'pokedex-sv',
 };
 
-const STATUS_OPTIONS: { value: CaptureStatus; labelKey: TranslationKey }[] = [
-  { value: 'caught', labelKey: 'status.caught' },
-  { value: 'temporary', labelKey: 'status.temporary' },
-  { value: 'unobtainable', labelKey: 'status.unobtainable' },
-];
-
-// gap from the anchor tile and the viewport edges
 const GAP = 8;
 
 interface Props {
@@ -61,7 +53,6 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
 
   // null until measured — renders hidden for one commit so it can size itself
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const [above, setAbove] = useState(false);
 
   const missing = capture ? unansweredFields(capture) : [];
 
@@ -90,25 +81,20 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     const popW = el.offsetWidth;
     const popH = el.offsetHeight;
 
-    // below the tile, flipping above when cramped, pinned when neither fits
     const fitsBelow = rect.bottom + GAP + popH <= window.innerHeight - GAP;
     const fitsAbove = rect.top - GAP - popH >= GAP;
 
     let top = rect.bottom + GAP;
-    let flipped = false;
     if (!fitsBelow && fitsAbove) {
       top = rect.top - popH - GAP;
-      flipped = true;
     } else if (!fitsBelow && !fitsAbove) {
       top = Math.max(GAP, window.innerHeight - popH - GAP);
     }
     const left = Math.max(GAP, Math.min(rect.left + rect.width / 2 - popW / 2, window.innerWidth - popW - GAP));
 
     setPosition({ top, left });
-    setAbove(flipped);
   }, [selectedPokemon, onClose]);
 
-  // observed rather than keyed on deps — content height changes many ways
   useLayoutEffect(() => {
     const el = popoverRef.current;
     if (!el) {
@@ -116,16 +102,13 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     }
 
     reposition();
-    // repositioning only moves the element, so this can't feed back
     const observer = new ResizeObserver(reposition);
     observer.observe(el);
     return () => observer.disconnect();
   }, [reposition]);
 
-  // fixed positioning would drift from the tile
   useEffect(() => {
     const close = (e?: Event) => {
-      // the popover's own body scrolls; only page scroll should dismiss
       if (e?.target instanceof Node && popoverRef.current?.contains(e.target)) {
         return;
       }
@@ -133,7 +116,6 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     };
 
     document.addEventListener('scroll', close, { capture: true, passive: true });
-    // resize targets window, not a Node, so it always dismisses
     window.addEventListener('resize', close);
     return () => {
       document.removeEventListener('scroll', close, true);
@@ -151,7 +133,6 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     }
   };
 
-  // release clears the slot and closes
   const handleRelease = () => {
     if (!capture) {
       return;
@@ -174,71 +155,68 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
   }
 
   const { pokemon } = capture;
-  // display state: seal fx off (TESTING) opens the form on sealed mons for data fixing
+  // seal fx off (TESTING) opens the form on sealed mons for data fixing
   const sealed = capture.sealed && sealFx;
   const dexView = activeDexView!;
-  const regional = dexView.dex_type.tags.includes('regional');
-  const idToDisplay = regional ? (pokemon.dex_number === -1 ? '---' : pokemon.dex_number) : nationalId(pokemon.national_id);
 
   return (
-    <>
-      <div
-        className={classNames('pokemon-popover', { 'popover-above': above, closing, sealed })}
-        ref={popoverRef}
-        style={position ?? { visibility: 'hidden' }}
-      >
-        <div className="popover-header">
-          <i className={iconClass(pokemon, dexView)} />
-          <h1><PokemonName name={pokemon.name} nameJa={pokemon.name_ja} /></h1>
-          <h2>#{padding(idToDisplay, dexView.total >= 1000 ? 4 : 3)}</h2>
-          <button aria-label={t('popover.close')} className="popover-close" onClick={dismiss} title={t('popover.close')} type="button">
-            <FontAwesomeIcon icon={faXmark} />
-          </button>
-        </div>
+    <div
+      className={classNames('pokemon-popover', { closing, sealed })}
+      ref={popoverRef}
+      style={position ?? { visibility: 'hidden' }}
+    >
+      <div className="popover-header">
+        <i className={iconClass(pokemon, dexView)} />
+        <h1><PokemonName name={pokemon.name} nameJa={pokemon.name_ja} /></h1>
+        <h2>#{dexNumber(pokemon, dexView)}</h2>
+        <button aria-label={t('popover.close')} className="popover-close" onClick={dismiss} title={t('popover.close')} type="button">
+          <FontAwesomeIcon icon={faXmark} />
+        </button>
+      </div>
 
-        <div className="popover-body">
-          {!capture.captured && <p className="popover-uncaught-note">{t('info.notCaught')}</p>}
+      <div className="popover-body">
+        {!capture.captured && <p className="popover-uncaught-note">{t('info.notCaught')}</p>}
 
-          {capture.captured && sealed &&
-            <dl className="popover-record">
-              <div className="popover-record-row">
-                <dt>{t('info.status')}</dt>
-                <dd>{t('seal.sealed')}</dd>
+        {capture.captured && sealed &&
+          <dl className="popover-record">
+            <div className="popover-record-row">
+              <dt>{t('info.status')}</dt>
+              <dd>{t('seal.sealed')}</dd>
+            </div>
+            {CAPTURE_FIELDS.filter((field) => field.kind !== 'save').map((field) => (
+              <div className="popover-record-row" key={field.id}>
+                <dt>{t(field.labelKey)}</dt>
+                <dd>{formatFieldValue(field, capture, locale, saves)}</dd>
               </div>
-              {CAPTURE_FIELDS.filter((field) => field.kind !== 'save').map((field) => (
-                <div className="popover-record-row" key={field.id}>
-                  <dt>{t(field.labelKey)}</dt>
-                  <dd>{formatFieldValue(field, capture, locale, saves)}</dd>
-                </div>
-              ))}
-            </dl>
-          }
+            ))}
+          </dl>
+        }
 
-          {capture.captured && !sealed &&
-            <>
-              <div className="form-group">
-                <label htmlFor="status">{t('info.status')}</label>
-                <Dropdown
-                  id="status"
-                  onSelect={(next) => patch({ status: next as CaptureStatus })}
-                  options={STATUS_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
-                  value={capture.status || 'caught'}
-                />
-              </div>
-              {capture.status !== 'unobtainable' && CAPTURE_FIELDS.map((field) => (
-                <CaptureFieldControl
-                  field={field}
-                  genderLock={capture.pokemon.gender_lock}
-                  idPrefix="capture"
-                  key={field.id}
-                  onChange={patch}
-                  value={capture}
-                />
-              ))}
-            </>
-          }
+        {capture.captured && !sealed &&
+          <>
+            <div className="form-group">
+              <label htmlFor="status">{t('info.status')}</label>
+              <Dropdown
+                id="status"
+                onSelect={(next) => patch({ status: next as CaptureStatus })}
+                options={statusOptions(locale)}
+                value={capture.status || 'caught'}
+              />
+            </div>
+            {capture.status !== 'unobtainable' && CAPTURE_FIELDS.map((field) => (
+              <CaptureFieldControl
+                field={field}
+                genderLock={capture.pokemon.gender_lock}
+                idPrefix="capture"
+                key={field.id}
+                onChange={patch}
+                value={capture}
+              />
+            ))}
+          </>
+        }
 
-          {!sealed &&
+        {!sealed &&
           <div className="popover-links">
             <a
               href={`http://bulbapedia.bulbagarden.net/wiki/${encodeURI(pokemon.name)}_(Pok%C3%A9mon)`}
@@ -255,29 +233,28 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
               Serebii <FontAwesomeIcon icon={faLongArrowAltRight} />
             </a>
           </div>
-          }
-        </div>
-
-        {/* keyed on the real flag: editing a sealed mon offers no Seal or Release */}
-        {capture.captured && !capture.sealed &&
-          <div className="popover-footer">
-            {capture.status === 'caught' &&
-              <button
-                className="popover-seal"
-                disabled={missing.length > 0}
-                onClick={handleSealClick}
-                title={missing.length > 0 ? t('seal.incomplete', { count: missing.length }) : undefined}
-                type="button"
-              >
-                <FontAwesomeIcon icon={faLock} /> {t('seal.action')}
-              </button>
-            }
-            <button className="popover-release" onClick={handleRelease} type="button">
-              <FontAwesomeIcon icon={faTrash} /> {t('info.release')}
-            </button>
-          </div>
         }
       </div>
-    </>
+
+      {/* keyed on the real flag: editing a sealed mon offers no Seal or Release */}
+      {capture.captured && !capture.sealed &&
+        <div className="popover-footer">
+          {capture.status === 'caught' &&
+            <button
+              className="popover-seal"
+              disabled={missing.length > 0}
+              onClick={handleSealClick}
+              title={missing.length > 0 ? t('seal.incomplete', { count: missing.length }) : undefined}
+              type="button"
+            >
+              <FontAwesomeIcon icon={faLock} /> {t('seal.action')}
+            </button>
+          }
+          <button className="popover-release" onClick={handleRelease} type="button">
+            <FontAwesomeIcon icon={faTrash} /> {t('info.release')}
+          </button>
+        </div>
+      }
+    </div>
   );
 }

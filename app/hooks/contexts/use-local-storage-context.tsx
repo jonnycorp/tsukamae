@@ -1,44 +1,43 @@
 import { createContext, useContext, useMemo } from 'react';
-import { useLocalStorage } from '../use-local-storage';
 
 import { DEFAULT_THEME } from '../../palette/tokens';
 import { SOFT_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
+import { useLocalStorage } from '../use-local-storage';
 
 import type { Locale } from '../../i18n/translations';
 import type { ReactNode } from 'react';
-import type { SetLocalStorageFn } from '../use-local-storage';
 
-interface LocalStorageContextState {
-  hideNotification: boolean;
-  setHideNotification: SetLocalStorageFn<boolean>;
-  theme: string;
-  setTheme: SetLocalStorageFn<string>;
-  isSoftDark: boolean;
-  setIsSoftDark: SetLocalStorageFn<boolean>;
-  // progress bars: plain caught fill vs per-status segments (click toggles)
-  showProgressBreakdown: boolean;
-  setShowProgressBreakdown: SetLocalStorageFn<boolean>;
-  // tile metadata displays (independent switches; groundwork for the v1.3 filters)
-  showLanguageTags: boolean;
-  setShowLanguageTags: SetLocalStorageFn<boolean>;
-  // the app's UI language (distinct from a mon's per-capture origin language)
+interface PreferencesState {
   locale: Locale;
-  setLocale: SetLocalStorageFn<Locale>;
+  setLocale: (locale: Locale) => void;
+  showProgressBreakdown: boolean;
+  setShowProgressBreakdown: (show: boolean) => void;
+  showLanguageTags: boolean;
+  setShowLanguageTags: (show: boolean) => void;
 }
 
-const LocalStorageContext = createContext<LocalStorageContextState>({
-  hideNotification: false,
-  setHideNotification: () => {},
-  theme: DEFAULT_THEME,
-  setTheme: () => {},
-  isSoftDark: false,
-  setIsSoftDark: () => {},
+// kept apart so a theme switch doesn't re-render every tile
+interface ThemeState {
+  theme: string;
+  setTheme: (theme: string) => void;
+  isSoftDark: boolean;
+  setIsSoftDark: (softDark: boolean) => void;
+}
+
+const PreferencesContext = createContext<PreferencesState>({
+  locale: 'en',
+  setLocale: () => {},
   showProgressBreakdown: false,
   setShowProgressBreakdown: () => {},
   showLanguageTags: false,
   setShowLanguageTags: () => {},
-  locale: 'en',
-  setLocale: () => {},
+});
+
+const ThemeContext = createContext<ThemeState>({
+  theme: DEFAULT_THEME,
+  setTheme: () => {},
+  isSoftDark: false,
+  setIsSoftDark: () => {},
 });
 
 interface Props {
@@ -46,48 +45,35 @@ interface Props {
 }
 
 export const LocalStorageContextProvider = ({ children }: Props) => {
-  const [hideNotification, setHideNotification] = useLocalStorage('notif-2024.01.20', { defaultValue: false, parseAsJson: true });
-  const [theme, setTheme] = useLocalStorage<string>(THEME_STORAGE_KEY, { defaultValue: DEFAULT_THEME, parseAsJson: true });
-  const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, { defaultValue: false, parseAsJson: true });
-  const [showProgressBreakdown, setShowProgressBreakdown] = useLocalStorage('progressBreakdown', { defaultValue: false, parseAsJson: true });
-  const [showLanguageTags, setShowLanguageTags] = useLocalStorage('languageTags', { defaultValue: false, parseAsJson: true });
-  const [locale, setLocale] = useLocalStorage<Locale>('locale', { defaultValue: 'en', parseAsJson: true });
+  const [locale, setLocale] = useLocalStorage<Locale>('locale', 'en');
+  const [showProgressBreakdown, setShowProgressBreakdown] = useLocalStorage('progressBreakdown', false);
+  const [showLanguageTags, setShowLanguageTags] = useLocalStorage('languageTags', false);
+  const [theme, setTheme] = useLocalStorage(THEME_STORAGE_KEY, DEFAULT_THEME);
+  const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, false);
 
-  const contextValue = useMemo<LocalStorageContextState>(() => ({
-    hideNotification,
-    setHideNotification,
-    theme,
-    setTheme,
-    isSoftDark,
-    setIsSoftDark,
+  const preferences = useMemo<PreferencesState>(() => ({
+    locale,
+    setLocale,
     showProgressBreakdown,
     setShowProgressBreakdown,
     showLanguageTags,
     setShowLanguageTags,
-    locale,
-    setLocale,
-  }), [
-    hideNotification,
-    setHideNotification,
-    theme,
-    setTheme,
-    isSoftDark,
-    setIsSoftDark,
-    showProgressBreakdown,
-    setShowProgressBreakdown,
-    showLanguageTags,
-    setShowLanguageTags,
-    locale,
-    setLocale,
-  ]);
+  }), [locale, setLocale, showProgressBreakdown, setShowProgressBreakdown, showLanguageTags, setShowLanguageTags]);
+
+  const themeState = useMemo<ThemeState>(
+    () => ({ theme, setTheme, isSoftDark, setIsSoftDark }),
+    [theme, setTheme, isSoftDark, setIsSoftDark],
+  );
 
   return (
-    <LocalStorageContext.Provider value={contextValue}>
-      {children}
-    </LocalStorageContext.Provider>
+    <PreferencesContext.Provider value={preferences}>
+      <ThemeContext.Provider value={themeState}>
+        {children}
+      </ThemeContext.Provider>
+    </PreferencesContext.Provider>
   );
 };
 
-export const useLocalStorageContext = () => {
-  return useContext(LocalStorageContext);
-};
+export const useLocalStorageContext = () => useContext(PreferencesContext);
+
+export const useThemeContext = () => useContext(ThemeContext);

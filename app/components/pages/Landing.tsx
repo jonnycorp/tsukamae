@@ -22,7 +22,7 @@ export function Landing () {
 
   const hasDexes = (dexes?.length ?? 0) > 0;
 
-  // the row itself opens the dex, so stop propagation
+  // the row itself opens the dex
   const handleMoveClick = (e: MouseEvent<HTMLButtonElement>, id: string, delta: number) => {
     e.stopPropagation();
     moveDex(id, delta);
@@ -44,7 +44,7 @@ export function Landing () {
         </div>
 
         <div className="sub">
-          {hasDexes ?
+          {hasDexes &&
             <ul className={classNames('dex-list', { editing })}>
               {dexes!.map((dex, index) => {
                 const counts = dexCounts(dex);
@@ -89,8 +89,7 @@ export function Landing () {
                   </li>
                 );
               })}
-            </ul> :
-            <p className="dex-list-empty">{t('landing.empty')}</p>
+            </ul>
           }
 
           <button className="btn btn-blue" onClick={() => setShowCreate(true)} type="button">

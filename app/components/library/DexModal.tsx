@@ -1,61 +1,37 @@
-import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLongArrowAltRight, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { faLongArrowAltRight } from '@fortawesome/free-solid-svg-icons';
+import { useRef, useState } from 'react';
 
 import { CaptureFieldControl } from './CaptureFieldControl';
 import { Dropdown } from './Dropdown';
-import { DEFAULTABLE_FIELDS, withFieldInvariants } from '../../utils/capture-fields';
-import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex, progressToCaptures } from '../../utils/local-data';
+import { ModalShell } from './ModalShell';
+import { DEFAULTABLE_FIELDS, statusOptions, withFieldInvariants } from '../../utils/capture-fields';
+import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex } from '../../utils/local-data';
 import { localizeCatalogDexName, localizeCatalogGame, localizeDexType } from '../../i18n/names';
-import { QueryKey } from '../../hooks/queries/captures';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../hooks/use-dismissable';
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { CaptureMetadata, CaptureStatus } from '../../types';
 import type { CatalogDex, PersonalDex } from '../../utils/local-data';
-import type { ChangeEvent, FormEvent, MouseEvent, ReactNode } from 'react';
-import type { TranslationKey } from '../../i18n/translations';
+import type { ChangeEvent, FormEvent } from 'react';
 
-const STATUS_OPTIONS: { value: CaptureStatus; labelKey: TranslationKey }[] = [
-  { value: 'caught', labelKey: 'status.caught' },
-  { value: 'temporary', labelKey: 'status.temporary' },
-  { value: 'unobtainable', labelKey: 'status.unobtainable' },
-];
-
-interface ModalShellProps {
-  children: ReactNode;
-  // plays the overlay fade-out while true
-  closing: boolean;
-  contentLabel: string;
-  onDismiss: () => void;
+interface CatalogGroup {
+  game: CatalogDex['game'];
+  entries: CatalogDex[];
 }
 
-function ModalShell ({ children, closing, contentLabel, onDismiss }: ModalShellProps) {
-  const { t } = useTranslation();
-
-  const handleOverlayClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onDismiss();
-    }
-  };
-
-  return (
-    <div className={classNames('modal-overlay', { closing })} onClick={handleOverlayClick}>
-      <div aria-label={contentLabel} className="modal" role="dialog">
-        <button aria-label={t('popover.close')} className="modal-close" onClick={onDismiss} title={t('popover.close')} type="button">
-          <FontAwesomeIcon icon={faXmark} />
-        </button>
-        {children}
-      </div>
-    </div>
-  );
-}
+const CATALOG_GROUPS = DEX_CATALOG.reduce<CatalogGroup[]>((groups, entry) => {
+  const group = groups.find((existing) => existing.game.id === entry.game.id);
+  if (group) {
+    group.entries.push(entry);
+  } else {
+    groups.push({ game: entry.game, entries: [entry] });
+  }
+  return groups;
+}, []);
 
 interface Props {
-  // set to edit, absent to create
   dex?: PersonalDex;
   onRequestClose: () => void;
 }
@@ -63,7 +39,6 @@ interface Props {
 export function DexModal ({ dex, onRequestClose }: Props) {
   const { createDex, updateDex } = useDexContext();
   const { t, locale } = useTranslation();
-  const queryClient = useQueryClient();
   const pendingActionRef = useRef<() => void>();
   const { closing, dismiss } = useDismissable({
     onDismissed: () => {
@@ -83,32 +58,13 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const [defaultStatus, setDefaultStatus] = useState<CaptureStatus>(dex?.captureDefaults?.status || 'caught');
   const [defaults, setDefaults] = useState<Partial<CaptureMetadata>>(() => ({ ...dex?.captureDefaults }));
 
-  const gamesWithDexes = useMemo(() => {
-    const groups: { game: CatalogDex['game']; entries: CatalogDex[] }[] = [];
-    const byGameId = new Map<string, { game: CatalogDex['game']; entries: CatalogDex[] }>();
-    for (const entry of DEX_CATALOG) {
-      let group = byGameId.get(entry.game.id);
-      if (!group) {
-        group = { game: entry.game, entries: [] };
-        byGameId.set(entry.game.id, group);
-        groups.push(group);
-      }
-      group.entries.push(entry);
-    }
-    return groups;
-  }, []);
-
-  const dexesForGame = useMemo(
-    () => gamesWithDexes.find((group) => group.game.id === gameId)?.entries || [],
-    [gamesWithDexes, gameId],
-  );
+  const dexesForGame = CATALOG_GROUPS.find((group) => group.game.id === gameId)?.entries || [];
 
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value);
 
   const handleGameChange = (newGameId: string) => {
     setGameId(newGameId);
-    // default to the first dex of the newly selected game
-    const firstEntry = gamesWithDexes.find((group) => group.game.id === newGameId)?.entries[0];
+    const firstEntry = CATALOG_GROUPS.find((group) => group.game.id === newGameId)?.entries[0];
     if (firstEntry) {
       setCatalogKey(firstEntry.key);
     }
@@ -121,7 +77,6 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // empty title falls back to the localized catalog name
     const resolvedTitle = title.trim() || localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name);
 
     const captureDefaults = { ...defaults, status: defaultStatus };
@@ -129,10 +84,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     if (dex) {
       updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults });
     } else {
-      pendingActionRef.current = () => {
-        const newDex = createDex({ title: resolvedTitle, catalogKey, shiny, checklist, captureDefaults: checklist ? undefined : captureDefaults });
-        queryClient.setQueryData([QueryKey.ListCaptures, newDex.id], progressToCaptures(newDex));
-      };
+      pendingActionRef.current = () => createDex({ title: resolvedTitle, catalogKey, shiny, checklist, captureDefaults: checklist ? undefined : captureDefaults });
     }
     dismiss();
   };
@@ -164,7 +116,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                   <Dropdown
                     id="dex_game"
                     onSelect={handleGameChange}
-                    options={gamesWithDexes.map((group) => ({ value: group.game.id, label: localizeCatalogGame(locale, group.game.id, group.game.name) }))}
+                    options={CATALOG_GROUPS.map((group) => ({ value: group.game.id, label: localizeCatalogGame(locale, group.game.id, group.game.name) }))}
                     value={gameId}
                   />
                 </div>
@@ -221,7 +173,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                   <Dropdown
                     id="default_status"
                     onSelect={(next) => setDefaultStatus(next as CaptureStatus)}
-                    options={STATUS_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
+                    options={statusOptions(locale)}
                     value={defaultStatus}
                   />
                 </div>

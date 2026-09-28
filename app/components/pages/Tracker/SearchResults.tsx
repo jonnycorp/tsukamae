@@ -2,21 +2,24 @@ import { useMemo } from 'react';
 
 import { EMPTY_FILTERS, matchesFilters } from './use-tracker';
 import { Pokemon } from './Pokemon';
-import { nationalId, padding } from '../../../utils/formatting';
+import { padding } from '../../../utils/formatting';
 import { useTranslation } from '../../../hooks/use-translation';
 
+import type { Capture } from '../../../types';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TrackerFilters, UICapture } from './use-tracker';
-
-const DEFER_CUTOFF = 120;
+import type { TrackerFilters } from './use-tracker';
 
 // typing produces hiragana; names are katakana
 function toKatakana (value: string): string {
   return value.replace(/[ぁ-ゖ]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0x60));
 }
 
+function matchesNumber (id: number, query: string): boolean {
+  return String(id) === query || padding(id, 3) === query || padding(id, 4) === query;
+}
+
 interface Props {
-  captures: UICapture[];
+  captures: Capture[];
   filters: TrackerFilters;
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
@@ -32,36 +35,19 @@ export function SearchResults ({ captures, filters, query, setFilters, setQuery,
   const handleClearAllFilters = () => setFilters(EMPTY_FILTERS);
   const handleClearClick = () => setQuery('');
 
-  const filteredCaptures = useMemo(() => {
-    return captures.filter((capture) => {
-      const dexId = capture.pokemon.dex_number;
-      const natId = nationalId(capture.pokemon.national_id);
-
-      const matchesQuery =
-        // case-insensitive name prefix match (e.g. bulba)
-        capture.pokemon.name.toLowerCase().indexOf(query.toLowerCase()) === 0 ||
-        // japanese name prefix match, hiragana or katakana (e.g. ふしぎ / フシギ)
-        (capture.pokemon.name_ja || '').indexOf(toKatakana(query)) === 0 ||
-        // nickname match
-        (capture.nickname || '').toLowerCase().indexOf(query.toLowerCase()) === 0 ||
-        // exact dex ID match (e.g. 1, 2, 3)
-        dexId.toString() === query ||
-        // exact national ID match (e.g. 1, 2, 3)
-        natId.toString() === query ||
-        // exact 3-digit formatted dex ID match (e.g. 001, 002, 003)
-        padding(dexId, 3) === query ||
-        // exact 4-digit formatted dex ID match (e.g. 0001, 0002, 0003)
-        padding(dexId, 4) === query ||
-        // exact 3-digit formatted national ID match (e.g. 001, 002, 003)
-        padding(natId, 3) === query ||
-        // exact 4-digit formatted national ID match (e.g. 0001, 0002, 0003)
-        padding(natId, 4) === query;
-
-      return matchesFilters(capture, filters) && matchesQuery;
-    });
+  const results = useMemo(() => {
+    const lower = query.toLowerCase();
+    const kana = toKatakana(query);
+    return captures.filter((capture) => matchesFilters(capture, filters) && (
+      capture.pokemon.name.toLowerCase().startsWith(lower) ||
+      (capture.pokemon.name_ja || '').startsWith(kana) ||
+      (capture.nickname || '').toLowerCase().startsWith(lower) ||
+      matchesNumber(capture.pokemon.dex_number, query) ||
+      matchesNumber(capture.pokemon.national_id, query)
+    ));
   }, [captures, filters, query]);
 
-  if (filteredCaptures.length === 0) {
+  if (results.length === 0) {
     let message = <p>{t('searchResults.none')} <a className="link" onClick={handleClearClick}>{t('searchResults.clearSearch')}</a></p>;
 
     if (filters.hideMarked) {
@@ -85,13 +71,8 @@ export function SearchResults ({ captures, filters, query, setFilters, setQuery,
 
   return (
     <div className="search-results">
-      {filteredCaptures.map((capture, i) => (
-        <Pokemon
-          capture={capture}
-          delay={i > DEFER_CUTOFF ? 5 : 0}
-          key={capture.pokemon.id}
-          setSelectedPokemon={setSelectedPokemon}
-        />
+      {results.map((capture) => (
+        <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />
       ))}
     </div>
   );

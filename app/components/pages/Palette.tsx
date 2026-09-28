@@ -7,25 +7,20 @@ import {
   PALETTE_PRESETS,
   PRESET_DOT_BASES,
   TOKEN_NAMES,
-  colorsClose,
   contrastRatio,
   cssValue,
   hexToRgba,
-  parseCssColor,
   resolvePalette,
   rgbaToHex,
 } from '../../palette/tokens';
-
 import { CONTRAST_PAIRS } from '../../palette/contrast-pairs';
-import { applyTheme } from '../../palette/apply-theme';
-import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
+import { applyTheme, setRootTokens } from '../../palette/apply-theme';
+import { useThemeContext } from '../../hooks/contexts/use-local-storage-context';
 import { usePaletteBroadcastSender } from '../../palette/use-palette-broadcast';
 
 import type { Rgba } from '../../palette/tokens';
 
-// dev-only workbench (?palette=1): live-overrides :root tokens, commit via the export block
-
-// flattened from the audit's list so the workbench and `yarn lint:contrast` never disagree
+// flattened from the audit's list so the workbench and yarn lint:contrast never disagree
 const PAIRINGS = CONTRAST_PAIRS.flatMap((pair) => pair.bg.map((bg) => ({
   label: `${pair.label} · ${bg}${pair.mode === 'both' ? '' : ` (${pair.mode})`}`,
   fg: pair.fg,
@@ -38,40 +33,20 @@ function formatRatio (ratio: number): string {
 }
 
 export function Palette () {
-  const { theme } = useLocalStorageContext();
+  const { theme } = useThemeContext();
 
-  // base-name → picked hex. Empty = untouched page showing the active theme
   const [overrides, setOverrides] = useState<Record<string, string>>({});
-  // tokens whose applied value disagrees with the JS mirror (files drifted)
-  const [driftedTokens, setDriftedTokens] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
-  // the active theme is the working baseline; picks layer on top of it
   const baseline = useMemo(() => ({ ...PALETTE_BASES, ...PALETTE_PRESETS[theme] }), [theme]);
   const resolved = useMemo(() => resolvePalette({ ...PALETTE_PRESETS[theme], ...overrides }), [theme, overrides]);
   const dirty = Object.keys(overrides).length > 0;
   const broadcast = usePaletteBroadcastSender();
 
-  // self-check: the applied :root values (build CSS or theme overrides) vs this page's JS mirror
   useEffect(() => {
-    const styles = getComputedStyle(document.documentElement);
-    const expected = resolvePalette(PALETTE_PRESETS[theme]);
-    const drifted = TOKEN_NAMES.filter((name) => {
-      const built = parseCssColor(styles.getPropertyValue(`--${name}`));
-      return !built || !colorsClose(built, expected[name]);
-    });
-    setDriftedTokens(drifted);
-  }, [theme]);
-
-  // overrides rewrite every token on :root (+ broadcast); reset falls back to the active theme
-  useEffect(() => {
-    const root = document.documentElement;
     if (dirty) {
-      const values: Record<string, string> = {};
-      for (const name of TOKEN_NAMES) {
-        values[name] = cssValue(resolved[name]);
-        root.style.setProperty(`--${name}`, values[name]);
-      }
+      const values = Object.fromEntries(TOKEN_NAMES.map((name) => [name, cssValue(resolved[name])]));
+      setRootTokens(values);
       broadcast(values);
     } else {
       applyTheme(theme);
@@ -93,9 +68,9 @@ export function Palette () {
   };
 
   const exportText = useMemo(() => {
-    const lines = Object.keys(PALETTE_BASES).map((name) => `  '${name}': ${rgbaToHex(resolved[name])},`);
-    return `$palette-bases: (\n${lines.join('\n')}\n);`;
-  }, [resolved]);
+    const lines = PRESET_DOT_BASES.map((name) => `    '${name}': '${rgbaToHex(resolved[name])}',`);
+    return `  '${theme}': {\n${lines.join('\n')}\n  },`;
+  }, [resolved, theme]);
 
   const handleCopyClick = () => {
     navigator.clipboard.writeText(exportText).then(() => {
@@ -108,12 +83,6 @@ export function Palette () {
     <div className="palette-page">
       <div className="palette-toolbar">
         <h1>Palette</h1>
-        {driftedTokens.length > 0 &&
-          <span className="palette-drift">
-            variables.scss / tokens.ts drift: {driftedTokens.join(', ')}
-          </span>
-        }
-        {driftedTokens.length === 0 && <span className="palette-ok">SCSS ↔ JS mirror in sync</span>}
         <button className="palette-reset" disabled={!dirty} onClick={() => setOverrides({})} type="button">
           Reset to theme
         </button>
@@ -227,7 +196,7 @@ export function Palette () {
             <div className="popover-body">
               <div className="form-group">
                 <label>Origin Game</label>
-                <select className="form-control"><option>Violet</option></select>
+                <input className="form-control" readOnly value="Violet" />
               </div>
             </div>
             <div className="popover-links">
@@ -242,7 +211,7 @@ export function Palette () {
       </section>
 
       <section>
-        <h2>Export <small>paste into styles/variables.scss (and mirror any changes in palette/tokens.ts)</small></h2>
+        <h2>Export <small>paste into PALETTE_PRESETS in palette/tokens.ts</small></h2>
         <pre className="palette-export">{exportText}</pre>
         <button className="palette-copy" onClick={handleCopyClick} type="button">{copied ? 'Copied ✓' : 'Copy'}</button>
       </section>

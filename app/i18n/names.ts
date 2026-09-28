@@ -1,8 +1,5 @@
 import type { Locale } from './translations';
 
-// JA names for data-derived labels, keyed by stable ids, falling back to the English baked into the data
-
-// data/games.json ids — the per-mon "which game did this come from" options
 const JA_ORIGIN_GAMES: Record<string, string> = {
   home: 'HOME',
   legends_za: 'LEGENDS Z-A',
@@ -29,7 +26,6 @@ const JA_ORIGIN_GAMES: Record<string, string> = {
   other: 'その他',
 };
 
-// catalog game ids (version pairs shown in the dex picker/indicator)
 const JA_CATALOG_GAMES: Record<string, string> = {
   home: 'HOME',
   legends_za: 'LEGENDS Z-A',
@@ -46,7 +42,6 @@ const JA_CATALOG_GAMES: Record<string, string> = {
   x: 'X・Y',
 };
 
-// dex_type.name values (and the indicator's tag labels that share them)
 const JA_DEX_TYPES: Record<string, string> = {
   Regional: '地方図鑑',
   'Full National': '全国図鑑',
@@ -82,7 +77,6 @@ const JA_CATALOG_DEX_NAMES: Record<string, string> = {
   'x-y-regional': 'X・Y 地方図鑑',
 };
 
-// data/languages.json ids — a mon's language of origin
 const JA_CAPTURE_LANGUAGES: Record<string, string> = {
   japanese: '日本語',
   english: '英語',
@@ -95,7 +89,6 @@ const JA_CAPTURE_LANGUAGES: Record<string, string> = {
   chinese_traditional: '中国語（繁体字）',
 };
 
-// data/balls.json ids — the ball a mon was caught in
 const JA_BALLS: Record<string, string> = {
   poke_ball: 'モンスターボール',
   great_ball: 'スーパーボール',

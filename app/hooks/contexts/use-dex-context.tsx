@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-import { getAppState, loadAppState, mutateAppState, newDexId, newSaveId, toDexView } from '../../utils/local-data';
+import { commitAppState, getAppState, loadAppState, newId, toDexView } from '../../utils/local-data';
 
-import type { CaptureDefaults, PersonalDex } from '../../utils/local-data';
+import type { AppState, CaptureDefaults, PersonalDex } from '../../utils/local-data';
 import type { Dex, GameSave } from '../../types';
 import type { ReactNode } from 'react';
 
-export interface CreateDexInput {
+interface CreateDexInput {
   title: string;
   catalogKey: string;
   shiny: boolean;
@@ -14,31 +14,25 @@ export interface CreateDexInput {
   captureDefaults?: CaptureDefaults;
 }
 
-export interface UpdateDexInput {
+interface UpdateDexInput {
   title?: string;
   shiny?: boolean;
   captureDefaults?: CaptureDefaults;
 }
 
 interface DexContextState {
-  // null until the persisted state has loaded
   dexes: PersonalDex[] | null;
   activeDex: PersonalDex | null;
   activeDexView: Dex | null;
   setActiveDex: (id: string) => void;
-  // returns the dex so callers can seed caches before the view switch
-  createDex: (input: CreateDexInput) => PersonalDex;
+  createDex: (input: CreateDexInput) => void;
   updateDex: (id: string, changes: UpdateDexInput) => void;
   deleteDex: (id: string) => void;
-  // shift a dex up (-1) or down (+1) in the landing list
   moveDex: (id: string, delta: number) => void;
-  // playthroughs are global, not per-dex
   saves: GameSave[];
   createSave: (input: Omit<GameSave, 'id'>) => void;
   moveSave: (id: string, delta: number) => void;
   deleteSave: (id: string) => void;
-  // re-snapshot after writes that bypass this context
-  refreshDexes: () => void;
 }
 
 const DexContext = createContext<DexContextState>({
@@ -46,9 +40,7 @@ const DexContext = createContext<DexContextState>({
   activeDex: null,
   activeDexView: null,
   setActiveDex: () => {},
-  createDex: () => {
-    throw new Error('createDex called outside DexContextProvider');
-  },
+  createDex: () => {},
   updateDex: () => {},
   deleteDex: () => {},
   moveDex: () => {},
@@ -56,13 +48,26 @@ const DexContext = createContext<DexContextState>({
   createSave: () => {},
   moveSave: () => {},
   deleteSave: () => {},
-  refreshDexes: () => {},
 });
 
 interface Snapshot {
   activeDexId: string;
   dexes: PersonalDex[];
   saves: GameSave[];
+}
+
+function snapshotOf (state: AppState): Snapshot {
+  return { activeDexId: state.activeDexId, dexes: [...state.dexes], saves: [...(state.saves ?? [])] };
+}
+
+function moved<T> (list: T[], index: number, delta: number): T[] {
+  const target = index + delta;
+  if (index === -1 || target < 0 || target >= list.length) {
+    return list;
+  }
+  const next = [...list];
+  next.splice(target, 0, ...next.splice(index, 1));
+  return next;
 }
 
 interface Props {
@@ -76,17 +81,14 @@ export const DexContextProvider = ({ children }: Props) => {
     loadAppState().then((state) => {
       // always open on the landing page
       state.activeDexId = '';
-      setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes], saves: [...(state.saves ?? [])] });
+      setSnapshot(snapshotOf(state));
     });
   }, []);
 
   const contextValue = useMemo<DexContextState>(() => {
-    // mutates in memory synchronously; the disk write settles in the background
-    const apply = (mutator: Parameters<typeof mutateAppState>[0]) => {
-      // eslint-disable-next-line no-console
-      mutateAppState(mutator).catch((err) => console.error('failed to save dexes:', err));
-      const state = getAppState();
-      setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes], saves: [...(state.saves ?? [])] });
+    const apply = (mutator: (state: AppState) => void) => {
+      commitAppState(mutator);
+      setSnapshot(snapshotOf(getAppState()));
     };
 
     const activeDex = snapshot?.dexes.find((dex) => dex.id === snapshot.activeDexId) || null;
@@ -98,14 +100,11 @@ export const DexContextProvider = ({ children }: Props) => {
       setActiveDex: (id) => apply((state) => {
         state.activeDexId = id;
       }),
-      createDex: ({ title, catalogKey, shiny, checklist, captureDefaults }) => {
-        const dex: PersonalDex = { id: newDexId(), title, catalogKey, shiny, checklist, progress: {}, captureDefaults };
-        apply((state) => {
-          state.dexes = [...state.dexes, dex];
-          state.activeDexId = dex.id;
-        });
-        return dex;
-      },
+      createDex: ({ title, catalogKey, shiny, checklist, captureDefaults }) => apply((state) => {
+        const dex: PersonalDex = { id: newId('dex'), title, catalogKey, shiny, checklist, progress: {}, captureDefaults };
+        state.dexes = [...state.dexes, dex];
+        state.activeDexId = dex.id;
+      }),
       updateDex: (id, changes) => apply((state) => {
         state.dexes = state.dexes.map((dex) => (dex.id === id ? { ...dex, ...changes } : dex));
       }),
@@ -116,39 +115,20 @@ export const DexContextProvider = ({ children }: Props) => {
         }
       }),
       moveDex: (id, delta) => apply((state) => {
-        const index = state.dexes.findIndex((dex) => dex.id === id);
-        const target = index + delta;
-        if (index === -1 || target < 0 || target >= state.dexes.length) {
-          return;
-        }
-        const dexes = [...state.dexes];
-        const [moved] = dexes.splice(index, 1);
-        dexes.splice(target, 0, moved);
-        state.dexes = dexes;
+        state.dexes = moved(state.dexes, state.dexes.findIndex((dex) => dex.id === id), delta);
       }),
       saves: snapshot?.saves || [],
       createSave: (input) => apply((state) => {
-        state.saves = [...(state.saves ?? []), { id: newSaveId(), ...input }];
+        state.saves = [...(state.saves ?? []), { id: newId('save'), ...input }];
       }),
       moveSave: (id, delta) => apply((state) => {
-        const saves = [...(state.saves ?? [])];
-        const index = saves.findIndex((save) => save.id === id);
-        const target = index + delta;
-        if (index === -1 || target < 0 || target >= saves.length) {
-          return;
-        }
-        const [moved] = saves.splice(index, 1);
-        saves.splice(target, 0, moved);
-        state.saves = saves;
+        const saves = state.saves ?? [];
+        state.saves = moved(saves, saves.findIndex((save) => save.id === id), delta);
       }),
-      // removes the list entry only — nothing outside a dex edits capture data
+      // removes the list entry only; nothing outside a dex edits capture data
       deleteSave: (id) => apply((state) => {
         state.saves = (state.saves ?? []).filter((save) => save.id !== id);
       }),
-      refreshDexes: () => {
-        const state = getAppState();
-        setSnapshot({ activeDexId: state.activeDexId, dexes: [...state.dexes], saves: [...(state.saves ?? [])] });
-      },
     };
   }, [snapshot]);
 
@@ -159,6 +139,4 @@ export const DexContextProvider = ({ children }: Props) => {
   );
 };
 
-export const useDexContext = () => {
-  return useContext(DexContext);
-};
+export const useDexContext = () => useContext(DexContext);

@@ -1,9 +1,7 @@
-@import 'variables';
-@import 'mixins';
-@import 'fonts';
-@import 'animations';
-@import 'pokesprite';
-@import 'main';
-@import 'tracker';
-@import 'home';
-@import 'palette';
+@use 'fonts';
+@use 'animations';
+@use 'pokesprite';
+@use 'main';
+@use 'tracker';
+@use 'home';
+@use 'palette';

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-// batches rapid input into one commit — on idle pause, on flush (blur), or on unmount
 export function useDebouncedCommit (delay = 600) {
   const timerRef = useRef<number>();
   const pendingRef = useRef<(() => void) | null>(null);

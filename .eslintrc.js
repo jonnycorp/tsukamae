@@ -7,7 +7,6 @@ module.exports = {
   ignorePatterns: ['public', 'build', 'dist'],
   overrides: [
     {
-      // The Electron main process logs to the terminal by design.
       files: ['electron/**/*.js', 'scripts/**/*.mjs'],
       rules: {
         'no-console': 'off',
@@ -22,21 +21,16 @@ module.exports = {
   },
   settings: {
     react: {
-      version: '16',
+      version: 'detect',
     },
   },
   plugins: [
     'react',
     '@typescript-eslint',
-    '@tanstack/query',
   ],
-  globals: {
-    find: 'off',
-  },
   extends: [
     'plugin:react/recommended',
     'plugin:@typescript-eslint/eslint-recommended',
-    'plugin:@tanstack/eslint-plugin-query/recommended',
   ],
   rules: {
     'array-bracket-spacing': ['error', 'never'],
@@ -54,11 +48,6 @@ module.exports = {
     'key-spacing': 'error',
     'keyword-spacing': 'off', // TypeScript extension
     'no-cond-assign': 'error',
-    // We're making console statements report as warnings, so that it's easier
-    // to tell in the editor when there are real errors vs just console
-    // statements. But CI checks that there aren't any warnings in addition to
-    // errors, so we're still enforcing that no console statements are checked
-    // in.
     'no-console': 'warn',
     'no-debugger': 'error',
     'no-delete-var': 'error',
@@ -106,14 +95,7 @@ module.exports = {
     quotes: 'off', // TypeScript extension
     radix: 'error',
     'react/boolean-prop-naming': 'error',
-    'react/jsx-boolean-value': ['error', 'never', {
-      always: [
-        // We always want isRange because of the DatePicker component. The type
-        // of its props uses a union type, so the JSX needs to explicitly be a
-        // boolean value, not just the presence of the prop.
-        'isRange',
-      ],
-    }],
+    'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-props-no-multi-spaces': 'error',
     'react/jsx-sort-props': 'error',
     'react/jsx-tag-spacing': ['error', {

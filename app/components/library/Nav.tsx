@@ -9,12 +9,11 @@ import { SavesModal } from './SavesModal';
 import { PALETTE_PRESETS, PRESET_DOT_BASES } from '../../palette/tokens';
 import { exportAppState, importAppState } from '../../utils/local-data';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
-import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
+import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { ChangeEvent, RefObject } from 'react';
 
-// closes a nav popover on any outside click
 function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, close: () => void) {
   useEffect(() => {
     if (!open) {
@@ -31,12 +30,12 @@ function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, cl
 }
 
 interface Props {
-  // dev-only: present when the TESTING flag is on
   onTogglePalette?: () => void;
 }
 
 export function Nav ({ onTogglePalette }: Props) {
-  const { isSoftDark, setIsSoftDark, theme, setTheme, locale, setLocale } = useLocalStorageContext();
+  const { locale, setLocale } = useLocalStorageContext();
+  const { isSoftDark, setIsSoftDark, theme, setTheme } = useThemeContext();
   const { dexes, activeDex, setActiveDex } = useDexContext();
   const { t } = useTranslation();
 
@@ -55,7 +54,6 @@ export function Nav ({ onTogglePalette }: Props) {
   useOutsideClickClose(showThemeMenu, themeMenuRef, () => setShowThemeMenu(false));
 
   const handleLanguageToggle = () => setLocale(locale === 'en' ? 'ja' : 'en');
-  // the logo returns to the landing page
   const handleLogoClick = () => setActiveDex('');
   const handleNewDexClick = () => setShowCreate(true);
   const handleEditDexClick = () => setShowEdit(true);
@@ -80,7 +78,8 @@ export function Nav ({ onTogglePalette }: Props) {
 
   const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = ''; // reset so re-picking the same file still fires onChange
+    // re-picking the same file must still fire onChange
+    e.target.value = '';
     if (!file) {
       return;
     }
@@ -129,7 +128,7 @@ export function Nav ({ onTogglePalette }: Props) {
         </div>
       }
       <div className="nav-menu" ref={dataMenuRef}>
-        <a className="nav-icon nav-menu-toggle" onClick={() => setShowDataMenu((open) => !open)}>
+        <a className="nav-icon" onClick={() => setShowDataMenu((open) => !open)}>
           <FontAwesomeIcon icon={faGear} />
         </a>
         {showDataMenu &&

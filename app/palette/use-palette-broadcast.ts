@@ -1,18 +1,16 @@
 import { useEffect, useMemo } from 'react';
 
+import { TESTING } from '../utils/testing';
 import { applyTheme, setRootTokens } from './apply-theme';
-
-// broadcasts workbench picks to every open app tab (dev aid; nothing persists)
 
 const CHANNEL = 'tsukamae-palette';
 
-// message: token-name → css value map, or null meaning "clear overrides"
+// token → css value, or null to fall back to the active theme
 type PaletteMessage = Record<string, string> | null;
 
-// mounted once in App so every tab follows workbench picks; a reset falls back to the active theme
 export function usePaletteBroadcastReceiver (theme: string) {
   useEffect(() => {
-    if (!('BroadcastChannel' in window)) {
+    if (!TESTING) {
       return;
     }
     const channel = new BroadcastChannel(CHANNEL);
@@ -28,11 +26,9 @@ export function usePaletteBroadcastReceiver (theme: string) {
 }
 
 export function usePaletteBroadcastSender () {
-  const channel = useMemo(() => ('BroadcastChannel' in window ? new BroadcastChannel(CHANNEL) : null), []);
+  const channel = useMemo(() => new BroadcastChannel(CHANNEL), []);
 
-  useEffect(() => {
-    return () => channel?.close();
-  }, [channel]);
+  useEffect(() => () => channel.close(), [channel]);
 
-  return (values: PaletteMessage) => channel?.postMessage(values);
+  return (values: PaletteMessage) => channel.postMessage(values);
 }

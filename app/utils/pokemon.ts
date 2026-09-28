@@ -2,7 +2,7 @@ import classNames from 'classnames';
 
 import { padding } from './formatting';
 
-import type { Dex } from '../types';
+import type { CapturePokemon, Dex } from '../types';
 
 export const BOX_SIZE = 30;
 export const BOX_COLUMNS = 6;
@@ -29,17 +29,22 @@ export function groupBoxes<T extends { pokemon: { box: string | null } }> (captu
   }, [[]]);
 }
 
-interface Pokemon {
-  national_id: number;
-  form: string | null;
+export function numberDigits (dex: Dex): number {
+  return dex.total >= 1000 ? 4 : 3;
 }
 
-export function iconClass ({ national_id: nationalId, form }: Pokemon, dex: Dex) {
-  const classes = {
+// regional dexes number by their own order; -1 marks a slot the regional dex doesn't number
+export function dexNumber (pokemon: CapturePokemon, dex: Dex): string {
+  if (!dex.regional) {
+    return padding(pokemon.national_id, numberDigits(dex));
+  }
+  return pokemon.dex_number === -1 ? '---' : padding(pokemon.dex_number, numberDigits(dex));
+}
+
+export function iconClass ({ national_id: nationalId, form }: CapturePokemon, dex: Dex) {
+  return classNames('pkicon', `pkicon-${padding(nationalId, 3)}`, {
     'color-shiny': dex.shiny,
     [`form-${form}`]: Boolean(form),
     [`game-family-${dex.dex_type.game_family_id}`]: true,
-  };
-
-  return classNames('pkicon', `pkicon-${padding(nationalId, 3)}`, classes);
+  });
 }

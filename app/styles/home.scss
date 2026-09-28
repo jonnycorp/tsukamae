@@ -1,14 +1,15 @@
-.home-container {
-  @include flexbox();
-  @include flex-direction(column);
+@use 'variables' as *;
+@use 'mixins' as *;
 
+.home-container {
+  display: flex;
+  flex-direction: column;
   // stacking context for the wallpaper layer below
   position: relative;
   z-index: 0;
-  background-color: $brand-primary;
+  background-color: var(--brand-primary);
   text-align: center;
 
-  // pattern.png as an alpha mask, so the wallpaper icons follow the theme
   &::before {
     content: '';
     position: absolute;
@@ -22,24 +23,20 @@
     pointer-events: none;
   }
 
-  // only the dex list scrolls; hero and create button stay put
   .home {
-    @include flex-grow(1);
-    @include flexbox();
-    @include flex-direction(column);
-    @include align-items(center);
-    @include justify-content(center);
-
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     min-height: 0;
     padding: 40px 20px;
   }
 
-  // hero drops in, list rises; both settle at top: 0
   .hero {
-    @include animation(slide 1s cubic-bezier(0, 0, .05, 1) forwards);
-
     position: relative;
     top: -60px;
+    animation: slide 1s cubic-bezier(0, 0, .05, 1) forwards;
 
     .pokeball-logo {
       width: 90px;
@@ -47,12 +44,11 @@
       margin-bottom: 10px;
 
       .pokeball-mark {
-        fill: $brand-secondary;
+        fill: var(--brand-secondary);
       }
 
-      // "White" parts are cutouts showing the wallpaper color
       .pokeball-hole {
-        fill: $brand-primary;
+        fill: var(--brand-primary);
       }
     }
 
@@ -68,19 +64,22 @@
   }
 
   .sub {
-    @include animation(slide 1s cubic-bezier(0, 0, .05, 1) forwards);
-    @include flexbox();
-    @include flex-direction(column);
-    @include align-items(center);
-
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     position: relative;
     top: 60px;
     width: 100%;
     min-height: 0;
+    animation: slide 1s cubic-bezier(0, 0, .05, 1) forwards;
+
+    > .btn:first-child {
+      margin-top: 24px;
+    }
   }
 
   .dex-list {
-    @include overflow-y-scroll();
+    @include overflow-y-scroll;
 
     width: 100%;
     max-width: 640px;
@@ -92,11 +91,10 @@
   }
 
   .dex-list-item {
-    @include transition(background-color .1s ease-out);
-
     padding: 14px 20px 18px;
     border-bottom: 1px solid var(--brand-secondary-a15);
     cursor: pointer;
+    transition: background-color .1s ease-out;
 
     &:first-child {
       border-top: 1px solid var(--brand-secondary-a15);
@@ -107,15 +105,12 @@
     }
 
     .dex-list-item-title {
-      @include flexbox();
-      @include align-items(center);
-
-      // lift the title off the progress bar below it
+      display: flex;
+      align-items: center;
       margin-bottom: 8px;
 
       h3 {
-        @include flex(1 1 auto);
-
+        flex: 1 1 auto;
         min-width: 0;
         margin: 0;
         font-family: $font-secondary;
@@ -129,13 +124,10 @@
     }
 
     .dex-reorder {
-      @include flexbox();
-
+      display: flex;
       margin-left: 10px;
 
       button {
-        @include transition(opacity .1s ease-out);
-
         padding: 4px 6px;
         border: 0;
         background: none;
@@ -143,6 +135,7 @@
         font-size: 11px;
         opacity: .6;
         cursor: pointer;
+        transition: opacity .1s ease-out;
 
         &:hover:not(:disabled) {
           opacity: 1;
@@ -156,22 +149,14 @@
 
       .dex-delete {
         margin-left: 4px;
-        color: $release-danger;
+        color: var(--release-danger);
         opacity: .75;
       }
     }
   }
 
-  // rows stop opening their dex in edit mode
   .dex-list.editing .dex-list-item {
     cursor: default;
-  }
-
-  .dex-list-empty {
-    max-width: 480px;
-    margin: 0 0 24px;
-    font-size: 15px;
-    color: var(--text-muted);
   }
 
   .btn {

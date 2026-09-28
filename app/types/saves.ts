@@ -1,4 +1,3 @@
-// one playthrough: game + language + the OT it stamps
 export interface GameSave {
   id: string;
   // data/games.json id

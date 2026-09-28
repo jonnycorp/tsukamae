@@ -1,31 +1,18 @@
 import { DEFAULT_THEME, PALETTE_PRESETS, TOKEN_NAMES, cssValue, resolvePalette } from './tokens';
-import { localStorage } from '../utils/local-storage';
-
-// themes override the :root tokens at runtime; the compiled CSS is the default theme
 
 export const THEME_STORAGE_KEY = 'theme';
 export const SOFT_DARK_STORAGE_KEY = 'nightMode';
 
-export function setRootTokens (values: Record<string, string> | null) {
+export function setRootTokens (values: Record<string, string>) {
   const root = document.documentElement;
-  if (values === null) {
-    for (const name of TOKEN_NAMES) {
-      root.style.removeProperty(`--${name}`);
-    }
-    return;
-  }
   for (const [name, value] of Object.entries(values)) {
     root.style.setProperty(`--${name}`, value);
   }
 }
 
+// unknown names (a renamed theme still in storage) fall back to the default
 export function applyTheme (name: string) {
-  // unknown names (stale storage after a theme rename) also fall back to the default
-  if (name === DEFAULT_THEME || !PALETTE_PRESETS[name]) {
-    setRootTokens(null);
-    return;
-  }
-  const resolved = resolvePalette(PALETTE_PRESETS[name]);
+  const resolved = resolvePalette(PALETTE_PRESETS[name] ?? PALETTE_PRESETS[DEFAULT_THEME]);
   const values: Record<string, string> = {};
   for (const token of TOKEN_NAMES) {
     values[token] = cssValue(resolved[token]);
@@ -35,14 +22,14 @@ export function applyTheme (name: string) {
 
 function readJson<T> (key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = window.localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch {
     return fallback;
   }
 }
 
-// pre-render pass (index.tsx) so a non-default theme or soft dark doesn't flash on launch
+// runs before the first render so launch never paints without its tokens
 export function bootstrapTheme () {
   applyTheme(readJson(THEME_STORAGE_KEY, DEFAULT_THEME));
   document.documentElement.classList.toggle('soft-dark', readJson(SOFT_DARK_STORAGE_KEY, false));

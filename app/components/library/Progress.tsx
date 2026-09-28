@@ -1,25 +1,23 @@
-import { decimal } from '../../utils/formatting';
 import { useLocalStorageContext } from '../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { MouseEvent } from 'react';
 
 interface Props {
-  caught?: number;
+  caught: number;
   marked: number;
-  temporary?: number;
+  temporary: number;
   total: number;
 }
 
-// caught and temporary are subsets of marked; the rest is unobtainable
-export function Progress ({ caught = 0, marked, temporary = 0, total }: Props) {
+export function Progress ({ caught, marked, temporary, total }: Props) {
   const { t } = useTranslation();
   const { showProgressBreakdown, setShowProgressBreakdown } = useLocalStorageContext();
 
   const percent = 100 * marked / total;
   const unobtainable = marked - temporary - caught;
 
-  // landing cards are clickable, so the toggle must not open the dex
+  // landing rows open their dex on click
   const handleClick = (e: MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     setShowProgressBreakdown(!showProgressBreakdown);
@@ -29,10 +27,10 @@ export function Progress ({ caught = 0, marked, temporary = 0, total }: Props) {
     <div className="progress-container" onClick={handleClick}>
       <div className="progress-outer">
         <div className="progress-numbers">
-          <b>{decimal(percent, 1)}%</b> {t('progress.done')}
-          {showProgressBreakdown
-            ? <span className="mobile"> (<b>{marked}</b> {t('progress.marked')}, <b>{total - marked}</b> {t('progress.toGo')}{temporary > 0 && <>, <b className="temporary-count">{temporary}</b> {t('progress.temporary')}</>}{caught > 0 && <>, <b className="caught-count">{caught}</b> {t('progress.caught')}</>})</span>
-            : <span className="mobile"> (<b>{marked}</b> {t('progress.marked')}, <b>{total - marked}</b> {t('progress.toGo')})</span>}
+          <b>{percent.toFixed(1)}%</b> {t('progress.done')}
+          {' '}(<b>{marked}</b> {t('progress.marked')}, <b>{total - marked}</b> {t('progress.toGo')}
+          {showProgressBreakdown && temporary > 0 && <>, <b className="temporary-count">{temporary}</b> {t('progress.temporary')}</>}
+          {showProgressBreakdown && caught > 0 && <>, <b className="caught-count">{caught}</b> {t('progress.caught')}</>})
         </div>
         {showProgressBreakdown
           ? (

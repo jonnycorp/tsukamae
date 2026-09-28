@@ -9,21 +9,17 @@ import type { CaptureField } from '../../utils/capture-fields';
 import type { CaptureMetadata, GenderLock } from '../../types';
 import type { ReactNode } from 'react';
 
-// sentinel option value: the mon didn't come from one of the listed saves
 const NOT_MINE = 'not-mine';
 
 interface Props {
   field: CaptureField;
   value: Partial<CaptureMetadata>;
   onChange: (patch: Partial<CaptureMetadata>) => void;
-  // defaults never carry OT — it fills from the save mapping at catch time
   defaultsMode?: boolean;
-  // the mon's species constraint, narrowing the gender options
   genderLock?: GenderLock | null;
   idPrefix: string;
 }
 
-// one control per registry field, shared by the defaults form and the record
 export function CaptureFieldControl ({ field, value, onChange, defaultsMode = false, genderLock = null, idPrefix }: Props) {
   const { t, locale } = useTranslation();
   const { saves, activeDexView } = useDexContext();
@@ -55,8 +51,7 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
   switch (field.kind) {
     case 'select': {
       const key = field.keys[0];
-      // a nickname or Mystery Gift origin drops 'no'; the value is coerced into whatever
-      // is offered, so a stored value that is no longer an option can never render blank
+      // coerced into the offered options, or a stored value that is no longer one renders a blank trigger
       if (field.id === 'favorite') {
         const favorites = favoriteOptions(locale, value);
         const stored = coerceFavorite(value.favorite) ?? 'no';
@@ -121,7 +116,6 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
 
     case 'yesno': {
       const key = field.keys[0];
-      // two-state: unanswered reads as no
       const current = value[key] === true ? 'yes' : 'no';
       return wrap(
         <Dropdown
@@ -134,7 +128,6 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
     }
 
     case 'save': {
-      // derived from the game/language pair; picking writes through to it
       const matched = findSave(saves, value.origin_game ?? null, value.language ?? null);
       const current = matched ? matched.id : (value.origin_game || value.language ? NOT_MINE : '');
 
@@ -145,7 +138,6 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
 
       return wrap(select(id, current, options, (next) => {
         if (next === NOT_MINE) {
-          // blanks the mapped trio for hand entry
           return onChange(defaultsMode
             ? { origin_game: null, language: null }
             : { origin_game: null, language: null, ot: null });
@@ -154,7 +146,6 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
         if (!save) {
           return;
         }
-        // an explicit pick restamps all three — foreign OTs are hand-edited after, and later wins
         onChange(defaultsMode
           ? { origin_game: save.game, language: save.language }
           : { origin_game: save.game, language: save.language, ot: save.ot });
@@ -198,7 +189,6 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
                 name={id}
                 onChange={(e) => onChange({
                   has_nickname: e.target.checked,
-                  // unchecking clears any text left behind
                   nickname: e.target.checked ? value.nickname ?? null : null,
                 })}
                 type="checkbox"

@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-export interface DropdownOption {
+interface DropdownOption {
   value: string;
   label: string;
   icon?: string;
@@ -14,18 +14,14 @@ interface Props {
   value: string;
   options: DropdownOption[];
   onSelect: (value: string) => void;
-  // prepended as the '' option when set
   blankLabel?: string;
-  // replaces the default form-control trigger styling
   triggerClassName?: string;
-  disabled?: boolean;
 }
 
 const MENU_MAX_HEIGHT = 240;
 
-// custom select, congruent with the nav dropdowns; the menu is position: fixed
-// so no overflow ancestor (modal, popover body) can clip it
-export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, disabled = false }: Props) {
+// the menu is position: fixed so no overflow ancestor (modal, popover body) can clip it
+export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName }: Props) {
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{ top?: number; bottom?: number; left: number; width: number }>({ left: 0, width: 0 });
 
@@ -48,7 +44,6 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
     setMenuStyle(fitsBelow
       ? { top: rect.bottom, left: rect.left, width: rect.width }
       : { bottom: window.innerHeight - rect.top, left: rect.left, width: rect.width });
-    // start at the selected option
     requestAnimationFrame(() => {
       menuRef.current?.querySelector('.dropdown-selected')?.scrollIntoView({ block: 'nearest' });
     });
@@ -71,7 +66,6 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       }
     };
     const handleScroll = (e: Event) => {
-      // the menu scrolls itself; anything else moving the page closes it
       if (e.target instanceof Node && menuRef.current?.contains(e.target)) {
         return;
       }
@@ -99,7 +93,6 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
     <div className="dropdown" ref={rootRef}>
       <button
         className={classNames('dropdown-trigger', triggerClassName ?? 'form-control')}
-        disabled={disabled}
         id={id}
         onClick={() => setOpen((prev) => !prev)}
         type="button"

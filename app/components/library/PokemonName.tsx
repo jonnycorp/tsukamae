@@ -13,8 +13,8 @@ export function PokemonName ({ name, nameJa }: Props) {
 
   const displayName = (locale === 'ja' && nameJa) || name;
 
-  const male = displayName.indexOf('♂') > -1;
-  const female = displayName.indexOf('♀') > -1;
+  const male = displayName.includes('♂');
+  const female = displayName.includes('♀');
 
   if (!male && !female) {
     return <>{displayName}</>;
@@ -23,8 +23,8 @@ export function PokemonName ({ name, nameJa }: Props) {
   return (
     <>
       {displayName.replace(/[♂♀]/g, '')}
-      {male && <FontAwesomeIcon icon={faMars} />}
-      {female && <FontAwesomeIcon icon={faVenus} />}
+      {male && <FontAwesomeIcon className="name-gender" icon={faMars} />}
+      {female && <FontAwesomeIcon className="name-gender" icon={faVenus} />}
     </>
   );
 }

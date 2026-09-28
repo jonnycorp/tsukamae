@@ -2,88 +2,73 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
-interface Options {
-  // hold duration in ms, counted after the delay
-  duration?: number;
-  // grace before progress starts, so ordinary clicks never show the wheel
-  delay?: number;
-  onComplete: () => void;
-  // released before completing; engaged = the wheel had begun drawing
-  onRelease?: (engaged: boolean) => void;
+interface Point {
+  x: number;
+  y: number;
 }
 
-// press-and-hold; releasing early resets progress to zero
-export function useLongPress ({ duration = 1000, delay = 0, onComplete, onRelease }: Options) {
-  const [progress, setProgress] = useState(0);
-  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+interface Options {
+  delay: number;
+  duration: number;
+  onComplete: () => void;
+  // engaged = the wheel had appeared
+  onRelease: (engaged: boolean) => void;
+}
 
-  const frameRef = useRef<number>();
-  const startRef = useRef(0);
-  // ref so the animation loop never closes over a stale callback
+export function useLongPress ({ delay, duration, onComplete, onRelease }: Options) {
+  const [wheel, setWheel] = useState<Point | null>(null);
+
+  const timersRef = useRef<number[]>([]);
+  const pointRef = useRef<Point>({ x: 0, y: 0 });
+  const engagedRef = useRef(false);
   const completeRef = useRef(onComplete);
   completeRef.current = onComplete;
   const releaseRef = useRef(onRelease);
   releaseRef.current = onRelease;
-  // the press got far enough to draw the wheel
-  const engagedRef = useRef(false);
+
+  const reset = useCallback(() => {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
+    engagedRef.current = false;
+    setWheel(null);
+  }, []);
 
   const cancel = useCallback(() => {
     // pointerleave fires without a press too, so only report real releases
-    const pressing = frameRef.current !== undefined;
-    const engaged = engagedRef.current;
-
-    if (frameRef.current !== undefined) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = undefined;
-    }
-    engagedRef.current = false;
-    setProgress(0);
-    setPoint(null);
-
-    if (pressing) {
-      releaseRef.current?.(engaged);
-    }
-  }, []);
-
-  const tick = useCallback(() => {
-    const elapsed = performance.now() - startRef.current - delay;
-    const next = Math.min(1, Math.max(0, elapsed / duration));
-    setProgress(next);
-    if (next > 0) {
-      engagedRef.current = true;
-    }
-
-    if (next >= 1) {
-      frameRef.current = undefined;
-      engagedRef.current = false;
-      setPoint(null);
-      setProgress(0);
-      completeRef.current();
+    if (timersRef.current.length === 0) {
       return;
     }
-    frameRef.current = requestAnimationFrame(tick);
-  }, [duration, delay]);
+    const engaged = engagedRef.current;
+    reset();
+    releaseRef.current(engaged);
+  }, [reset]);
 
   const start = useCallback((e: ReactPointerEvent) => {
-    // primary button only
     if (e.button !== 0) {
       return;
     }
     e.preventDefault();
-    startRef.current = performance.now();
-    setPoint({ x: e.clientX, y: e.clientY });
-    frameRef.current = requestAnimationFrame(tick);
-  }, [tick]);
+    pointRef.current = { x: e.clientX, y: e.clientY };
+    timersRef.current = [
+      window.setTimeout(() => {
+        engagedRef.current = true;
+        setWheel(pointRef.current);
+      }, delay),
+      window.setTimeout(() => {
+        reset();
+        completeRef.current();
+      }, delay + duration),
+    ];
+  }, [delay, duration, reset]);
 
   const move = useCallback((e: ReactPointerEvent) => {
-    setPoint((prev) => (prev ? { x: e.clientX, y: e.clientY } : prev));
+    pointRef.current = { x: e.clientX, y: e.clientY };
   }, []);
 
-  useEffect(() => cancel, [cancel]);
+  useEffect(() => () => timersRef.current.forEach((id) => window.clearTimeout(id)), []);
 
   return {
-    progress,
-    point,
+    wheel,
     handlers: {
       onPointerDown: start,
       onPointerUp: cancel,

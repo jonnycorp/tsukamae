@@ -10,24 +10,16 @@ const DEV_SERVER_URL = 'http://localhost:9898';
 const SAVE_DEBOUNCE_MS = 300;
 const BUILD_DIR = path.join(__dirname, '..', 'build');
 
-// Testing hook: redirect the app data directory so automated smoke tests
-// never touch real progress.
+// yarn electron:dev:fresh points this at a temp dir so testing never touches real progress
 if (process.env.TSUKAMAE_USER_DATA) {
   app.setPath('userData', process.env.TSUKAMAE_USER_DATA);
 }
 
-// All dex data lives in a single JSON file in the per-user app data directory
-// (e.g. %APPDATA%\tsukamae\dex_data.json on Windows) — never in the repo.
 function progressFile () {
   return path.join(app.getPath('userData'), 'dex_data.json');
 }
 
-// ---------------------------------------------------------------------------
-// Persistence: debounced, atomic writes. The renderer sends the full progress
-// object on every change; we coalesce rapid changes into one write and always
-// write via a temp file + rename so a crash can't corrupt the file.
-// ---------------------------------------------------------------------------
-
+// the renderer sends the whole state on every change; writes are debounced, and atomic via temp file + rename
 let pendingProgress = null;
 let saveTimer = null;
 
@@ -61,7 +53,7 @@ function scheduleSave (progress) {
   }, SAVE_DEBOUNCE_MS);
 }
 
-// Synchronous last-chance flush so quitting right after a change never loses it.
+// synchronous so quitting right after a change never loses it
 function flushSaveSync () {
   if (saveTimer) {
     clearTimeout(saveTimer);
@@ -86,7 +78,6 @@ ipcMain.handle('tracker:load', async () => {
   try {
     return JSON.parse(await fsp.readFile(progressFile(), 'utf8'));
   } catch {
-    // First run (or unreadable file): start with an empty tracker.
     return {};
   }
 });
@@ -95,12 +86,7 @@ ipcMain.handle('tracker:save', (_event, progress) => {
   scheduleSave(progress);
 });
 
-// ---------------------------------------------------------------------------
-// App / window setup
-// ---------------------------------------------------------------------------
-
-// Serve the built bundle over app:// so the SPA's absolute paths (publicPath
-// '/', sprite sheet url('/pokesprite-v12.png')) resolve without a web server.
+// app:// lets the bundle's absolute paths (publicPath '/', url('/pokesprite-v12.png')) resolve without a server
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
@@ -116,7 +102,6 @@ function createWindow () {
     },
   });
 
-  // External links (Bulbapedia, Serebii) open in the default browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
@@ -136,7 +121,6 @@ function buildMenu () {
     {
       label: 'File',
       submenu: [
-        // Import/Export live in the app UI (nav), not the native menu.
         { role: 'quit' },
       ],
     },
@@ -168,10 +152,7 @@ app.whenReady().then(() => {
 
     const response = await net.fetch(pathToFileURL(target).toString());
 
-    // Files served over app:// arrive without a charset, so the renderer guesses
-    // a legacy encoding and mangles non-ASCII text (é, the — placeholder, ♀/♂).
-    // Force UTF-8 on text assets so it matches how the bundle is actually
-    // written. (The <meta charset> in index.html is the belt to this braces.)
+    // app:// responses carry no charset, so the renderer would guess a legacy encoding and mangle é, ♀ and —
     const contentType = response.headers.get('content-type');
     if (contentType && /^(text\/|application\/(javascript|json))/.test(contentType) && !/charset/i.test(contentType)) {
       const headers = new Headers(response.headers);

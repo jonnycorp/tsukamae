@@ -1,4 +1,6 @@
-@use "sass:math";
+@use 'sass:math';
+@use 'variables' as *;
+@use 'mixins' as *;
 
 html {
   -webkit-font-smoothing: antialiased;
@@ -6,17 +8,27 @@ html {
   overscroll-behavior: none;
 }
 
-*, *:before, *:after {
-  @include border-box();
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 *:focus {
   outline: 0;
 }
 
+// the palette tokens themselves are written onto :root at runtime by applyTheme
 :root {
+  --surface: var(--surface-light);
+  --surface-raised: var(--surface-raised-light);
+  --text: var(--text-light);
+  --text-muted: var(--text-muted-light);
+  --accent-caught: var(--accent-caught-light);
+  --accent-temporary: var(--accent-temporary-light);
+  --danger: var(--release-danger);
+  --danger-hover: var(--release-danger-dark);
   --scrollbar-thumb-active: var(--brand-secondary-a45);
-  // box/tile outlines: dark hairline on light surfaces, light on dark
   --grid-line: var(--grid-line-light);
 }
 
@@ -33,12 +45,14 @@ body {
   color-scheme: light;
 }
 
-// form controls don't inherit body's line-height; same EN/JA rule as above
-button, input, select, textarea {
+// form controls don't inherit body's line-height
+button,
+input,
+select,
+textarea {
   line-height: 1.35;
 }
 
-// soft dark: palette intact, only surfaces + text flip. A per-theme dark variant
 .soft-dark {
   --surface: var(--surface-dark);
   --surface-raised: var(--surface-raised-dark);
@@ -54,7 +68,7 @@ button, input, select, textarea {
   color: var(--text);
   color-scheme: dark;
 
-  // explicit: UA field colors don't reliably follow the flip
+  // UA field colors don't reliably follow the flip
   input,
   select,
   textarea,
@@ -67,31 +81,26 @@ button, input, select, textarea {
   }
 }
 
-#root,
 .root {
-  @include flexbox();
-  @include flex-direction(column);
-
+  display: flex;
+  flex-direction: column;
   height: 100vh;
 
   .tracker-container,
   .home-container {
-    @include flex(1 1 auto);
-    @include flexbox();
-    @include flex-direction(column);
-
-    // cap at the viewport; content scrolls in its own window, not the page
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
     min-height: 0;
   }
 }
 
 a.link {
-  @include transition(all .1s ease-out);
-
   color: var(--text);
   font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
+  transition: color .1s ease-out;
 
   &:hover,
   &:focus {
@@ -99,26 +108,17 @@ a.link {
   }
 }
 
-.hidden {
-  visibility: hidden;
-}
-
-$nav-height: 54px;
-
 nav {
-  @include flexbox();
-  @include flex(0 0 $nav-height);
-
+  display: flex;
+  flex: 0 0 $nav-height;
   position: relative;
   height: $nav-height;
   z-index: 20;
-  background-color: $brand-primary;
+  background-color: var(--brand-primary);
   font-family: $font-secondary;
 
   a {
-    @include transition(all .1s ease-out);
-    @include flexbox();
-
+    display: flex;
     align-items: center;
     padding: 0 14px;
     font-size: 11px;
@@ -129,51 +129,28 @@ nav {
     // pinned so the bar height is identical in EN/JA
     line-height: $nav-height;
     white-space: nowrap;
-
     color: var(--text-on-chrome);
+    transition: background-color .1s ease-out;
 
     &:first-child {
       margin-right: auto;
     }
 
+    // outranks .tooltip's inline-block
     &.tooltip {
-      @include flexbox();
+      display: flex;
+    }
 
-      .tooltip-below {
-        .svg-inline--fa {
-          font-size: 10px;
-        }
-
-        .tooltip-text {
-          font-size: 10px;
-          text-transform: none;
-          letter-spacing: 0;
-          z-index: 10;
-          background-color: $brand-primary-light;
-          color: var(--text-on-chrome);
-
-          &::after {
-            border-color: transparent transparent $brand-primary-light transparent;
-          }
-        }
-      }
+    &:hover,
+    &:focus {
+      background-color: var(--brand-primary-l10);
+      cursor: pointer;
     }
   }
-
 }
 
-.no-touch nav a {
-  &:hover,
-  &:focus {
-    background-color: var(--brand-primary-l10);
-    cursor: pointer;
-  }
-}
-
-// click-toggled data menu (Export / Import / Wipe) grouped under one nav button
 .nav-menu {
-  @include flexbox();
-
+  display: flex;
   position: relative;
 
   .nav-menu-dropdown {
@@ -188,11 +165,10 @@ nav {
     background-color: var(--brand-primary-l10);
 
     li {
-      @include flexbox();
-      @include align-items(center);
-
+      display: flex;
+      align-items: center;
       padding: 12px 14px;
-      border-top: 2px solid $brand-primary;
+      border-top: 2px solid var(--brand-primary);
       font-family: $font-secondary;
       font-size: 11px;
       font-weight: 700;
@@ -214,13 +190,11 @@ nav {
   }
 }
 
-// theme switcher — rides the .nav-menu-dropdown look; stays open for live comparison
 .theme-popover {
   li {
     .theme-dots {
-      @include flexbox();
-      @include flex-shrink(0);
-
+      display: flex;
+      flex-shrink: 0;
       margin-right: 10px;
     }
 
@@ -245,18 +219,15 @@ nav {
       background-color: var(--brand-primary-l15);
     }
 
-    // divider: the mode flip sits apart from the theme list
     &.theme-soft-dark {
       border-top-width: 6px;
     }
   }
 }
 
-// centered independently of the side widths; doubles as the page title
 .nav-dex-controls {
-  @include flexbox();
-  @include align-items(center);
-
+  display: flex;
+  align-items: center;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -267,12 +238,9 @@ nav {
   }
 }
 
-// one shape for all icon-only nav buttons — uniform hover, no width shift
 nav a.nav-icon {
-  @include justify-content(center);
-  // never squeezed by flex neighbors (the dex select grows to fill)
-  @include flex-shrink(0);
-
+  justify-content: center;
+  flex-shrink: 0;
   width: 44px;
   height: $nav-height;
   padding: 0;
@@ -282,12 +250,11 @@ nav a.nav-icon {
   font-size: 13px;
 }
 
-// an open dropdown owns the nav — no hover labels competing with it
 nav.dropdown-open .tooltip-text {
   display: none;
 }
 
-// hung from the right edge so bubbles stay on-screen (bare icons and .nav-menu-wrapped ones)
+// hung from the right edge so bubbles stay on-screen; structure-dependent, recheck when nav markup moves
 nav > a.tooltip .tooltip-text,
 nav .nav-menu > a.tooltip .tooltip-text {
   left: auto;
@@ -308,21 +275,14 @@ nav .nav-menu > a.tooltip .tooltip-text {
   font-size: 13px;
   line-height: 1;
   border: 0;
-  // a slightly darker inset "well" in the bar
   background-color: var(--brand-primary-d4);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), inset 0 1px 3px rgba(0, 0, 0, .18);
   color: var(--text-on-chrome);
   font-family: $font-secondary;
   font-weight: 700;
-
-  &:hover {
-    cursor: pointer;
-  }
 }
 
 .btn {
-  @include transition(all .1s ease-out);
-
   display: block;
   position: relative;
   width: 100%;
@@ -335,27 +295,24 @@ nav .nav-menu > a.tooltip .tooltip-text {
   text-transform: uppercase;
   letter-spacing: 1px;
   text-decoration: none;
+  transition: background-color .1s ease-out;
 
   &.btn-blue {
-    background-color: $brand-secondary;
+    background-color: var(--brand-secondary);
     color: var(--text-inverse);
   }
 
-  // destructive actions: danger at rest, deepens on hover
   &.btn-delete {
     color: var(--text-inverse);
-    background-color: $danger;
+    background-color: var(--danger);
   }
 
   .svg-inline--fa {
-    @include transition(all .1s ease-out);
-
     font-size: 10px;
     margin-left: 3px;
+    transition: margin-left .1s ease-out;
   }
-}
 
-.no-touch .btn {
   &:hover,
   &:focus {
     cursor: pointer;
@@ -365,27 +322,23 @@ nav .nav-menu > a.tooltip .tooltip-text {
     }
 
     &.btn-blue {
-      background-color: $brand-secondary-dark;
+      background-color: var(--brand-secondary-dark);
     }
 
     &.btn-delete {
-      background-color: $danger-hover;
+      background-color: var(--danger-hover);
     }
   }
 }
 
 .form {
-  @include flex(1 0 auto);
-  @include flexbox();
-  @include flex-direction(column);
-  @include overflow-y-scroll;
-  @include align-items(center);
-
-  padding: 50px 0 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0 32px;
 
   h1 {
-    // inherits themed text so it flips with soft dark (body is brand-secondary in light)
-    margin-bottom: $space-section;
+    margin: 0 0 $space-section;
   }
 
   .form-column {
@@ -394,7 +347,7 @@ nav .nav-menu > a.tooltip .tooltip-text {
   }
 
   .form-row {
-    @include flexbox();
+    display: flex;
 
     .form-column {
       margin: 0 15px;
@@ -407,63 +360,26 @@ nav .nav-menu > a.tooltip .tooltip-text {
 }
 
 form {
-  @include animation(slide .5s ease-out forwards);
-
   position: relative;
   top: 60px;
-
-  h2 {
-    text-align: center;
-    margin: 30px 0 15px;
-
-    &:first-child {
-      margin-top: 0;
-    }
-
-    .tooltip {
-      margin-left: 7px;
-      bottom: 3px;
-    }
-  }
-
-  p {
-    margin: 20px 0 0;
-    text-align: center;
-    font-size: 14px;
-  }
-
-  .btn:not(.btn-inline) {
-    margin-top: 40px;
-
-    &.form-confirm {
-      margin-top: 0;
-    }
-  }
+  animation: slide .5s ease-out forwards;
 }
 
-// custom select, congruent with the nav dropdowns; menu is fixed-position
 .dropdown {
   position: relative;
 
   .dropdown-trigger {
-    @include flexbox();
-    @include align-items(center);
-    @include justify-content(space-between);
-
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 8px;
     text-align: left;
     cursor: pointer;
-
-    &:disabled {
-      opacity: .55;
-      cursor: default;
-    }
   }
 
   .dropdown-value {
-    @include flexbox();
-    @include align-items(center);
-
+    display: flex;
+    align-items: center;
     gap: 8px;
     min-width: 0;
     overflow: hidden;
@@ -471,18 +387,16 @@ form {
     white-space: nowrap;
 
     img {
-      @include flex-shrink(0);
-
+      flex-shrink: 0;
       height: 18px;
       image-rendering: pixelated;
     }
   }
 
   .dropdown-chevron {
-    @include flex-shrink(0);
-
+    flex-shrink: 0;
     font-size: 10px;
-    color: $brand-primary;
+    color: var(--brand-primary);
   }
 }
 
@@ -500,12 +414,11 @@ form {
   box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
 
   li {
-    @include flexbox();
-    @include align-items(center);
-
+    display: flex;
+    align-items: center;
     gap: 8px;
     padding: 9px 12px;
-    border-top: 2px solid $brand-primary;
+    border-top: 2px solid var(--brand-primary);
     font-family: $font-primary;
     font-size: 14px;
     color: var(--text-on-chrome);
@@ -513,8 +426,7 @@ form {
     cursor: pointer;
 
     img {
-      @include flex-shrink(0);
-
+      flex-shrink: 0;
       height: 18px;
       image-rendering: pixelated;
     }
@@ -535,13 +447,7 @@ form {
   }
 }
 
-// the nav trigger keeps its well look; only the layout is dropdown's
-button.nav-dex-select {
-  border: 0;
-  cursor: pointer;
-}
-
-// text field + summoned native calendar; the invisible native input anchors the popup
+// the invisible native input anchors the calendar popup that showPicker() opens
 .date-input {
   position: relative;
 
@@ -553,7 +459,7 @@ button.nav-dex-select {
     padding: 4px 6px;
     border: 0;
     background: none;
-    color: $brand-secondary-light;
+    color: var(--brand-secondary-light);
     font-size: 12px;
     cursor: pointer;
     opacity: .7;
@@ -576,29 +482,17 @@ button.nav-dex-select {
   }
 }
 
-.form-control,
-select {
+.form-control {
   width: 100%;
-  -webkit-appearance: none;
-  border: 2px solid $brand-secondary-light;
+  appearance: none;
+  border: 2px solid var(--brand-secondary-light);
   border-radius: 0;
   background-color: var(--surface);
   padding: 6px;
   font-family: $font-primary;
 
-  // number inputs stay flat like every other control
-  &::-webkit-inner-spin-button,
-  &::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
   &:focus {
-    border-color: $brand-secondary-dark;
-  }
-
-  &:invalid {
-    box-shadow: none;
+    border-color: var(--brand-secondary-dark);
   }
 }
 
@@ -616,25 +510,10 @@ select {
     letter-spacing: 1px;
   }
 
-  .form-control,
-  select {
+  .form-control {
     height: 43px;
     padding: 0 32px 0 10px;
     font-size: 15px;
-
-    &[type="password"] {
-      letter-spacing: 2px;
-    }
-  }
-
-  .form-option {
-    @include flexbox();
-
-    margin-bottom: 5px;
-
-    .tooltip {
-      margin-left: 5px;
-    }
   }
 
   .checkbox {
@@ -654,7 +533,7 @@ select {
     input[type=checkbox] {
       display: none;
 
-      &:checked+.checkbox-custom span {
+      &:checked + .checkbox-custom span {
         opacity: 1;
       }
     }
@@ -666,32 +545,20 @@ select {
       right: 7px;
       width: 16px;
       height: 16px;
-      border: 1px solid $gray-medium;
+      border: 1px solid var(--gray-medium);
       background-color: var(--gray-light-l25);
 
       > span {
-        @include transition(all .15s ease-out);
         display: inline-block;
         opacity: 0;
         position: absolute;
-        background-color: $brand-primary;
+        background-color: var(--brand-primary);
         height: 10px;
         width: 10px;
         top: 50%;
         left: 50%;
         margin: -5px 0 0 -5px;
-      }
-    }
-
-    &.disabled {
-      color: $gray-medium;
-
-      .checkbox-custom {
-        border: 1px solid $gray-light;
-      }
-
-      label {
-        cursor: not-allowed;
+        transition: opacity .15s ease-out;
       }
     }
   }
@@ -702,32 +569,13 @@ select {
       bottom: 16px;
       right: 15px;
       font-size: 10px;
-      color: $brand-primary;
-    }
-
-    &.tooltip-icon {
-      font-size: 12px;
-      color: var(--text-muted);
+      color: var(--brand-primary);
     }
 
     &.fa-chevron-down {
-      bottom: 17px;
       font-size: 9px;
       color: var(--text-muted);
     }
-  }
-
-  .form-note {
-    float: right;
-    position: relative;
-    bottom: 2px;
-    text-align: right;
-    font-size: 13px;
-    color: $gray-dark;
-    width: 240px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 }
 
@@ -750,12 +598,12 @@ select {
     width: $tooltip-width;
     padding: 5px;
     border-radius: 5px;
-    background-color: $brand-secondary;
+    background-color: var(--brand-secondary);
     color: white;
     text-align: center;
     font-weight: 400;
     font-size: 13px;
-    // escapes the nav's pinned line-height (1.35 stays font-metric-independent)
+    // escapes the nav's pinned line-height
     line-height: 1.35;
     white-space: normal;
 
@@ -767,7 +615,7 @@ select {
       margin-left: -5px;
       border-width: 5px;
       border-style: solid;
-      border-color: $brand-secondary transparent transparent transparent;
+      border-color: var(--brand-secondary) transparent transparent transparent;
     }
   }
 
@@ -782,15 +630,12 @@ select {
     &::after {
       bottom: 100%;
       top: auto;
-      border-color: transparent transparent $brand-secondary transparent;
+      border-color: transparent transparent var(--brand-secondary) transparent;
     }
   }
 }
 
 .loading {
-  // silent at first; the label only fades in if loading persists
-  @include animation(fade-in .3s ease-out .4s forwards);
-
   opacity: 0;
   margin-top: 47vh;
   text-align: center;
@@ -800,6 +645,7 @@ select {
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--text);
+  animation: fade-in .3s ease-out .4s forwards;
 }
 
 .wrapper {
@@ -808,19 +654,14 @@ select {
 }
 
 .modal-overlay {
-  @include animation(fade-in $fade-duration ease-out);
-  @include transition(opacity $fade-duration ease-out);
-
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.35);
-  // above the tracker's positioned elements (renders inline, no portal)
+  inset: 0;
+  background-color: rgba(0, 0, 0, .35);
+  // above the tracker's positioned elements; the modal renders inline, not in a portal
   z-index: 100;
+  animation: fade-in $fade-duration ease-out;
+  transition: opacity $fade-duration ease-out;
 
-  // useDismissable sets this while the fade-out plays, then unmounts
   &.closing {
     opacity: 0;
     pointer-events: none;
@@ -830,11 +671,11 @@ select {
 .modal {
   position: relative;
   margin: 6vh auto;
-  // wide enough for the two-column dex form (2 × 280px columns + gutters)
+  // the two-column dex form: 2 × 280px columns + gutters
   width: min(660px, calc(100vw - 32px));
   max-height: 88vh;
   overflow-y: auto;
-  border: 2px solid $brand-secondary-light;
+  border: 2px solid var(--brand-secondary-light);
   background: var(--surface-raised);
   outline: none;
 
@@ -845,8 +686,6 @@ select {
   }
 
   .modal-close {
-    @include transition(all .1s ease-out);
-
     position: absolute;
     top: 8px;
     right: 8px;
@@ -854,23 +693,13 @@ select {
     padding: 6px 8px;
     border: 0;
     background: none;
-    color: $gray-dark;
+    color: var(--gray-dark);
     font-size: 16px;
     cursor: pointer;
+    transition: color .1s ease-out;
 
     &:hover {
       color: var(--text);
-    }
-  }
-
-  // inside the modal the shell owns the box; the form hugs its content
-  .form {
-    overflow-y: visible;
-    scrollbar-gutter: auto;
-    padding: 24px 0 32px;
-
-    h1 {
-      margin-top: 0;
     }
   }
 
@@ -879,7 +708,6 @@ select {
       width: 280px;
     }
 
-    // dex data sits centered above the two default columns
     > .form-column {
       margin: 0 auto $space-section;
 
@@ -892,14 +720,12 @@ select {
       text-align: center;
     }
 
-    // single-column width, centered — full-width bars read oddly on a two-column form
     .btn {
       width: 280px;
       margin: $space-section auto 0;
     }
   }
 
-  // heads a group of related optional fields (the capture defaults)
   .form-section-label {
     margin-bottom: $space-field;
     font-family: $font-secondary;
@@ -916,10 +742,8 @@ select {
       opacity: .55;
     }
   }
-
 }
 
-// progress bar (dex header + landing cards); click toggles the per-status breakdown
 .progress-container {
   width: 100%;
   height: 28px;
@@ -939,7 +763,6 @@ select {
   width: 100%;
   height: 28px;
   background-color: var(--surface-raised);
-  // caught family: the bar measures caught
   border: 2px solid var(--unobtainable);
 
   .progress-numbers {
@@ -955,8 +778,7 @@ select {
   }
 
   .progress-inner-row {
-    @include flexbox();
-
+    display: flex;
     height: 100%;
   }
 
@@ -971,15 +793,12 @@ select {
 
   .progress-inner-temporary {
     background-color: var(--temporary);
-    // stripes are temporary's texture identity (same recipe as the tiles)
     background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--temporary-stripe) 8px 16px);
   }
 }
 
-// dex tags (shiny star + game/type labels) in the search-bar header and landing cards
 .dex-indicator {
-  @include flex-shrink(0);
-
+  flex-shrink: 0;
   margin-left: auto;
   padding-left: 30px;
 
@@ -993,8 +812,8 @@ select {
     border-radius: 3px;
     font-size: 10px;
     padding: 4px 6px;
-    background-color: $gray-light;
-    // mode-independent bg, so mode-independent text
+    background-color: var(--gray-light);
+    // the label background never flips, so neither does its text
     color: #26221f;
     text-transform: uppercase;
     font-family: $font-secondary;
@@ -1011,7 +830,7 @@ select {
 .main-footer {
   padding: 100px 20px;
   text-align: center;
-  background-color: $gray-light;
+  background-color: var(--gray-light);
   font-family: $font-secondary;
   font-size: 10px;
   text-transform: uppercase;
@@ -1027,7 +846,7 @@ select {
     vertical-align: middle;
     font-size: 5px;
     margin: 0 10px;
-    color: $gray-medium;
+    color: var(--gray-medium);
   }
 }
 
@@ -1074,7 +893,7 @@ select {
 .saves-warning {
   margin: 0 0 $space-sm;
   font-size: 13px;
-  color: $release-danger;
+  color: var(--release-danger);
 }
 
 // list and add-row share one width so the table can't resize with its contents
@@ -1086,7 +905,6 @@ $saves-table-width: 640px;
   padding: 0;
   list-style: none;
 
-  // grid so the headers line up with the rows
   .saves-list-header,
   .saves-list-item {
     display: grid;
@@ -1113,7 +931,6 @@ $saves-table-width: 640px;
     padding: 8px 0;
     border-bottom: 1px solid var(--brand-secondary-a15);
 
-    // the game/language pair is the mapping key, shown but never editable
     .saves-list-key {
       font-size: 14px;
       color: var(--text);
@@ -1122,23 +939,14 @@ $saves-table-width: 640px;
       white-space: nowrap;
     }
 
-    .form-control {
-      min-width: 0;
-      margin: 0;
-    }
-
-    // floats at the row's right edge in edit mode; the two columns never move
     .saves-list-controls {
-      @include flexbox();
-
+      display: flex;
       position: absolute;
       right: 0;
       top: 50%;
       transform: translateY(-50%);
 
       button {
-        @include transition(opacity .1s ease-out);
-
         padding: 6px 4px;
         border: 0;
         background: none;
@@ -1146,6 +954,7 @@ $saves-table-width: 640px;
         font-size: 12px;
         opacity: .6;
         cursor: pointer;
+        transition: opacity .1s ease-out;
 
         &:hover:not(:disabled) {
           opacity: 1;
@@ -1158,15 +967,14 @@ $saves-table-width: 640px;
       }
 
       .saves-delete {
-        color: $release-danger;
+        color: var(--release-danger);
         opacity: .75;
       }
     }
   }
 }
 
-// secondary list-management toggle, shared by the landing page and my games
-// element+classes so it outranks .home-container .btn regardless of import order
+// element + classes so it outranks .home-container .btn whatever the import order
 button.btn.btn-edit-list {
   display: block;
   min-width: 0;
@@ -1184,20 +992,17 @@ button.btn.btn-edit-list {
 }
 
 .saves-add {
-  @include flexbox();
-
+  display: flex;
   width: min($saves-table-width, 100%);
   gap: $space-sm;
   margin-bottom: $space-field;
 
   .form-group {
-    @include flex(1 1 0);
-
+    flex: 1 1 0;
     min-width: 0;
   }
 }
 
-// sized to its content rather than filling the container
 .btn.btn-compact {
   display: inline-block;
   width: auto;

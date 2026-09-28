@@ -5,14 +5,11 @@ import { useDebouncedCommit } from '../../hooks/use-debounced-commit';
 import type { InputHTMLAttributes } from 'react';
 
 interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
-  // the committed value, as its display string
   value: string;
   onCommit: (raw: string) => void;
-  // runs on every keystroke, before the draft is shown
   sanitize?: (raw: string) => string;
 }
 
-// keystrokes stay local; the app-wide write + refresh happens on pause, blur or unmount
 export function DraftInput ({ value, onCommit, sanitize, ...rest }: Props) {
   const [draft, setDraft] = useState(value);
   const [focused, setFocused] = useState(false);
