@@ -46,8 +46,9 @@ export function useDismissable ({ onDismissed, ref, keepOpenOn }: Options) {
   }, []);
 
   useEffect(() => {
+    // an Escape already claimed (by an open dropdown inside) is left alone
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         dismiss();
       }
     };

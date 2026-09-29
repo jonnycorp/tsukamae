@@ -22,6 +22,8 @@ interface UpdateDexInput {
 
 interface DexContextState {
   dexes: PersonalDex[] | null;
+  // the saved data couldn't be read; nothing is loaded and nothing is saved
+  loadFailed: boolean;
   activeDex: PersonalDex | null;
   activeDexView: Dex | null;
   setActiveDex: (id: string) => void;
@@ -31,12 +33,14 @@ interface DexContextState {
   moveDex: (id: string, delta: number) => void;
   saves: GameSave[];
   createSave: (input: Omit<GameSave, 'id'>) => void;
+  updateSave: (id: string, changes: Omit<GameSave, 'id'>) => void;
   moveSave: (id: string, delta: number) => void;
   deleteSave: (id: string) => void;
 }
 
 const DexContext = createContext<DexContextState>({
   dexes: null,
+  loadFailed: false,
   activeDex: null,
   activeDexView: null,
   setActiveDex: () => {},
@@ -46,6 +50,7 @@ const DexContext = createContext<DexContextState>({
   moveDex: () => {},
   saves: [],
   createSave: () => {},
+  updateSave: () => {},
   moveSave: () => {},
   deleteSave: () => {},
 });
@@ -76,17 +81,26 @@ interface Props {
 
 export const DexContextProvider = ({ children }: Props) => {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     loadAppState().then((state) => {
       // always open on the landing page
       state.activeDexId = '';
       setSnapshot(snapshotOf(state));
+    }, (err) => {
+      // eslint-disable-next-line no-console
+      console.error('failed to load:', err);
+      setLoadFailed(true);
     });
   }, []);
 
   const contextValue = useMemo<DexContextState>(() => {
     const apply = (mutator: (state: AppState) => void) => {
+      // nothing's loaded before the data is read, or when it couldn't be, and nothing may be saved over that file
+      if (!snapshot) {
+        return;
+      }
       commitAppState(mutator);
       setSnapshot(snapshotOf(getAppState()));
     };
@@ -95,11 +109,18 @@ export const DexContextProvider = ({ children }: Props) => {
 
     return {
       dexes: snapshot?.dexes || null,
+      loadFailed,
       activeDex,
       activeDexView: activeDex && toDexView(activeDex),
-      setActiveDex: (id) => apply((state) => {
-        state.activeDexId = id;
-      }),
+      // in memory only: every launch opens on the landing page, so switching dex was never worth a write. It goes on the
+      // live state too, which the next real change rebuilds the snapshot from
+      setActiveDex: (id) => {
+        if (!snapshot || snapshot.activeDexId === id) {
+          return;
+        }
+        getAppState().activeDexId = id;
+        setSnapshot({ ...snapshot, activeDexId: id });
+      },
       createDex: ({ title, catalogKey, shiny, checklist, captureDefaults }) => apply((state) => {
         const dex: PersonalDex = { id: newId('dex'), title, catalogKey, shiny, checklist, progress: {}, captureDefaults };
         state.dexes = [...state.dexes, dex];
@@ -121,6 +142,10 @@ export const DexContextProvider = ({ children }: Props) => {
       createSave: (input) => apply((state) => {
         state.saves = [...(state.saves ?? []), { id: newId('save'), ...input }];
       }),
+      // in place, keeping the id every "in a game" location points at; records keep the OT they were stamped with
+      updateSave: (id, changes) => apply((state) => {
+        state.saves = (state.saves ?? []).map((save) => (save.id === id ? { ...save, ...changes } : save));
+      }),
       moveSave: (id, delta) => apply((state) => {
         const saves = state.saves ?? [];
         state.saves = moved(saves, saves.findIndex((save) => save.id === id), delta);
@@ -130,7 +155,7 @@ export const DexContextProvider = ({ children }: Props) => {
         state.saves = (state.saves ?? []).filter((save) => save.id !== id);
       }),
     };
-  }, [snapshot]);
+  }, [snapshot, loadFailed]);
 
   return (
     <DexContext.Provider value={contextValue}>

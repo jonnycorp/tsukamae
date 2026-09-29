@@ -118,14 +118,28 @@ const JA_BALLS: Record<string, string> = {
   beast_ball: 'ウルトラボール',
   cherish_ball: 'プレシャスボール',
   park_ball: 'パークボール',
-  strange_ball: 'フシギボール',
+  strange_ball: 'ストレンジボール',
   feather_ball: 'フェザーボール',
   wing_ball: 'ウイングボール',
   jet_ball: 'ジェットボール',
-  leaden_ball: 'レドームボール',
+  leaden_ball: 'メガトンボール',
   gigaton_ball: 'ギガトンボール',
   origin_ball: 'オリジンボール',
   unknown: '不明',
+};
+
+// the dataset's box names and reset-box prefixes (the expansions), as the Japanese games name them
+const JA_BOX_NAMES: Record<string, string> = {
+  'Alolan Forms': 'アローラのすがた',
+  'Galarian Forms': 'ガラルのすがた',
+  'Hisuian Forms': 'ヒスイのすがた',
+  'Paldean Forms': 'パルデアのすがた',
+  'Gigantamax Forms': 'キョダイマックスのすがた',
+  'Extra Regional Forms': 'リージョンフォーム',
+  'The Isle of Armor': '鎧の孤島',
+  'The Crown Tundra': '冠の雪原',
+  'The Teal Mask': '碧の仮面',
+  'The Indigo Disk': '藍の円盤',
 };
 
 function localized (map: Record<string, string>, locale: Locale, key: string, fallback: string): string {
@@ -154,4 +168,8 @@ export function localizeCaptureLanguage (locale: Locale, id: string, fallback: s
 
 export function localizeBall (locale: Locale, id: string, fallback: string): string {
   return localized(JA_BALLS, locale, id, fallback);
+}
+
+export function localizeBoxName (locale: Locale, name: string): string {
+  return localized(JA_BOX_NAMES, locale, name, name);
 }

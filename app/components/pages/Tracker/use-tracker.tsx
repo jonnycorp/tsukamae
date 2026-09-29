@@ -13,7 +13,9 @@ export function isDisplaySealed (capture: Capture, checklist: boolean, sealFx: b
   return sealFx && (checklist ? capture.status === 'caught' : capture.sealed);
 }
 
-const NARROW_QUERY = '(max-width: 750px)';
+// too narrow for one box: the legacy list view; keep in sync with the 750px media queries in styles/
+export const NARROW_WIDTH = 750;
+const NARROW_QUERY = `(max-width: ${NARROW_WIDTH}px)`;
 
 function useMediaQuery (query: string): boolean {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
@@ -59,9 +61,27 @@ interface Props {
 }
 
 export const TrackerContextProvider = ({ children }: Props) => {
-  const { activeDex } = useDexContext();
+  const { activeDex, saves } = useDexContext();
   const dexId = activeDex!.id;
   const [captures, setCaptures] = useState(() => progressToCaptures(activeDex!));
+
+  // a record naming a game since deleted from My Games no longer says which game it's in, so it's shown and checked as
+  // unanswered (sealing, a sealed record's stale pin, the Incomplete view); storage keeps the id, as nothing outside a
+  // dex edits capture data. Hidden whatever the location, so moving a record back to "In a game" can't bring it back
+  useEffect(() => {
+    const ids = new Set(saves.map((save) => save.id));
+    setCaptures((prev) => {
+      let changed = false;
+      const next = prev.map((cap) => {
+        if (cap.location_save && !ids.has(cap.location_save)) {
+          changed = true;
+          return { ...cap, location_save: null };
+        }
+        return cap;
+      });
+      return changed ? next : prev;
+    });
+  }, [saves]);
   const [sealFx, setSealFx] = useState(true);
   const narrow = useMediaQuery(NARROW_QUERY);
 

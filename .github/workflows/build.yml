@@ -36,6 +36,10 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # babel strips types without checking them, so nothing else would stop a type error or a failing theme shipping
+      - name: Lint, typecheck and audit the themes
+        run: yarn lint:all
+
       - name: Build the web bundle
         run: yarn build
 

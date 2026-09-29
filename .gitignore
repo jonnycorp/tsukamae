@@ -9,8 +9,7 @@ dist/
 .idea/
 .vscode/
 .claude/
-
-# personal data must never land in the repo
+CLAUDE.md
 tsukamae-progress*.json
 dex_data.json
 captures.json

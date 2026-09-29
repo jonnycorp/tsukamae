@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from 'react';
 
-import { DEFAULT_THEME } from '../../palette/themes';
+import { DEFAULT_THEME, findTheme } from '../../palette/themes';
 import { SOFT_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
 import { useLocalStorage } from '../use-local-storage';
 
@@ -48,7 +48,9 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const [locale, setLocale] = useLocalStorage<Locale>('locale', 'en');
   const [showProgressBreakdown, setShowProgressBreakdown] = useLocalStorage('progressBreakdown', false);
   const [showLanguageTags, setShowLanguageTags] = useLocalStorage('languageTags', false);
-  const [theme, setTheme] = useLocalStorage(THEME_STORAGE_KEY, DEFAULT_THEME);
+  const [storedTheme, setTheme] = useLocalStorage(THEME_STORAGE_KEY, DEFAULT_THEME);
+  // a name no theme has any more (1.2's Sakura, Peach Milk…) renders as the default, so the menu ticks that
+  const theme = findTheme(storedTheme).name;
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, false);
 
   const preferences = useMemo<PreferencesState>(() => ({

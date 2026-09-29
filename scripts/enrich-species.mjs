@@ -10,6 +10,10 @@ const API_HOST = 'https://pokeapi.co/api/v2';
 const DEXES_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'dexes');
 const CONCURRENCY = 20;
 
+// where PokéAPI's gender_rate is wrong for a dex slot: Oinkologne is both, its female a separate variety PokéAPI
+// doesn't count
+const GENDER_LOCK_OVERRIDES = { 916: null };
+
 async function getSpecies (nationalId) {
   const response = await fetch(`${API_HOST}/pokemon-species/${nationalId}/`);
   if (!response.ok) {
@@ -25,9 +29,10 @@ async function getSpecies (nationalId) {
   const legendaryClass = species.is_mythical ? 'mythical' : species.is_legendary ? 'legendary' : null;
 
   // gender_rate is eighths female: -1 genderless, 0 male-only, 8 female-only; null = both possible
-  const genderLock = species.gender_rate === -1 ? 'genderless' :
-    species.gender_rate === 0 ? 'male' :
-      species.gender_rate === 8 ? 'female' : null;
+  const genderLock = nationalId in GENDER_LOCK_OVERRIDES ? GENDER_LOCK_OVERRIDES[nationalId] :
+    species.gender_rate === -1 ? 'genderless' :
+      species.gender_rate === 0 ? 'male' :
+        species.gender_rate === 8 ? 'female' : null;
 
   return { nameJa: entry?.name ?? null, legendaryClass, genderLock };
 }

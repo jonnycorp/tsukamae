@@ -80,7 +80,7 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
           id={id}
           maxLength={field.maxLength?.(value) ?? 100}
           name={id}
-          onCommit={(raw) => onChange({ [field.keys[0]]: raw || null })}
+          onCommit={(raw) => onChange({ [field.keys[0]]: raw.trim() || null })}
           type="text"
           value={(value[field.keys[0]] as string) || ''}
         />,
@@ -142,7 +142,13 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
       ];
 
       return wrap(select(id, current, options, (next) => {
-        if (next === NOT_MINE) {
+        // unspecified clears what a game fills in, as not-my-game does; re-picking either where it's already shown
+        // leaves the record alone (a game's re-pick still restamps it)
+        if (next === NOT_MINE || next === '') {
+          // from Unspecified there's no game-filled trio to clear, only a hand-typed OT that must stay
+          if (next === current || current === '') {
+            return;
+          }
           return onChange(defaultsMode
             ? { origin_game: null, language: null }
             : { origin_game: null, language: null, ot: null });
@@ -162,9 +168,11 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
       return (
         <div className="form-group" key={field.id}>
           <label htmlFor={id}>{t(field.labelKey)}</label>
+          {/* blank like the other selects sealing waits on, and where un-setting Been to Champions leaves it */}
           <Dropdown
+            blankLabel={blankLabel}
             id={id}
-            onSelect={(next) => onChange({ location: next as CaptureMetadata['location'] })}
+            onSelect={(next) => onChange({ location: (next || null) as CaptureMetadata['location'] })}
             options={locationOptions(locale, value, isHomeDex)}
             value={value.location || ''}
           />
@@ -207,7 +215,7 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
                 id={`${id}-text`}
                 maxLength={field.maxLength?.(value) ?? NAME_MAX_FALLBACK}
                 name={`${id}-text`}
-                onCommit={(raw) => onChange({ nickname: raw || null })}
+                onCommit={(raw) => onChange({ nickname: raw.trim() || null })}
                 type="text"
                 value={value.nickname || ''}
               />

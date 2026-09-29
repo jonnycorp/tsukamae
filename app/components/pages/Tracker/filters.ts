@@ -1,4 +1,4 @@
-import { BALLS, BALL_NAMES, LANGUAGES, LANGUAGE_ABBRS, ORIGIN_GAMES, ORIGIN_GAME_NAMES, isRecordComplete } from '../../../utils/capture-fields';
+import { BALLS, BALL_NAMES, CAPTURE_FIELDS, LANGUAGES, LANGUAGE_ABBRS, ORIGIN_GAMES, ORIGIN_GAME_NAMES, isRecordComplete } from '../../../utils/capture-fields';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
 import { padding } from '../../../utils/formatting';
 import { translate } from '../../../i18n/translations';
@@ -47,6 +47,9 @@ export interface Facet {
 
 const indexIn = (list: readonly string[]) => (value: string) => list.indexOf(value);
 
+// a record field's facet lists its values in the order the popover offers them
+const fieldOrder = (id: FacetId) => indexIn(CAPTURE_FIELDS.find((field) => field.id === id)!.options!('en').map((option) => option.value));
+
 // a stored value the app never writes has no translation, so it shows as stored
 function known (locale: Locale, key: TranslationKey, value: string): string {
   const label = translate(locale, key);
@@ -58,7 +61,7 @@ export const FACETS: Facet[] = [
     id: 'generation',
     labelKey: 'filter.generation',
     species: true,
-    value: (capture) => String(capture.pokemon.game_family.generation),
+    value: (capture) => String(capture.pokemon.generation),
     label: (value, locale) => translate(locale, 'filter.gen', { n: value }),
     rank: Number,
   },
@@ -99,7 +102,7 @@ export const FACETS: Facet[] = [
     species: false,
     value: (capture) => capture.location,
     label: (value, locale) => known(locale, `location.${value as CaptureLocation}`, value),
-    rank: indexIn(['home', 'champions', 'game']),
+    rank: fieldOrder('location'),
   },
   {
     id: 'ball',
@@ -116,7 +119,7 @@ export const FACETS: Facet[] = [
     species: false,
     value: (capture) => capture.trained,
     label: (value, locale) => known(locale, `trained.${value as TrainedState}`, value),
-    rank: indexIn(['none', 'ivs', 'ev']),
+    rank: fieldOrder('trained'),
   },
   {
     id: 'favorite',
@@ -124,7 +127,7 @@ export const FACETS: Facet[] = [
     species: false,
     value: (capture) => (capture.favorite === null || capture.favorite === 'no' ? null : String(capture.favorite)),
     label: (value, locale) => known(locale, `favorite.${value as FavoriteState}`, value),
-    rank: indexIn(['favorite', 'partner']),
+    rank: fieldOrder('favorite'),
   },
 ];
 
@@ -137,7 +140,7 @@ function matchesView (capture: Capture, view: FilterView): boolean {
     case 'unsealed':
       return capture.captured && !capture.sealed;
     case 'incomplete':
-      return capture.captured && !capture.sealed && capture.status !== 'unobtainable' && !isRecordComplete(capture);
+      return capture.captured && !capture.sealed && capture.status !== 'unobtainable' && !isRecordComplete(capture, capture.pokemon.gender_lock);
     default:
       return true;
   }
@@ -158,40 +161,71 @@ export function filterMatcher (filters: TrackerFilters, except?: FacetId): (capt
     facets.every((facet) => filters.facets[facet.id]!.includes(facet.value(capture) ?? ''));
 }
 
-// typing produces hiragana; names are katakana
+// typing produces hiragana; species names are katakana, and a nickname can be in either
 function toKatakana (value: string): string {
   return value.replace(/[ぁ-ゖ]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0x60));
+}
+
+// an IME types full-width digits and letters (２５, ｚ) and some keyboards half-width kana, the names carry a mix of
+// both, and a number is shown with a '#'
+function fold (value: string): string {
+  return value.normalize('NFKC').toLowerCase();
+}
+
+// Latin only: stripping marks from kana would take the dakuten too, and ガ would find カ
+function unaccented (value: string): string {
+  return value.normalize('NFD').replace(/\p{M}/gu, '');
+}
+
+function normalizeQuery (query: string): string {
+  return fold(query).trim().replace(/^#\s*/, '');
+}
+
+// whether there's anything to search for; spaces or a lone '#' leave the boxes up
+export function hasQuery (query: string): boolean {
+  return normalizeQuery(query).length > 0;
 }
 
 function matchesNumber (id: number, query: string): boolean {
   return String(id) === query || padding(id, 3) === query || padding(id, 4) === query;
 }
 
-export function queryMatcher (query: string): (capture: Capture) => boolean {
-  const lower = query.toLowerCase();
-  const kana = toKatakana(query);
-  return (capture) => capture.pokemon.name.toLowerCase().startsWith(lower) ||
-    (capture.pokemon.name_ja || '').startsWith(kana) ||
-    (capture.nickname || '').toLowerCase().startsWith(lower) ||
-    matchesNumber(capture.pokemon.dex_number, query) ||
-    matchesNumber(capture.pokemon.national_id, query);
+// a number matches the one the tile shows, the dex's own in a regional dex, and the national one everywhere
+export function queryMatcher (query: string, regional: boolean): (capture: Capture) => boolean {
+  const lower = normalizeQuery(query);
+  const kana = toKatakana(lower);
+  const plain = unaccented(lower);
+  return (capture) => unaccented(fold(capture.pokemon.name)).startsWith(plain) ||
+    fold(capture.pokemon.name_ja || '').startsWith(kana) ||
+    toKatakana(fold(capture.nickname || '')).startsWith(kana) ||
+    (regional && matchesNumber(capture.pokemon.dex_number, lower)) ||
+    matchesNumber(capture.pokemon.national_id, lower);
 }
 
 export interface FacetOption {
   value: string;
   label: string;
-  // matches under every other active filter
+  // matches under the search and every other active filter
   count: number;
   icon?: string;
 }
 
-export function facetOptions (facet: Facet, captures: Capture[], filters: TrackerFilters, locale: Locale): FacetOption[] {
-  const matches = filterMatcher(filters, facet.id);
-  const counts = new Map<string, number>();
+export function facetOptions (
+  facet: Facet,
+  captures: Capture[],
+  filters: TrackerFilters,
+  query: string,
+  regional: boolean,
+  locale: Locale,
+): FacetOption[] {
+  const matchesFilters = filterMatcher(filters, facet.id);
+  const matchesQuery = queryMatcher(query, regional);
+  // a selected value stays listed after the last mon carrying it changes, so it can still be seen and untoggled
+  const counts = new Map<string, number>((filters.facets[facet.id] ?? []).map((value) => [value, 0]));
   for (const capture of captures) {
     const value = facet.value(capture);
     if (value) {
-      counts.set(value, (counts.get(value) ?? 0) + (matches(capture) ? 1 : 0));
+      counts.set(value, (counts.get(value) ?? 0) + (matchesFilters(capture) && matchesQuery(capture) ? 1 : 0));
     }
   }
   const options = [...counts].map(([value, count]) => ({ value, count, label: facet.label(value, locale), icon: facet.icon?.(value) }));

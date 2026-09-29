@@ -1,11 +1,20 @@
+@use 'sass:math';
 @use 'variables' as *;
 @use 'mixins' as *;
 
-// keep in sync with SLIDE_MS in components/pages/Tracker/use-flip-clock.ts
+// keep in sync with HOLD_MS and SLIDE_MS in components/pages/Tracker/use-flip-clock.ts
+$flip-hold: 5.5s;
 $flip-slide: .8s;
+// face 0, a slide, face 1, a slide to face 2 (a copy of face 0), and round again
+$flip-cycle: 2 * ($flip-hold + $flip-slide);
 $box-stride: $box-width + $dex-grid-gap;
 // wide enough for the 105deg glint's slant across a 550px box
 $shine-band: 260px;
+
+// sets a sealed tile's number line off from the enlarged sprite it can overlap
+@mixin number-halo {
+  text-shadow: -1px 0 1px var(--tile-caught), 1px 0 1px var(--tile-caught), 0 -1px 1px var(--tile-caught), 0 1px 1px var(--tile-caught);
+}
 
 .tracker {
   display: flex;
@@ -13,61 +22,33 @@ $shine-band: 260px;
   position: relative;
   min-height: 0;
 
+  // min-width: 0 so the search bar's widest row can't push the dex past the window
   .dex-wrapper {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+    min-width: 0;
 
+    // composited, so scrolling never repaints: at 100% display scaling Chromium otherwise keeps a see-through
+    // scroller on the main thread, to spare its subpixel text; the opaque local background is what lets it keep that
     .dex-column {
       @include overflow-y-scroll;
 
       display: flex;
       flex-direction: column;
       flex-grow: 1;
+      position: relative;
+      background: var(--paper) local;
+      will-change: scroll-position;
     }
-  }
-}
 
-// wide viewports scale the dex rather than reflow it; each step stays under viewport / 1388 so two boxes still fit a row
-@media (min-width: 1500px) {
-  .dex-wrapper {
-    zoom: 1.04;
-  }
-}
-
-@media (min-width: 1600px) {
-  .dex-wrapper {
-    zoom: 1.1;
-  }
-}
-
-@media (min-width: 1728px) {
-  .dex-wrapper {
-    zoom: 1.2;
-  }
-}
-
-@media (min-width: 1920px) {
-  .dex-wrapper {
-    zoom: 1.34;
-  }
-}
-
-@media (min-width: 2048px) {
-  .dex-wrapper {
-    zoom: 1.44;
-  }
-}
-
-@media (min-width: 2304px) {
-  .dex-wrapper {
-    zoom: 1.62;
-  }
-}
-
-@media (min-width: 2560px) {
-  .dex-wrapper {
-    zoom: 1.8;
+    // IntersectionObserver target for the scroll-to-top button
+    .scroll-sentinel {
+      position: absolute;
+      top: 0;
+      width: 1px;
+      pointer-events: none;
+    }
   }
 }
 
@@ -314,8 +295,9 @@ $shine-band: 260px;
   background-color: var(--paper-raised);
   padding: 10px 12px;
 
+  // as wide as the boxes at 100% (--dex-header-width, from useDexScale); zooming never moves or scales it
   .dex-search-bar-inner {
-    max-width: $dex-grid-width;
+    max-width: var(--dex-header-width);
     margin: 0 auto;
   }
 
@@ -357,8 +339,9 @@ $shine-band: 260px;
   .form-group {
     margin-bottom: 0;
 
+    // room for the magnifier and the clear button
     input {
-      padding-left: 32px;
+      padding: 0 32px;
     }
 
     .fa-magnifying-glass {
@@ -381,8 +364,8 @@ $shine-band: 260px;
       width: 30px;
 
       .fa-xmark {
+        font-size: 10px;
         color: var(--ink-muted);
-        position: initial;
       }
 
       &:hover {
@@ -595,14 +578,18 @@ $shine-band: 260px;
       opacity: .55;
     }
 
+    // hovered, it deepens like a filter chip rather than taking the plain hover wash under its light text
     &.active {
       background-color: var(--accent);
       color: var(--on-accent);
+
+      &:hover:not(:disabled) {
+        background-color: var(--accent-hover);
+      }
     }
 
     img {
-      height: 18px;
-      image-rendering: pixelated;
+      @include ball-sprite;
     }
 
     .facet-count {
@@ -615,62 +602,74 @@ $shine-band: 260px;
 
 .dex {
   flex: 1 0 auto;
-  padding: 10px 0 100px;
-
-  .wrapper {
-    width: auto;
-    max-width: $dex-grid-width;
-  }
-
-  .scroll-up {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    position: fixed;
-    left: 10px;
-    bottom: 10px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, .5);
-    background-color: var(--accent);
-    color: var(--on-accent);
-    font-size: 11px;
-    z-index: 1;
-    transform: translateY(110px);
-    transition: transform .5s ease-out, opacity .5s ease-out, background-color .5s ease-out;
-
-    &:hover,
-    &:focus {
-      cursor: pointer;
-      background-color: var(--accent-hover);
-    }
-
-    &.visible {
-      opacity: 1;
-      transform: none;
-    }
-  }
+  // --dex-top-gap (useDexScale) centres the first row of boxes in the room under the search bar
+  padding: var(--dex-top-gap, 30px) 0 100px;
 }
 
-.box-grid {
+// the scroll-to-top button: fixed, and outside the zoomed dex so it keeps its size
+.scroll-up {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-  column-gap: $dex-grid-gap;
+  opacity: 0;
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, .5);
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  // above the overlays on the boxes
+  z-index: 3;
+  transform: translateY(110px);
+  transition: transform .5s ease-out, opacity .5s ease-out, background-color .5s ease-out;
 
-  .box:nth-child(even) .box-shine-band {
-    left: -($box-stride + $box-stride + $shine-band * .5);
+  &:hover,
+  &:focus {
+    cursor: pointer;
+    background-color: var(--accent-hover);
+  }
+
+  &.visible {
+    opacity: 1;
+    transform: none;
   }
 }
 
+// registered, so each box computes its own column; an unregistered one would inherit as text and resolve
+// sibling-index() on the shine band instead
+@property --column {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}
+
+// as many boxes across as the scaled width holds (--dex-columns, from useDexScale), rows reading left to right
+.box-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--dex-columns), $box-width);
+  justify-content: center;
+  gap: 60px $dex-grid-gap;
+  position: relative;
+
+  > .box {
+    --column: mod(sibling-index() - 1, var(--dex-columns));
+  }
+
+  // a row's flips, over the tiles of every box in it: the row's grid area, less the titles above the tiles
+  > .flip-overlay {
+    grid-column: 1 / -1;
+    top: auto;
+    height: $box-rows * $pokemon-box-size;
+  }
+}
+
+// sized by its grid, never by the row it sits in
 .box {
-  display: block;
-  width: $box-width;
-  margin-top: 60px;
-  content-visibility: auto;
-  contain-intrinsic-size: auto #{$box-width} auto #{5 * $pokemon-box-size + 41};
+  width: max-content;
 
   .box-header {
     display: grid;
@@ -702,25 +701,21 @@ $shine-band: 260px;
     }
   }
 
-  .box-container {
-    display: flex;
-    flex-wrap: wrap;
-    position: relative;
-    border: 1px solid var(--line);
-  }
-
+  // skips rendering offscreen by itself, like .flip-overlay, and for the same reason
   .box-shine {
     position: absolute;
-    inset: 0;
-    z-index: 3;
+    inset: 1px;
+    z-index: 2;
+    content-visibility: auto;
     pointer-events: none;
   }
 
+  // one glint per row: each box's band starts a stride further back per column, so they line up as a single sweep
   .box-shine-band {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: -($box-stride + $shine-band * .5);
+    left: calc(-1 * ((var(--column, 0) + 1) * #{$box-stride} + #{$shine-band * .5}));
     width: $shine-band;
     background: linear-gradient(105deg, transparent calc(50% - 45px), var(--shine) 50%, transparent calc(50% + 45px));
     will-change: transform;
@@ -728,9 +723,10 @@ $shine-band: 260px;
   }
 
   &.box-complete {
-    .box-container {
+    .tile-grid {
       border-color: var(--status-caught);
-      box-shadow: 0 0 0 1px var(--status-caught);
+      // the frame's second pixel; an outline rounds to whole pixels like the border does
+      outline: 1px solid var(--status-caught);
     }
 
     h1 {
@@ -739,40 +735,56 @@ $shine-band: 260px;
   }
 }
 
+// a box as the games draw it: six locked columns, the frame drawn once by the grid and each inner line once by the
+// tile right of or below it, so no line is two borders side by side and every one rounds to the same width; isolated,
+// so what stacks inside a tile stays under the overlays
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat($box-columns, $pokemon-box-size);
+  grid-auto-rows: $pokemon-box-size;
+  width: max-content;
+  border: 1px solid var(--line);
+  isolation: isolate;
+
+  > .pokemon:not(:nth-child(#{$box-columns}n + 1)) {
+    border-left: 1px solid var(--line);
+  }
+
+  > .pokemon:nth-child(n + #{$box-columns + 1}) {
+    border-top: 1px solid var(--line);
+  }
+}
+
+// a grid and what's laid over it: the flips, and a box's shine
+.box-container,
+.search-results {
+  position: relative;
+  width: max-content;
+}
+
+.box-container > .tile-grid {
+  content-visibility: auto;
+  contain-intrinsic-size: auto #{$box-width} auto #{$box-rows * $pokemon-box-size + 2};
+}
+
+// sized by its grid cell; the grid lines are its own left and top borders, which the fill stops at
 .pokemon {
   display: flex;
   position: relative;
-  width: $pokemon-box-size;
-  height: $pokemon-box-size;
+  background-clip: padding-box;
 
   &.captured {
     color: var(--on-tile);
     background-color: var(--tile-unobtainable);
-
-    .set-captured,
-    .set-captured-mobile {
-      border-color: var(--tile-unobtainable-edge);
-    }
   }
 
   &.captured.temporary {
     background-color: var(--tile-temporary);
     background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--tile-temporary-stripe) 8px 16px);
-
-    .set-captured,
-    .set-captured-mobile {
-      border-color: var(--tile-temporary-edge);
-      border-style: dashed;
-    }
   }
 
   &.captured.caught {
     background-color: var(--tile-caught);
-
-    .set-captured,
-    .set-captured-mobile {
-      border-color: var(--tile-caught-edge);
-    }
   }
 
   &.captured.sealed {
@@ -783,7 +795,7 @@ $shine-band: 260px;
     isolation: isolate;
 
     .icon-wrapper .pkicon {
-      transform: scale(1.8);
+      zoom: 1.8;
     }
 
     .set-captured .icon-wrapper {
@@ -792,9 +804,10 @@ $shine-band: 260px;
     }
 
     .set-captured .number-scroll {
+      @include number-halo;
+
       position: relative;
       z-index: 2;
-      text-shadow: -1px 0 1px var(--tile-caught), 1px 0 1px var(--tile-caught), 0 -1px 1px var(--tile-caught), 0 1px 1px var(--tile-caught);
     }
 
     .set-captured {
@@ -814,15 +827,9 @@ $shine-band: 260px;
     --wash: var(--wash-champions);
   }
 
-  // ties the status edges on specificity, so it has to come after them
-  &[data-selected],
-  &.captured[data-selected] {
-    .set-captured,
-    .set-captured-mobile {
-      border-color: var(--accent);
-      border-style: solid;
-      box-shadow: inset 0 0 0 1px var(--accent);
-    }
+  // rings inside the tile, clear of the shared grid lines
+  &[data-selected] {
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 
   &:not(.empty):hover {
@@ -837,8 +844,8 @@ $shine-band: 260px;
 
     cursor: pointer;
 
-    &:not(.sealed):not([data-selected]) .set-captured {
-      border-color: var(--tile-hover-edge);
+    &:not(.sealed):not([data-selected]) {
+      box-shadow: inset 0 0 0 1px var(--tile-hover-edge);
     }
   }
 
@@ -855,6 +862,7 @@ $shine-band: 260px;
     color: var(--tile-badge);
   }
 
+  // a sealed tile's badge row when it doesn't flip; flipping ones are drawn by FlipStrips
   .seal-badges {
     position: absolute;
     right: 0;
@@ -863,113 +871,157 @@ $shine-band: 260px;
     z-index: 2;
     height: 20px;
     overflow: hidden;
+  }
+}
 
-    .badge-row {
-      display: grid;
-      grid-template-columns: repeat(5, 22px);
-      justify-content: center;
-      height: 20px;
-    }
+// a sealed tile's faces, drawn in the tile when they're static and in FlipStrips when they flip
 
-    .seal-date {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: $font-secondary;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--on-tile-accent);
+.badge-row {
+  display: grid;
+  grid-template-columns: repeat(5, 22px);
+  justify-content: center;
+  height: 20px;
 
-      &.gift {
-        color: var(--gift);
-      }
-    }
-
-    .badge-slot {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 20px;
-    }
-
-    .heart-badge {
-      font-size: 11px;
-      color: var(--mark-blue);
-
-      &.partner {
-        color: var(--mark-pink);
-      }
-    }
-
-    img {
-      height: 13px;
-      width: auto;
-    }
-
-    .ball-badge {
-      width: 22px;
-      height: auto;
-      image-rendering: pixelated;
-    }
-
-    // masked, so only a sprite's alpha counts: every mark is a one-colour silhouette
-    .origin-mark {
-      width: 13px;
-      height: 13px;
-      background-color: var(--on-tile);
-      mask-position: center;
-      mask-repeat: no-repeat;
-      mask-size: contain;
-    }
-
-    svg {
-      font-size: 11px;
-    }
-
-    .gift-badge {
-      color: var(--gift);
-    }
-
-    .gender-badge {
-      position: relative;
-      bottom: 1px;
-
-      &.male {
-        color: var(--mark-blue);
-      }
-
-      &.female {
-        color: var(--mark-pink);
-      }
-    }
-
-    .trained-badge {
-      width: 10px;
-      height: 13px;
-      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-
-      &.ivs {
-        background: var(--mark-blue);
-      }
-
-      &.ev {
-        background: var(--mark-pink);
-      }
-    }
+  img {
+    height: 13px;
+    width: auto;
   }
 
-  .language-tag {
-    display: inline-block;
-    margin-left: 5px;
-    padding: 2px 3px;
-    border: 1px solid var(--tile-badge);
-    border-radius: 2px;
-    font-size: 9px;
-    line-height: 1;
-    letter-spacing: .5px;
-    vertical-align: middle;
-    opacity: .8;
+  svg {
+    font-size: 11px;
   }
+}
+
+.seal-date {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: $font-secondary;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--on-tile-accent);
+
+  &.gift {
+    color: var(--gift);
+  }
+}
+
+.badge-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+}
+
+.heart-badge {
+  font-size: 11px;
+  color: var(--mark-blue);
+
+  &.partner {
+    color: var(--mark-pink);
+  }
+}
+
+// the sprite's 20px ball area at 15px, level with the marks beside it; smooth while that's a shrink on screen,
+// which nearest-neighbour would break up, and crisp once the dex scale makes it an enlargement
+.badge-row .ball-badge {
+  width: 15px;
+  height: 15px;
+  object-view-box: inset(6px);
+}
+
+.dex-wrapper[data-crisp-balls] .ball-badge {
+  image-rendering: pixelated;
+}
+
+// masked, so only a sprite's alpha counts: every mark is a one-colour silhouette
+.origin-mark {
+  width: 13px;
+  height: 13px;
+  background-color: var(--on-tile);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.gift-badge {
+  color: var(--gift);
+}
+
+.gender-badge {
+  position: relative;
+  bottom: 1px;
+
+  &.male {
+    color: var(--mark-blue);
+  }
+
+  &.female {
+    color: var(--mark-pink);
+  }
+}
+
+.trained-badge {
+  width: 10px;
+  height: 13px;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+
+  &.ivs {
+    background: var(--mark-blue);
+  }
+
+  &.ev {
+    background: var(--mark-pink);
+  }
+}
+
+.nickname {
+  color: var(--on-tile-accent);
+  font-weight: 700;
+}
+
+.number-line-ot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  font-weight: 700;
+  color: var(--on-tile-accent);
+
+  &.gift {
+    color: var(--gift);
+  }
+}
+
+.number-line-slots {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 4px;
+  height: 16px;
+
+  .slot-lang {
+    justify-self: center;
+  }
+
+  .slot-level {
+    justify-self: start;
+    font-weight: 700;
+    color: var(--on-tile-accent);
+  }
+}
+
+// a fixed box centred on its row, so font metrics can't grow it past the row and into the flipped face
+.language-tag {
+  display: block;
+  height: 11px;
+  padding: 0 2px;
+  border: 1px solid var(--tile-badge);
+  border-radius: 2px;
+  font-size: 8px;
+  line-height: 9px;
+  letter-spacing: .5px;
+  opacity: .8;
 }
 
 .name-gender {
@@ -979,83 +1031,24 @@ $shine-band: 260px;
   font-size: .7em;
 }
 
+// keep the 22/49/16 stack in sync with FlipStrips, which lays its windows over it
 .set-captured {
   display: flex;
   flex-grow: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line);
 
-  h4 {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 400;
-    // absolute so EN/JA tile layout is identical
-    line-height: 22px;
-    white-space: nowrap;
-
-    @include cjk {
-      font-size: 14px;
-    }
-  }
-
+  // a flipping line's space, left empty for FlipStrips
   .name-scroll {
     height: 22px;
-    overflow: hidden;
   }
 
-  .name-scroll-track {
-    text-align: center;
-
-    h4 {
-      height: 22px;
-    }
-  }
-
-  .nickname {
-    color: var(--on-tile-accent);
-    font-weight: 700;
-  }
-
+  // as wide as the tile, like the overlay's faces, so a line that doesn't flip lays out exactly like one that does
   .number-scroll {
+    align-self: stretch;
     height: 16px;
     overflow: hidden;
-  }
-
-  .number-line-ot {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 16px;
-    font-weight: 700;
-    color: var(--on-tile-accent);
-
-    &.gift {
-      color: var(--gift);
-    }
-  }
-
-  .number-line-slots {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    column-gap: 4px;
-    height: 16px;
-
-    .slot-lang {
-      justify-self: end;
-
-      .language-tag {
-        margin-left: 0;
-      }
-    }
-
-    .slot-level {
-      justify-self: start;
-      font-weight: 700;
-      color: var(--on-tile-accent);
-    }
   }
 
   .icon-wrapper {
@@ -1063,87 +1056,116 @@ $shine-band: 260px;
     align-items: center;
     height: 49px;
 
+    // zoom rather than a transform, which would split every tile's paint in two
     .pkicon {
-      transform: scale(1.3);
+      zoom: 1.3;
     }
-  }
-
-  p {
-    margin: 0;
-    font-family: $font-secondary;
-    font-size: 11px;
-    font-weight: 400;
   }
 }
 
-.set-captured-mobile {
+.set-captured h4,
+.flip-names h4 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 400;
+  // absolute so EN/JA tile layout is identical
+  line-height: 22px;
+  white-space: nowrap;
+
+  @include cjk {
+    font-size: 14px;
+  }
+}
+
+// no specificity of its own, so a line's class (the OT's bold) wins over it
+:where(.set-captured, .flip-numbers) p {
+  margin: 0;
+  font-family: $font-secondary;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+// FlipStrips, over the tiles inside their frames: a lone grid's, or a whole row of boxes' (.box-grid). It skips
+// rendering offscreen by itself rather than with the tiles, so it isn't part of their stacking context, and its z-index
+// paints every overlay after every box's tiles. Chromium's layer assignment slows with the square of the composited
+// layers painted between boxes, so the strips are kept few, wide and last
+.flip-overlay {
+  position: absolute;
+  inset: 1px;
+  z-index: 1;
+  content-visibility: auto;
+  pointer-events: none;
+}
+
+// one clipped window per tile row and flipping line, whose faces slide together as a single composited strip; faces
+// are --flip-* tall, a whole number of screen pixels (useDexScale), so a strip only ever rests on whole pixels and
+// wrapping from face 2, a copy of face 0, back to 0 changes nothing on screen
+.flip-window {
+  position: absolute;
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  color: var(--on-tile);
+}
+
+// every strip runs this on the compositor, all from one start (useFlipClock); wrapping from face 2 to face 0 moves
+// the strip a whole number of screen pixels onto the same picture
+@keyframes flip-cycle {
+  0%,
+  #{math.percentage(math.div($flip-hold, $flip-cycle))} {
+    transform: translateY(0);
+  }
+
+  50%,
+  #{math.percentage(math.div(2 * $flip-hold + $flip-slide, $flip-cycle))} {
+    transform: translateY(calc(-1 * var(--flip-face)));
+  }
+
+  100% {
+    transform: translateY(calc(-2 * var(--flip-face)));
+  }
+}
+
+.flip-strip {
+  will-change: transform;
+  animation: flip-cycle $flip-cycle ease-in-out infinite;
+}
+
+.flip-faces {
+  position: absolute;
+  top: 0;
+  text-align: center;
+}
+
+@each $line, $height in (names: 22px, badges: 20px, numbers: 16px) {
+  .flip-#{$line} {
+    --flip-face: var(--flip-#{$line}, #{$height});
+
+    height: var(--flip-face);
+
+    .flip-faces > * {
+      height: var(--flip-face);
+    }
+  }
+}
+
+.flip-numbers {
+  @include number-halo;
+}
+
+// a name wider than its tile overflows both sides evenly, as in the tile's own centred column, not just to the right
+.flip-names h4 {
   display: flex;
-  flex-grow: 1;
-  align-items: center;
-  border: 1px solid var(--line);
-
-  .icon-wrapper {
-    min-width: 52px;
-    text-align: center;
-    padding: 0 6px;
-  }
-
-  h4 {
-    flex-grow: 1;
-    margin: 0;
-    font-size: 20px;
-    font-weight: 400;
-
-    @include cjk {
-      font-size: 17px;
-    }
-  }
-
-  p {
-    margin: 0;
-    padding-right: 10px;
-    font-family: $font-secondary;
-    font-size: 11px;
-  }
+  justify-content: center;
 }
 
-// face 2 is the cloned first row; use-flip-clock snaps it back to 0
-.tracker-container {
-  &[data-flipping] {
-    .name-scroll-track,
-    .seal-badges-track,
-    .number-scroll-track {
-      transition: transform $flip-slide ease-in-out;
-    }
-  }
+// paused with space (useFlipClock), holding the face on show
+.tracker-container[data-flip-paused] .flip-strip {
+  animation: none;
+}
 
-  &[data-flip='1'] {
-    .name-scroll-track {
-      transform: translateY(-22px);
-    }
-
-    .seal-badges-track {
-      transform: translateY(-20px);
-    }
-
-    .number-scroll-track {
-      transform: translateY(-16px);
-    }
-  }
-
-  &[data-flip='2'] {
-    .name-scroll-track {
-      transform: translateY(-44px);
-    }
-
-    .seal-badges-track {
-      transform: translateY(-40px);
-    }
-
-    .number-scroll-track {
-      transform: translateY(-32px);
-    }
-  }
+.tracker-container[data-flip-paused='1'] .flip-strip {
+  transform: translateY(calc(-1 * var(--flip-face)));
 }
 
 .set-status {
@@ -1195,66 +1217,123 @@ $shine-band: 260px;
   }
 }
 
+// results keep the box's six columns; SearchResults pads the last row with empty slots
 .search-results {
-  display: flex;
-  flex-wrap: wrap;
-  // results keep the 6-tile column; the row-break rules assume 6 per row
-  width: $box-width;
-  margin: 60px auto 0;
+  margin: 0 auto;
 
   &-empty {
+    display: flex;
     justify-content: center;
+    width: auto;
   }
 }
 
-@media (min-width: 751px) {
-  .search-results .pokemon {
-    margin-left: -2px;
-    margin-top: -2px;
-    height: $pokemon-box-size + 2;
-    width: $pokemon-box-size + 2;
-
-    &:nth-child(6n+1) {
-      margin-left: 0;
-    }
-
-    .set-captured {
-      border-width: 2px;
-    }
-
-    &:hover,
-    &[data-selected] {
-      z-index: 1;
-    }
-  }
-}
-
-// keep in sync with NARROW_QUERY in components/pages/Tracker/use-tracker.tsx
+// too narrow for one box: the legacy list view; keep in sync with NARROW_QUERY in components/pages/Tracker/use-tracker.tsx
 @media (max-width: 750px) {
   .dex {
-    padding: 15px;
+    padding: 30px 15px 15px;
+  }
+
+  .dex-search-bar .dex-search-bar-inner {
+    max-width: none;
+  }
+
+  .box-grid {
+    grid-template-columns: 1fr;
+    row-gap: 50px;
   }
 
   .box {
     width: 100%;
-    margin-top: 50px;
+  }
 
-    .box-container {
-      flex-direction: column;
+  .box-container,
+  .search-results {
+    width: auto;
+  }
+
+  // one column of rows, each drawing the line above it
+  .tile-grid {
+    width: auto;
+    grid-template-columns: 1fr;
+    grid-auto-rows: 80px;
+
+    > .pokemon:nth-child(n) {
+      border-top: 1px solid var(--line);
+      border-left: 0;
+    }
+
+    > .pokemon:first-child {
+      border-top: 0;
     }
   }
 
-  .search-results:not(.search-results-empty) {
-    border: 1px solid var(--line);
+  .box-container > .tile-grid {
+    contain-intrinsic-height: auto #{$box-columns * $box-rows * 80px};
   }
 
-  .pokemon {
-    width: 100%;
-    height: 80px;
+  .pokemon.empty {
+    display: none;
+  }
+}
 
-    &.empty {
-      display: none;
+.set-captured-mobile {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+
+  .icon-wrapper {
+    min-width: 52px;
+    text-align: center;
+    padding: 0 6px;
+  }
+
+  h4 {
+    flex-grow: 1;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 400;
+
+    @include cjk {
+      font-size: 17px;
     }
+  }
+
+  p {
+    margin: 0;
+    padding-right: 10px;
+    font-family: $font-secondary;
+    font-size: 11px;
+  }
+}
+
+// outside the zoomed dex, so it reads the same at every zoom
+.zoom-indicator {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  z-index: 55;
+  padding: 7px 12px;
+  border-radius: 5px;
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  font-family: $font-secondary;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity .3s ease-out;
+
+  &.shown {
+    opacity: 1;
+    transition-duration: .05s;
+  }
+
+  .svg-inline--fa {
+    margin-right: 7px;
+    font-size: 11px;
   }
 }
 

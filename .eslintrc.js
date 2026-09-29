@@ -7,9 +7,11 @@ module.exports = {
   ignorePatterns: ['public', 'build', 'dist'],
   overrides: [
     {
+      // node scripts log by design, and indent their chained calls
       files: ['electron/**/*.js', 'scripts/**/*.mjs'],
       rules: {
         'no-console': 'off',
+        indent: ['error', 2, { SwitchCase: 1 }],
       },
     },
   ],

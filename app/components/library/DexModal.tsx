@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { CaptureFieldControl } from './CaptureFieldControl';
 import { Dropdown } from './Dropdown';
 import { ModalShell } from './ModalShell';
-import { DEFAULTABLE_BASELINES, DEFAULTABLE_FIELDS, statusOptions, withBaselines, withFieldInvariants } from '../../utils/capture-fields';
+import { DEFAULTABLE_BASELINES, DEFAULTABLE_FIELDS, STATUSES, statusOptions, withBaselines, withFieldInvariants } from '../../utils/capture-fields';
 import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex } from '../../utils/local-data';
 import { localizeCatalogDexName, localizeCatalogGame, localizeDexType } from '../../i18n/names';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
@@ -53,9 +53,13 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const [gameId, setGameId] = useState(initialCatalog.game.id);
   const [catalogKey, setCatalogKey] = useState(initialCatalog.key);
   const [shiny, setShiny] = useState(dex?.shiny || false);
-  // creation-only and immutable — an existing dex must never convert
-  const [checklist, setChecklist] = useState(false);
-  const [defaultStatus, setDefaultStatus] = useState<CaptureStatus>(dex?.captureDefaults?.status || 'caught');
+  // chosen at creation only and immutable — an existing dex must never convert
+  const [checklist, setChecklist] = useState(Boolean(dex?.checklist));
+  // a stored status this version doesn't write (a hand edit) shows, and saves, as the caught a click falls back to
+  const [defaultStatus, setDefaultStatus] = useState<CaptureStatus>(() => {
+    const stored = dex?.captureDefaults?.status;
+    return stored && STATUSES.includes(stored) ? stored : 'caught';
+  });
   const [defaults, setDefaults] = useState<Partial<CaptureMetadata>>(() => withBaselines({ ...dex?.captureDefaults }, DEFAULTABLE_BASELINES));
 
   const dexesForGame = CATALOG_GROUPS.find((group) => group.game.id === gameId)?.entries || [];
@@ -63,6 +67,10 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value);
 
   const handleGameChange = (newGameId: string) => {
+    // re-picking the game shown keeps the dex picked under it
+    if (newGameId === gameId) {
+      return;
+    }
     setGameId(newGameId);
     const firstEntry = CATALOG_GROUPS.find((group) => group.game.id === newGameId)?.entries[0];
     if (firstEntry) {
@@ -81,8 +89,9 @@ export function DexModal ({ dex, onRequestClose }: Props) {
 
     const captureDefaults = { ...defaults, status: defaultStatus };
 
+    // a checklist has no defaults, and never had them to keep
     if (dex) {
-      updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults });
+      updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults: dex.checklist ? undefined : captureDefaults });
     } else {
       pendingActionRef.current = () => createDex({ title: resolvedTitle, catalogKey, shiny, checklist, captureDefaults: checklist ? undefined : captureDefaults });
     }

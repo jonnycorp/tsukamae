@@ -60,12 +60,9 @@ const TONES: Record<Mode, Record<string, Tone>> = {
     'field-edge': [0.72, 0.035, 'ink'],
     'field-focus': [0.47, 0.065, 'ink'],
     'tile-unobtainable': [0.885, 0.026, 'unobtainable'],
-    'tile-unobtainable-edge': [0.815, 0.036, 'unobtainable'],
     'tile-temporary': [0.925, 0.05, 'temporary'],
     'tile-temporary-stripe': [0.88, 0.066, 'temporary'],
-    'tile-temporary-edge': [0.76, 0.085, 'temporary'],
     'tile-caught': [0.835, 0.075, 'caught'],
-    'tile-caught-edge': [0.75, 0.085, 'caught'],
     'status-unobtainable': [0.62, 0.08, 'unobtainable'],
     'status-temporary': [0.64, 0.12, 'temporary'],
     'status-caught': [0.62, 0.12, 'caught'],
@@ -92,12 +89,9 @@ const TONES: Record<Mode, Record<string, Tone>> = {
     'field-edge': [0.5, 0.034, 'ink'],
     'field-focus': [0.8, 0.07, 'hue'],
     'tile-unobtainable': [0.245, 0.022, 'unobtainable'],
-    'tile-unobtainable-edge': [0.33, 0.03, 'unobtainable'],
     'tile-temporary': [0.285, 0.045, 'temporary'],
     'tile-temporary-stripe': [0.325, 0.06, 'temporary'],
-    'tile-temporary-edge': [0.45, 0.07, 'temporary'],
     'tile-caught': [0.31, 0.085, 'caught'],
-    'tile-caught-edge': [0.41, 0.09, 'caught'],
     'status-unobtainable': [0.7, 0.07, 'unobtainable'],
     'status-temporary': [0.72, 0.1, 'temporary'],
     'status-caught': [0.72, 0.11, 'caught'],
@@ -174,7 +168,7 @@ function solveWashes (tile: Lch, caught: number, mode: Mode): Record<string, Lch
 }
 
 // dark yellows and oranges read as brown, so their chromatic dark tones sit higher
-const LIFTED = new Set(['chrome', 'chrome-hover', 'chrome-active', 'chrome-well', 'chrome-pattern', 'meter', 'tile-temporary', 'tile-temporary-stripe', 'tile-temporary-edge', 'tile-caught', 'tile-caught-edge']);
+const LIFTED = new Set(['chrome', 'chrome-hover', 'chrome-active', 'chrome-well', 'chrome-pattern', 'meter', 'tile-temporary', 'tile-temporary-stripe', 'tile-caught']);
 const lift = (h: number) => 0.07 * Math.exp(-((hueDistance(h, 90) / 32) ** 2));
 // low-chroma yellows read as beige or khaki
 const vivify = (h: number) => 1 + 0.7 * Math.exp(-((hueDistance(h, 92) / 28) ** 2));

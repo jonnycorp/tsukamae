@@ -44,7 +44,8 @@ export function useLongPress ({ delay, duration, onComplete, onRelease }: Option
   }, [reset]);
 
   const start = useCallback((e: ReactPointerEvent) => {
-    if (e.button !== 0) {
+    // a second finger or pen mid-hold would orphan the first hold's timers, which then fire after both lift
+    if (e.button !== 0 || timersRef.current.length > 0) {
       return;
     }
     e.preventDefault();

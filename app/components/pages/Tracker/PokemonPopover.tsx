@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleExclamation, faLock, faLongArrowAltRight, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
-import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, staleFields, statusOptions, unansweredFields, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
+import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, freshMetadata, lookupOT, statusOptions, unansweredFields, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
 import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { PokemonName } from '../../library/PokemonName';
@@ -16,6 +16,7 @@ import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture, CaptureMetadata, CaptureStatus } from '../../../types';
 
+// a family missing here (a dataset newer than this list) falls back to the newest dex, home's
 const SEREBII_LINKS: Record<string, string> = {
   x_y: 'pokedex-xy',
   omega_ruby_alpha_sapphire: 'pokedex-xy',
@@ -43,11 +44,13 @@ const RECORD_COLUMNS = FORM_COLUMNS.map((fields) => fields.filter((field) => fie
 
 interface Props {
   onClose: () => void;
+  // the dex's zoom; the popover sits outside it, so it re-docks when this moves the tiles
+  scale: number;
   selectedPokemon: number;
 }
 
-export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
-  const { activeDexView, saves } = useDexContext();
+export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
+  const { activeDex, activeDexView, saves } = useDexContext();
   const { captures } = useTrackerState();
   const { setCaptures, sealFx, updateCapture, releaseCaptures } = useTrackerActions();
   const { t, locale } = useTranslation();
@@ -60,16 +63,47 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
 
   useEffect(() => revive(), [selectedPokemon, revive]);
 
-  const missing = capture ? unansweredFields(capture) : [];
+  const missing = capture ? unansweredFields(capture, capture.pokemon.gender_lock) : [];
 
   const patch = (changes: Partial<CaptureMetadata> & { status?: CaptureStatus; sealed?: boolean }) => {
     if (!capture) {
       return;
     }
-    // switching to unobtainable wipes the record here too, so the mirror matches storage
-    const resolved = changes.status === 'unobtainable'
-      ? { ...changes, ...EMPTY_METADATA }
-      : { ...changes, ...withFieldInvariants(capture, changes) };
+    // switching to unobtainable wipes the record here too, so the mirror matches storage, and leaving it starts over
+    // like a new mark, as writeCapture does
+    const reviving = capture.status === 'unobtainable' && changes.status !== undefined && changes.status !== 'unobtainable';
+    const fresh = () => freshMetadata({
+      defaults: activeDex!.captureDefaults,
+      checklist: false,
+      homeDex: activeDexView!.game.id === 'home',
+      genderLock: capture.pokemon.gender_lock,
+      saves,
+    });
+    let resolved: Partial<CaptureMetadata> & { status?: CaptureStatus; sealed?: boolean };
+    if (changes.status === 'unobtainable') {
+      resolved = { ...changes, ...EMPTY_METADATA };
+    } else if (reviving) {
+      resolved = { ...fresh(), ...changes, sealed: false };
+    } else {
+      resolved = { ...changes, ...withFieldInvariants(capture, changes) };
+      // a game or language moved by hand onto another of your games takes that game's OT, as picking it would; a typed
+      // OT, or one moving onto a game that isn't yours, stays
+      if (!('ot' in changes) && ('origin_game' in resolved || 'language' in resolved)) {
+        const stamped = lookupOT(saves, capture.origin_game, capture.language);
+        const restamped = lookupOT(
+          saves,
+          'origin_game' in resolved ? resolved.origin_game ?? null : capture.origin_game,
+          'language' in resolved ? resolved.language ?? null : capture.language,
+        );
+        if (stamped !== null && restamped !== null && capture.ot === stamped) {
+          resolved.ot = restamped;
+        }
+      }
+    }
+    // sealing is only ever from Caught, as writeCapture keeps it; only the TESTING bypass reaches a sealed mon's status
+    if (capture.sealed && resolved.status !== undefined && resolved.status !== 'caught') {
+      resolved = { ...resolved, sealed: false };
+    }
     // mirrors writeCapture's baseline fill; checklists never reach this popover
     const mirror = (cap: Capture) => {
       const next = { ...cap, ...resolved };
@@ -144,7 +178,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     const observer = new ResizeObserver(() => place(true));
     observer.observe(el);
     return () => observer.disconnect();
-  }, [place]);
+  }, [place, scale]);
 
   useEffect(() => {
     let frame = 0;
@@ -157,10 +191,21 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     };
     const refit = () => place(true);
 
+    // the dex reflowing under it without a scroll (a search typed, a filter, a tile leaving its view) moves the tile too
+    const dex = document.querySelector('.dex');
+    const reflow = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => place(false));
+    });
+    if (dex) {
+      reflow.observe(dex);
+    }
+
     document.addEventListener('scroll', follow, { capture: true, passive: true });
     window.addEventListener('resize', refit);
     return () => {
       cancelAnimationFrame(frame);
+      reflow.disconnect();
       document.removeEventListener('scroll', follow, true);
       window.removeEventListener('resize', refit);
     };
@@ -181,8 +226,9 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
       return;
     }
 
+    // closed at once, as D does: a fade would show the card collapse to 'not marked' and jump as it went
     releaseCaptures([capture.pokemon.id]);
-    dismiss();
+    onClose();
   };
 
   if (!capture) {
@@ -194,11 +240,11 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
   const sealed = capture.sealed && sealFx;
   const dexView = activeDexView!;
   const fields = capture.status !== 'unobtainable';
-  const stale = new Set(sealed ? staleFields(capture, pokemon.gender_lock).map((field) => field.id) : []);
+  const stale = new Set(sealed ? missing.map((field) => field.id) : []);
 
   return (
     <div
-      className={classNames('pokemon-popover', { closing, sealed, wide: capture.captured && (sealed || fields) })}
+      className={classNames('pokemon-popover', { closing, wide: capture.captured && (sealed || fields) })}
       ref={popoverRef}
     >
       <Fragment key={pokemon.id}>
@@ -218,7 +264,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
                     Bulbapedia <FontAwesomeIcon icon={faLongArrowAltRight} />
                   </a>
                   <a
-                    href={serebiiLink(SEREBII_LINKS[dexView.game.game_family.id], pokemon.national_id)}
+                    href={serebiiLink(SEREBII_LINKS[dexView.game.game_family.id] ?? SEREBII_LINKS.home, pokemon.national_id)}
                     rel="noopener noreferrer"
                     target="_blank"
                   >

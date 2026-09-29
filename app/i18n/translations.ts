@@ -12,8 +12,12 @@ const en = {
   'nav.importInvalidJson': 'That file isn\'t valid JSON.',
   'nav.importNotExport': 'That file doesn\'t look like a Tsukamae progress export.',
   'nav.importConfirm': 'Importing will REPLACE all current dexes and progress. Continue?',
+  'nav.importFailed': 'The import couldn\'t be saved, so nothing was changed.',
 
   'app.name': 'tsukamae',
+  'app.loading': 'Loading…',
+  'app.loadFailed': 'Your saved data couldn\'t be read, so none of it was loaded and nothing will be saved over it. It\'s in dex_data.json in the app\'s data folder. {import} in the gear menu restores an export in its place, keeping a copy of the unreadable file as dex_data.unreadable.json (numbered, if there\'s one already).',
+  'app.saveFailed': 'Your changes couldn\'t be saved to disk, so for now they only exist in this window. {export} in the gear menu keeps a copy; the next change tries the disk again.',
 
   'search.placeholder': 'Search by name or # (use / to quick search)',
   'search.langTags': 'Lang Tags',
@@ -111,6 +115,9 @@ const en = {
   'saves.ot': 'OT',
   'saves.delete': 'Delete',
   'saves.deleteConfirm': 'Delete "{label}"?',
+  'saves.deleteConfirmUsed': 'Delete "{label}"? {count} Pokémon are in this game, and will need their location set again.',
+  'saves.edit': 'Edit',
+  'saves.save': 'Save Game',
   'saves.notMine': 'Not My Game',
   'saves.duplicate': 'You already have a game for that combination.',
 
@@ -149,9 +156,13 @@ const ja: Record<TranslationKey, string> = {
   'nav.importInvalidJson': '有効なJSONファイルではありません。',
   'nav.importNotExport': 'Tsukamaeのデータファイルではないようです。',
   'nav.importConfirm': '読み込むと現在の図鑑と進捗がすべて置き換えられます。続けますか？',
+  'nav.importFailed': '読み込んだデータを保存できなかったため、何も変更していません。',
 
   // the brand stays english in both locales
   'app.name': 'tsukamae',
+  'app.loading': '読み込み中…',
+  'app.loadFailed': '保存データを読み込めませんでした。何も読み込んでおらず、上書き保存もしません。データはアプリのデータフォルダの dex_data.json にあります。歯車メニューの「{import}」で書き出したデータに置き換えられます（読み込めなかったファイルのコピーは dex_data.unreadable.json として残ります。既にある場合は番号付きで残ります）。',
+  'app.saveFailed': '変更をディスクに保存できなかったため、今はこのウィンドウの中にしかありません。歯車メニューの「{export}」でコピーを残せます。次の変更でもう一度保存を試みます。',
 
   'search.placeholder': '名前・番号で検索（/ キー）',
   'search.langTags': '言語タグ',
@@ -238,7 +249,7 @@ const ja: Record<TranslationKey, string> = {
 
   'seal.action': '確定する',
   'seal.sealed': '確定済み',
-  'seal.confirm': '{name} を確定しますか？確定したポケモンは編集も解放もできません。長押しで解除する必要があります。',
+  'seal.confirm': '{name} を確定しますか？確定したポケモンは編集も逃がすこともできません。長押しで解除する必要があります。',
   'seal.incomplete': 'すべての項目に回答すると確定できます（残り{count}件）',
   'seal.stale': '要更新：{fields}',
 
@@ -249,6 +260,9 @@ const ja: Record<TranslationKey, string> = {
   'saves.ot': '親（OT）',
   'saves.delete': '削除',
   'saves.deleteConfirm': '「{label}」を削除しますか？',
+  'saves.deleteConfirmUsed': '「{label}」を削除しますか？このソフトにいる{count}匹は、現在地をもう一度設定する必要があります。',
+  'saves.edit': '編集',
+  'saves.save': 'ソフトを保存',
   'saves.notMine': '自分のゲーム以外',
   'saves.duplicate': 'その組み合わせのソフトは既に登録されています。',
 

@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronUp, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faChevronDown, faChevronUp, faPencilAlt, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 import { Dropdown } from './Dropdown';
@@ -15,12 +15,14 @@ interface Props {
 }
 
 export function SavesModal ({ onRequestClose }: Props) {
-  const { saves, createSave, moveSave, deleteSave } = useDexContext();
+  const { dexes, saves, createSave, updateSave, moveSave, deleteSave } = useDexContext();
   const { t, locale } = useTranslation();
   const { closing, dismiss } = useDismissable({ onDismissed: onRequestClose });
 
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
+  // the game the form is changing, in place of adding one
+  const [editId, setEditId] = useState<string | null>(null);
 
   const [draftGame, setDraftGame] = useState('');
   const [draftLanguage, setDraftLanguage] = useState('');
@@ -30,7 +32,7 @@ export function SavesModal ({ onRequestClose }: Props) {
 
   // the game/language pair is the mapping key, so it must stay unique
   const duplicate = Boolean(draftGame && draftLanguage &&
-    saves.some((save) => save.game === draftGame && save.language === draftLanguage));
+    saves.some((save) => save.id !== editId && save.game === draftGame && save.language === draftLanguage));
   const canAdd = Boolean(draftGame && draftLanguage && draftOT.trim()) && !duplicate;
 
   const handleLanguageChange = (next: string) => {
@@ -42,16 +44,42 @@ export function SavesModal ({ onRequestClose }: Props) {
     if (!canAdd) {
       return;
     }
-    createSave({ game: draftGame, language: draftLanguage, ot: draftOT.trim() });
+    const input = { game: draftGame, language: draftLanguage, ot: draftOT.trim() };
+    if (editId) {
+      updateSave(editId, input);
+    } else {
+      createSave(input);
+    }
     setDraftGame('');
     setDraftLanguage('');
     setDraftOT('');
+    setEditId(null);
     setAdding(false);
   };
 
+  // fixing a typo used to mean delete and add again, which left every mon placed in the game without a location
+  const handleEdit = (id: string) => {
+    const save = saves.find((entry) => entry.id === id);
+    if (!save) {
+      return;
+    }
+    setDraftGame(save.game);
+    setDraftLanguage(save.language);
+    setDraftOT(save.ot);
+    setEditId(id);
+    setAdding(true);
+  };
+
   const handleDelete = (id: string, label: string) => {
-    if (window.confirm(t('saves.deleteConfirm', { label }))) {
+    // a mon "in a game" names the game by id, so deleting it leaves those locations unanswered
+    const placed = (dexes ?? []).reduce((count, dex) => count +
+      Object.values(dex.progress).filter((entry) => entry.location === 'game' && entry.location_save === id).length, 0);
+    if (window.confirm(placed > 0 ? t('saves.deleteConfirmUsed', { label, count: placed }) : t('saves.deleteConfirm', { label }))) {
       deleteSave(id);
+      if (editId === id) {
+        setEditId(null);
+        setAdding(false);
+      }
     }
   };
 
@@ -72,6 +100,15 @@ export function SavesModal ({ onRequestClose }: Props) {
                 <div className="saves-list-key">{save.ot}</div>
                 {editing &&
                   <div className="saves-list-controls">
+                    <button
+                      aria-label={t('saves.edit')}
+                      aria-pressed={editId === save.id}
+                      onClick={() => handleEdit(save.id)}
+                      title={t('saves.edit')}
+                      type="button"
+                    >
+                      <FontAwesomeIcon icon={faPencilAlt} />
+                    </button>
                     <button
                       aria-label={t('landing.moveUp')}
                       disabled={index === 0}
@@ -151,7 +188,7 @@ export function SavesModal ({ onRequestClose }: Props) {
           onClick={() => (adding ? handleAdd() : setAdding(true))}
           type="button"
         >
-          <FontAwesomeIcon icon={faPlus} /> {t('saves.add')}
+          <FontAwesomeIcon icon={editId ? faCheck : faPlus} /> {t(editId ? 'saves.save' : 'saves.add')}
         </button>
 
         {saves.length > 0 &&

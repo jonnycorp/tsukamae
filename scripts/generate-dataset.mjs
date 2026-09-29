@@ -92,7 +92,14 @@ for (const { key, slug, name } of POKEAPI_ONLY ? [] : DEX_MANIFEST) {
     get(`/users/${EXAMPLE_USER}/dexes/${slug}/captures`),
   ]);
 
-  const pokemon = captures.map((capture) => capture.pokemon);
+  // upstream nests its whole game family in every record, which was half the dataset; the app only reads the generation.
+  // A national dex numbers by national id, which upstream's dex_number gets wrong at least once (Sandaconda as 141)
+  const regional = dex.dex_type.tags.includes('regional');
+  const pokemon = captures.map(({ pokemon: { game_family: family, ...mon } }) => ({
+    ...mon,
+    dex_number: regional ? mon.dex_number : mon.national_id,
+    generation: family.generation,
+  }));
 
   const meta = {
     key,
@@ -165,11 +172,14 @@ for (const { key, pokedex, gameId, name, dexType } of POKEAPI_DEX_MANIFEST) {
         id: nationalId,
         national_id: nationalId,
         name: species.name,
-        game_family: species.game_family,
         form: null,
         box: null,
         dex_number: entry.entry_number,
+        generation: species.generation,
+        // what enrich-species attaches, so a --pokeapi-only run leaves these dexes whole without it
         name_ja: species.name_ja,
+        legendary_class: species.legendary_class ?? null,
+        gender_lock: species.gender_lock ?? null,
       };
     });
 

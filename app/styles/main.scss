@@ -112,6 +112,32 @@ nav {
   }
 }
 
+// the window's title bar on Windows (TITLE_BAR in electron/main.js): its empty stretches drag the window and double-click
+// to maximize, anything clickable opts out, and the titlebar-area env() values keep the icons clear of the window
+// buttons the system draws over its right end; in a browser they're unset and the padding comes out 0
+.titlebar {
+  -webkit-app-region: drag;
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+
+  // with a menu open anywhere, a click on the bar has to reach the page to close it, not start a window drag
+  &.dropdown-open,
+  :root:has(.dropdown-menu) & {
+    -webkit-app-region: no-drag;
+  }
+
+  a,
+  button,
+  .dropdown,
+  .nav-menu-dropdown {
+    -webkit-app-region: no-drag;
+  }
+}
+
+// a modal's overlay covers the nav (ModalShell portals it into body): clicks there dismiss rather than drag
+.modal-overlay {
+  -webkit-app-region: no-drag;
+}
+
 .nav-menu {
   display: flex;
   position: relative;
@@ -141,16 +167,17 @@ nav {
       white-space: nowrap;
       cursor: pointer;
 
-      .svg-inline--fa {
-        margin-right: 12px;
-        font-size: 12px;
-      }
-
       &:hover {
         background-color: var(--chrome-active);
       }
     }
   }
+}
+
+// a menu item's leading icon, with no specificity of its own: an icon placed differently (.theme-check) keeps its own
+:where(.nav-menu .nav-menu-dropdown li) .svg-inline--fa {
+  margin-right: 12px;
+  font-size: 12px;
 }
 
 .theme-popover {
@@ -188,13 +215,14 @@ nav {
   }
 }
 
+// centred without a transform: a transformed box would anchor the dex menu's position: fixed to itself
 .nav-dex-controls {
   display: flex;
   align-items: center;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  width: fit-content;
+  margin: 0 auto;
 
   .tooltip .svg-inline--fa {
     font-size: 13px;
@@ -350,9 +378,7 @@ form {
     white-space: nowrap;
 
     img {
-      flex-shrink: 0;
-      height: 18px;
-      image-rendering: pixelated;
+      @include ball-sprite;
     }
   }
 
@@ -389,9 +415,7 @@ form {
     cursor: pointer;
 
     img {
-      flex-shrink: 0;
-      height: 18px;
-      image-rendering: pixelated;
+      @include ball-sprite;
     }
 
     &:hover {
@@ -401,6 +425,11 @@ form {
     &.dropdown-selected {
       background-color: var(--chrome-active);
       font-weight: 700;
+    }
+
+    // where the arrow keys are; a ring, since the selected option already has the hover colour
+    &.dropdown-active {
+      box-shadow: inset 0 0 0 2px var(--accent);
     }
 
     .dropdown-check {
@@ -480,7 +509,7 @@ form {
 
   .form-control {
     height: 43px;
-    padding: 0 32px 0 10px;
+    padding: 0 10px;
     font-size: 15px;
   }
 
@@ -530,26 +559,12 @@ form {
       }
     }
   }
-
-  .svg-inline--fa {
-    &.input-icon {
-      position: absolute;
-      bottom: 16px;
-      right: 15px;
-      font-size: 10px;
-      color: var(--ink-muted);
-    }
-
-    &.fa-chevron-down {
-      font-size: 9px;
-    }
-  }
 }
 
+// hangs below its nav icon
 .tooltip {
   display: inline-block;
   position: relative;
-  margin-left: 3px;
 
   .svg-inline--fa {
     font-size: 11px;
@@ -558,7 +573,7 @@ form {
   .tooltip-text {
     visibility: hidden;
     position: absolute;
-    bottom: 27px;
+    top: 47px;
     left: 50%;
     margin-left: math.div($tooltip-width, -2);
     z-index: 1;
@@ -577,28 +592,17 @@ form {
     &::after {
       content: "";
       position: absolute;
-      top: 100%;
+      bottom: 100%;
       left: 50%;
       margin-left: -5px;
       border-width: 5px;
       border-style: solid;
-      border-color: var(--overlay) transparent transparent transparent;
+      border-color: transparent transparent var(--overlay) transparent;
     }
   }
 
   &:hover .tooltip-text {
     visibility: visible;
-  }
-
-  &.tooltip-below .tooltip-text {
-    top: 47px;
-    bottom: auto;
-
-    &::after {
-      bottom: 100%;
-      top: auto;
-      border-color: transparent transparent var(--overlay) transparent;
-    }
   }
 }
 
@@ -615,16 +619,34 @@ form {
   animation: fade-in .3s ease-out .4s forwards;
 }
 
-.wrapper {
-  width: $box-width;
-  margin: 0 auto;
+// a sentence to read, not a label, and shown at once
+.load-failed {
+  max-width: 460px;
+  margin: 40vh auto 0;
+  padding: 0 24px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+// a strip under the nav for as long as saves aren't reaching the disk
+.save-failed {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 24px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--on-danger);
+  background-color: var(--danger);
 }
 
 .modal-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, .35);
-  // above the tracker's positioned elements; the modal renders inline, not in a portal
+  // above the nav and the tracker's positioned elements; portalled into body, clear of any page's stacking context
   z-index: 100;
   animation: fade-in $fade-duration ease-out;
   transition: opacity $fade-duration ease-out;
@@ -636,17 +658,16 @@ form {
 }
 
 .modal {
+  @include overflow-y-scroll;
+
   position: relative;
   margin: 6vh auto;
   // the two-column dex form: 2 × 280px columns + gutters
   width: min(660px, calc(100vw - 32px));
   max-height: 88vh;
-  overflow-y: auto;
   border: 2px solid var(--field-edge);
   background: var(--paper-raised);
   outline: none;
-  // rendered inside nav, which would hand everything Montserrat
-  font-family: $font-primary;
 
   h1 {
     font-family: $font-secondary;
@@ -655,12 +676,6 @@ form {
     @include cjk {
       font-size: 25px;
     }
-  }
-
-  p {
-    margin-top: 0;
-    text-align: center;
-    font-size: 14px;
   }
 
   .modal-close {
@@ -832,11 +847,8 @@ form {
   }
 }
 
+// the legacy narrow layout, alongside the list view below 750px
 @media (max-width: 750px) {
-  .wrapper {
-    width: 100%;
-  }
-
   .main-footer {
     padding: 50px 20px;
   }
@@ -934,7 +946,9 @@ $saves-table-width: 640px;
         cursor: pointer;
         transition: opacity .1s ease-out;
 
-        &:hover:not(:disabled) {
+        // the game the form below is changing
+        &:hover:not(:disabled),
+        &[aria-pressed='true'] {
           opacity: 1;
         }
 

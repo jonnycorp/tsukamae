@@ -50,15 +50,25 @@ export function DateInput ({ id, value, onChange }: Props) {
     }
   }, [value]);
 
+  // only an emptied field or a whole, real date is committed: a partial or impossible one (2024/02/30) would erase the
+  // stored date
   const handleTextChange = (raw: string) => {
     const digits = raw.replace(/\D/g, '').slice(0, 8);
     setDraft(format(digits));
     schedule(() => {
-      const iso = toIso(digits);
-      if (iso !== (valueRef.current ?? null)) {
+      const iso = digits.length === 0 ? null : toIso(digits);
+      if ((iso !== null || digits.length === 0) && iso !== (valueRef.current ?? null)) {
         onChange(iso);
       }
     });
+  };
+
+  const handleBlur = () => {
+    flush();
+    const digits = draft.replace(/\D/g, '');
+    if (digits.length > 0 && !toIso(digits)) {
+      setDraft(valueRef.current ? valueRef.current.replaceAll('-', '/') : '');
+    }
   };
 
   const handlePick = (iso: string) => {
@@ -90,7 +100,7 @@ export function DateInput ({ id, value, onChange }: Props) {
         inputMode="numeric"
         maxLength={10}
         name={id}
-        onBlur={flush}
+        onBlur={handleBlur}
         onChange={(e) => handleTextChange(e.target.value)}
         placeholder="yyyy/mm/dd"
         type="text"

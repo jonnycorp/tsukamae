@@ -179,10 +179,11 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     keys: ['location', 'location_save'],
     gatesSeal: true,
     defaultable: false,
+    // champions is filtered by locationOptions: HOME dexes, and only once the mon has been there
     options: (locale) => [
       { value: 'home', label: translate(locale, 'location.home') },
-      { value: 'game', label: translate(locale, 'location.game') },
       { value: 'champions', label: translate(locale, 'location.champions') },
+      { value: 'game', label: translate(locale, 'location.game') },
     ],
     isAnswered: (meta) => meta.location === 'home' || meta.location === 'champions' ||
       (meta.location === 'game' && filled(meta.location_save)),
@@ -312,6 +313,31 @@ export const EMPTY_METADATA: CaptureMetadata = {
   favorite: null,
 };
 
+interface FreshMetadataOptions {
+  defaults: Partial<CaptureMetadata> | undefined;
+  checklist: boolean;
+  homeDex: boolean;
+  genderLock: GenderLock | null | undefined;
+  saves: GameSave[];
+}
+
+// a record as it's first marked, or marked again after unobtainable wiped it: the baselines, then the dex's defaults
+// under the cross-field rules (so a Mystery Gift default floors the favourite), where it lives, a species-locked
+// gender and the OT of the save the defaults point at. A checklist keeps no defaults. writeCapture and the tiles'
+// optimistic copies all build from this, so they agree. The ball's pick rule isn't run again: the defaults already went
+// through it when picked, and an origin chosen after the Cherish Ball must stand
+export function freshMetadata ({ defaults, checklist, homeDex, genderLock, saves }: FreshMetadataOptions): CaptureMetadata {
+  const placed = { location: homeDex ? 'home' : 'game', location_save: null, gender: genderFromLock(genderLock) } as const;
+  if (checklist) {
+    return { ...EMPTY_METADATA, ...placed };
+  }
+  const base = { ...EMPTY_METADATA, ...BASELINE_METADATA };
+  const { ball, ...preset } = metadataFromDefaults(defaults);
+  const meta: CaptureMetadata = { ...base, ...preset, ...withFieldInvariants(base, preset), ball: ball ?? null, ...placed };
+  meta.ot = lookupOT(saves, meta.origin_game, meta.language);
+  return meta;
+}
+
 export function formatFieldValue (field: CaptureField, meta: Partial<CaptureMetadata>, locale: Locale, saves: GameSave[] = []): string {
   const blank = translate(locale, 'common.unspecified');
 
@@ -347,7 +373,7 @@ export function formatFieldValue (field: CaptureField, meta: Partial<CaptureMeta
       }
       if (meta.location === 'game' && meta.location_save) {
         const save = saves.find((entry) => entry.id === meta.location_save);
-        return save ? saveLabel(save, locale) : meta.location_save;
+        return save ? saveLabel(save, locale) : blank;
       }
       return blank;
     }
@@ -435,19 +461,12 @@ export function withFieldInvariants (
     next.location = null;
     next.location_save = null;
   }
-  if (merged.location !== 'game' && merged.location_save) {
+  // also on any move off 'game': the tracker hides a deleted game's id, so the record in storage may still carry one
+  if (merged.location !== 'game' && (merged.location_save || 'location' in patch)) {
     next.location_save = null;
   }
 
   return next;
-}
-
-export function unansweredFields (meta: Partial<CaptureMetadata>): CaptureField[] {
-  return CAPTURE_FIELDS.filter((field) => field.gatesSeal && !field.isAnswered(meta));
-}
-
-export function isRecordComplete (meta: Partial<CaptureMetadata>): boolean {
-  return unansweredFields(meta).length === 0;
 }
 
 const offeredValues = new Map<string, Set<string>>();
@@ -484,7 +503,14 @@ function writable (field: CaptureField, meta: Partial<CaptureMetadata>, genderLo
   }
 }
 
-// a sealed record failing today's requirements: a gate added since, or a value the app no longer writes
-export function staleFields (meta: Partial<CaptureMetadata>, genderLock: GenderLock | null | undefined): CaptureField[] {
+// what stands between a record and the seal: a gating field left unanswered, or a value the app no longer writes (an
+// origin since dropped from the catalog, a gender outside the species' lock), which the form shows as blank. A sealed
+// record failing it now — a gate added since, a value retired since — wears the stale pin, so a record can never be
+// sealed and pinned at once
+export function unansweredFields (meta: Partial<CaptureMetadata>, genderLock: GenderLock | null | undefined): CaptureField[] {
   return CAPTURE_FIELDS.filter((field) => (field.gatesSeal && !field.isAnswered(meta)) || !writable(field, meta, genderLock));
+}
+
+export function isRecordComplete (meta: Partial<CaptureMetadata>, genderLock: GenderLock | null | undefined): boolean {
+  return unansweredFields(meta, genderLock).length === 0;
 }

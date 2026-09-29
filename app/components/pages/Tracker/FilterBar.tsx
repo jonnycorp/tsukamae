@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, appliedFacets, facetOptions, filterMatcher, queryMatcher } from './filters';
+import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, appliedFacets, facetOptions, filterMatcher, hasQuery, queryMatcher } from './filters';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useHotkey } from '../../../hooks/use-hotkey';
 import { useTrackerState } from './use-tracker';
@@ -16,16 +16,18 @@ interface PanelProps {
   facets: Facet[];
   filters: TrackerFilters;
   onToggle: (facet: FacetId, value: string) => void;
+  query: string;
+  regional: boolean;
 }
 
-function FacetPanel ({ facets, filters, onToggle }: PanelProps) {
+function FacetPanel ({ facets, filters, onToggle, query, regional }: PanelProps) {
   const { captures } = useTrackerState();
   const { t, locale } = useTranslation();
 
   return (
     <div className="facet-panel">
       {facets.map((facet) => {
-        const options = facetOptions(facet, captures, filters, locale);
+        const options = facetOptions(facet, captures, filters, query, regional, locale);
         if (options.length === 0) {
           return null;
         }
@@ -64,10 +66,11 @@ interface Props {
 }
 
 export function FilterBar ({ filters, query, setFilters }: Props) {
-  const { activeDex } = useDexContext();
+  const { activeDex, activeDexView } = useDexContext();
   const { captures } = useTrackerState();
   const { t, locale } = useTranslation();
   const [open, setOpen] = useState(false);
+  const regional = Boolean(activeDexView?.regional);
   const anchorRef = useRef<HTMLDivElement>(null);
 
   useHotkey('f', () => setOpen((prev) => !prev));
@@ -79,13 +82,13 @@ export function FilterBar ({ filters, query, setFilters }: Props) {
   const active = anyFilterActive(filters);
 
   const count = useMemo(() => {
-    if (!active && !query) {
+    if (!active && !hasQuery(query)) {
       return null;
     }
     const matchesFilters = filterMatcher(filters);
-    const matchesQuery = queryMatcher(query);
+    const matchesQuery = queryMatcher(query, regional);
     return captures.filter((capture) => matchesFilters(capture) && matchesQuery(capture)).length;
-  }, [captures, filters, query, active]);
+  }, [captures, filters, query, regional, active]);
 
   useEffect(() => {
     if (!open) {
@@ -96,8 +99,9 @@ export function FilterBar ({ filters, query, setFilters }: Props) {
         setOpen(false);
       }
     };
+    // an Escape already claimed (by an open dropdown) is left alone, as the popover and modals leave it
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         setOpen(false);
       }
     };
@@ -138,7 +142,7 @@ export function FilterBar ({ filters, query, setFilters }: Props) {
           {t('filter.facets')}
           <FontAwesomeIcon icon={faChevronDown} />
         </button>
-        {open && <FacetPanel facets={facets} filters={filters} onToggle={toggleValue} />}
+        {open && <FacetPanel facets={facets} filters={filters} onToggle={toggleValue} query={query} regional={regional} />}
       </div>
 
       {appliedFacets(filters).map((facet) => {

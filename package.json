@@ -11,33 +11,51 @@
     "dataset:species": "node scripts/enrich-species.mjs",
     "sprites:balls": "node scripts/fetch-ball-sprites.mjs",
     "sprites:marks": "node scripts/fetch-origin-marks.mjs",
-    "electron:build": "yarn build && electron-builder --win",
+    "electron:build": "yarn lint:all && yarn build && electron-builder --win",
     "electron:dev": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron .\"",
-    "electron:dev:fresh": "TSUKAMAE_USER_DATA=\"$(mktemp -d)\" yarn electron:dev",
-    "lint": "eslint --ext .js,.jsx,.ts,.tsx --max-warnings 0 .",
+    "electron:dev:fresh": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron . --fresh\"",
+    "icon": "node scripts/generate-app-icon.mjs",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx,.mjs --max-warnings 0 .",
     "lint:all": "yarn lint && yarn lint:types && yarn lint:themes",
     "lint:themes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-themes.mjs",
     "lint:types": "tsc --noEmit",
     "start": "webpack serve",
-    "start:fresh": "TSUKAMAE_FRESH=1 webpack serve"
+    "start:fresh": "webpack serve --env fresh"
   },
   "build": {
     "appId": "com.jonnycorp.tsukamae",
     "productName": "tsukamae",
     "files": [
       "build/**/*",
+      "!build/**/*.map",
       "electron/**/*",
+      "!electron/installer.nsh",
       "package.json"
     ],
     "directories": {
       "output": "dist"
     },
+    "electronLanguages": [
+      "en-US",
+      "ja"
+    ],
     "win": {
       "target": "nsis",
-      "signAndEditExecutable": false
+      "icon": "electron/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": false,
+      "installerLanguages": [
+        "en_US",
+        "ja_JP"
+      ],
+      "include": "electron/installer.nsh"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "electron/icon.png"
     },
     "publish": {
       "provider": "github"
@@ -57,7 +75,7 @@
     "@typescript-eslint/parser": "^5.60.1",
     "babel-loader": "^9.1.2",
     "classnames": "^2.3.2",
-    "concurrently": "^8.2.2",
+    "concurrently": "^10.0.5",
     "css-loader": "^6.8.1",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3",

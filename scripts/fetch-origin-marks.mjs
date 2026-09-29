@@ -2,7 +2,7 @@
 
 // dev-only, one-time: downloads HOME-style origin marks + the Champions icon into public/marks/<id>.png
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,9 +21,11 @@ const MARKS = {
   // gen-9 summary-screen variants — the HOME ones are white-on-transparent, invisible on light tiles
   paldea: `${BULBAGARDEN_HOST}/8/89/Paldea_icon.png`,
   za: `${BULBAGARDEN_HOST}/a/a7/Z-A_icon.png`,
-  // upstream has a baked white background; the committed copy was hand-cleared — re-running clobbers that
+  // upstream has a baked white background; the committed copy was hand-cleared, so it's only fetched when missing
   champions: 'https://archives.bulbagarden.net/wiki/Special:FilePath/HOME_Champions_icon.png',
 };
+
+const HAND_EDITED = new Set(['champions']);
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'marks');
 
@@ -33,12 +35,17 @@ let ok = 0;
 const failed = [];
 
 for (const [id, url] of Object.entries(MARKS)) {
+  const out = join(OUT_DIR, `${id}.png`);
+  if (HAND_EDITED.has(id) && await access(out).then(() => true, () => false)) {
+    console.log(`Kept the hand-edited ${id}.png`);
+    continue;
+  }
   const response = await fetch(url);
   if (!response.ok) {
     failed.push(`${id} (${response.status} ${url})`);
     continue;
   }
-  await writeFile(join(OUT_DIR, `${id}.png`), Buffer.from(await response.arrayBuffer()));
+  await writeFile(out, Buffer.from(await response.arrayBuffer()));
   ok++;
 }
 

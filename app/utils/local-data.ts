@@ -37,7 +37,7 @@ import ultraSunUltraMoonRegionalPokemon from '../../data/dexes/ultra-sun-ultra-m
 import xYRegionalMeta from '../../data/dexes/x-y-regional/meta.json';
 import xYRegionalPokemon from '../../data/dexes/x-y-regional/pokemon.json';
 
-import { BASELINE_METADATA, EMPTY_METADATA, genderFromLock, lookupOT, metadataFromDefaults, withBaselines } from './capture-fields';
+import { EMPTY_METADATA, freshMetadata, withBaselines } from './capture-fields';
 
 import type { Capture, CaptureMetadata, CapturePokemon, CaptureStatus, Dex, DexType, Game, GameSave } from '../types';
 
@@ -136,55 +136,139 @@ export function newId (prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const KNOWN_STATUSES = new Set<unknown>(['caught', 'temporary', 'unobtainable']);
+
+const isKnownStatus = (status: unknown): status is CaptureStatus => KNOWN_STATUSES.has(status);
+
+// a 2.0 export (or dex_data.json): every dex with an id, a title, a catalog and a progress map of records with a known
+// status. Anything else, another JSON file or a 1.x export, is refused before it can replace the current state
+export function isAppState (raw: unknown): raw is AppState {
+  if (!isObject(raw) || !Array.isArray(raw.dexes)) {
+    return false;
+  }
+  if (raw.activeDexId !== undefined && typeof raw.activeDexId !== 'string') {
+    return false;
+  }
+  if (raw.saves !== undefined && !(Array.isArray(raw.saves) && raw.saves.every((save) => isObject(save) && typeof save.id === 'string'))) {
+    return false;
+  }
+  return raw.dexes.every((dex) => isObject(dex) && typeof dex.id === 'string' && typeof dex.title === 'string' &&
+    typeof dex.catalogKey === 'string' && isObject(dex.progress) &&
+    // 1.x wrote its box check onto every dex it created, and its statuses overlap 2.0's, so that's what gives it away
+    !('boxCheck' in dex) && !('checkedBoxes' in dex) &&
+    (dex.captureDefaults === undefined || (isObject(dex.captureDefaults) &&
+      (dex.captureDefaults.status === undefined || dex.captureDefaults.status === null || isKnownStatus(dex.captureDefaults.status)))) &&
+    Object.values(dex.progress).every((entry) => isObject(entry) && isKnownStatus(entry.status)));
+}
+
+// the file on disk is ours, but can be hand-edited: a dex without a progress map gets an empty one, a record that isn't
+// one (or has a status this version doesn't know) is dropped, and so is a game that isn't one, rather than failing every
+// launch after. Load then keeps no more than Import accepts, so any export of it can be restored
 function normalizeState (raw: unknown): AppState {
-  if (!raw || typeof raw !== 'object' || !Array.isArray((raw as Record<string, unknown>).dexes)) {
+  if (!isObject(raw) || !Array.isArray(raw.dexes)) {
     return { activeDexId: '', dexes: [] };
   }
-  const state = raw as AppState;
-  if (state.activeDexId && !state.dexes.some((dex) => dex.id === state.activeDexId)) {
+  const state = raw as unknown as AppState;
+  state.dexes = state.dexes.filter(isObject);
+  for (const dex of state.dexes) {
+    if (!isObject(dex.progress)) {
+      dex.progress = {};
+    }
+    for (const [id, entry] of Object.entries(dex.progress)) {
+      if (!isObject(entry) || !isKnownStatus(entry.status)) {
+        delete dex.progress[id];
+      }
+    }
+  }
+  if (state.saves !== undefined) {
+    state.saves = Array.isArray(state.saves) ? state.saves.filter((save) => isObject(save) && typeof save.id === 'string') : [];
+  }
+  if (typeof state.activeDexId !== 'string' || (state.activeDexId && !state.dexes.some((dex) => dex.id === state.activeDexId))) {
     state.activeDexId = '';
   }
   return state;
 }
 
+// the Electron preload bridge (electron/preload.js); absent in a browser
 declare global {
   interface Window {
     tracker?: {
       load: () => Promise<unknown>;
       save: (state: AppState) => Promise<void>;
+      importState: (state: AppState) => Promise<void>;
+      onSaveStatus: (listener: (ok: boolean) => void) => () => void;
+      setTitleBarColors: (colors: { color: string; symbolColor: string }) => void;
+      pinZoom: () => void;
     };
   }
 }
 
 const BROWSER_STORAGE_KEY = 'dex_data';
 
-// yarn start:fresh keeps everything in memory so real data is never touched
+// yarn start:fresh keeps everything in this tab's session, so real data is never touched and an import survives its reload
 const FRESH = process.env.TSUKAMAE_FRESH === '1';
-let memoryStore: unknown = {};
+const FRESH_STORAGE_KEY = 'dex_data_fresh';
 
 async function loadRaw (): Promise<unknown> {
-  if (FRESH) {
-    return memoryStore;
-  }
-  if (window.tracker) {
+  if (window.tracker && !FRESH) {
     return window.tracker.load();
   }
+  const storage = FRESH ? window.sessionStorage : window.localStorage;
   try {
-    return JSON.parse(window.localStorage.getItem(BROWSER_STORAGE_KEY) || '{}');
+    return JSON.parse(storage.getItem(FRESH ? FRESH_STORAGE_KEY : BROWSER_STORAGE_KEY) || '{}');
   } catch {
     return {};
   }
 }
 
 async function saveRaw (state: AppState): Promise<void> {
-  if (FRESH) {
-    memoryStore = state;
-    return;
-  }
-  if (window.tracker) {
+  if (window.tracker && !FRESH) {
     return window.tracker.save(state);
   }
-  window.localStorage.setItem(BROWSER_STORAGE_KEY, JSON.stringify(state));
+  const storage = FRESH ? window.sessionStorage : window.localStorage;
+  storage.setItem(FRESH ? FRESH_STORAGE_KEY : BROWSER_STORAGE_KEY, JSON.stringify(state));
+}
+
+// whether the last save reached the disk. Electron's main process does the writing and says when that changes; in a
+// browser the storage write is the save
+type SaveStatusListener = (ok: boolean) => void;
+const saveStatusListeners = new Set<SaveStatusListener>();
+let saveOk = true;
+
+function reportSave (ok: boolean) {
+  if (ok !== saveOk) {
+    saveOk = ok;
+    saveStatusListeners.forEach((listener) => listener(ok));
+  }
+}
+
+if (window.tracker && !FRESH) {
+  window.tracker.onSaveStatus(reportSave);
+}
+
+export function isSaveOk (): boolean {
+  return saveOk;
+}
+
+export function subscribeSaveStatus (listener: SaveStatusListener): () => void {
+  saveStatusListeners.add(listener);
+  return () => {
+    saveStatusListeners.delete(listener);
+  };
+}
+
+function save (state: AppState) {
+  saveRaw(state).then(() => {
+    if (!window.tracker || FRESH) {
+      reportSave(true);
+    }
+  }, (err) => {
+    // eslint-disable-next-line no-console
+    console.error('failed to save:', err);
+    reportSave(false);
+  });
 }
 
 let appState: AppState | null = null;
@@ -214,8 +298,7 @@ export async function loadAppState (): Promise<AppState> {
   if (!appState) {
     appState = normalizeState(await loadRaw());
     if (fillBaselines(appState)) {
-      // eslint-disable-next-line no-console
-      saveRaw(appState).catch((err) => console.error('failed to save:', err));
+      save(appState);
     }
   }
   return appState;
@@ -238,18 +321,20 @@ export function commitAppState (mutator: (state: AppState) => void): void {
     console.error('failed to apply change:', err);
     return;
   }
-  // eslint-disable-next-line no-console
-  saveRaw(state).catch((err) => console.error('failed to save:', err));
+  save(state);
 }
 
 export function exportAppState (): string {
   return JSON.stringify(getAppState(), null, 2);
 }
 
-export async function importAppState (raw: unknown): Promise<void> {
-  appState = normalizeState(raw);
-  fillBaselines(appState);
-  await saveRaw(appState);
+// built and saved in full before it replaces the live state, so a failure leaves everything as it was; in Electron that
+// waits for the file itself, not just for the write to be queued
+export async function importAppState (raw: AppState): Promise<void> {
+  const next = normalizeState(structuredClone(raw));
+  fillBaselines(next);
+  await (window.tracker && !FRESH ? window.tracker.importState(next) : saveRaw(next));
+  appState = next;
 }
 
 export function toDexView (dex: PersonalDex): Dex {
@@ -282,18 +367,26 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
   });
 }
 
+// over the catalog's slots, as the tracker counts: a record for an id the catalog doesn't have (an import from another
+// dataset, a hand edit) can't be shown or released, so it isn't counted either
 export function dexCounts (dex: PersonalDex): { marked: number; temporary: number; caught: number; total: number } {
-  const entries = Object.values(dex.progress);
+  const catalog = getCatalogDex(dex.catalogKey);
+  let marked = 0;
   let temporary = 0;
   let caught = 0;
-  for (const entry of entries) {
+  for (const { id } of catalog.pokemonList) {
+    const entry = dex.progress[id];
+    if (!entry) {
+      continue;
+    }
+    marked++;
     if (entry.status === 'temporary') {
       temporary++;
     } else if (entry.status === 'caught') {
       caught++;
     }
   }
-  return { marked: entries.length, temporary, caught, total: getCatalogDex(dex.catalogKey).total };
+  return { marked, temporary, caught, total: catalog.total };
 }
 
 function findDex (state: AppState, dexId: string): PersonalDex {
@@ -304,15 +397,22 @@ function findDex (state: AppState, dexId: string): PersonalDex {
   return dex;
 }
 
-// a new entry's prefills; Pokemon.applyStatus mirrors this for the optimistic tile
+// a new entry's prefills; Pokemon.applyStatus and the popover mirror this for the optimistic tile
 function newEntryMetadata (dex: PersonalDex, saves: GameSave[], pokemonId: number): CaptureMetadata {
   const catalog = getCatalogDex(dex.catalogKey);
-  const meta: CaptureMetadata = { ...EMPTY_METADATA, ...(dex.checklist ? {} : BASELINE_METADATA), ...metadataFromDefaults(dex.captureDefaults) };
-  meta.ot = lookupOT(saves, meta.origin_game, meta.language);
-  meta.location = catalog.game.id === 'home' ? 'home' : 'game';
-  meta.location_save = null;
-  meta.gender = genderFromLock(catalog.pokemonList.find((mon) => mon.id === pokemonId)?.gender_lock);
-  return meta;
+  return freshMetadata({
+    defaults: dex.captureDefaults,
+    checklist: Boolean(dex.checklist),
+    homeDex: catalog.game.id === 'home',
+    genderLock: catalog.pokemonList.find((mon) => mon.id === pokemonId)?.gender_lock,
+    saves,
+  });
+}
+
+// what a click marks; a checklist always checks as caught, and so does a default this version doesn't know
+export function defaultStatus (dex: Pick<PersonalDex, 'checklist' | 'captureDefaults'>): CaptureStatus {
+  const status = !dex.checklist && dex.captureDefaults?.status;
+  return isKnownStatus(status) ? status : 'caught';
 }
 
 export interface UpdateCapturePayload extends Partial<CaptureMetadata> {
@@ -332,13 +432,19 @@ export function writeCapture (dexId: string, payload: UpdateCapturePayload, edit
       return;
     }
 
-    const base: ProgressEntry = existing ?? {
+    // unobtainable wiped the record, so leaving it starts over like a new mark
+    const reviving = existing?.status === 'unobtainable' && changes.status !== undefined && changes.status !== 'unobtainable';
+    const base: ProgressEntry = existing && !reviving ? existing : {
       ...newEntryMetadata(dex, state.saves ?? [], pokemon),
-      status: dex.captureDefaults?.status ?? 'caught',
+      status: defaultStatus(dex),
       sealed: false,
     };
 
     const next: ProgressEntry = { ...base, ...changes };
+    // sealing is only ever from Caught, so a record leaving it (only the TESTING bypass can) leaves the seal behind
+    if (next.status !== 'caught') {
+      next.sealed = false;
+    }
     if (next.status === 'unobtainable') {
       dex.progress[pokemon] = { ...next, ...EMPTY_METADATA };
     } else {

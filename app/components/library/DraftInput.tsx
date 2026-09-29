@@ -37,7 +37,8 @@ export function DraftInput ({ value, onCommit, sanitize, ...rest }: Props) {
         const next = sanitize ? sanitize(e.target.value) : e.target.value;
         setDraft(next);
         schedule(() => {
-          if (next !== committedRef.current) {
+          // compared trimmed, as names are committed: a space typed mid-name isn't a change to write yet
+          if (next.trim() !== committedRef.current) {
             onCommit(next);
           }
         });
