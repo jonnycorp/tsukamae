@@ -5,7 +5,12 @@
   transition: scrollbar-color .3s ease-out;
 
   &.is-scrolling {
-    scrollbar-color: var(--scrollbar-thumb-active) transparent;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+
+  // scrollbar-color inherits: pinned on the children, a fade frame restyles the scroller instead of every descendant
+  > * {
+    scrollbar-color: auto;
   }
 }
 
@@ -14,4 +19,13 @@
 
   overflow-y: scroll;
   scrollbar-gutter: stable;
+}
+
+// cjk fills its em box, so it's set a few px smaller to read as large as the latin beside it
+@mixin cjk {
+  &:lang(ja),
+  &:lang(ko),
+  &:lang(zh) {
+    @content;
+  }
 }

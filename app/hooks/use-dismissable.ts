@@ -9,10 +9,12 @@ interface Options {
   onDismissed: () => void;
   // outside-click boundary (mousedown, so drag-selects ending outside don't close)
   ref?: RefObject<HTMLElement>;
+  // mousedowns inside matches of this selector don't dismiss
+  keepOpenOn?: string;
 }
 
 // unmounts after a timeout rather than on transitionend, which doesn't reliably fire
-export function useDismissable ({ onDismissed, ref }: Options) {
+export function useDismissable ({ onDismissed, ref, keepOpenOn }: Options) {
   const [closing, setClosing] = useState(false);
 
   const closingRef = useRef(false);
@@ -27,6 +29,16 @@ export function useDismissable ({ onDismissed, ref }: Options) {
     closingRef.current = true;
     setClosing(true);
     timeoutRef.current = window.setTimeout(() => onDismissedRef.current(), FADE_MS);
+  }, []);
+
+  // cancels a fade-out in progress
+  const revive = useCallback(() => {
+    if (!closingRef.current) {
+      return;
+    }
+    window.clearTimeout(timeoutRef.current);
+    closingRef.current = false;
+    setClosing(false);
   }, []);
 
   useEffect(() => {
@@ -50,14 +62,18 @@ export function useDismissable ({ onDismissed, ref }: Options) {
     }
 
     const handleMouseDown = (e: MouseEvent) => {
-      if (ref.current && e.target instanceof Node && !ref.current.contains(e.target)) {
-        dismiss();
+      if (!ref.current || !(e.target instanceof Element) || ref.current.contains(e.target)) {
+        return;
       }
+      if (keepOpenOn && e.target.closest(keepOpenOn)) {
+        return;
+      }
+      dismiss();
     };
 
     document.addEventListener('mousedown', handleMouseDown);
     return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, [ref, dismiss]);
+  }, [ref, keepOpenOn, dismiss]);
 
-  return { closing, dismiss };
+  return { closing, dismiss, revive };
 }

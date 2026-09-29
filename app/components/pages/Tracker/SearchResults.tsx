@@ -1,22 +1,12 @@
 import { useMemo } from 'react';
 
-import { EMPTY_FILTERS, matchesFilters } from './use-tracker';
+import { EMPTY_FILTERS, appliedFacets, filterMatcher, queryMatcher } from './filters';
 import { Pokemon } from './Pokemon';
-import { padding } from '../../../utils/formatting';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture } from '../../../types';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TrackerFilters } from './use-tracker';
-
-// typing produces hiragana; names are katakana
-function toKatakana (value: string): string {
-  return value.replace(/[ぁ-ゖ]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0x60));
-}
-
-function matchesNumber (id: number, query: string): boolean {
-  return String(id) === query || padding(id, 3) === query || padding(id, 4) === query;
-}
+import type { TrackerFilters } from './filters';
 
 interface Props {
   captures: Capture[];
@@ -30,36 +20,24 @@ interface Props {
 export function SearchResults ({ captures, filters, query, setFilters, setQuery, setSelectedPokemon }: Props) {
   const { t } = useTranslation();
 
-  const handleClearMarkedFilter = () => setFilters((prev) => ({ ...prev, hideMarked: false }));
-  const handleClearTemporaryFilter = () => setFilters((prev) => ({ ...prev, temporaryOnly: false }));
-  const handleClearAllFilters = () => setFilters(EMPTY_FILTERS);
-  const handleClearClick = () => setQuery('');
-
   const results = useMemo(() => {
-    const lower = query.toLowerCase();
-    const kana = toKatakana(query);
-    return captures.filter((capture) => matchesFilters(capture, filters) && (
-      capture.pokemon.name.toLowerCase().startsWith(lower) ||
-      (capture.pokemon.name_ja || '').startsWith(kana) ||
-      (capture.nickname || '').toLowerCase().startsWith(lower) ||
-      matchesNumber(capture.pokemon.dex_number, query) ||
-      matchesNumber(capture.pokemon.national_id, query)
-    ));
+    const matchesFilters = filterMatcher(filters);
+    const matchesQuery = queryMatcher(query);
+    return captures.filter((capture) => matchesFilters(capture) && matchesQuery(capture));
   }, [captures, filters, query]);
 
   if (results.length === 0) {
-    let message = <p>{t('searchResults.none')} <a className="link" onClick={handleClearClick}>{t('searchResults.clearSearch')}</a></p>;
+    const viewOnly = !query && appliedFacets(filters).length === 0;
+    const clearFilters = <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.clearFilters')}</a>;
+    const clearSearch = <a className="link" onClick={() => setQuery('')}>{t('searchResults.clearSearch')}</a>;
 
-    if (filters.hideMarked) {
-      if (query) {
-        message = <p>{t('searchResults.noneUnmarked')} <a className="link" onClick={handleClearMarkedFilter}>{t('searchResults.includeMarked')}</a> <a className="link" onClick={handleClearClick}>{t('searchResults.clearSearch')}</a></p>;
-      } else {
-        message = <p>{t('searchResults.allMarked')} <a className="link" onClick={handleClearMarkedFilter}>{t('searchResults.showAll')}</a></p>;
-      }
-    } else if (filters.temporaryOnly) {
-      message = <p>{t(query ? 'searchResults.noTemporaryMatching' : 'searchResults.noTemporary')} <a className="link" onClick={handleClearTemporaryFilter}>{t('searchResults.showAll')}</a></p>;
-    } else if (filters.unsealedOnly || filters.incompleteOnly || filters.favoritesOnly) {
-      message = <p>{t('searchResults.noneMatching')} <a className="link" onClick={handleClearAllFilters}>{t('searchResults.clearFilters')}</a></p>;
+    let message = <p>{t('searchResults.noneMatching')} {query && clearSearch} {clearFilters}</p>;
+    if (viewOnly && filters.view === 'missing') {
+      message = <p>{t('searchResults.allMarked')} <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.showAll')}</a></p>;
+    } else if (viewOnly && filters.view === 'temporary') {
+      message = <p>{t('searchResults.noTemporary')} <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.showAll')}</a></p>;
+    } else if (filters.view === 'all' && appliedFacets(filters).length === 0) {
+      message = <p>{t('searchResults.none')} {clearSearch}</p>;
     }
 
     return (

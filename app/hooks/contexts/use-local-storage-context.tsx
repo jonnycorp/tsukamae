@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from 'react';
 
-import { DEFAULT_THEME } from '../../palette/tokens';
+import { DEFAULT_THEME } from '../../palette/themes';
 import { SOFT_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
 import { useLocalStorage } from '../use-local-storage';
 

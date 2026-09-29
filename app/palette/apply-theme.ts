@@ -1,23 +1,14 @@
-import { DEFAULT_THEME, PALETTE_PRESETS, TOKEN_NAMES, cssValue, resolvePalette } from './tokens';
+import { DEFAULT_THEME, findTheme, themePalette } from './themes';
 
 export const THEME_STORAGE_KEY = 'theme';
 export const SOFT_DARK_STORAGE_KEY = 'nightMode';
 
-export function setRootTokens (values: Record<string, string>) {
+export function applyTheme (name: string, softDark: boolean) {
   const root = document.documentElement;
-  for (const [name, value] of Object.entries(values)) {
-    root.style.setProperty(`--${name}`, value);
+  for (const [token, value] of Object.entries(themePalette(findTheme(name), softDark ? 'dark' : 'light'))) {
+    root.style.setProperty(`--${token}`, value);
   }
-}
-
-// unknown names (a renamed theme still in storage) fall back to the default
-export function applyTheme (name: string) {
-  const resolved = resolvePalette(PALETTE_PRESETS[name] ?? PALETTE_PRESETS[DEFAULT_THEME]);
-  const values: Record<string, string> = {};
-  for (const token of TOKEN_NAMES) {
-    values[token] = cssValue(resolved[token]);
-  }
-  setRootTokens(values);
+  root.classList.toggle('soft-dark', softDark);
 }
 
 function readJson<T> (key: string, fallback: T): T {
@@ -31,6 +22,5 @@ function readJson<T> (key: string, fallback: T): T {
 
 // runs before the first render so launch never paints without its tokens
 export function bootstrapTheme () {
-  applyTheme(readJson(THEME_STORAGE_KEY, DEFAULT_THEME));
-  document.documentElement.classList.toggle('soft-dark', readJson(SOFT_DARK_STORAGE_KEY, false));
+  applyTheme(readJson(THEME_STORAGE_KEY, DEFAULT_THEME), readJson(SOFT_DARK_STORAGE_KEY, false));
 }

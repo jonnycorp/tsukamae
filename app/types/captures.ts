@@ -15,7 +15,7 @@ export type GenderLock = 'genderless' | 'male' | 'female';
 
 export type FavoriteState = 'no' | 'favorite' | 'partner';
 
-// null means unanswered, which blocks sealing
+// null means unanswered, which blocks sealing; stored values are read as-is, so one outside these types is stale data
 export interface CaptureMetadata {
   // id from data/games.json
   origin_game: string | null;
@@ -34,7 +34,6 @@ export interface CaptureMetadata {
   gender: GenderState | null;
   level: number | null;
   trained: TrainedState | null;
-  // legacy booleans coerce at read time (true → 'favorite')
   favorite: FavoriteState | null;
 }
 

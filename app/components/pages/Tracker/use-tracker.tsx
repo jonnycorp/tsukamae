@@ -1,65 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { TESTING } from '../../../utils/testing';
-import { deleteCaptures as deleteStoredCaptures, progressToCaptures, writeCapture } from '../../../utils/local-data';
-import { isRecordComplete } from '../../../utils/capture-fields';
+import { EMPTY_METADATA } from '../../../utils/capture-fields';
+import { deleteCaptures, progressToCaptures, writeCapture } from '../../../utils/local-data';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 
 import type { Capture } from '../../../types';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { TranslationKey } from '../../../i18n/translations';
 import type { UpdateCapturePayload } from '../../../utils/local-data';
 
 export function isDisplaySealed (capture: Capture, checklist: boolean, sealFx: boolean): boolean {
-  return sealFx && (checklist ? capture.captured : capture.sealed);
-}
-
-export interface TrackerFilters {
-  hideMarked: boolean;
-  temporaryOnly: boolean;
-  unsealedOnly: boolean;
-  incompleteOnly: boolean;
-  favoritesOnly: boolean;
-}
-
-export const EMPTY_FILTERS: TrackerFilters = {
-  hideMarked: false,
-  temporaryOnly: false,
-  unsealedOnly: false,
-  incompleteOnly: false,
-  favoritesOnly: false,
-};
-
-export const FILTER_META: { id: keyof TrackerFilters; labelKey: TranslationKey }[] = [
-  { id: 'hideMarked', labelKey: 'search.hideMarked' },
-  { id: 'temporaryOnly', labelKey: 'search.temporaryOnly' },
-  { id: 'unsealedOnly', labelKey: 'search.unsealedOnly' },
-  { id: 'incompleteOnly', labelKey: 'search.incompleteOnly' },
-  { id: 'favoritesOnly', labelKey: 'search.favoritesOnly' },
-];
-
-export function anyFilterActive (filters: TrackerFilters): boolean {
-  return FILTER_META.some((meta) => filters[meta.id]);
-}
-
-export function matchesFilters (capture: Capture, filters: TrackerFilters): boolean {
-  if (filters.hideMarked && capture.captured) {
-    return false;
-  }
-  if (filters.temporaryOnly && capture.status !== 'temporary') {
-    return false;
-  }
-  if (filters.unsealedOnly && (!capture.captured || capture.sealed)) {
-    return false;
-  }
-  if (filters.incompleteOnly && (!capture.captured || capture.sealed ||
-    capture.status === 'unobtainable' || isRecordComplete(capture))) {
-    return false;
-  }
-  if (filters.favoritesOnly && capture.favorite !== 'favorite' && capture.favorite !== 'partner') {
-    return false;
-  }
-  return true;
+  return sealFx && (checklist ? capture.status === 'caught' : capture.sealed);
 }
 
 const NARROW_QUERY = '(max-width: 750px)';
@@ -85,7 +36,8 @@ interface TrackerState {
 interface TrackerActions {
   setCaptures: Dispatch<SetStateAction<Capture[]>>;
   updateCapture: (payload: UpdateCapturePayload) => void;
-  deleteCaptures: (pokemon: number[]) => void;
+  // blanks the tiles and deletes the records; sealed ones are skipped by both
+  releaseCaptures: (pokemon: number[]) => void;
   sealFx: boolean;
   setSealFx: Dispatch<SetStateAction<boolean>>;
   narrow: boolean;
@@ -96,7 +48,7 @@ const TrackerStateContext = createContext<TrackerState>({ captures: [] });
 const TrackerActionsContext = createContext<TrackerActions>({
   setCaptures: () => {},
   updateCapture: () => {},
-  deleteCaptures: () => {},
+  releaseCaptures: () => {},
   sealFx: true,
   setSealFx: () => {},
   narrow: false,
@@ -117,12 +69,17 @@ export const TrackerContextProvider = ({ children }: Props) => {
     (payload: UpdateCapturePayload) => writeCapture(dexId, payload, TESTING && !sealFx),
     [dexId, sealFx],
   );
-  const deleteCaptures = useCallback((pokemon: number[]) => deleteStoredCaptures(dexId, pokemon), [dexId]);
+  const releaseCaptures = useCallback((pokemon: number[]) => {
+    setCaptures((prev) => prev.map((cap) => (pokemon.includes(cap.pokemon.id) && cap.captured && !cap.sealed
+      ? { ...cap, ...EMPTY_METADATA, captured: false, status: null, sealed: false }
+      : cap)));
+    deleteCaptures(dexId, pokemon);
+  }, [dexId]);
 
   const stateValue = useMemo<TrackerState>(() => ({ captures }), [captures]);
   const actionsValue = useMemo<TrackerActions>(
-    () => ({ setCaptures, updateCapture, deleteCaptures, sealFx, setSealFx, narrow }),
-    [updateCapture, deleteCaptures, sealFx, narrow],
+    () => ({ setCaptures, updateCapture, releaseCaptures, sealFx, setSealFx, narrow }),
+    [updateCapture, releaseCaptures, sealFx, narrow],
   );
 
   return (

@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { CaptureFieldControl } from './CaptureFieldControl';
 import { Dropdown } from './Dropdown';
 import { ModalShell } from './ModalShell';
-import { DEFAULTABLE_FIELDS, statusOptions, withFieldInvariants } from '../../utils/capture-fields';
+import { DEFAULTABLE_BASELINES, DEFAULTABLE_FIELDS, statusOptions, withBaselines, withFieldInvariants } from '../../utils/capture-fields';
 import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex } from '../../utils/local-data';
 import { localizeCatalogDexName, localizeCatalogGame, localizeDexType } from '../../i18n/names';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
@@ -56,7 +56,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   // creation-only and immutable — an existing dex must never convert
   const [checklist, setChecklist] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState<CaptureStatus>(dex?.captureDefaults?.status || 'caught');
-  const [defaults, setDefaults] = useState<Partial<CaptureMetadata>>(() => ({ ...dex?.captureDefaults }));
+  const [defaults, setDefaults] = useState<Partial<CaptureMetadata>>(() => withBaselines({ ...dex?.captureDefaults }, DEFAULTABLE_BASELINES));
 
   const dexesForGame = CATALOG_GROUPS.find((group) => group.game.id === gameId)?.entries || [];
 
@@ -164,7 +164,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
           </div>
           {!checklist && <>
             <div className="form-section-label">
-              {t('dexModal.defaults')} <span className="optional-tag">({t('common.optional')})</span>
+              {t('dexModal.defaults')} <span className="optional-tag">{t('common.optional')}</span>
             </div>
             <div className="form-row">
               <div className="form-column">

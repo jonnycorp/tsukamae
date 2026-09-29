@@ -1,10 +1,10 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faCheck, faClock, faExchangeAlt, faGift, faHeart, faLock, faMapMarkerAlt, faMars, faVenus } from '@fortawesome/free-solid-svg-icons';
+import { faBan, faCheck, faCircleExclamation, faClock, faExchangeAlt, faGift, faHeart, faMapMarkerAlt, faMars, faVenus } from '@fortawesome/free-solid-svg-icons';
 import { memo, useEffect, useRef, useState } from 'react';
 
-import { BALL_NAMES, EMPTY_METADATA, LANGUAGE_ABBRS, MYSTERY_GIFT, ORIGIN_GAME_NAMES, STATUSES, genderFromLock, lookupOT, metadataFromDefaults } from '../../../utils/capture-fields';
+import { BALL_NAMES, BASELINE_METADATA, EMPTY_METADATA, LANGUAGE_ABBRS, MYSTERY_GIFT, ORIGIN_GAME_NAMES, STATUSES, genderFromLock, lookupOT, metadataFromDefaults, nameLang, staleFields, withBaselines } from '../../../utils/capture-fields';
 import { PokemonName } from '../../library/PokemonName';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
 import { isDisplaySealed, useTrackerActions } from './use-tracker';
@@ -19,9 +19,9 @@ import type { Dispatch, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 const STATUS_ICONS: Record<CaptureStatus, IconDefinition> = {
-  caught: faLock,
+  caught: faCheck,
   temporary: faClock,
-  unobtainable: faCheck,
+  unobtainable: faBan,
 };
 
 const ORIGIN_MARK_ICONS: Record<string, IconDefinition> = {
@@ -90,7 +90,7 @@ interface Props {
 
 export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView, saves } = useDexContext();
-  const { setCaptures, sealFx, updateCapture, deleteCaptures, narrow } = useTrackerActions();
+  const { setCaptures, sealFx, updateCapture, releaseCaptures, narrow } = useTrackerActions();
   const { showLanguageTags } = useLocalStorageContext();
   const { t, locale } = useTranslation();
 
@@ -108,10 +108,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
     onComplete: () => {
       suppressClickRef.current = true;
       if (checklist) {
-        setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === capture.pokemon.id
-          ? { ...cap, ...EMPTY_METADATA, captured: false, status: null, sealed: false }
-          : cap)));
-        deleteCaptures([capture.pokemon.id]);
+        releaseCaptures([capture.pokemon.id]);
         return;
       }
       setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === capture.pokemon.id ? { ...cap, sealed: false } : cap)));
@@ -139,10 +136,11 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
         return { ...cap, ...EMPTY_METADATA, captured: true, status };
       }
       if (cap.captured) {
-        return { ...cap, status };
+        return checklist ? { ...cap, status } : withBaselines({ ...cap, status });
       }
       return {
         ...cap,
+        ...(checklist ? {} : BASELINE_METADATA),
         ...defaults,
         captured: true,
         status,
@@ -160,7 +158,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
     }
   };
 
-  const pressHandlers = displaySealed
+  const pressHandlers = (checklist ? capture.captured : displaySealed)
     ? {
       ...unsealHandlers,
       onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -202,9 +200,18 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
   });
 
   const speciesName = <PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} />;
-  const statusButtons = displaySealed || checklist || narrow ? [] : STATUSES.filter((status) => status !== capture.status);
+  const statusButtons = checklist && !narrow && capture.status !== 'caught' ? STATUSES.filter((status) => status !== capture.status) : [];
 
   const unsealRing = wheel && <UnsealRing at={wheel} />;
+
+  // keyed on the real flag, so it also shows while seal fx is off for fixing
+  const stale = capture.sealed ? staleFields(capture, capture.pokemon.gender_lock) : [];
+  const stalePin = stale.length > 0 &&
+    <FontAwesomeIcon
+      className="stale-pin"
+      icon={faCircleExclamation}
+      title={t('seal.stale', { fields: stale.map((field) => t(field.labelKey)).join(', ') })}
+    />;
 
   if (narrow) {
     return (
@@ -216,6 +223,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
           <h4>{speciesName}</h4>
           <p>#{number}</p>
         </div>
+        {stalePin}
         {unsealRing}
       </div>
     );
@@ -227,7 +235,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
       <div className="name-scroll">
         <div className="name-scroll-track">
           <h4>{speciesName}</h4>
-          <h4><span className="nickname">{nickname}</span></h4>
+          <h4 lang={nameLang(nickname, capture.language)}><span className="nickname">{nickname}</span></h4>
           <h4>{speciesName}</h4>
         </div>
       </div>
@@ -252,7 +260,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
         </span>
         <span className="badge-slot">
           {originMarkSprite &&
-            <img alt="" src={`/marks/${originMarkSprite}.png`} title={originName} />
+            <span className="origin-mark" style={{ maskImage: `url(/marks/${originMarkSprite}.png)` }} title={originName} />
           }
           {!originMarkSprite && capture.origin_game && ORIGIN_MARK_ICONS[capture.origin_game] &&
             <FontAwesomeIcon className={gift ? 'gift-badge' : undefined} icon={ORIGIN_MARK_ICONS[capture.origin_game]} title={originName} />
@@ -291,7 +299,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
         {capture.catch_date
           ? <div className="seal-badges-track">
             {badgeRow}
-            <span className="badge-row seal-date">{capture.catch_date.replaceAll('-', '/')}</span>
+            <span className={classNames('badge-row seal-date', { gift })}>{capture.catch_date.replaceAll('-', '/')}</span>
             {badgeRow}
           </div>
           : badgeRow
@@ -314,7 +322,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
         {capture.ot
           ? <div className="number-scroll-track">
             {slotsRow}
-            <p className={classNames('number-line-ot', { gift })}>{capture.ot}</p>
+            <p className={classNames('number-line-ot', { gift })} lang={nameLang(capture.ot, capture.language)}>{capture.ot}</p>
             {slotsRow}
           </div>
           : slotsRow
@@ -330,6 +338,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
       onMouseEnter={statusButtons.length > 0 && !armed ? () => setArmed(true) : undefined}
     >
       {sealBadges}
+      {stalePin}
       {armed && statusButtons.length > 0 &&
         <div className="set-status">
           {statusButtons.map((status) => (

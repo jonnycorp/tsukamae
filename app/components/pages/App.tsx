@@ -3,12 +3,11 @@ import { useEffect, useState } from 'react';
 import { DexContextProvider, useDexContext } from '../../hooks/contexts/use-dex-context';
 import { Landing } from './Landing';
 import { Nav } from '../library/Nav';
-import { Palette } from './Palette';
+import { ThemePreview } from './ThemePreview';
 import { Tracker } from './Tracker';
 import { TESTING } from '../../utils/testing';
 import { applyTheme } from '../../palette/apply-theme';
 import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
-import { usePaletteBroadcastReceiver } from '../../palette/use-palette-broadcast';
 import { useScrollbarFade } from '../../hooks/use-scrollbar-fade';
 
 export function App () {
@@ -16,7 +15,6 @@ export function App () {
   const { isSoftDark, theme } = useThemeContext();
 
   useScrollbarFade();
-  usePaletteBroadcastReceiver(theme);
 
   // drives CJK font behavior
   useEffect(() => {
@@ -24,13 +22,8 @@ export function App () {
   }, [locale]);
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  // on <html> so the document surface and native controls flip too
-  useEffect(() => {
-    document.documentElement.classList.toggle('soft-dark', isSoftDark);
-  }, [isSoftDark]);
+    applyTheme(theme, isSoftDark);
+  }, [theme, isSoftDark]);
 
   return (
     <div className="root">
@@ -44,13 +37,13 @@ export function App () {
 function AppContent () {
   const { dexes, activeDex } = useDexContext();
   // Electron loads no query string, so the nav button is the way in there
-  const [showPalette, setShowPalette] = useState(TESTING && window.location.search.includes('palette'));
+  const [showPreview, setShowPreview] = useState(TESTING && window.location.search.includes('preview'));
 
-  if (showPalette) {
+  if (showPreview) {
     return (
       <>
-        <Nav onTogglePalette={() => setShowPalette(false)} />
-        <Palette />
+        <Nav onTogglePreview={() => setShowPreview(false)} />
+        <ThemePreview />
       </>
     );
   }
@@ -61,7 +54,7 @@ function AppContent () {
 
   return (
     <>
-      <Nav onTogglePalette={TESTING ? () => setShowPalette(true) : undefined} />
+      <Nav onTogglePreview={TESTING ? () => setShowPreview(true) : undefined} />
       {activeDex ? <Tracker /> : <Landing />}
     </>
   );

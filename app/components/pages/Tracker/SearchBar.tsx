@@ -2,16 +2,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useMemo, useRef } from 'react';
 
-import { FILTER_META, useTrackerActions, useTrackerState } from './use-tracker';
+import { FilterBar } from './FilterBar';
 import { Header } from '../../library/Header';
 import { Progress } from '../../library/Progress';
 import { TESTING } from '../../../utils/testing';
+import { useTrackerActions, useTrackerState } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { ChangeEvent, Dispatch, ReactNode, SetStateAction } from 'react';
-import type { TrackerFilters } from './use-tracker';
+import type { TrackerFilters } from './filters';
 
 interface CheckboxProps {
   checked: boolean;
@@ -49,7 +50,6 @@ export function SearchBar ({ filters, query, setFilters, setQuery }: Props) {
   const { t } = useTranslation();
 
   const checklist = Boolean(activeDex?.checklist);
-  const filterMeta = checklist ? FILTER_META.filter((meta) => meta.id === 'hideMarked') : FILTER_META;
 
   const counts = useMemo(() => {
     let marked = 0;
@@ -118,21 +118,15 @@ export function SearchBar ({ filters, query, setFilters, setQuery }: Props) {
           </div>
         </div>
         <div className="dex-search-bar-filters">
-          {filterMeta.map((meta) => (
-            <FilterCheckbox
-              checked={filters[meta.id]}
-              id={meta.id}
-              key={meta.id}
-              label={t(meta.labelKey)}
-              onChange={(checked) => setFilters((prev) => ({ ...prev, [meta.id]: checked }))}
-            />
-          ))}
-          {!checklist &&
-            <FilterCheckbox checked={showLanguageTags} id="language-tags" label={t('search.langTags')} onChange={setShowLanguageTags} />
-          }
-          {TESTING &&
-            <FilterCheckbox checked={sealFx} id="seal-fx" label="Seal FX" onChange={setSealFx} />
-          }
+          <FilterBar filters={filters} query={query} setFilters={setFilters} />
+          <div className="dex-search-bar-options">
+            {!checklist &&
+              <FilterCheckbox checked={showLanguageTags} id="language-tags" label={t('search.langTags')} onChange={setShowLanguageTags} />
+            }
+            {TESTING &&
+              <FilterCheckbox checked={sealFx} id="seal-fx" label="Seal FX" onChange={setSealFx} />
+            }
+          </div>
         </div>
       </div>
     </div>

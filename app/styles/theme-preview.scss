@@ -1,0 +1,99 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.theme-preview {
+  @include overflow-y-scroll;
+
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px 16px 80px;
+
+  section + section {
+    margin-top: 32px;
+  }
+
+  h2 {
+    margin: 0 0 10px;
+    font-family: $font-secondary;
+    font-size: 16px;
+
+    small {
+      margin-left: 10px;
+      font-size: 11px;
+      font-weight: 400;
+      opacity: .65;
+    }
+  }
+}
+
+.theme-preview-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.theme-preview-panel {
+  width: $box-width + 32;
+  background-color: var(--paper);
+  color: var(--ink);
+
+  .dex-search-bar {
+    padding: 10px 16px;
+  }
+
+  .box {
+    width: auto;
+    margin: 12px 16px 0;
+    content-visibility: visible;
+  }
+
+  .theme-preview-hovered .set-status {
+    opacity: 1;
+  }
+}
+
+.theme-preview-lower {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+
+  .pokemon-popover.theme-preview-static {
+    position: static;
+    animation: none;
+  }
+}
+
+.theme-preview-side {
+  display: flex;
+  flex: 1 1 120px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+
+  p {
+    margin: 0;
+  }
+
+  .form-group {
+    margin: 0;
+  }
+
+  .checkbox {
+    margin-left: 7px;
+  }
+}
+
+.theme-preview-muted {
+  color: var(--ink-muted);
+}
+
+.theme-preview-pass,
+.theme-preview-fail {
+  font-family: $font-secondary;
+  font-size: 11px;
+}
+
+.theme-preview-fail {
+  color: var(--ink-danger);
+}

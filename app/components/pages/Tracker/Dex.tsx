@@ -3,11 +3,13 @@ import { useDeferredValue, useMemo } from 'react';
 import { Box } from './Box';
 import { Scroll } from './Scroll';
 import { SearchResults } from './SearchResults';
-import { anyFilterActive, useTrackerState } from './use-tracker';
+import { anyFilterActive } from './filters';
 import { groupBoxes } from '../../../utils/pokemon';
+import { useHotkey } from '../../../hooks/use-hotkey';
+import { useTrackerActions, useTrackerState } from './use-tracker';
 
 import type { Dispatch, MouseEventHandler, SetStateAction } from 'react';
-import type { TrackerFilters } from './use-tracker';
+import type { TrackerFilters } from './filters';
 
 interface Props {
   filters: TrackerFilters;
@@ -29,8 +31,20 @@ export function Dex ({
   showScrollButton,
 }: Props) {
   const { captures } = useTrackerState();
+  const { releaseCaptures } = useTrackerActions();
 
   const boxes = useMemo(() => groupBoxes(captures), [captures]);
+
+  useHotkey('d', () => {
+    const tile = document.querySelector<HTMLElement>('.pokemon[data-pokemon-id]:hover');
+    const id = Number(tile?.dataset.pokemonId);
+    const capture = captures.find((cap) => cap.pokemon.id === id);
+    if (!capture?.captured || capture.sealed) {
+      return;
+    }
+    releaseCaptures([id]);
+    setSelectedPokemon((current) => (current === id ? 0 : current));
+  });
 
   const deferredQuery = useDeferredValue(query);
   const deferredFilters = useDeferredValue(filters);

@@ -18,20 +18,7 @@ html {
   outline: 0;
 }
 
-// the palette tokens themselves are written onto :root at runtime by applyTheme
-:root {
-  --surface: var(--surface-light);
-  --surface-raised: var(--surface-raised-light);
-  --text: var(--text-light);
-  --text-muted: var(--text-muted-light);
-  --accent-caught: var(--accent-caught-light);
-  --accent-temporary: var(--accent-temporary-light);
-  --danger: var(--release-danger);
-  --danger-hover: var(--release-danger-dark);
-  --scrollbar-thumb-active: var(--brand-secondary-a45);
-  --grid-line: var(--grid-line-light);
-}
-
+// every colour token is written onto :root at runtime by applyTheme, per theme and mode
 body {
   margin: 0;
   padding: 0;
@@ -40,8 +27,8 @@ body {
   font-family: $font-primary;
   // fixed value keeps EN/JA layouts identical (`normal` is font-metric-dependent)
   line-height: 1.35;
-  background-color: var(--surface);
-  color: var(--text);
+  background-color: var(--paper);
+  color: var(--ink);
   color-scheme: light;
 }
 
@@ -54,31 +41,7 @@ textarea {
 }
 
 .soft-dark {
-  --surface: var(--surface-dark);
-  --surface-raised: var(--surface-raised-dark);
-  --text: var(--text-dark);
-  --text-muted: var(--text-muted-dark);
-  --accent-caught: var(--accent-caught-dark);
-  --accent-temporary: var(--accent-temporary-dark);
-  --danger: var(--release-danger-soft);
-  --danger-hover: var(--release-danger-soft-dark);
-  --grid-line: rgba(242, 241, 238, .18);
-
-  background-color: var(--surface);
-  color: var(--text);
   color-scheme: dark;
-
-  // UA field colors don't reliably follow the flip
-  input,
-  select,
-  textarea,
-  .form-control {
-    color: var(--text);
-
-    &::placeholder {
-      color: color-mix(in srgb, var(--text) 55%, transparent);
-    }
-  }
 }
 
 .root {
@@ -96,7 +59,7 @@ textarea {
 }
 
 a.link {
-  color: var(--text);
+  color: var(--ink);
   font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
@@ -104,7 +67,7 @@ a.link {
 
   &:hover,
   &:focus {
-    color: var(--text-muted);
+    color: var(--ink-muted);
   }
 }
 
@@ -114,7 +77,7 @@ nav {
   position: relative;
   height: $nav-height;
   z-index: 20;
-  background-color: var(--brand-primary);
+  background-color: var(--chrome);
   font-family: $font-secondary;
 
   a {
@@ -129,7 +92,7 @@ nav {
     // pinned so the bar height is identical in EN/JA
     line-height: $nav-height;
     white-space: nowrap;
-    color: var(--text-on-chrome);
+    color: var(--on-chrome);
     transition: background-color .1s ease-out;
 
     &:first-child {
@@ -143,7 +106,7 @@ nav {
 
     &:hover,
     &:focus {
-      background-color: var(--brand-primary-l10);
+      background-color: var(--chrome-hover);
       cursor: pointer;
     }
   }
@@ -162,19 +125,19 @@ nav {
     margin: 0;
     padding: 0;
     list-style: none;
-    background-color: var(--brand-primary-l10);
+    background-color: var(--chrome-hover);
 
     li {
       display: flex;
       align-items: center;
       padding: 12px 14px;
-      border-top: 2px solid var(--brand-primary);
+      border-top: 2px solid var(--chrome);
       font-family: $font-secondary;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: var(--text-on-chrome);
+      color: var(--on-chrome);
       white-space: nowrap;
       cursor: pointer;
 
@@ -184,7 +147,7 @@ nav {
       }
 
       &:hover {
-        background-color: var(--brand-primary-l15);
+        background-color: var(--chrome-active);
       }
     }
   }
@@ -216,7 +179,7 @@ nav {
     }
 
     &.theme-active {
-      background-color: var(--brand-primary-l15);
+      background-color: var(--chrome-active);
     }
 
     &.theme-soft-dark {
@@ -275,9 +238,9 @@ nav .nav-menu > a.tooltip .tooltip-text {
   font-size: 13px;
   line-height: 1;
   border: 0;
-  background-color: var(--brand-primary-d4);
+  background-color: var(--chrome-well);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), inset 0 1px 3px rgba(0, 0, 0, .18);
-  color: var(--text-on-chrome);
+  color: var(--on-chrome);
   font-family: $font-secondary;
   font-weight: 700;
 }
@@ -298,12 +261,12 @@ nav .nav-menu > a.tooltip .tooltip-text {
   transition: background-color .1s ease-out;
 
   &.btn-blue {
-    background-color: var(--brand-secondary);
-    color: var(--text-inverse);
+    background-color: var(--accent);
+    color: var(--on-accent);
   }
 
   &.btn-delete {
-    color: var(--text-inverse);
+    color: var(--on-danger);
     background-color: var(--danger);
   }
 
@@ -322,7 +285,7 @@ nav .nav-menu > a.tooltip .tooltip-text {
     }
 
     &.btn-blue {
-      background-color: var(--brand-secondary-dark);
+      background-color: var(--accent-hover);
     }
 
     &.btn-delete {
@@ -396,7 +359,7 @@ form {
   .dropdown-chevron {
     flex-shrink: 0;
     font-size: 10px;
-    color: var(--brand-primary);
+    opacity: .6;
   }
 }
 
@@ -410,7 +373,7 @@ form {
   padding: 0;
   overflow-y: auto;
   list-style: none;
-  background-color: var(--brand-primary-l10);
+  background-color: var(--chrome-hover);
   box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
 
   li {
@@ -418,10 +381,10 @@ form {
     align-items: center;
     gap: 8px;
     padding: 9px 12px;
-    border-top: 2px solid var(--brand-primary);
+    border-top: 2px solid var(--chrome);
     font-family: $font-primary;
     font-size: 14px;
-    color: var(--text-on-chrome);
+    color: var(--on-chrome);
     white-space: nowrap;
     cursor: pointer;
 
@@ -432,11 +395,11 @@ form {
     }
 
     &:hover {
-      background-color: var(--brand-primary-l15);
+      background-color: var(--chrome-active);
     }
 
     &.dropdown-selected {
-      background-color: var(--brand-primary-l15);
+      background-color: var(--chrome-active);
       font-weight: 700;
     }
 
@@ -459,7 +422,7 @@ form {
     padding: 4px 6px;
     border: 0;
     background: none;
-    color: var(--brand-secondary-light);
+    color: var(--ink-muted);
     font-size: 12px;
     cursor: pointer;
     opacity: .7;
@@ -485,14 +448,19 @@ form {
 .form-control {
   width: 100%;
   appearance: none;
-  border: 2px solid var(--brand-secondary-light);
+  border: 2px solid var(--field-edge);
   border-radius: 0;
-  background-color: var(--surface);
+  background-color: var(--field);
+  color: var(--ink);
   padding: 6px;
   font-family: $font-primary;
 
+  &::placeholder {
+    color: var(--ink-muted);
+  }
+
   &:focus {
-    border-color: var(--brand-secondary-dark);
+    border-color: var(--field-focus);
   }
 }
 
@@ -545,14 +513,14 @@ form {
       right: 7px;
       width: 16px;
       height: 16px;
-      border: 1px solid var(--gray-medium);
-      background-color: var(--gray-light-l25);
+      border: 1px solid var(--field-edge);
+      background-color: var(--field);
 
       > span {
         display: inline-block;
         opacity: 0;
         position: absolute;
-        background-color: var(--brand-primary);
+        background-color: var(--accent);
         height: 10px;
         width: 10px;
         top: 50%;
@@ -569,12 +537,11 @@ form {
       bottom: 16px;
       right: 15px;
       font-size: 10px;
-      color: var(--brand-primary);
+      color: var(--ink-muted);
     }
 
     &.fa-chevron-down {
       font-size: 9px;
-      color: var(--text-muted);
     }
   }
 }
@@ -598,8 +565,8 @@ form {
     width: $tooltip-width;
     padding: 5px;
     border-radius: 5px;
-    background-color: var(--brand-secondary);
-    color: white;
+    background-color: var(--overlay);
+    color: var(--on-overlay);
     text-align: center;
     font-weight: 400;
     font-size: 13px;
@@ -615,7 +582,7 @@ form {
       margin-left: -5px;
       border-width: 5px;
       border-style: solid;
-      border-color: var(--brand-secondary) transparent transparent transparent;
+      border-color: var(--overlay) transparent transparent transparent;
     }
   }
 
@@ -630,7 +597,7 @@ form {
     &::after {
       bottom: 100%;
       top: auto;
-      border-color: transparent transparent var(--brand-secondary) transparent;
+      border-color: transparent transparent var(--overlay) transparent;
     }
   }
 }
@@ -644,7 +611,7 @@ form {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--text);
+  color: var(--ink);
   animation: fade-in .3s ease-out .4s forwards;
 }
 
@@ -675,9 +642,20 @@ form {
   width: min(660px, calc(100vw - 32px));
   max-height: 88vh;
   overflow-y: auto;
-  border: 2px solid var(--brand-secondary-light);
-  background: var(--surface-raised);
+  border: 2px solid var(--field-edge);
+  background: var(--paper-raised);
   outline: none;
+  // rendered inside nav, which would hand everything Montserrat
+  font-family: $font-primary;
+
+  h1 {
+    font-family: $font-secondary;
+    font-size: 30px;
+
+    @include cjk {
+      font-size: 25px;
+    }
+  }
 
   p {
     margin-top: 0;
@@ -693,13 +671,13 @@ form {
     padding: 6px 8px;
     border: 0;
     background: none;
-    color: var(--gray-dark);
+    color: var(--ink-muted);
     font-size: 16px;
     cursor: pointer;
     transition: color .1s ease-out;
 
     &:hover {
-      color: var(--text);
+      color: var(--ink);
     }
   }
 
@@ -750,11 +728,11 @@ form {
   cursor: pointer;
 
   .temporary-count {
-    color: var(--accent-temporary);
+    color: var(--ink-temporary);
   }
 
   .caught-count {
-    color: var(--accent-caught);
+    color: var(--ink-caught);
   }
 }
 
@@ -762,13 +740,14 @@ form {
   position: relative;
   width: 100%;
   height: 28px;
-  background-color: var(--surface-raised);
-  border: 2px solid var(--unobtainable);
+  background-color: var(--paper-raised);
+  border: 2px solid var(--meter-edge);
 
   .progress-numbers {
     position: absolute;
     width: 100%;
     padding: 5px;
+    color: var(--ink);
     text-align: center;
     font-family: $font-secondary;
     font-size: 11px;
@@ -784,16 +763,20 @@ form {
 
   .progress-inner {
     height: 100%;
-    background-color: var(--unobtainable);
+    background-color: var(--meter);
+  }
+
+  .progress-inner-unobtainable {
+    background-color: var(--tile-unobtainable);
   }
 
   .progress-inner-caught {
-    background-color: var(--caught);
+    background-color: var(--tile-caught);
   }
 
   .progress-inner-temporary {
-    background-color: var(--temporary);
-    background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--temporary-stripe) 8px 16px);
+    background-color: var(--tile-temporary);
+    background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--tile-temporary-stripe) 8px 16px);
   }
 }
 
@@ -803,7 +786,7 @@ form {
   padding-left: 30px;
 
   .fa-star {
-    color: #d81118;
+    color: var(--star);
     font-size: 8px;
   }
 
@@ -812,9 +795,8 @@ form {
     border-radius: 3px;
     font-size: 10px;
     padding: 4px 6px;
-    background-color: var(--gray-light);
-    // the label background never flips, so neither does its text
-    color: #26221f;
+    background-color: var(--chip);
+    color: var(--ink);
     text-transform: uppercase;
     font-family: $font-secondary;
     font-weight: 500;
@@ -830,7 +812,7 @@ form {
 .main-footer {
   padding: 100px 20px;
   text-align: center;
-  background-color: var(--gray-light);
+  background-color: var(--paper-sunken);
   font-family: $font-secondary;
   font-size: 10px;
   text-transform: uppercase;
@@ -846,7 +828,7 @@ form {
     vertical-align: middle;
     font-size: 5px;
     margin: 0 10px;
-    color: var(--gray-medium);
+    color: var(--ink-muted);
   }
 }
 
@@ -884,16 +866,12 @@ form {
 
 .modal-wide {
   width: min(760px, calc(100vw - 32px));
-
-  h1 {
-    font-size: 30px;
-  }
 }
 
 .saves-warning {
   margin: 0 0 $space-sm;
   font-size: 13px;
-  color: var(--release-danger);
+  color: var(--ink-danger);
 }
 
 // list and add-row share one width so the table can't resize with its contents
@@ -916,24 +894,24 @@ $saves-table-width: 640px;
 
   .saves-list-header {
     padding-bottom: 8px;
-    border-bottom: 1px solid var(--brand-secondary-a15);
+    border-bottom: 1px solid var(--line-soft);
     font-family: $font-secondary;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--text-muted);
+    color: var(--ink-muted);
     opacity: .75;
   }
 
   .saves-list-item {
     position: relative;
     padding: 8px 0;
-    border-bottom: 1px solid var(--brand-secondary-a15);
+    border-bottom: 1px solid var(--line-soft);
 
     .saves-list-key {
       font-size: 14px;
-      color: var(--text);
+      color: var(--ink);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -950,7 +928,7 @@ $saves-table-width: 640px;
         padding: 6px 4px;
         border: 0;
         background: none;
-        color: var(--text-muted);
+        color: var(--ink-muted);
         font-size: 12px;
         opacity: .6;
         cursor: pointer;
@@ -967,7 +945,7 @@ $saves-table-width: 640px;
       }
 
       .saves-delete {
-        color: var(--release-danger);
+        color: var(--ink-danger);
         opacity: .75;
       }
     }
@@ -981,8 +959,7 @@ button.btn.btn-edit-list {
   margin-top: $space-sm;
   padding: 0;
   background: none;
-  color: var(--text);
-  font-size: 12px;
+  color: inherit;
   text-decoration: underline;
   opacity: .7;
 
@@ -1007,7 +984,6 @@ button.btn.btn-edit-list {
   display: inline-block;
   width: auto;
   padding: 10px 18px;
-  font-size: 10px;
 
   &:disabled {
     opacity: .4;
@@ -1016,6 +992,5 @@ button.btn.btn-edit-list {
 
   .svg-inline--fa {
     margin-right: 6px;
-    font-size: 10px;
   }
 }

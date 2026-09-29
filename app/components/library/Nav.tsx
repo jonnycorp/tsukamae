@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DexModal } from './DexModal';
 import { Dropdown } from './Dropdown';
 import { SavesModal } from './SavesModal';
-import { PALETTE_PRESETS, PRESET_DOT_BASES } from '../../palette/tokens';
+import { THEMES, themePalette } from '../../palette/themes';
 import { exportAppState, importAppState } from '../../utils/local-data';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
@@ -30,10 +30,12 @@ function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, cl
 }
 
 interface Props {
-  onTogglePalette?: () => void;
+  onTogglePreview?: () => void;
 }
 
-export function Nav ({ onTogglePalette }: Props) {
+const THEME_DOTS = ['chrome', 'accent', 'status-unobtainable', 'status-temporary', 'status-caught'];
+
+export function Nav ({ onTogglePreview }: Props) {
   const { locale, setLocale } = useLocalStorageContext();
   const { isSoftDark, setIsSoftDark, theme, setTheme } = useThemeContext();
   const { dexes, activeDex, setActiveDex } = useDexContext();
@@ -153,10 +155,10 @@ export function Nav ({ onTogglePalette }: Props) {
         <FontAwesomeIcon icon={faLanguage} />
         <span className="tooltip-text">{locale === 'en' ? '日本語' : 'English'}</span>
       </a>
-      {onTogglePalette &&
-        <a className="nav-icon tooltip tooltip-below" onClick={onTogglePalette}>
+      {onTogglePreview &&
+        <a className="nav-icon tooltip tooltip-below" onClick={onTogglePreview}>
           <FontAwesomeIcon icon={faFlask} />
-          <span className="tooltip-text">Palette</span>
+          <span className="tooltip-text">Theme Preview</span>
         </a>
       }
       <div className="nav-menu" ref={themeMenuRef}>
@@ -166,13 +168,15 @@ export function Nav ({ onTogglePalette }: Props) {
         </a>
         {showThemeMenu &&
           <ul className="nav-menu-dropdown theme-popover">
-            {Object.entries(PALETTE_PRESETS).map(([name, preset]) => (
-              <li className={name === theme ? 'theme-active' : ''} key={name} onClick={() => setTheme(name)}>
+            {THEMES.map((seed) => (
+              <li className={seed.name === theme ? 'theme-active' : ''} key={seed.name} onClick={() => setTheme(seed.name)}>
                 <span className="theme-dots">
-                  {PRESET_DOT_BASES.map((base) => <span className="theme-dot" key={base} style={{ backgroundColor: preset[base] }} />)}
+                  {THEME_DOTS.map((token) => (
+                    <span className="theme-dot" key={token} style={{ backgroundColor: themePalette(seed, isSoftDark ? 'dark' : 'light')[token] }} />
+                  ))}
                 </span>
-                {name}
-                {name === theme && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+                {seed.name}
+                {seed.name === theme && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
               </li>
             ))}
             <li className={`theme-soft-dark ${isSoftDark ? 'theme-active' : ''}`} onClick={() => setIsSoftDark(!isSoftDark)}>

@@ -1,6 +1,5 @@
 'use strict';
 
-const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -19,9 +18,12 @@ function progressFile () {
   return path.join(app.getPath('userData'), 'dex_data.json');
 }
 
-// the renderer sends the whole state on every change; writes are debounced, and atomic via temp file + rename
-let pendingProgress = null;
+let latestProgress = null;
+let savedProgress = null;
 let saveTimer = null;
+// writes are debounced, atomic (temp file + rename) and serialized, so two can never share the temp file or land out of order
+let writeChain = Promise.resolve();
+let flushedForQuit = false;
 
 async function writeProgress (progress) {
   const file = progressFile();
@@ -31,46 +33,24 @@ async function writeProgress (progress) {
   await fsp.rename(tmp, file);
 }
 
-async function flushSave () {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-    saveTimer = null;
-  }
-  if (pendingProgress) {
-    const progress = pendingProgress;
-    pendingProgress = null;
-    await writeProgress(progress);
-  }
+// queues a write of whatever is newest when its turn comes; never rejects
+function flushSave () {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  writeChain = writeChain.then(async () => {
+    if (latestProgress !== savedProgress) {
+      const progress = latestProgress;
+      await writeProgress(progress);
+      savedProgress = progress;
+    }
+  }).catch((err) => console.error('failed to save progress:', err));
+  return writeChain;
 }
 
 function scheduleSave (progress) {
-  pendingProgress = progress;
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-  }
-  saveTimer = setTimeout(() => {
-    flushSave().catch((err) => console.error('failed to save progress:', err));
-  }, SAVE_DEBOUNCE_MS);
-}
-
-// synchronous so quitting right after a change never loses it
-function flushSaveSync () {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-    saveTimer = null;
-  }
-  if (pendingProgress) {
-    const file = progressFile();
-    const tmp = `${file}.tmp`;
-    try {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(tmp, JSON.stringify(pendingProgress, null, 2));
-      fs.renameSync(tmp, file);
-    } catch (err) {
-      console.error('failed to save progress on quit:', err);
-    }
-    pendingProgress = null;
-  }
+  latestProgress = progress;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
 }
 
 ipcMain.handle('tracker:load', async () => {
@@ -167,7 +147,17 @@ app.whenReady().then(() => {
   buildMenu();
 });
 
-app.on('before-quit', flushSaveSync);
+// quitting waits for the last write, including one already in flight
+app.on('before-quit', (event) => {
+  if (flushedForQuit || (saveTimer === null && latestProgress === savedProgress)) {
+    return;
+  }
+  event.preventDefault();
+  flushSave().finally(() => {
+    flushedForQuit = true;
+    app.quit();
+  });
+});
 
 app.on('window-all-closed', () => {
   app.quit();

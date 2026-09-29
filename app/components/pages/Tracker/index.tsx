@@ -5,7 +5,8 @@ import { Footer } from '../../library/Footer';
 import { PokemonPopover } from './PokemonPopover';
 import { SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SearchBar } from './SearchBar';
-import { EMPTY_FILTERS, TrackerContextProvider } from './use-tracker';
+import { EMPTY_FILTERS } from './filters';
+import { TrackerContextProvider } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useFlipClock } from './use-flip-clock';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -93,12 +94,8 @@ function TrackerInner () {
             <Footer />
           </div>
         </div>
-        {selectedPokemon !== 0 &&
-          <PokemonPopover
-            key={selectedPokemon}
-            onClose={handlePopoverClose}
-            selectedPokemon={selectedPokemon}
-          />
+        {selectedPokemon !== 0 && !activeDex!.checklist &&
+          <PokemonPopover onClose={handlePopoverClose} selectedPokemon={selectedPokemon} />
         }
       </div>
     </div>

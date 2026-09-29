@@ -1,7 +1,7 @@
 import { DateInput } from './DateInput';
 import { DraftInput } from './DraftInput';
 import { Dropdown } from './Dropdown';
-import { NAME_MAX_FALLBACK, coerceFavorite, favoriteOptions, findSave, genderOptions, locationOptions, saveLabel } from '../../utils/capture-fields';
+import { NAME_MAX_FALLBACK, favoriteOptions, findSave, genderOptions, locationOptions, readFavorite, saveLabel } from '../../utils/capture-fields';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../hooks/use-translation';
 
@@ -39,8 +39,9 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
     current: string,
     options: { value: string; label: string; icon?: string }[],
     onSelect: (next: string) => void,
+    blank = true,
   ) => (
-    <Dropdown blankLabel={blankLabel} id={selectId} onSelect={onSelect} options={options} value={current} />
+    <Dropdown blankLabel={blank ? blankLabel : undefined} id={selectId} onSelect={onSelect} options={options} value={current} />
   );
 
   const yesNoOptions = [
@@ -51,11 +52,13 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
   switch (field.kind) {
     case 'select': {
       const key = field.keys[0];
-      // coerced into the offered options, or a stored value that is no longer one renders a blank trigger
+      // a floored 'no' moves to the first offered option; empty or a value the app never writes shows blank
       if (field.id === 'favorite') {
         const favorites = favoriteOptions(locale, value);
-        const stored = coerceFavorite(value.favorite) ?? 'no';
-        const current = favorites.some((option) => option.value === stored) ? stored : favorites[0].value;
+        const stored = value.favorite;
+        const current = stored === null || stored === undefined || readFavorite(stored) === null || favorites.some((option) => option.value === stored)
+          ? String(stored ?? '')
+          : favorites[0].value;
         return wrap(
           <Dropdown
             id={id}
@@ -66,7 +69,9 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
         );
       }
       const options = field.id === 'gender' ? genderOptions(locale, genderLock) : field.options!(locale);
-      return wrap(select(id, (value[key] as string) || '', options, (next) => onChange({ [key]: next || null })));
+      // a species locked to one gender has nothing to leave unspecified
+      const blank = !field.baseline && options.length > 1;
+      return wrap(select(id, String(value[key] ?? ''), options, (next) => onChange({ [key]: next || null }), blank));
     }
 
     case 'text':
@@ -116,7 +121,7 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
 
     case 'yesno': {
       const key = field.keys[0];
-      const current = value[key] === true ? 'yes' : 'no';
+      const current = value[key] === true ? 'yes' : value[key] === false ? 'no' : '';
       return wrap(
         <Dropdown
           id={id}

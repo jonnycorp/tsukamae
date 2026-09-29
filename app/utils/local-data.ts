@@ -37,7 +37,7 @@ import ultraSunUltraMoonRegionalPokemon from '../../data/dexes/ultra-sun-ultra-m
 import xYRegionalMeta from '../../data/dexes/x-y-regional/meta.json';
 import xYRegionalPokemon from '../../data/dexes/x-y-regional/pokemon.json';
 
-import { EMPTY_METADATA, coerceFavorite, genderFromLock, lookupOT, metadataFromDefaults } from './capture-fields';
+import { BASELINE_METADATA, EMPTY_METADATA, genderFromLock, lookupOT, metadataFromDefaults, withBaselines } from './capture-fields';
 
 import type { Capture, CaptureMetadata, CapturePokemon, CaptureStatus, Dex, DexType, Game, GameSave } from '../types';
 
@@ -189,9 +189,34 @@ async function saveRaw (state: AppState): Promise<void> {
 
 let appState: AppState | null = null;
 
+// marked records predating a field's baseline get it written once, so storage holds what the UI shows
+function fillBaselines (state: AppState): boolean {
+  let filled = false;
+  for (const dex of state.dexes) {
+    if (dex.checklist) {
+      continue;
+    }
+    for (const [id, entry] of Object.entries(dex.progress)) {
+      if (entry.status === 'unobtainable') {
+        continue;
+      }
+      const next = withBaselines(entry);
+      if (next !== entry) {
+        dex.progress[id] = next;
+        filled = true;
+      }
+    }
+  }
+  return filled;
+}
+
 export async function loadAppState (): Promise<AppState> {
   if (!appState) {
     appState = normalizeState(await loadRaw());
+    if (fillBaselines(appState)) {
+      // eslint-disable-next-line no-console
+      saveRaw(appState).catch((err) => console.error('failed to save:', err));
+    }
   }
   return appState;
 }
@@ -223,6 +248,7 @@ export function exportAppState (): string {
 
 export async function importAppState (raw: unknown): Promise<void> {
   appState = normalizeState(raw);
+  fillBaselines(appState);
   await saveRaw(appState);
 }
 
@@ -252,7 +278,6 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
       captured: true,
       status: entry.status,
       sealed: Boolean(entry.sealed),
-      favorite: coerceFavorite((entry as unknown as Record<string, unknown>).favorite),
     };
   });
 }
@@ -282,7 +307,7 @@ function findDex (state: AppState, dexId: string): PersonalDex {
 // a new entry's prefills; Pokemon.applyStatus mirrors this for the optimistic tile
 function newEntryMetadata (dex: PersonalDex, saves: GameSave[], pokemonId: number): CaptureMetadata {
   const catalog = getCatalogDex(dex.catalogKey);
-  const meta: CaptureMetadata = { ...EMPTY_METADATA, ...metadataFromDefaults(dex.captureDefaults) };
+  const meta: CaptureMetadata = { ...EMPTY_METADATA, ...(dex.checklist ? {} : BASELINE_METADATA), ...metadataFromDefaults(dex.captureDefaults) };
   meta.ot = lookupOT(saves, meta.origin_game, meta.language);
   meta.location = catalog.game.id === 'home' ? 'home' : 'game';
   meta.location_save = null;
@@ -314,7 +339,11 @@ export function writeCapture (dexId: string, payload: UpdateCapturePayload, edit
     };
 
     const next: ProgressEntry = { ...base, ...changes };
-    dex.progress[pokemon] = next.status === 'unobtainable' ? { ...next, ...EMPTY_METADATA } : next;
+    if (next.status === 'unobtainable') {
+      dex.progress[pokemon] = { ...next, ...EMPTY_METADATA };
+    } else {
+      dex.progress[pokemon] = dex.checklist ? next : withBaselines(next);
+    }
   });
 }
 

@@ -1,6 +1,4 @@
 import classNames from 'classnames';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLock } from '@fortawesome/free-solid-svg-icons';
 import { memo, useMemo } from 'react';
 
 import { BOX_COLUMNS, BOX_SIZE, TILE_SIZE, dexNumber } from '../../../utils/pokemon';
@@ -68,16 +66,13 @@ export const Box = memo(function Box ({ captures, deferred, setSelectedPokemon }
     return null;
   }
 
-  const allCaught = captures.every((capture) => capture.status === 'caught');
+  const complete = captures.every((capture) => capture.status === 'caught' || capture.status === 'unobtainable');
   const sealed = captures.filter((capture) => capture.sealed).length;
 
   return (
-    <div className={classNames('box', { 'box-all-caught': allCaught })}>
+    <div className={classNames('box', { 'box-complete': complete })}>
       <div className="box-header">
-        <div className="box-title">
-          <h1>{boxTitle(captures, activeDexView!)}</h1>
-          {allCaught && <FontAwesomeIcon className="box-all-caught-icon" icon={faLock} title={t('box.allCaught')} />}
-        </div>
+        <h1>{boxTitle(captures, activeDexView!)}</h1>
         {!checklist &&
           <span className={classNames('box-sealed-count', { complete: sealed === captures.length })}>
             {sealed}/{captures.length} {t('box.sealed')}
