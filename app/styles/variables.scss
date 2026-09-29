@@ -1,15 +1,17 @@
 $font-primary: 'Alegreya Sans', 'Helvetica', sans-serif;
 $font-secondary: 'Montserrat', 'Helvetica', sans-serif;
 
-// keep in sync with TILE_SIZE in utils/pokemon.ts
+// keep in sync with TILE_SIZE, BOX_COLUMNS and BOX_SIZE in utils/pokemon.ts
 $pokemon-box-size: 110px;
+$box-columns: 6;
+$box-rows: 5;
 $tooltip-width: 120px;
 $nav-height: 54px;
 
-// plus the 1px border each side
-$box-width: 6 * $pokemon-box-size + 2;
+// plus the 1px frame each side
+$box-width: $box-columns * $pokemon-box-size + 2;
+// between boxes across a row; keep in sync with BOX_GAP in utils/pokemon.ts
 $dex-grid-gap: 40px;
-$dex-grid-width: 2 * $box-width + $dex-grid-gap;
 
 // keep in sync with FADE_MS in hooks/use-dismissable.ts
 $fade-duration: .15s;

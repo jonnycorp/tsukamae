@@ -39,10 +39,12 @@
     top: -60px;
     animation: slide 1s cubic-bezier(0, 0, .05, 1) forwards;
 
+    // 6px cells, crisp at any display scaling; see PokeballLogo
     .pokeball-logo {
-      width: 90px;
-      height: 90px;
+      width: 96px;
+      height: 96px;
       margin-bottom: 10px;
+      shape-rendering: crispEdges;
 
       .pokeball-mark {
         fill: var(--on-chrome);

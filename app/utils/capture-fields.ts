@@ -312,6 +312,30 @@ export const EMPTY_METADATA: CaptureMetadata = {
   favorite: null,
 };
 
+interface FreshMetadataOptions {
+  defaults: Partial<CaptureMetadata> | undefined;
+  checklist: boolean;
+  homeDex: boolean;
+  genderLock: GenderLock | null | undefined;
+  saves: GameSave[];
+}
+
+// a record as it's first marked, or marked again after unobtainable wiped it: the baselines, then the dex's defaults
+// under the cross-field rules (so a Mystery Gift default floors the favourite), where it lives, a species-locked
+// gender and the OT of the save the defaults point at. A checklist keeps no defaults. writeCapture and the tiles'
+// optimistic copies all build from this, so they agree
+export function freshMetadata ({ defaults, checklist, homeDex, genderLock, saves }: FreshMetadataOptions): CaptureMetadata {
+  const placed = { location: homeDex ? 'home' : 'game', location_save: null, gender: genderFromLock(genderLock) } as const;
+  if (checklist) {
+    return { ...EMPTY_METADATA, ...placed };
+  }
+  const base = { ...EMPTY_METADATA, ...BASELINE_METADATA };
+  const preset = metadataFromDefaults(defaults);
+  const meta: CaptureMetadata = { ...base, ...preset, ...withFieldInvariants(base, preset), ...placed };
+  meta.ot = lookupOT(saves, meta.origin_game, meta.language);
+  return meta;
+}
+
 export function formatFieldValue (field: CaptureField, meta: Partial<CaptureMetadata>, locale: Locale, saves: GameSave[] = []): string {
   const blank = translate(locale, 'common.unspecified');
 
@@ -347,7 +371,7 @@ export function formatFieldValue (field: CaptureField, meta: Partial<CaptureMeta
       }
       if (meta.location === 'game' && meta.location_save) {
         const save = saves.find((entry) => entry.id === meta.location_save);
-        return save ? saveLabel(save, locale) : meta.location_save;
+        return save ? saveLabel(save, locale) : blank;
       }
       return blank;
     }

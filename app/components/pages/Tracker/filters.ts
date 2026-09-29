@@ -58,7 +58,7 @@ export const FACETS: Facet[] = [
     id: 'generation',
     labelKey: 'filter.generation',
     species: true,
-    value: (capture) => String(capture.pokemon.game_family.generation),
+    value: (capture) => String(capture.pokemon.generation),
     label: (value, locale) => translate(locale, 'filter.gen', { n: value }),
     rank: Number,
   },

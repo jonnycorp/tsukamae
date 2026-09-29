@@ -26,8 +26,14 @@ export function useDebouncedCommit (delay = 600) {
     timerRef.current = window.setTimeout(flush, delay);
   }, [flush, delay]);
 
-  // a pending edit survives dismissal
-  useEffect(() => flush, [flush]);
+  // a pending edit survives dismissal, and closing the window (which blurs nothing and unmounts nothing)
+  useEffect(() => {
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, [flush]);
 
   return { schedule, flush, cancel };
 }

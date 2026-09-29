@@ -15,7 +15,9 @@ Beyond the upstream caught/uncaught toggle, each slot tracks how it's held and w
 - **My Games** (nav) — each playthrough you own: game, language, and the trainer name it stamps on everything caught there. One record names an origin, lists where a Pokémon can be sitting, and fills in OT. Picking a game as a mon's origin answers game, language and OT at once; a foreign OT is typed afterwards and nothing overwrites it.
 - **Per-mon metadata** (tile popover) — _Origin Game_, _Language_, _OT_, _Been to Champions_, _Location_ (in HOME, in Champions, or which of your games it's sitting in), _Ball_, _Catch Date_, _Gender_, _Nickname_, _Level_, _Trained_ and _Favorite_. Champions is deliberately two facts: having been there is permanent and survives the mon coming back, while _Location_ only offers "In Champions" once it actually has. Fields you have to look up start unanswered, and unanswered is distinct from "no" — that's what gives the seal gate meaning. Fields whose options cover every state start at their baseline instead (_Been to Champions_ and _Favorite_ at no, _Trained_ at untrained) and never block a seal. _Release_ clears the slot and its metadata.
 - **Views and filters** — one click switches the dex between All, Missing, Temporary, Unsealed and Incomplete. The Filters panel narrows further by generation and legendary/mythical (which also work on missing slots) and by origin game, language, OT, location, ball, trained and favorite, each value showing how many Pokémon it would leave. Active filters sit beside the panel as chips that clear with a click.
-- **Keyboard** — _/_ jumps to search, _Space_ pauses the name and badge flips, _F_ opens the Filters panel, _R_ resets the filters, and _D_ releases the tile under the cursor (never a sealed one). None of them fire while typing.
+- **Keyboard** — _/_ jumps to search, _Space_ pauses the name and badge flips, _F_ opens the Filters panel, _R_ resets the filters, _Z_ resets the zoom, and _D_ releases the tile under the cursor (never a sealed one). None of them fire while typing.
+- **Fit and zoom** — the boxes scale themselves to the window so two span it, never taller than a whole row can show, with the first row centred under the header bar; any room left over fills with more boxes across. _Ctrl+scroll_ (or _Ctrl+=_ / _Ctrl+−_, _Ctrl+0_ or _Z_ to reset; _Cmd_ on macOS) zooms the boxes on top of that fit, out to exactly four boxes across and in to 200%, and the level is remembered; the nav and header bar keep their size. Windows too narrow for one box switch to a list. _F11_ toggles fullscreen.
+- **Title bar** — on Windows the nav is the window's title bar: drag it to move the window and double-click it to maximize. Minimize, maximize and close sit at its right end in the theme's colours, and the nav's icons keep clear of them. macOS keeps its standard title bar.
 - **Multiple personal dexes** — each is its own instance of a catalog dex with independent progress, switchable from the nav and reorderable on the landing page. Each dex can define _defaults_ for the prefillable fields, applied whenever a mon is newly marked — e.g. a regional living dex where every catch comes from the same cartridge. Leave a default unset where the dex is a wildcard and you want to fill it by hand. A dex can instead be created as a _checklist_: statuses only, with no metadata at all.
 - **Localization** — the whole UI (including Pokémon names) toggles between English and Japanese from the nav.
 
@@ -23,8 +25,8 @@ Beyond the upstream caught/uncaught toggle, each slot tracks how it's held and w
 
 All state lives on this machine; there is no server or account.
 
-- **Desktop (Electron)** — a single JSON file, `dex_data.json`, in the per-user app data directory (e.g. `%APPDATA%/tsukamae` on Windows). The renderer sends the full state through a preload bridge; the main process coalesces rapid changes into debounced, atomic writes (temp file + rename) that run strictly in order, and quitting waits for the last one, so progress can't be corrupted or lost mid-session.
-- **Browser dev** (`yarn start`) — the same state falls back to `localStorage`. `yarn start:fresh` keeps everything in memory only, so testing never touches real data.
+- **Desktop (Electron)** — a single JSON file, `dex_data.json`, in the per-user app data directory (e.g. `%APPDATA%/tsukamae` on Windows). The renderer sends the full state through a preload bridge; the main process coalesces rapid changes into debounced, atomic writes (temp file flushed to disk, then renamed over the old one, retried while antivirus or a backup tool holds it) that run strictly in order, and quitting waits for the last one, so progress can't be corrupted or lost mid-session. A file that can't be read is reported and left alone rather than treated as empty. Only one copy of the app runs at a time, so two can never race each other's writes. The window's size and position sit beside it in `window-state.json`.
+- **Browser dev** (`yarn start`) — the same state falls back to `localStorage`. `yarn start:fresh` keeps everything in memory only, and `yarn electron:dev:fresh` runs the desktop app on a throwaway profile, so testing never touches real data.
 - **Export / Import** — the nav's data menu downloads the whole tracker as a JSON snapshot and restores from one (import replaces all current state). This is also the upgrade path across dataset regenerations.
 
 ## Development
@@ -34,7 +36,7 @@ Requires Node (see `.node-version`) and Yarn. Use **Yarn, not npm** — the comm
 ```bash
 yarn install
 
-# Desktop app (webpack dev server + Electron, hot reload)
+# Desktop app (webpack dev server + Electron, hot reload; F12 devtools, Ctrl+R reload)
 yarn electron:dev
 
 # Browser-only dev (persistence falls back to localStorage)
@@ -49,7 +51,7 @@ yarn lint:all
 
 ## Future-proofing
 
-The dex structure is a static snapshot in `data/` — `dexes/<key>/` (one directory per catalog dex: `meta.json` + `pokemon.json`), `games.json` (origin-game options), `languages.json` and `balls.json` — generated from the live pokedextracker API and PokéAPI:
+The dex structure is a static snapshot in `data/` — `dexes/<key>/` (one directory per catalog dex: `meta.json` + `pokemon.json`), `games.json` (origin-game options), `languages.json` and `balls.json` — generated once from the live pokedextracker API and PokéAPI and committed; the app never fetches anything. Each Pokémon record keeps only what the app reads (upstream's nested game family is reduced to its generation as it's written):
 
 ```bash
 yarn dataset          # scripts/generate-dataset.mjs + scripts/enrich-species.mjs
@@ -74,7 +76,7 @@ app/
 │   └── pages/
 │       ├── Landing.tsx   # Dex list (create, reorder, open)
 │       ├── Tracker/      # The box view: search bar header, box grid, tiles,
-│       │                 #   capture popover, the shared flip clock
+│       │                 #   capture popover, flip strips and their clock
 │       └── ThemePreview.tsx # Every theme × mode side by side (TESTING only)
 ├── hooks/
 │   └── contexts/         # Dex state + local-storage-backed UI prefs and theme
@@ -83,7 +85,7 @@ app/
 ├── styles/               # Sass modules per area; colors are CSS custom properties
 ├── types/                # Domain types (captures, dexes, games)
 └── utils/                # Bundled dataset catalog, persistence, capture field registry
-electron/                 # Main process: app:// static server + JSON persistence
+electron/                 # Main process: app:// static server, JSON persistence, window state
 data/                     # Generated dex/game/language snapshot (see above)
 scripts/                  # Dataset generation
 ```
@@ -93,6 +95,7 @@ Key mechanics:
 - **State** — the bundled catalog (`utils/local-data.ts`) is structure; a personal dex is a catalog reference plus a sparse progress map. One in-memory app state is mutated synchronously and mirrored to disk write-behind; tiles update optimistically from the same change.
 - **Color system** — a theme is five hues and a chroma scale (`palette/themes.ts`); every colour in both Light and Soft Dark is computed from them in OKLCH, on a shared lightness ladder, and written onto `:root` as role tokens (`paper`, `chrome`, `overlay`, `tile-caught`, `on-tile`…) before the first render. Text roles are solved to their WCAG target, and `yarn lint:themes` audits every theme × mode for contrast and for statuses that blur together. The dev-only Theme Preview (flask button, TESTING) shows every theme in both modes at once.
 - **i18n** — a flat key→string dictionary per locale; `ja` is typed against `en`'s keys so the dictionaries cannot drift.
+- **Flips** — a sealed tile's alternating lines (nickname, catch date, OT) aren't drawn by the tile. Each row of boxes gets an overlay (`FlipStrips`) with one clipped window per tile row and line, whose faces slide as a single composited strip, and every strip runs one keyframe cycle on the compositor from a shared start time (`use-flip-clock.ts`). A flip costs the main thread nothing, and a strip that appears later joins in step. The overlays skip rendering offscreen on their own and paint after every box's tiles: Chromium's layer assignment slows with the square of composited layers painted between boxes, which is what made zoomed-out views lag.
 
 ## Credits
 

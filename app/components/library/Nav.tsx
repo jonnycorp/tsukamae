@@ -7,7 +7,7 @@ import { DexModal } from './DexModal';
 import { Dropdown } from './Dropdown';
 import { SavesModal } from './SavesModal';
 import { THEMES, themePalette } from '../../palette/themes';
-import { exportAppState, importAppState } from '../../utils/local-data';
+import { exportAppState, importAppState, isAppState } from '../../utils/local-data';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../hooks/use-translation';
@@ -67,7 +67,10 @@ export function Nav ({ onTogglePreview }: Props) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `tsukamae-progress-${new Date().toISOString().slice(0, 10)}.json`;
+    // today where the user is: toISOString's UTC date is tomorrow's by evening in the Americas
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    link.download = `tsukamae-progress-${today}.json`;
     link.click();
     URL.revokeObjectURL(url);
     setShowDataMenu(false);
@@ -94,7 +97,7 @@ export function Nav ({ onTogglePreview }: Props) {
       return;
     }
 
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    if (!isAppState(raw)) {
       window.alert(t('nav.importNotExport'));
       return;
     }
@@ -103,12 +106,17 @@ export function Nav ({ onTogglePreview }: Props) {
       return;
     }
 
-    await importAppState(raw);
+    try {
+      await importAppState(raw);
+    } catch {
+      window.alert(t('nav.importFailed'));
+      return;
+    }
     window.location.reload();
   };
 
   return (
-    <nav className={classNames({ 'dropdown-open': showDataMenu || showThemeMenu })}>
+    <nav className={classNames('titlebar', { 'dropdown-open': showDataMenu || showThemeMenu })}>
       <a className="nav-logo" onClick={handleLogoClick}>{t('app.name')}</a>
       {activeDex &&
         <div className="nav-dex-controls">
@@ -119,11 +127,11 @@ export function Nav ({ onTogglePreview }: Props) {
             triggerClassName="nav-dex-select"
             value={activeDex.id}
           />
-          <a className="nav-icon tooltip tooltip-below" onClick={handleEditDexClick}>
+          <a className="nav-icon tooltip" onClick={handleEditDexClick}>
             <FontAwesomeIcon icon={faPencilAlt} />
             <span className="tooltip-text">{t('nav.editDex')}</span>
           </a>
-          <a className="nav-icon tooltip tooltip-below" onClick={handleNewDexClick}>
+          <a className="nav-icon tooltip" onClick={handleNewDexClick}>
             <FontAwesomeIcon icon={faPlus} />
             <span className="tooltip-text">{t('nav.newDex')}</span>
           </a>
@@ -140,7 +148,7 @@ export function Nav ({ onTogglePreview }: Props) {
           </ul>
         }
       </div>
-      <a className="nav-icon tooltip tooltip-below" onClick={() => setShowSaves(true)}>
+      <a className="nav-icon tooltip" onClick={() => setShowSaves(true)}>
         <FontAwesomeIcon icon={faGamepad} />
         <span className="tooltip-text">{t('nav.saves')}</span>
       </a>
@@ -151,18 +159,18 @@ export function Nav ({ onTogglePreview }: Props) {
         style={{ display: 'none' }}
         type="file"
       />
-      <a className="nav-icon tooltip tooltip-below" onClick={handleLanguageToggle}>
+      <a className="nav-icon tooltip" onClick={handleLanguageToggle}>
         <FontAwesomeIcon icon={faLanguage} />
         <span className="tooltip-text">{locale === 'en' ? '日本語' : 'English'}</span>
       </a>
       {onTogglePreview &&
-        <a className="nav-icon tooltip tooltip-below" onClick={onTogglePreview}>
+        <a className="nav-icon tooltip" onClick={onTogglePreview}>
           <FontAwesomeIcon icon={faFlask} />
           <span className="tooltip-text">Theme Preview</span>
         </a>
       }
       <div className="nav-menu" ref={themeMenuRef}>
-        <a className="nav-icon tooltip tooltip-below" onClick={() => setShowThemeMenu((open) => !open)}>
+        <a className="nav-icon tooltip" onClick={() => setShowThemeMenu((open) => !open)}>
           <FontAwesomeIcon icon={faPalette} />
           {!showThemeMenu && <span className="tooltip-text">{t('nav.theme')}</span>}
         </a>

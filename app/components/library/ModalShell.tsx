@@ -1,7 +1,9 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { useEffect, useRef } from 'react';
 
+import { dimTitleBar } from '../../palette/apply-theme';
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { MouseEvent, ReactNode } from 'react';
@@ -17,15 +19,28 @@ interface Props {
 
 export function ModalShell ({ children, closing, contentLabel, onDismiss, wide = false }: Props) {
   const { t } = useTranslation();
+  const pressedOnOverlayRef = useRef(false);
+
+  // the backdrop dims the nav; the window buttons drawn over it dim with it
+  useEffect(() => {
+    dimTitleBar(true);
+    return () => dimTitleBar(false);
+  }, []);
+
+  // a click that starts and ends on the backdrop; a text selection dragged out of a field and released there lands on
+  // the backdrop too, and mustn't throw the form away
+  const handleOverlayMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    pressedOnOverlayRef.current = e.target === e.currentTarget;
+  };
 
   const handleOverlayClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
+    if (e.target === e.currentTarget && pressedOnOverlayRef.current) {
       onDismiss();
     }
   };
 
   return (
-    <div className={classNames('modal-overlay', { closing })} onClick={handleOverlayClick}>
+    <div className={classNames('modal-overlay', { closing })} onClick={handleOverlayClick} onMouseDown={handleOverlayMouseDown}>
       <div aria-label={contentLabel} className={classNames('modal', { 'modal-wide': wide })} role="dialog">
         <button aria-label={t('popover.close')} className="modal-close" onClick={onDismiss} title={t('popover.close')} type="button">
           <FontAwesomeIcon icon={faXmark} />

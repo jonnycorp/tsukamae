@@ -5,7 +5,8 @@ const Webpack = require('webpack');
 
 const PRODUCTION = process.env.NODE_ENV === 'production';
 
-module.exports = {
+// env.fresh comes from `webpack serve --env fresh` (yarn start:fresh)
+module.exports = (env) => ({
   entry: './app/index.tsx',
   output: {
     path: `${__dirname}/build`,
@@ -19,7 +20,8 @@ module.exports = {
   // the bundled dex catalog is large by design and loads from disk, not a network
   performance: { hints: false },
   devServer: {
-    host: '0.0.0.0',
+    // loopback only: nothing on the network needs it, and it spares a Windows Firewall prompt
+    host: 'localhost',
     hot: true,
     port: 9898,
     static: 'public/',
@@ -41,7 +43,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({ template: './app/index.html', filename: 'index.html', inject: 'body' }),
     new Webpack.DefinePlugin({
-      'process.env.TSUKAMAE_FRESH': JSON.stringify(process.env.TSUKAMAE_FRESH || ''),
+      'process.env.TSUKAMAE_FRESH': JSON.stringify(env.fresh ? '1' : ''),
     }),
   ],
-};
+});

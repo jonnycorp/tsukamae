@@ -68,11 +68,20 @@ export function SearchBar ({ filters, query, setFilters, setQuery }: Props) {
     return { marked, temporary, caught };
   }, [captures]);
 
+  // on keyup, so the slash itself never lands in the box; quiet like the other hotkeys while typing, under a modal and
+  // beside a modifier
   useEffect(() => {
     const handleKeyup = (e: KeyboardEvent) => {
-      if (e.key === '/' && e.target instanceof Element && e.target.tagName !== 'INPUT') {
-        inputRef.current?.focus();
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) {
+        return;
       }
+      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')) {
+        return;
+      }
+      if (document.querySelector('.modal-overlay')) {
+        return;
+      }
+      inputRef.current?.focus();
     };
 
     document.addEventListener('keyup', handleKeyup);
@@ -111,7 +120,7 @@ export function SearchBar ({ filters, query, setFilters, setQuery }: Props) {
               />
               {query.length > 0 &&
                 <a className="clear-btn" onClick={handleClearClick}>
-                  <FontAwesomeIcon className="input-icon" icon={faTimes} />
+                  <FontAwesomeIcon icon={faTimes} />
                 </a>
               }
             </div>

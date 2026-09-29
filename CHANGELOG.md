@@ -39,11 +39,11 @@ All notable changes to tsukamae. Versions follow [semver](https://semver.org); d
 
 ### UI
 
-- All dropdowns are now one custom component styled on the nav menus — the popover fields, dex modal, My Games and the nav dex switcher — replacing the OS-native selects. Menus are fixed-position so no modal or popover edge clips them, scroll past 240px, and open at the current selection.
+- All dropdowns are now one custom component styled on the nav menus — the popover fields, dex modal, My Games and the nav dex switcher — replacing the OS-native selects. Menus are fixed-position so no modal or popover edge clips them, scroll past 240px, and open at the current selection. They work from the keyboard as the native ones did — arrows, Home/End and a first letter move, Enter or Space picks, Tab moves on — and Escape closes an open menu without closing the modal or popover around it.
 - Ball options show their in-game pixel sprite, pulled once from pokesprite into `public/balls/` by `yarn sprites:balls` and bundled offline like everything else.
-- **The capture popover docks beside the box** instead of opening over the tiles around the one clicked, and lays its fields out in two columns — where the mon came from, then the specimen itself — instead of one long list. It stays open from tile to tile: clicking the next tile marks it and switches the popover over in place, it follows its box while scrolling, and the tile being edited wears an accent frame. Where a box has no room beside it, the popover keeps clear of the tile's row instead.
+- **The capture popover docks beside the box** instead of opening over the tiles around the one clicked, and lays its fields out in two columns — where the mon came from, then the specimen itself — instead of one long list. It stays open from tile to tile: clicking the next tile marks it and switches the popover over in place, it follows its box while scrolling or when a search or filter moves it, and the tile being edited wears an accent frame. Where a box has no room beside it, the popover keeps clear of the tile's row instead.
 - The hover status buttons are gone from metadata dexes; status lives in the popover with every other field.
-- **Hotkeys:** D releases the tile under the cursor (clears it in a checklist; a sealed mon is never touched), F opens the Filters panel and R resets the filters. They stay quiet while typing, under a modal and alongside Cmd/Ctrl/Alt.
+- **Hotkeys:** D releases the tile under the cursor (clears it in a checklist; a sealed mon is never touched), F opens the Filters panel, R resets the filters and Z resets the zoom. They stay quiet while typing, under a modal and alongside Cmd/Ctrl/Alt.
 - A box outlines itself as complete once every slot is caught or unobtainable, since unobtainable is as done as a slot can currently get. The lock icon beside a complete box's title is gone; the sealed count beside it already tracks sealing.
 
 ### Themes
@@ -57,6 +57,7 @@ All notable changes to tsukamae. Versions follow [semver](https://semver.org); d
 - `yarn lint:themes` audits every theme × mode (710 rules) on each build.
 - The Mystery Gift red now extends to the catch date as well as the OT.
 - The 1.2 colour-picker workbench is replaced by a read-only Theme Preview of every theme in both modes.
+- The theme menu's checkmarks sit flush right at their intended size; the menu's general icon style had been overriding them since 1.2.
 
 ### Checklist dexes
 
@@ -71,16 +72,40 @@ All notable changes to tsukamae. Versions follow [semver](https://semver.org); d
 - Generation and legendary/mythical read the species, so they also narrow Missing ("what am I still missing from Gen 9"); record facets can't match an empty slot, so the Missing view sets them aside until you switch back.
 - Checklists get All, Missing and Temporary, plus the species facets.
 - Search also matches nicknames.
+- Hovering an active option in the Filters panel deepens its accent, as the chips do, instead of swapping in the plain hover shade under its light text.
+
+### Windows
+
+- **Boxes are a locked 6×5 grid with every line drawn once.** Each tile used to draw its own four-sided border inside a framed box, so every inner line was two borders side by side and every edge a border plus the frame. At fractional scales those rounded unevenly, the tiles stopped short of the frame on the right, and below 100% zoom the sixth column wrapped into a sixth row. Now the grid draws its frame once and each inner line belongs to the tile right of or below it, so every line is one pixel at any scale and every fill meets it exactly. Selection and hover are rings inside the tile, and the per-status coloured and dashed tile edges are gone (stripes still mark temporary). Search results use the same grid, squared off with empty slots.
+- **Pixel art holds together at 100% display scaling.** Sprites scaled by fractions only survived on a Retina screen: on Windows the ball icons lost chunks of their outlines and fills, and the landing logo's pixel grid blurred at every edge. Ball badges now draw the sprite's ball area at the size of the marks beside them, smooth while that's a reduction on screen and pixel-crisp once the dex scale enlarges it; the logo sits on a whole-pixel grid.
+- The language tag is a fixed-size box centred in the space beside the number, so it no longer grows with the font's metrics, leans right, or peeks into the flipped OT and catch-date face. A sealed mon with no OT, whose number line doesn't flip, lays that line out across the whole tile like every other, so its tag lines up too.
+- **No menu bar.** The File and View menus are gone on Windows; F11 still toggles fullscreen. macOS keeps its standard system menus, which carry Cmd+Q and the clipboard shortcuts.
+- **The nav is the title bar.** The separate Windows title bar and its page name are gone: the nav moves the window when dragged and maximizes it on a double-click, and minimize, maximize and close sit at its right end in the theme's colours, with the nav's icons kept clear of them. They dim with the rest of the nav under a modal, and while a menu is open a click on the bar closes it instead of dragging the window. The page itself is held at 100% zoom (the dex has its own), so the bar is always exactly as tall as those buttons: a leftover 91% page zoom had left it 5px short of them.
+- **The window opens at the size the layout is built for** — a 1400×900 page area, two boxes across and a full row down — on every platform, instead of losing the title and menu bars' height on Windows. Screens too small for that open maximized, and the window reopens where and how it was left, kept on-screen when that display has since shrunk or changed scaling.
+- **The dex fits the window both ways.** It used to scale up by width alone, so a maximized or fullscreen window on a 16:9 monitor zoomed the boxes taller than the window, and a window a few pixels too narrow for two boxes dropped to one. It now scales, up or down, so two boxes span the width, never taller than a whole row can show, with the first row centred under the header bar; whatever room that leaves fills with more boxes across. Only the boxes scale — the header bar keeps its size and position while zooming. A window too narrow for one box still switches to the list view.
+- **Ctrl+scroll zooms the boxes** — also Ctrl+= and Ctrl+−, Ctrl+0 or Z to reset, pinch on a trackpad, Cmd on macOS — on top of the automatic fit: 100% is the fit, up to 200%. Zooming out fills the width with more boxes, with steps that land exactly on three and then four boxes across, where it stops. The level is remembered, and a small badge confirms each change.
+- Scrollbars, which take up room on Windows, no longer push content off-centre: the box grid lines up with the search bar again, the popover's padding is even, and the modals scroll with the thin fading scrollbar instead of the grey system one.
+- Only one copy of the app runs at a time; opening it again focuses the existing window, so two copies can never race each other's saves.
 
 ### Performance
 
-- The nickname, OT and catch-date flips run on one shared clock instead of an infinite animation per track. Nothing animates between flips, flip tracks no longer hold GPU layers, and a freshly sealed mon or a box scrolling into view is in sync by construction.
+- **Flips and scrolling stay smooth with many boxes on screen.** Zoomed out to four boxes across, every flip used to stall the page for up to a quarter of a second while each tile's own nickname, OT and catch-date tracks were restyled and handed to the GPU and back, and scrolling redrew on every frame. The tiles no longer draw those lines: each row of boxes has one clipped strip per tile row and line, and every strip runs a single keyframe cycle on the compositor from a shared start, so a flip costs the page nothing and a box scrolling into view or a freshly sealed mon joins in step. The strips paint after every box's tiles, which keeps Chromium's layer bookkeeping small as boxes scroll in and out, and the dex scrolls on the compositor even at 100% display scaling.
+- The flip back to the first face no longer jolts: faces are a whole number of screen pixels tall at any zoom, and the strips stay on the GPU between flips, so text never switches rendering mode at the end of a slide.
+- The scroll-to-top button watches a marker instead of measuring the page on every scroll event.
 - The box shine's moving layer is a 260px band instead of a 1404px one: about a fifth of the memory and raster work for the same motion.
 - Each tile renders one layout instead of two, and its status buttons only mount once it has been hovered, so a full dex builds roughly a third of the DOM it used to.
 - Search and filter results render in the background, keeping typing responsive on large result lists; the per-tile render delays are gone.
 - Switching theme no longer re-renders every tile, and unsealing's hold ring fills with CSS instead of re-rendering its tile every frame.
 - The scrollbar fade no longer restyles every tile in the dex on each frame of its transition.
 - Sprite rules are keyed so each icon only checks its own species' rules, instead of every shiny or Legends: Arceus rule.
+- The bundled dataset is half its size: every Pokémon record carried upstream's whole game-family object — 13 distinct values repeated across ~9,000 records — when only the generation is read. The app bundle is a third smaller, and the dataset script keeps just the generation on future runs.
+
+### Data safety
+
+- **A file that isn't an export can't wipe your data.** Import used to take any JSON object — the window-state file beside your data, a 1.x export — and replace every dex and game with nothing. It now refuses anything that isn't a tsukamae 2.0 export before asking, and an import that fails partway changes nothing.
+- **Data that can't be read is never overwritten.** A `dex_data.json` that couldn't be read (a hand edit with a stray character, a file held by antivirus) used to open as an empty tracker, and the next click saved that emptiness over it. It now shows an error and saves nothing; a byte-order mark left by Notepad is simply skipped.
+- Saves reach the disk before they replace the old file, so a power cut can't leave it empty, and a file briefly held by antivirus, the search indexer or a backup tool is retried instead of the save being dropped.
+- An edit still being typed as the window closes is kept, and shutting Windows down or logging off with the app open still saves it, along with the window's placement.
 
 ### Removed
 
@@ -101,6 +126,11 @@ All notable changes to tsukamae. Versions follow [semver](https://semver.org); d
 - The dataset script writes the current origin list (Mystery Gift, no Event or Special) and no longer emits the unused `dex-types.json`, so a rerun can't clobber either.
 - Saves are written strictly in order, and quitting waits for the last one, including a write already in progress.
 - Hover effects no longer switch off on touchscreen laptops, the tab title resets when leaving a dex, and national-dex box titles number by national id like their tiles.
+- The Theme Preview button and Seal FX toggle switch off by themselves in production builds, instead of relying on a hand-flipped constant.
+- `yarn start:fresh` and `yarn electron:dev:fresh` work on Windows (they used POSIX-only shell syntax), the dev server listens on localhost only (no firewall prompt), and source maps no longer ship in the installer.
+- `yarn electron:dev` no longer prints Node's `util._extend` deprecation warning on every run: concurrently is on v10, which dropped the old spawn helper that called it.
+- Form padding and icon rules left over from native selects are gone, so modal dropdowns place their chevron like the popover's.
+- The per-status tile edge colours left the palette along with the edges themselves.
 
 ## [1.2.0] — 2026-07-19
 

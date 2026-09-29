@@ -14,11 +14,21 @@
   }
 }
 
+// both-edges keeps content centred where scrollbars take layout space (Windows); overlay scrollbars (macOS) take none
 @mixin overflow-y-scroll {
   @include scrollbar-fade;
 
   overflow-y: scroll;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
+}
+
+// a pokesprite ball: the 32px canvas drawn 1:1 and cropped to the ball, since pixel art breaks up at fractional scales
+@mixin ball-sprite {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  object-fit: none;
+  image-rendering: pixelated;
 }
 
 // cjk fills its em box, so it's set a few px smaller to read as large as the latin beside it

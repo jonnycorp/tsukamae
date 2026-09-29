@@ -13,19 +13,20 @@
     "sprites:marks": "node scripts/fetch-origin-marks.mjs",
     "electron:build": "yarn build && electron-builder --win",
     "electron:dev": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron .\"",
-    "electron:dev:fresh": "TSUKAMAE_USER_DATA=\"$(mktemp -d)\" yarn electron:dev",
+    "electron:dev:fresh": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron . --fresh\"",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx --max-warnings 0 .",
     "lint:all": "yarn lint && yarn lint:types && yarn lint:themes",
     "lint:themes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-themes.mjs",
     "lint:types": "tsc --noEmit",
     "start": "webpack serve",
-    "start:fresh": "TSUKAMAE_FRESH=1 webpack serve"
+    "start:fresh": "webpack serve --env fresh"
   },
   "build": {
     "appId": "com.jonnycorp.tsukamae",
     "productName": "tsukamae",
     "files": [
       "build/**/*",
+      "!build/**/*.map",
       "electron/**/*",
       "package.json"
     ],
@@ -57,7 +58,7 @@
     "@typescript-eslint/parser": "^5.60.1",
     "babel-loader": "^9.1.2",
     "classnames": "^2.3.2",
-    "concurrently": "^8.2.2",
+    "concurrently": "^10.0.5",
     "css-loader": "^6.8.1",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3",

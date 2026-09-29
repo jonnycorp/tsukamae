@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 
+import { BOX_COLUMNS } from '../../../utils/pokemon';
 import { EMPTY_FILTERS, appliedFacets, filterMatcher, queryMatcher } from './filters';
+import { FlipStrips } from './FlipStrips';
 import { Pokemon } from './Pokemon';
+import { useTrackerActions } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture } from '../../../types';
@@ -18,6 +21,7 @@ interface Props {
 }
 
 export function SearchResults ({ captures, filters, query, setFilters, setQuery, setSelectedPokemon }: Props) {
+  const { narrow } = useTrackerActions();
   const { t } = useTranslation();
 
   const results = useMemo(() => {
@@ -47,11 +51,20 @@ export function SearchResults ({ captures, filters, query, setFilters, setQuery,
     );
   }
 
+  // empty slots square off the last row, like a box's
   return (
     <div className="search-results">
-      {results.map((capture) => (
-        <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />
-      ))}
+      <div className="tile-grid">
+        {results.map((capture) => (
+          <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />
+        ))}
+        {Array.from({ length: (BOX_COLUMNS - (results.length % BOX_COLUMNS)) % BOX_COLUMNS }, (_, i) => (
+          <div className="pokemon empty" key={`empty-${i}`}>
+            <div className="set-captured" />
+          </div>
+        ))}
+      </div>
+      {!narrow && <FlipStrips grids={[results]} />}
     </div>
   );
 }

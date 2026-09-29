@@ -1,17 +1,32 @@
 'use strict';
 
+const fs = require('node:fs');
 const fsp = require('node:fs/promises');
+const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { BrowserWindow, Menu, app, ipcMain, net, protocol, shell } = require('electron');
+const { BrowserWindow, Menu, app, ipcMain, net, protocol, screen, shell } = require('electron');
 
 const DEV_SERVER_URL = 'http://localhost:9898';
 const SAVE_DEBOUNCE_MS = 300;
 const BUILD_DIR = path.join(__dirname, '..', 'build');
+// page area, not window: two boxes across at their native size, and a whole row of them down
+const DEFAULT_SIZE = { width: 1400, height: 900 };
+// narrow enough for the list view (under 750px), short of collapsing
+const MIN_SIZE = { width: 480, height: 480 };
+// generous title bar + border allowance when checking the default against a screen
+const FRAME = { width: 40, height: 80 };
+// keep in sync with $nav-height in app/styles/variables.scss
+const NAV_HEIGHT = 54;
+// Windows and Linux: the app's nav is the title bar; the native bar (and its page title) goes, and the system window
+// buttons float over the nav's right end, recoloured with each theme (window:title-bar); macOS keeps its native bar
+const TITLE_BAR = process.platform === 'darwin'
+  ? {}
+  : { titleBarStyle: 'hidden', titleBarOverlay: { color: '#f4c9ac', symbolColor: '#543428', height: NAV_HEIGHT } };
 
-// yarn electron:dev:fresh points this at a temp dir so testing never touches real progress
-if (process.env.TSUKAMAE_USER_DATA) {
-  app.setPath('userData', process.env.TSUKAMAE_USER_DATA);
+// yarn electron:dev:fresh runs on a throwaway profile, so testing never touches real progress
+if (process.argv.includes('--fresh')) {
+  app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'tsukamae-')));
 }
 
 function progressFile () {
@@ -25,12 +40,60 @@ let saveTimer = null;
 let writeChain = Promise.resolve();
 let flushedForQuit = false;
 
+// antivirus, the search indexer or a backup tool can hold a file on Windows for a moment; those errors pass on a retry
+const TRANSIENT_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
+
+async function retrying (task) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await task();
+    } catch (err) {
+      if (!TRANSIENT_ERRORS.has(err.code) || attempt === 20) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100 * Math.min(attempt, 5)));
+    }
+  }
+}
+
 async function writeProgress (progress) {
   const file = progressFile();
   const tmp = `${file}.tmp`;
   await fsp.mkdir(path.dirname(file), { recursive: true });
-  await fsp.writeFile(tmp, JSON.stringify(progress, null, 2));
-  await fsp.rename(tmp, file);
+  // on disk before the rename, so a power cut can't swap in a file that was never written
+  const handle = await retrying(() => fsp.open(tmp, 'w'));
+  try {
+    await handle.writeFile(JSON.stringify(progress, null, 2));
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  await retrying(() => fsp.rename(tmp, file));
+}
+
+// Windows shutdown and logoff skip the quit events, so the last save can't wait on anything
+function flushSaveSync () {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  if (latestProgress === savedProgress) {
+    return;
+  }
+  const file = progressFile();
+  const tmp = `${file}.session-end.tmp`;
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const fd = fs.openSync(tmp, 'w');
+    try {
+      fs.writeFileSync(fd, JSON.stringify(latestProgress, null, 2));
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.renameSync(tmp, file);
+    savedProgress = latestProgress;
+  } catch (err) {
+    console.error('failed to save progress:', err);
+  }
 }
 
 // queues a write of whatever is newest when its turn comes; never rejects
@@ -53,18 +116,60 @@ function scheduleSave (progress) {
   saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
 }
 
-ipcMain.handle('tracker:load', async () => {
-  await flushSave();
-  try {
-    return JSON.parse(await fsp.readFile(progressFile(), 'utf8'));
-  } catch {
-    return {};
-  }
-});
+function windowStateFile () {
+  return path.join(app.getPath('userData'), 'window-state.json');
+}
 
-ipcMain.handle('tracker:save', (_event, progress) => {
-  scheduleSave(progress);
-});
+// null when there's none, or its window was centred on a display that's since gone; otherwise clamped to that display,
+// so a window saved on a bigger or less scaled screen keeps its title bar buttons on this one
+function readWindowState () {
+  try {
+    const state = JSON.parse(fs.readFileSync(windowStateFile(), 'utf8'));
+    const { x, y, width, height } = state.bounds;
+    if (![x, y, width, height].every(Number.isInteger) || width <= 0 || height <= 0) {
+      return null;
+    }
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    const display = screen.getAllDisplays().find(({ workArea: area }) =>
+      cx >= area.x && cx < area.x + area.width && cy >= area.y && cy < area.y + area.height);
+    if (!display) {
+      return null;
+    }
+    const area = display.workArea;
+    const w = Math.min(width, area.width);
+    const h = Math.min(height, area.height);
+    return {
+      maximized: Boolean(state.maximized),
+      bounds: {
+        width: w,
+        height: h,
+        x: Math.min(Math.max(x, area.x), area.x + area.width - w),
+        y: Math.min(Math.max(y, area.y), area.y + area.height - h),
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+// the page never zooms (the dex has its own zoom): at anything but 100% the nav stops matching the window buttons drawn
+// over it, which stay NAV_HEIGHT tall; at a leftover 91% it sat 5px short of them
+function pinZoom (webContents) {
+  if (webContents.getZoomLevel() !== 0) {
+    webContents.setZoomLevel(0);
+  }
+}
+
+// Windows reports a minimized window as neither maximized nor fullscreen, so those are passed in as last seen
+function saveWindowState (win, maximized) {
+  const state = { bounds: win.getNormalBounds(), maximized: win.isMinimized() ? maximized : win.isMaximized() || win.isFullScreen() };
+  try {
+    fs.writeFileSync(windowStateFile(), JSON.stringify(state));
+  } catch (err) {
+    console.error('failed to save window state:', err);
+  }
+}
 
 // app:// lets the bundle's absolute paths (publicPath '/', url('/pokesprite-v12.png')) resolve without a server
 protocol.registerSchemesAsPrivileged([
@@ -72,9 +177,22 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 function createWindow () {
+  const saved = readWindowState();
+  const { workAreaSize } = screen.getPrimaryDisplay();
+  const width = Math.min(DEFAULT_SIZE.width, workAreaSize.width - FRAME.width);
+  const height = Math.min(DEFAULT_SIZE.height, workAreaSize.height - FRAME.height);
+  // a screen too small for the default opens maximized
+  const maximize = saved ? saved.maximized : width < DEFAULT_SIZE.width || height < DEFAULT_SIZE.height;
+
   const win = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width,
+    height,
+    minWidth: MIN_SIZE.width,
+    minHeight: MIN_SIZE.height,
+    useContentSize: true,
+    ...TITLE_BAR,
+    // shown once painted, so launch never flashes an unthemed page
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -82,8 +200,67 @@ function createWindow () {
     },
   });
 
+  if (saved) {
+    win.setBounds(saved.bounds);
+  }
+
+  win.once('ready-to-show', () => {
+    if (maximize) {
+      win.maximize();
+      // maximizing a hidden window shows it on macOS, but doesn't focus it
+      if (process.platform === 'darwin') {
+        win.focus();
+      }
+    } else {
+      win.show();
+    }
+  });
+
+  let maximized = false;
+  win.on('maximize', () => {
+    maximized = true;
+  });
+  win.on('unmaximize', () => {
+    maximized = false;
+  });
+  win.on('enter-full-screen', () => {
+    maximized = true;
+  });
+  win.on('leave-full-screen', () => {
+    maximized = win.isMaximized();
+  });
+  win.on('close', () => saveWindowState(win, maximized));
+  // shutdown and logoff close nothing gracefully and skip the quit events
+  win.on('session-end', () => {
+    saveWindowState(win, maximized);
+    flushSaveSync();
+  });
+  win.webContents.on('did-navigate', () => pinZoom(win.webContents));
+
+  // there's no menu bar on Windows, so the shortcuts it carried live here
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') {
+      return;
+    }
+    const key = input.key.toLowerCase();
+    const mod = input.control || input.meta;
+    if (key === 'f11') {
+      win.setFullScreen(!win.isFullScreen());
+    } else if (!app.isPackaged && (key === 'f12' || (mod && input.shift && key === 'i'))) {
+      win.webContents.toggleDevTools();
+    } else if (!app.isPackaged && (key === 'f5' || (mod && key === 'r'))) {
+      win.webContents.reload();
+    } else {
+      return;
+    }
+    event.preventDefault();
+  });
+
+  // the only links out are to reference sites; nothing but the web leaves the app
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (/^https?:\/\//.test(url)) {
+      shell.openExternal(url);
+    }
     return { action: 'deny' };
   });
 
@@ -92,73 +269,106 @@ function createWindow () {
   } else {
     win.loadURL(DEV_SERVER_URL);
   }
-
-  return win;
 }
 
+// no menu bar on Windows; macOS keeps the standard menus, which carry Cmd+Q and the clipboard shortcuts
 function buildMenu () {
-  const template = [
-    {
-      label: 'File',
-      submenu: [
-        { role: 'quit' },
-      ],
-    },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
-    },
-  ];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  Menu.setApplicationMenu(process.platform === 'darwin'
+    ? Menu.buildFromTemplate([
+      { role: 'appMenu' },
+      { role: 'editMenu' },
+      { label: 'View', submenu: [{ role: 'togglefullscreen' }] },
+      { role: 'windowMenu' },
+    ])
+    : null);
 }
 
-app.whenReady().then(() => {
-  protocol.handle('app', async (request) => {
-    const { pathname } = new URL(request.url);
-    const relativePath = pathname === '/' ? 'index.html' : decodeURIComponent(pathname.slice(1));
-    const target = path.normalize(path.join(BUILD_DIR, relativePath));
-    if (!target.startsWith(BUILD_DIR)) {
-      return new Response('Not found', { status: 404 });
+// a second copy would race this one's writes to the same file, so it hands over and exits
+if (app.requestSingleInstanceLock()) {
+  // no file is a first run; a file that can't be read or parsed is an error, never an empty tracker, or the next save
+  // would write that over it
+  ipcMain.handle('tracker:load', async () => {
+    await flushSave();
+    let text;
+    try {
+      text = await retrying(() => fsp.readFile(progressFile(), 'utf8'));
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        return {};
+      }
+      throw err;
     }
-
-    const response = await net.fetch(pathToFileURL(target).toString());
-
-    // app:// responses carry no charset, so the renderer would guess a legacy encoding and mangle é, ♀ and —
-    const contentType = response.headers.get('content-type');
-    if (contentType && /^(text\/|application\/(javascript|json))/.test(contentType) && !/charset/i.test(contentType)) {
-      const headers = new Headers(response.headers);
-      headers.set('content-type', `${contentType}; charset=utf-8`);
-      return new Response(response.body, { status: response.status, headers });
-    }
-
-    return response;
+    // a hand edit in Notepad can leave a byte-order mark, which JSON.parse refuses
+    return JSON.parse(text.replace(/^\uFEFF/, ''));
   });
 
-  createWindow();
-  buildMenu();
-});
+  ipcMain.handle('tracker:save', (_event, progress) => {
+    scheduleSave(progress);
+  });
 
-// quitting waits for the last write, including one already in flight
-app.on('before-quit', (event) => {
-  if (flushedForQuit || (saveTimer === null && latestProgress === savedProgress)) {
-    return;
-  }
-  event.preventDefault();
-  flushSave().finally(() => {
-    flushedForQuit = true;
+  // the renderer sends its nav colours on every theme change, so the window buttons match the bar they sit on
+  ipcMain.on('window:title-bar', (event, colors) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && TITLE_BAR.titleBarOverlay && typeof colors?.color === 'string' && typeof colors?.symbolColor === 'string') {
+      win.setTitleBarOverlay({ color: colors.color, symbolColor: colors.symbolColor, height: NAV_HEIGHT });
+    }
+  });
+
+  // the renderer reports every change of pixel ratio, which a page zoom is one of
+  ipcMain.on('window:pin-zoom', (event) => pinZoom(event.sender));
+
+  app.on('second-instance', () => {
+    const [win] = BrowserWindow.getAllWindows();
+    if (win) {
+      if (win.isMinimized()) {
+        win.restore();
+      }
+      win.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    protocol.handle('app', async (request) => {
+      const { pathname } = new URL(request.url);
+      const relativePath = pathname === '/' ? 'index.html' : decodeURIComponent(pathname.slice(1));
+      const target = path.normalize(path.join(BUILD_DIR, relativePath));
+      if (!target.startsWith(BUILD_DIR + path.sep)) {
+        return new Response('Not found', { status: 404 });
+      }
+
+      const response = await net.fetch(pathToFileURL(target).toString());
+
+      // app:// responses carry no charset, so the renderer would guess a legacy encoding and mangle é, ♀ and —
+      const contentType = response.headers.get('content-type');
+      if (contentType && /^(text\/|application\/(javascript|json))/.test(contentType) && !/charset/i.test(contentType)) {
+        const headers = new Headers(response.headers);
+        headers.set('content-type', `${contentType}; charset=utf-8`);
+        return new Response(response.body, { status: response.status, headers });
+      }
+
+      return response;
+    });
+
+    buildMenu();
+    createWindow();
+  });
+
+  // quitting waits for the last write, including one already in flight and one a closing window sent on its way out
+  // (will-quit comes after the windows have closed; on macOS before-quit comes before)
+  app.on('will-quit', (event) => {
+    if (flushedForQuit || (saveTimer === null && latestProgress === savedProgress)) {
+      return;
+    }
+    event.preventDefault();
+    flushSave().finally(() => {
+      flushedForQuit = true;
+      app.quit();
+    });
+  });
+
+  app.on('window-all-closed', () => {
     app.quit();
   });
-});
-
-app.on('window-all-closed', () => {
+} else {
   app.quit();
-});
+}

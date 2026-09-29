@@ -22,6 +22,8 @@ interface UpdateDexInput {
 
 interface DexContextState {
   dexes: PersonalDex[] | null;
+  // the saved data couldn't be read; nothing is loaded and nothing is saved
+  loadFailed: boolean;
   activeDex: PersonalDex | null;
   activeDexView: Dex | null;
   setActiveDex: (id: string) => void;
@@ -37,6 +39,7 @@ interface DexContextState {
 
 const DexContext = createContext<DexContextState>({
   dexes: null,
+  loadFailed: false,
   activeDex: null,
   activeDexView: null,
   setActiveDex: () => {},
@@ -76,12 +79,17 @@ interface Props {
 
 export const DexContextProvider = ({ children }: Props) => {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     loadAppState().then((state) => {
       // always open on the landing page
       state.activeDexId = '';
       setSnapshot(snapshotOf(state));
+    }, (err) => {
+      // eslint-disable-next-line no-console
+      console.error('failed to load:', err);
+      setLoadFailed(true);
     });
   }, []);
 
@@ -95,6 +103,7 @@ export const DexContextProvider = ({ children }: Props) => {
 
     return {
       dexes: snapshot?.dexes || null,
+      loadFailed,
       activeDex,
       activeDexView: activeDex && toDexView(activeDex),
       setActiveDex: (id) => apply((state) => {
@@ -130,7 +139,7 @@ export const DexContextProvider = ({ children }: Props) => {
         state.saves = (state.saves ?? []).filter((save) => save.id !== id);
       }),
     };
-  }, [snapshot]);
+  }, [snapshot, loadFailed]);
 
   return (
     <DexContext.Provider value={contextValue}>

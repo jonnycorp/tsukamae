@@ -9,6 +9,7 @@ import { TESTING } from '../../utils/testing';
 import { applyTheme } from '../../palette/apply-theme';
 import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
 import { useScrollbarFade } from '../../hooks/use-scrollbar-fade';
+import { useTranslation } from '../../hooks/use-translation';
 
 export function App () {
   const { locale } = useLocalStorageContext();
@@ -35,7 +36,8 @@ export function App () {
 }
 
 function AppContent () {
-  const { dexes, activeDex } = useDexContext();
+  const { dexes, activeDex, loadFailed } = useDexContext();
+  const { t } = useTranslation();
   // Electron loads no query string, so the nav button is the way in there
   const [showPreview, setShowPreview] = useState(TESTING && window.location.search.includes('preview'));
 
@@ -48,8 +50,12 @@ function AppContent () {
     );
   }
 
+  if (loadFailed) {
+    return <p className="load-failed">{t('app.loadFailed')}</p>;
+  }
+
   if (dexes === null) {
-    return <div className="loading">Loading...</div>;
+    return <div className="loading">{t('app.loading')}</div>;
   }
 
   return (

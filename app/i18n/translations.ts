@@ -12,8 +12,11 @@ const en = {
   'nav.importInvalidJson': 'That file isn\'t valid JSON.',
   'nav.importNotExport': 'That file doesn\'t look like a Tsukamae progress export.',
   'nav.importConfirm': 'Importing will REPLACE all current dexes and progress. Continue?',
+  'nav.importFailed': 'The import couldn\'t be saved, so nothing was changed.',
 
   'app.name': 'tsukamae',
+  'app.loading': 'Loading…',
+  'app.loadFailed': 'Your saved data couldn\'t be read, so none of it was loaded and nothing will be saved over it. It\'s in dex_data.json in the app\'s data folder.',
 
   'search.placeholder': 'Search by name or # (use / to quick search)',
   'search.langTags': 'Lang Tags',
@@ -149,9 +152,12 @@ const ja: Record<TranslationKey, string> = {
   'nav.importInvalidJson': '有効なJSONファイルではありません。',
   'nav.importNotExport': 'Tsukamaeのデータファイルではないようです。',
   'nav.importConfirm': '読み込むと現在の図鑑と進捗がすべて置き換えられます。続けますか？',
+  'nav.importFailed': '読み込んだデータを保存できなかったため、何も変更していません。',
 
   // the brand stays english in both locales
   'app.name': 'tsukamae',
+  'app.loading': '読み込み中…',
+  'app.loadFailed': '保存データを読み込めませんでした。何も読み込んでおらず、上書き保存もしません。データはアプリのデータフォルダの dex_data.json にあります。',
 
   'search.placeholder': '名前・番号で検索（/ キー）',
   'search.langTags': '言語タグ',

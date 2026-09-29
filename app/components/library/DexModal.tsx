@@ -53,8 +53,8 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const [gameId, setGameId] = useState(initialCatalog.game.id);
   const [catalogKey, setCatalogKey] = useState(initialCatalog.key);
   const [shiny, setShiny] = useState(dex?.shiny || false);
-  // creation-only and immutable — an existing dex must never convert
-  const [checklist, setChecklist] = useState(false);
+  // chosen at creation only and immutable — an existing dex must never convert
+  const [checklist, setChecklist] = useState(Boolean(dex?.checklist));
   const [defaultStatus, setDefaultStatus] = useState<CaptureStatus>(dex?.captureDefaults?.status || 'caught');
   const [defaults, setDefaults] = useState<Partial<CaptureMetadata>>(() => withBaselines({ ...dex?.captureDefaults }, DEFAULTABLE_BASELINES));
 
@@ -81,8 +81,9 @@ export function DexModal ({ dex, onRequestClose }: Props) {
 
     const captureDefaults = { ...defaults, status: defaultStatus };
 
+    // a checklist has no defaults, and never had them to keep
     if (dex) {
-      updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults });
+      updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults: dex.checklist ? undefined : captureDefaults });
     } else {
       pendingActionRef.current = () => createDex({ title: resolvedTitle, catalogKey, shiny, checklist, captureDefaults: checklist ? undefined : captureDefaults });
     }

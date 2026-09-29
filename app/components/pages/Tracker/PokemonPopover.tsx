@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleExclamation, faLock, faLongArrowAltRight, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
-import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, staleFields, statusOptions, unansweredFields, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
+import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, freshMetadata, staleFields, statusOptions, unansweredFields, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
 import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { PokemonName } from '../../library/PokemonName';
@@ -43,11 +43,13 @@ const RECORD_COLUMNS = FORM_COLUMNS.map((fields) => fields.filter((field) => fie
 
 interface Props {
   onClose: () => void;
+  // the dex's zoom; the popover sits outside it, so it re-docks when this moves the tiles
+  scale: number;
   selectedPokemon: number;
 }
 
-export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
-  const { activeDexView, saves } = useDexContext();
+export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
+  const { activeDex, activeDexView, saves } = useDexContext();
   const { captures } = useTrackerState();
   const { setCaptures, sealFx, updateCapture, releaseCaptures } = useTrackerActions();
   const { t, locale } = useTranslation();
@@ -66,10 +68,24 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     if (!capture) {
       return;
     }
-    // switching to unobtainable wipes the record here too, so the mirror matches storage
-    const resolved = changes.status === 'unobtainable'
-      ? { ...changes, ...EMPTY_METADATA }
-      : { ...changes, ...withFieldInvariants(capture, changes) };
+    // switching to unobtainable wipes the record here too, so the mirror matches storage, and leaving it starts over
+    // like a new mark, as writeCapture does
+    const reviving = capture.status === 'unobtainable' && changes.status !== undefined && changes.status !== 'unobtainable';
+    const fresh = () => freshMetadata({
+      defaults: activeDex!.captureDefaults,
+      checklist: false,
+      homeDex: activeDexView!.game.id === 'home',
+      genderLock: capture.pokemon.gender_lock,
+      saves,
+    });
+    let resolved: Partial<CaptureMetadata> & { status?: CaptureStatus; sealed?: boolean };
+    if (changes.status === 'unobtainable') {
+      resolved = { ...changes, ...EMPTY_METADATA };
+    } else if (reviving) {
+      resolved = { ...fresh(), ...changes };
+    } else {
+      resolved = { ...changes, ...withFieldInvariants(capture, changes) };
+    }
     // mirrors writeCapture's baseline fill; checklists never reach this popover
     const mirror = (cap: Capture) => {
       const next = { ...cap, ...resolved };
@@ -144,7 +160,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     const observer = new ResizeObserver(() => place(true));
     observer.observe(el);
     return () => observer.disconnect();
-  }, [place]);
+  }, [place, scale]);
 
   useEffect(() => {
     let frame = 0;
@@ -157,10 +173,21 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
     };
     const refit = () => place(true);
 
+    // the dex reflowing under it without a scroll (a search typed, a filter, a tile leaving its view) moves the tile too
+    const dex = document.querySelector('.dex');
+    const reflow = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => place(false));
+    });
+    if (dex) {
+      reflow.observe(dex);
+    }
+
     document.addEventListener('scroll', follow, { capture: true, passive: true });
     window.addEventListener('resize', refit);
     return () => {
       cancelAnimationFrame(frame);
+      reflow.disconnect();
       document.removeEventListener('scroll', follow, true);
       window.removeEventListener('resize', refit);
     };
@@ -198,7 +225,7 @@ export function PokemonPopover ({ onClose, selectedPokemon }: Props) {
 
   return (
     <div
-      className={classNames('pokemon-popover', { closing, sealed, wide: capture.captured && (sealed || fields) })}
+      className={classNames('pokemon-popover', { closing, wide: capture.captured && (sealed || fields) })}
       ref={popoverRef}
     >
       <Fragment key={pokemon.id}>

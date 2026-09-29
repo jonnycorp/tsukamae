@@ -1,5 +1,3 @@
-import type { GameFamily } from './games';
-
 export type CaptureStatus = 'unobtainable' | 'temporary' | 'caught';
 
 export type CaptureLocation = 'home' | 'game' | 'champions';
@@ -51,10 +49,11 @@ export interface CapturePokemon {
   name: string;
   // katakana species name, from scripts/enrich-species.mjs
   name_ja: string | null;
-  game_family: GameFamily;
   form: string | null;
   box: string | null;
   dex_number: number;
+  // of the species' debut; upstream's full game_family is reduced to this at generation time
+  generation: number;
   // derived from PokéAPI, never authored
   legendary_class?: 'legendary' | 'mythical' | null;
   gender_lock?: GenderLock | null;

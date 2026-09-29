@@ -142,7 +142,8 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
       ];
 
       return wrap(select(id, current, options, (next) => {
-        if (next === NOT_MINE) {
+        // unspecified clears what a game fills in, as not-my-game does
+        if (next === NOT_MINE || next === '') {
           return onChange(defaultsMode
             ? { origin_game: null, language: null }
             : { origin_game: null, language: null, ot: null });

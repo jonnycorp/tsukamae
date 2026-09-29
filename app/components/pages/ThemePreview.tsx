@@ -24,7 +24,7 @@ interface Sample {
   location?: 'home' | 'champions';
   partner?: boolean;
   female?: boolean;
-  // the second face of every flip track, frozen
+  // shows each flipping line's second face instead of its first
   flipped?: boolean;
   hovered?: boolean;
 }
@@ -58,7 +58,6 @@ const SHINE_CLIP = `path('${ROWS.flat().map((sample, index) => {
 }).join('')}')`;
 
 function SampleTile ({ sample }: { sample: Sample }) {
-  const shift = (px: number): CSSProperties | undefined => (sample.flipped ? { transform: `translateY(-${px}px)` } : undefined);
   const number = `#${padding(sample.id, 4)}`;
 
   const badgeRow = (
@@ -95,11 +94,7 @@ function SampleTile ({ sample }: { sample: Sample }) {
     >
       {sample.sealed &&
         <div className="seal-badges">
-          <div className="seal-badges-track" style={shift(20)}>
-            {badgeRow}
-            <span className={classNames('badge-row seal-date', { gift: sample.gift })}>{sample.date}</span>
-            {badgeRow}
-          </div>
+          {sample.flipped ? <span className={classNames('badge-row seal-date', { gift: sample.gift })}>{sample.date}</span> : badgeRow}
         </div>
       }
       {sample.hovered &&
@@ -110,28 +105,14 @@ function SampleTile ({ sample }: { sample: Sample }) {
         </div>
       }
       <div className="set-captured">
-        {sample.nickname
-          ? (
-            <div className="name-scroll">
-              <div className="name-scroll-track" style={shift(22)}>
-                <h4>{sample.name}</h4>
-                <h4><span className="nickname">{sample.nickname}</span></h4>
-                <h4>{sample.name}</h4>
-              </div>
-            </div>
-          )
-          : <h4>{sample.name}</h4>}
+        <h4>{sample.nickname && sample.flipped ? <span className="nickname">{sample.nickname}</span> : sample.name}</h4>
         <div className="icon-wrapper">
           <i className={`pkicon pkicon-${padding(sample.id, 3)} game-family-home`} />
         </div>
         {sample.sealed
           ? (
             <div className="number-scroll">
-              <div className="number-scroll-track" style={shift(16)}>
-                {slots}
-                <p className={classNames('number-line-ot', { gift: sample.gift })}>{sample.ot}</p>
-                {slots}
-              </div>
+              {sample.flipped ? <p className={classNames('number-line-ot', { gift: sample.gift })}>{sample.ot}</p> : slots}
             </div>
           )
           : <p>{number}</p>}
@@ -190,7 +171,9 @@ function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
           <span className="box-sealed-count">4/30 sealed</span>
         </div>
         <div className="box-container">
-          {ROWS.flat().map((sample) => <SampleTile key={sample.id} sample={sample} />)}
+          <div className="tile-grid">
+            {ROWS.flat().map((sample) => <SampleTile key={sample.id} sample={sample} />)}
+          </div>
           <div className="box-shine" style={{ clipPath: SHINE_CLIP }}>
             <div className="box-shine-band" />
           </div>

@@ -1,16 +1,16 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faBan, faCheck, faCircleExclamation, faClock, faExchangeAlt, faGift, faHeart, faMapMarkerAlt, faMars, faVenus } from '@fortawesome/free-solid-svg-icons';
+import { faBan, faCheck, faCircleExclamation, faClock } from '@fortawesome/free-solid-svg-icons';
 import { memo, useEffect, useRef, useState } from 'react';
 
-import { BALL_NAMES, BASELINE_METADATA, EMPTY_METADATA, LANGUAGE_ABBRS, MYSTERY_GIFT, ORIGIN_GAME_NAMES, STATUSES, genderFromLock, lookupOT, metadataFromDefaults, nameLang, staleFields, withBaselines } from '../../../utils/capture-fields';
+import { EMPTY_METADATA, STATUSES, freshMetadata, staleFields, withBaselines } from '../../../utils/capture-fields';
+import { BadgeRow, SlotsLine, flippingLines } from './seal-faces';
 import { PokemonName } from '../../library/PokemonName';
+import { defaultStatus } from '../../../utils/local-data';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
 import { isDisplaySealed, useTrackerActions } from './use-tracker';
-import { localizeBall, localizeOriginGame } from '../../../i18n/names';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useLongPress } from '../../../hooks/use-long-press';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -24,36 +24,8 @@ const STATUS_ICONS: Record<CaptureStatus, IconDefinition> = {
   unobtainable: faBan,
 };
 
-const ORIGIN_MARK_ICONS: Record<string, IconDefinition> = {
-  trade: faExchangeAlt,
-  go: faMapMarkerAlt,
-  [MYSTERY_GIFT]: faGift,
-};
-
-// sprites come from yarn sprites:marks; trade and mystery gift fall back to glyphs
-const ORIGIN_MARK_SPRITES: Record<string, string> = {
-  x: 'pentagon',
-  y: 'pentagon',
-  omega_ruby: 'pentagon',
-  alpha_sapphire: 'pentagon',
-  sun: 'clover',
-  moon: 'clover',
-  ultra_sun: 'clover',
-  ultra_moon: 'clover',
-  lets_go_pikachu: 'lets-go',
-  lets_go_eevee: 'lets-go',
-  sword: 'galar',
-  shield: 'galar',
-  brilliant_diamond: 'sinnoh',
-  shining_pearl: 'sinnoh',
-  legends_arceus: 'hisui',
-  scarlet: 'paldea',
-  violet: 'paldea',
-  legends_za: 'za',
-  go: 'go',
-};
-
 const UNSEAL_HOLD = { delay: 250, duration: 1000 };
+const NO_FLIPS = { name: false, badges: false, number: false };
 
 interface Point {
   x: number;
@@ -72,7 +44,7 @@ function UnsealRing ({ at }: { at: Point }) {
     return () => window.removeEventListener('pointermove', follow);
   }, []);
 
-  // portalled out: .box has paint containment, which would anchor a fixed ring to the box
+  // portalled out: a box's tile grid has paint containment, which would anchor a fixed ring to the grid
   return createPortal(
     <div
       className="unseal-ring"
@@ -91,8 +63,7 @@ interface Props {
 export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView, saves } = useDexContext();
   const { setCaptures, sealFx, updateCapture, releaseCaptures, narrow } = useTrackerActions();
-  const { showLanguageTags } = useLocalStorageContext();
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
 
   const [armed, setArmed] = useState(false);
 
@@ -119,14 +90,11 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
   const dex = activeDexView!;
   const number = dexNumber(capture.pokemon, dex);
   const icon = iconClass(capture.pokemon, dex);
-  const gift = capture.origin_game === MYSTERY_GIFT;
 
   const applyStatus = (status: CaptureStatus) => {
     if (displaySealed) {
       return;
     }
-
-    const defaults = metadataFromDefaults(activeDex!.captureDefaults);
 
     setCaptures((prev) => prev.map((cap) => {
       if (cap.pokemon.id !== capture.pokemon.id) {
@@ -135,20 +103,18 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
       if (status === 'unobtainable') {
         return { ...cap, ...EMPTY_METADATA, captured: true, status };
       }
-      if (cap.captured) {
+      if (cap.captured && cap.status !== 'unobtainable') {
         return checklist ? { ...cap, status } : withBaselines({ ...cap, status });
       }
-      return {
-        ...cap,
-        ...(checklist ? {} : BASELINE_METADATA),
-        ...defaults,
-        captured: true,
-        status,
-        location: dex.game.id === 'home' ? 'home' : 'game',
-        location_save: null,
-        gender: genderFromLock(cap.pokemon.gender_lock),
-        ot: lookupOT(saves, defaults.origin_game ?? null, defaults.language ?? null),
-      };
+      // a new mark, or one coming back from unobtainable: as writeCapture builds it
+      const fresh = freshMetadata({
+        defaults: activeDex!.captureDefaults,
+        checklist,
+        homeDex: dex.game.id === 'home',
+        genderLock: cap.pokemon.gender_lock,
+        saves,
+      });
+      return { ...cap, ...fresh, captured: true, status };
     }));
 
     updateCapture({ pokemon: capture.pokemon.id, status });
@@ -179,7 +145,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
     if (capture.captured) {
       setSelectedPokemon(capture.pokemon.id);
     } else {
-      applyStatus(activeDex!.captureDefaults?.status ?? 'caught');
+      applyStatus(defaultStatus(activeDex!));
     }
   };
 
@@ -229,106 +195,17 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
     );
   }
 
-  const nickname = displaySealed && capture.has_nickname ? capture.nickname : null;
-  const nameLine = nickname
-    ? (
-      <div className="name-scroll">
-        <div className="name-scroll-track">
-          <h4>{speciesName}</h4>
-          <h4 lang={nameLang(nickname, capture.language)}><span className="nickname">{nickname}</span></h4>
-          <h4>{speciesName}</h4>
-        </div>
-      </div>
-    )
-    : <h4>{speciesName}</h4>;
+  // lines that flip are drawn by the grid's FlipStrips, which a checklist has none of; the tile keeps their space
+  const flips = displaySealed ? (checklist ? NO_FLIPS : flippingLines(capture)) : null;
 
-  let sealBadges: ReactNode = null;
+  const nameLine = flips?.name ? <div className="name-scroll" /> : <h4>{speciesName}</h4>;
+
+  const sealBadges = displaySealed && !checklist && !flips!.badges &&
+    <div className="seal-badges"><BadgeRow capture={capture} /></div>;
+
   let numberLine: ReactNode = <p>#{number}</p>;
-
-  if (displaySealed && !checklist) {
-    const originName = capture.origin_game
-      ? localizeOriginGame(locale, capture.origin_game, ORIGIN_GAME_NAMES.get(capture.origin_game) || capture.origin_game)
-      : '';
-    const originMarkSprite = capture.origin_game ? ORIGIN_MARK_SPRITES[capture.origin_game] : null;
-
-    const badgeRow = (
-      <span className="badge-row">
-        <span className="badge-slot">
-          {capture.ball && capture.ball !== 'unknown' &&
-            <img alt="" className="ball-badge" src={`/balls/${capture.ball}.png`} title={localizeBall(locale, capture.ball, BALL_NAMES.get(capture.ball) || capture.ball)} />
-          }
-        </span>
-        <span className="badge-slot">
-          {originMarkSprite &&
-            <span className="origin-mark" style={{ maskImage: `url(/marks/${originMarkSprite}.png)` }} title={originName} />
-          }
-          {!originMarkSprite && capture.origin_game && ORIGIN_MARK_ICONS[capture.origin_game] &&
-            <FontAwesomeIcon className={gift ? 'gift-badge' : undefined} icon={ORIGIN_MARK_ICONS[capture.origin_game]} title={originName} />
-          }
-        </span>
-        <span className="badge-slot">
-          {(capture.favorite === 'favorite' || capture.favorite === 'partner') &&
-            <FontAwesomeIcon
-              className={classNames('heart-badge', { partner: capture.favorite === 'partner' })}
-              icon={faHeart}
-              title={t(`favorite.${capture.favorite}`)}
-            />
-          }
-        </span>
-        <span className="badge-slot">
-          {(capture.gender === 'male' || capture.gender === 'female') &&
-            <FontAwesomeIcon
-              className={`gender-badge ${capture.gender}`}
-              icon={capture.gender === 'male' ? faMars : faVenus}
-              title={t(`gender.${capture.gender}`)}
-            />
-          }
-        </span>
-        <span className="badge-slot">
-          {capture.been_to_champions
-            ? <img alt="" src="/marks/champions.png" title={t('info.beenToChampions')} />
-            : (capture.trained === 'ivs' || capture.trained === 'ev') &&
-              <span className={`trained-badge ${capture.trained}`} title={t(`trained.${capture.trained}`)} />
-          }
-        </span>
-      </span>
-    );
-
-    sealBadges = (
-      <div className="seal-badges">
-        {capture.catch_date
-          ? <div className="seal-badges-track">
-            {badgeRow}
-            <span className={classNames('badge-row seal-date', { gift })}>{capture.catch_date.replaceAll('-', '/')}</span>
-            {badgeRow}
-          </div>
-          : badgeRow
-        }
-      </div>
-    );
-  }
-
-  if (displaySealed) {
-    const langAbbr = showLanguageTags && capture.language ? LANGUAGE_ABBRS.get(capture.language) : null;
-    const slotsRow = (
-      <p className="number-line-slots">
-        <span className="slot-lang">{langAbbr && <span className="language-tag">{langAbbr}</span>}</span>
-        <span>#{number}</span>
-        <span className="slot-level">{typeof capture.level === 'number' && `Lv.${capture.level}`}</span>
-      </p>
-    );
-    numberLine = (
-      <div className="number-scroll">
-        {capture.ot
-          ? <div className="number-scroll-track">
-            {slotsRow}
-            <p className={classNames('number-line-ot', { gift })} lang={nameLang(capture.ot, capture.language)}>{capture.ot}</p>
-            {slotsRow}
-          </div>
-          : slotsRow
-        }
-      </div>
-    );
+  if (flips) {
+    numberLine = <div className="number-scroll">{!flips.number && <SlotsLine capture={capture} number={number} />}</div>;
   }
 
   return (

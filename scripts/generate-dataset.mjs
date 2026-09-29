@@ -92,7 +92,8 @@ for (const { key, slug, name } of POKEAPI_ONLY ? [] : DEX_MANIFEST) {
     get(`/users/${EXAMPLE_USER}/dexes/${slug}/captures`),
   ]);
 
-  const pokemon = captures.map((capture) => capture.pokemon);
+  // upstream nests its whole game family in every record, which was half the dataset; the app only reads the generation
+  const pokemon = captures.map(({ pokemon: { game_family: family, ...mon } }) => ({ ...mon, generation: family.generation }));
 
   const meta = {
     key,
@@ -165,10 +166,10 @@ for (const { key, pokedex, gameId, name, dexType } of POKEAPI_DEX_MANIFEST) {
         id: nationalId,
         national_id: nationalId,
         name: species.name,
-        game_family: species.game_family,
         form: null,
         box: null,
         dex_number: entry.entry_number,
+        generation: species.generation,
         name_ja: species.name_ja,
       };
     });

@@ -23,7 +23,7 @@
   }
 }
 
-// the glint crosses both boxes of a row, four box strides, then dwells offscreen for the second half
+// the glint crosses every box of a row plus a stride either side, then dwells offscreen for the second half
 @keyframes seal-shine {
   0% {
     transform: none;
@@ -31,7 +31,7 @@
 
   50%,
   100% {
-    transform: translateX(4 * ($box-width + $dex-grid-gap));
+    transform: translateX(calc((var(--dex-columns, 2) + 2) * #{$box-width + $dex-grid-gap}));
   }
 }
 
