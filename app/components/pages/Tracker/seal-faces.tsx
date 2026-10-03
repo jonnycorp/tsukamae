@@ -5,7 +5,6 @@ import { faExchangeAlt, faGift, faHeart, faMars, faVenus } from '@fortawesome/fr
 import { BALL_NAMES, LANGUAGE_ABBRS, MYSTERY_GIFT, ORIGIN_GAME_NAMES, nameLang } from '../../../utils/capture-fields';
 import { PokemonName } from '../../library/PokemonName';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
-import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture } from '../../../types';
@@ -123,8 +122,7 @@ export function CatchDateLine ({ capture }: Props) {
 }
 
 export function SlotsLine ({ capture, number }: Props & { number: string }) {
-  const { showLanguageTags } = useLocalStorageContext();
-  const langAbbr = showLanguageTags && capture.language ? LANGUAGE_ABBRS.get(capture.language) : null;
+  const langAbbr = capture.language ? LANGUAGE_ABBRS.get(capture.language) : null;
 
   return (
     <p className="number-line-slots">

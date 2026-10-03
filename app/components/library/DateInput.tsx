@@ -3,6 +3,7 @@ import { faCalendarDays } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { useDebouncedCommit } from '../../hooks/use-debounced-commit';
+import { useTranslation } from '../../hooks/use-translation';
 
 const format = (digits: string): string => {
   if (digits.length <= 4) {
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function DateInput ({ id, value, onChange }: Props) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(() => (value ? value.replaceAll('-', '/') : ''));
   const pickerRef = useRef<HTMLInputElement>(null);
   const { schedule, flush, cancel } = useDebouncedCommit();
@@ -102,11 +104,11 @@ export function DateInput ({ id, value, onChange }: Props) {
         name={id}
         onBlur={handleBlur}
         onChange={(e) => handleTextChange(e.target.value)}
-        placeholder="yyyy/mm/dd"
+        placeholder={t('common.datePlaceholder')}
         type="text"
         value={draft}
       />
-      <button className="date-input-picker" onClick={openPicker} tabIndex={-1} type="button">
+      <button aria-label={t('common.pickDate')} className="date-input-picker" onClick={openPicker} tabIndex={-1} title={t('common.pickDate')} type="button">
         <FontAwesomeIcon icon={faCalendarDays} />
       </button>
       <input

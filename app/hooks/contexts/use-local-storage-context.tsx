@@ -7,13 +7,10 @@ import { useLocalStorage } from '../use-local-storage';
 import type { Locale } from '../../i18n/translations';
 import type { ReactNode } from 'react';
 
+// the language: every tile reads it, so nothing else lives here to re-render them all
 interface PreferencesState {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  showProgressBreakdown: boolean;
-  setShowProgressBreakdown: (show: boolean) => void;
-  showLanguageTags: boolean;
-  setShowLanguageTags: (show: boolean) => void;
 }
 
 // kept apart so a theme switch doesn't re-render every tile
@@ -27,10 +24,6 @@ interface ThemeState {
 const PreferencesContext = createContext<PreferencesState>({
   locale: 'en',
   setLocale: () => {},
-  showProgressBreakdown: false,
-  setShowProgressBreakdown: () => {},
-  showLanguageTags: false,
-  setShowLanguageTags: () => {},
 });
 
 const ThemeContext = createContext<ThemeState>({
@@ -46,21 +39,12 @@ interface Props {
 
 export const LocalStorageContextProvider = ({ children }: Props) => {
   const [locale, setLocale] = useLocalStorage<Locale>('locale', 'en');
-  const [showProgressBreakdown, setShowProgressBreakdown] = useLocalStorage('progressBreakdown', false);
-  const [showLanguageTags, setShowLanguageTags] = useLocalStorage('languageTags', false);
   const [storedTheme, setTheme] = useLocalStorage(THEME_STORAGE_KEY, DEFAULT_THEME);
   // a name no theme has any more (1.2's Sakura, Peach Milk…) renders as the default, so the menu ticks that
   const theme = findTheme(storedTheme).name;
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, false);
 
-  const preferences = useMemo<PreferencesState>(() => ({
-    locale,
-    setLocale,
-    showProgressBreakdown,
-    setShowProgressBreakdown,
-    showLanguageTags,
-    setShowLanguageTags,
-  }), [locale, setLocale, showProgressBreakdown, setShowProgressBreakdown, showLanguageTags, setShowLanguageTags]);
+  const preferences = useMemo<PreferencesState>(() => ({ locale, setLocale }), [locale, setLocale]);
 
   const themeState = useMemo<ThemeState>(
     () => ({ theme, setTheme, isSoftDark, setIsSoftDark }),

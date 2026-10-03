@@ -5,6 +5,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('tracker', {
   load: () => ipcRenderer.invoke('tracker:load'),
   save: (progress) => ipcRenderer.invoke('tracker:save', progress),
+  patch: (dexId, entries) => ipcRenderer.invoke('tracker:patch', { dexId, entries }),
   importState: (progress) => ipcRenderer.invoke('tracker:import', progress),
   onSaveStatus: (listener) => {
     const relay = (_event, ok) => listener(ok);

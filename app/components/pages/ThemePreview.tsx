@@ -220,7 +220,7 @@ function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
           <button className="btn btn-delete btn-compact" type="button">Delete</button>
           <div className="form-group">
             <div className="checkbox">
-              <label><input checked readOnly type="checkbox" /><span className="checkbox-custom"><span /></span>Lang Tags</label>
+              <label><input checked readOnly type="checkbox" /><span className="checkbox-custom"><span /></span>Seal FX</label>
             </div>
           </div>
           <p className={failures.length > 0 ? 'theme-preview-fail' : 'theme-preview-pass'}>

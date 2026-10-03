@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faTimeline, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { FilterBar } from './FilterBar';
@@ -8,8 +8,6 @@ import { Progress } from '../../library/Progress';
 import { MENU_OR_MODAL } from '../../../hooks/use-hotkey';
 import { TESTING } from '../../../utils/testing';
 import { useTrackerActions, useTrackerState } from './use-tracker';
-import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { useLocalStorageContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { ChangeEvent, Dispatch, ReactNode, SetStateAction } from 'react';
@@ -37,20 +35,18 @@ function FilterCheckbox ({ checked, id, label, onChange }: CheckboxProps) {
 
 interface Props {
   filters: TrackerFilters;
+  // unset in a checklist, which keeps no catch dates
+  onOpenTimeline?: () => void;
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   setQuery: Dispatch<SetStateAction<string>>;
 }
 
-export function SearchBar ({ filters, query, setFilters, setQuery }: Props) {
+export function SearchBar ({ filters, onOpenTimeline, query, setFilters, setQuery }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { activeDex } = useDexContext();
   const { captures } = useTrackerState();
   const { sealFx, setSealFx } = useTrackerActions();
-  const { setShowLanguageTags, showLanguageTags } = useLocalStorageContext();
   const { t } = useTranslation();
-
-  const checklist = Boolean(activeDex?.checklist);
 
   const counts = useMemo(() => {
     let marked = 0;
@@ -120,7 +116,7 @@ export function SearchBar ({ filters, query, setFilters, setQuery }: Props) {
                 value={query}
               />
               {query.length > 0 &&
-                <a className="clear-btn" onClick={handleClearClick}>
+                <a aria-label={t('search.clear')} className="clear-btn" onClick={handleClearClick} title={t('search.clear')}>
                   <FontAwesomeIcon icon={faTimes} />
                 </a>
               }
@@ -129,14 +125,16 @@ export function SearchBar ({ filters, query, setFilters, setQuery }: Props) {
         </div>
         <div className="dex-search-bar-filters">
           <FilterBar filters={filters} query={query} setFilters={setFilters} />
-          <div className="dex-search-bar-options">
-            {!checklist &&
-              <FilterCheckbox checked={showLanguageTags} id="language-tags" label={t('search.langTags')} onChange={setShowLanguageTags} />
-            }
-            {TESTING &&
+          {onOpenTimeline &&
+            <button className="timeline-open" onClick={onOpenTimeline} type="button">
+              <FontAwesomeIcon icon={faTimeline} />{t('timeline.open')}
+            </button>
+          }
+          {TESTING &&
+            <div className="dex-search-bar-options">
               <FilterCheckbox checked={sealFx} id="seal-fx" label="Seal FX" onChange={setSealFx} />
-            }
-          </div>
+            </div>
+          }
         </div>
       </div>
     </div>

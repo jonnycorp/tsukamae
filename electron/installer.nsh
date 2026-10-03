@@ -13,7 +13,7 @@
   LangString shortcutsTitle 1033 "Shortcuts"
   LangString shortcutsTitle 1041 "ショートカット"
   LangString shortcutsSubtitle 1033 "Choose where to add shortcuts to ${PRODUCT_NAME}."
-  LangString shortcutsSubtitle 1041 "${PRODUCT_NAME} のショートカットを追加する場所を選んでください。"
+  LangString shortcutsSubtitle 1041 "${PRODUCT_NAME}のショートカットを追加する場所を選んでください。"
   LangString shortcutsStartMenu 1033 "Start menu"
   LangString shortcutsStartMenu 1041 "スタートメニュー"
   LangString shortcutsDesktop 1033 "Desktop"

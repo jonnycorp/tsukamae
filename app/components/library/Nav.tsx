@@ -13,6 +13,7 @@ import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/us
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { ChangeEvent, RefObject } from 'react';
+import type { PersonalDex } from '../../utils/local-data';
 
 // closes on a press outside, or on an Escape nothing else has claimed, as the Filters panel and the dropdowns do
 function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, close: () => void) {
@@ -54,7 +55,8 @@ export function Nav ({ onTogglePreview }: Props) {
   const loaded = dexes !== null;
 
   const [showCreate, setShowCreate] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
+  // the dex Edit Dex opened for, so a save can only ever write to that one
+  const [editing, setEditing] = useState<PersonalDex | null>(null);
   const [showSaves, setShowSaves] = useState(false);
 
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -70,9 +72,9 @@ export function Nav ({ onTogglePreview }: Props) {
   const handleLanguageToggle = () => setLocale(locale === 'en' ? 'ja' : 'en');
   const handleLogoClick = () => setActiveDex('');
   const handleNewDexClick = () => setShowCreate(true);
-  const handleEditDexClick = () => setShowEdit(true);
+  const handleEditDexClick = () => setEditing(activeDex);
   const handleCreateClose = () => setShowCreate(false);
-  const handleEditClose = () => setShowEdit(false);
+  const handleEditClose = () => setEditing(null);
 
   const handleExportClick = () => {
     const blob = new Blob([exportAppState()], { type: 'application/json' });
@@ -150,8 +152,9 @@ export function Nav ({ onTogglePreview }: Props) {
         </div>
       }
       <div className="nav-menu" ref={dataMenuRef}>
-        <a className="nav-icon" onClick={() => setShowDataMenu((open) => !open)}>
+        <a className="nav-icon tooltip" onClick={() => setShowDataMenu((open) => !open)}>
           <FontAwesomeIcon icon={faGear} />
+          {!showDataMenu && <span className="tooltip-text">{t('nav.data')}</span>}
         </a>
         {showDataMenu &&
           <ul className="nav-menu-dropdown">
@@ -210,7 +213,7 @@ export function Nav ({ onTogglePreview }: Props) {
         }
       </div>
       {showCreate && <DexModal onRequestClose={handleCreateClose} />}
-      {showEdit && activeDex && <DexModal dex={activeDex} onRequestClose={handleEditClose} />}
+      {editing && <DexModal dex={editing} onRequestClose={handleEditClose} />}
       {showSaves && <SavesModal onRequestClose={() => setShowSaves(false)} />}
     </nav>
   );

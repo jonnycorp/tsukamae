@@ -5,6 +5,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef } from 'react';
 
 import { dimTitleBar } from '../../palette/apply-theme';
+import { useInertPage } from '../../hooks/use-inert-page';
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { MouseEvent, ReactNode } from 'react';
@@ -21,6 +22,8 @@ interface Props {
 export function ModalShell ({ children, closing, contentLabel, onDismiss, wide = false }: Props) {
   const { t } = useTranslation();
   const pressedOnOverlayRef = useRef(false);
+
+  useInertPage();
 
   // the backdrop dims the nav; the window buttons drawn over it fade with it, back out as soon as it starts fading out
   useEffect(() => {
@@ -48,7 +51,7 @@ export function ModalShell ({ children, closing, contentLabel, onDismiss, wide =
   // under the nav, which stayed lit and clickable, and inherited that page's centred text
   return createPortal(
     <div className={classNames('modal-overlay', { closing })} onClick={handleOverlayClick} onMouseDown={handleOverlayMouseDown}>
-      <div aria-label={contentLabel} className={classNames('modal', { 'modal-wide': wide })} role="dialog">
+      <div aria-label={contentLabel} aria-modal="true" className={classNames('modal', { 'modal-wide': wide })} role="dialog">
         <button aria-label={t('popover.close')} className="modal-close" onClick={onDismiss} title={t('popover.close')} type="button">
           <FontAwesomeIcon icon={faXmark} />
         </button>

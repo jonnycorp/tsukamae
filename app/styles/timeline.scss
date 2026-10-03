@@ -1,0 +1,609 @@
+@use 'variables' as *;
+
+// the timeline (components/pages/Tracker/Timeline.tsx): a scene of its own over the whole window, nav included, in a
+// palette of its own rather than the theme's. Keep in sync with STAGE_COLOR, SPINE_BOTTOM and HEADROOM there, and
+// SLOT_W and SLOT_H in timeline-layout.ts
+$tl-night: #151019;
+$tl-night-2: #1f1628;
+$tl-ink: #f6f1ff;
+$tl-dim: rgba(246, 241, 255, .6);
+$tl-pink: #ff2d7f;
+$tl-pink-deep: #9e1048;
+$tl-gold: #ffd24a;
+$tl-spine-bottom: 96px;
+$tl-slot-w: 40px;
+$tl-slot-h: 34px;
+
+// the entrance, in step with INTRO_MS (1250ms) in Timeline.tsx: the slash sweeps in, the title slams down with a
+// flash and a shake, the dex's name slides in under it, then the card clears as the spine draws across
+$tl-slam-at: .26s;
+$tl-impact-at: .42s;
+$tl-clear-at: 1.05s;
+$tl-spine-at: 1s;
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background-color: $tl-night;
+  color: $tl-ink;
+  font-family: $font-secondary;
+  // it covers the nav, whose drag region is still there underneath: only the stage's own bar drags the window
+  -webkit-app-region: no-drag;
+  animation: fade-in .15s ease-out;
+}
+
+.tl-bar {
+  display: flex;
+  flex: 0 0 $nav-height;
+  align-items: center;
+  gap: 18px;
+  height: $nav-height;
+  // clear of the window buttons the system draws over its right end, as the nav is
+  padding-right: calc(14px + 100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+  border-bottom: 2px solid $tl-pink;
+  -webkit-app-region: drag;
+
+  button {
+    -webkit-app-region: no-drag;
+  }
+}
+
+.tl-logo {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  padding: 0 34px 0 18px;
+  background-color: $tl-pink;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+
+  span {
+    font-size: 19px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 0 $tl-pink-deep;
+    transform: skewX(-10deg);
+  }
+}
+
+.tl-dex {
+  max-width: 30vw;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tl-stats {
+  display: flex;
+  gap: 18px;
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: $tl-dim;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  b {
+    color: $tl-ink;
+    font-size: 13px;
+  }
+}
+
+.tl-button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid transparent;
+  background: none;
+  color: $tl-ink;
+  font-size: 15px;
+  cursor: pointer;
+  transition: border-color .1s ease-out, color .1s ease-out;
+
+  &:hover,
+  &:focus-visible {
+    border-color: $tl-pink;
+    color: $tl-pink;
+  }
+}
+
+// the background stays put while the track scrolls past it: a halftone over a dusk that reddens toward the spine
+.tl-stage {
+  position: relative;
+  flex: 1 1 auto;
+  outline: none;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background:
+    radial-gradient(circle, rgba(246, 241, 255, .06) 1px, transparent 1.6px) 0 0 / 16px 16px,
+    linear-gradient(180deg, $tl-night 0%, $tl-night-2 62%, #2e0f24 100%);
+
+  &::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 5px;
+    background-color: rgba(255, 45, 127, .55);
+    background-clip: padding-box;
+  }
+}
+
+.tl-track {
+  position: relative;
+  min-width: 100%;
+  height: 100%;
+}
+
+// the line every mon lands on, drawn left to right as the title card clears
+.tl-spine {
+  position: absolute;
+  right: 0;
+  bottom: $tl-spine-bottom - 6px;
+  left: 0;
+  height: 6px;
+  background-color: $tl-ink;
+  box-shadow: 0 3px 0 $tl-pink, 0 0 18px rgba(255, 45, 127, .6);
+  transform-origin: left center;
+  animation: tl-draw .6s cubic-bezier(.2, .8, .2, 1) $tl-spine-at both;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 8px;
+    margin-top: 6px;
+    background: repeating-linear-gradient(-45deg, rgba(255, 45, 127, .45) 0 10px, transparent 10px 20px);
+  }
+}
+
+// a month's ground under the spine: a tick where it starts, its name, and on a year's first month the year's banner
+.tl-month {
+  position: absolute;
+  bottom: 0;
+  height: $tl-spine-bottom - 6px;
+  border-left: 1px solid rgba(246, 241, 255, .2);
+  animation: fade-in .4s ease-out $tl-spine-at + .2s both;
+
+  &.empty {
+    border-left-style: dashed;
+  }
+}
+
+.tl-month-label {
+  position: absolute;
+  top: 20px;
+  left: 6px;
+  color: $tl-dim;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tl-undated .tl-month-label {
+  top: 16px;
+  color: $tl-pink;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.tl-year {
+  position: absolute;
+  bottom: 10px;
+  left: -10px;
+  padding: 0 18px 0 12px;
+  background-color: $tl-pink;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  transform-origin: left center;
+  // its delay is its first mon's, so the banner goes up as the cascade reaches its year
+  animation: tl-banner .45s cubic-bezier(.2, 1.4, .4, 1) both;
+
+  span {
+    display: inline-block;
+    font-size: 26px;
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-shadow: 3px 3px 0 $tl-pink-deep;
+    transform: skewX(-8deg);
+  }
+}
+
+// a long lull folded into one card standing on the spine, "3 YEARS LATER"
+.tl-skip {
+  display: flex;
+  position: absolute;
+  bottom: $tl-spine-bottom + 18px;
+  align-items: center;
+  justify-content: center;
+  height: 112px;
+  border: 2px solid $tl-pink;
+  background: repeating-linear-gradient(-45deg, rgba(255, 45, 127, .16) 0 14px, transparent 14px 28px);
+  transform: skewX(-10deg);
+  animation: tl-pop .4s cubic-bezier(.2, 1.4, .4, 1) both;
+
+  span {
+    padding: 0 10px;
+    font-size: 15px;
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1.3;
+    text-align: center;
+    text-transform: uppercase;
+    transform: skewX(10deg);
+  }
+}
+
+// a mon, standing in its slot on the spine or its pile; it drops in on its turn and squashes as it lands
+.tl-mon {
+  display: flex;
+  position: absolute;
+  align-items: flex-end;
+  justify-content: center;
+  width: $tl-slot-w;
+  height: $tl-slot-h;
+  opacity: 0;
+  transform-origin: 50% 100%;
+  animation: tl-plop .52s cubic-bezier(.25, .8, .35, 1) both;
+  cursor: pointer;
+
+  // icon pixels at a whole multiple, so the art stays crisp
+  .pkicon {
+    flex: none;
+    zoom: 2;
+  }
+
+  // a placeholder, openly waiting on a better catch
+  &.temporary {
+    --tl-mon-opacity: .5;
+  }
+
+  // sealed: a gold glow on the ground under it
+  &.sealed::before {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: -2px;
+    left: 3px;
+    height: 12px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 210, 74, .8), transparent);
+  }
+
+  &.undated .pkicon {
+    filter: grayscale(1) brightness(.85);
+  }
+}
+
+// settled, by the clock or a skip: the scenery is all there at once, without the rest of its entrance
+.tl-stage.settled :is(.tl-spine, .tl-month, .tl-year, .tl-skip) {
+  animation: none;
+}
+
+// once the last is down, the animations go, and with them a composited layer per mon
+.tl-stage.settled .tl-mon {
+  opacity: var(--tl-mon-opacity, 1);
+  animation: none;
+  transition: transform .12s ease-out;
+
+  &:hover {
+    z-index: 3;
+    transform: scale(1.4);
+  }
+}
+
+.tl-card {
+  display: flex;
+  position: absolute;
+  z-index: 5;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 18px;
+  background-color: $tl-ink;
+  color: $tl-night;
+  font-size: 12px;
+  white-space: nowrap;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  pointer-events: none;
+  transform: translateX(-50%);
+
+  b {
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .tl-card-nickname {
+    font-style: italic;
+  }
+
+  .tl-card-date {
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  .tl-card-status {
+    margin-top: 2px;
+    padding: 1px 8px;
+    background-color: $tl-night;
+    color: $tl-ink;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+
+    &.sealed {
+      background-color: $tl-gold;
+      color: $tl-night;
+    }
+
+    &.temporary {
+      background-color: $tl-pink-deep;
+    }
+  }
+}
+
+.tl-empty {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: $tl-dim;
+  font-size: 22px;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+// the title card, over the stage until the cascade starts; it lets every click through to the stage, where one skips it
+.tl-intro {
+  position: absolute;
+  inset: $nav-height 0 0;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+  animation: tl-shake .3s linear $tl-impact-at, tl-clear .3s ease-in $tl-clear-at both;
+}
+
+.tl-intro-flash {
+  position: absolute;
+  inset: 0;
+  background-color: $tl-ink;
+  opacity: 0;
+  // forwards, not both: the flash's first frame mustn't hold through the delay
+  animation: tl-flash .35s ease-out $tl-impact-at forwards;
+}
+
+.tl-intro-slash {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 260vw;
+  height: 30vh;
+  margin: -15vh 0 0 -130vw;
+  background-color: $tl-pink;
+  box-shadow: 0 0 0 10px $tl-night, 0 0 0 16px $tl-pink;
+  animation: tl-slash .55s cubic-bezier(.7, 0, .2, 1) .08s both;
+}
+
+.tl-intro-title {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  text-align: center;
+  transform: translateY(-62%);
+
+  span {
+    display: inline-block;
+    color: $tl-ink;
+    font-size: min(15vw, 190px);
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1;
+    text-shadow: .05em .05em 0 $tl-night, .09em .09em 0 $tl-pink-deep;
+    text-transform: uppercase;
+    animation: tl-slam .5s cubic-bezier(.2, 1.6, .4, 1) $tl-slam-at both;
+  }
+}
+
+.tl-intro-sub {
+  display: flex;
+  position: absolute;
+  top: calc(50% + min(15vw, 190px) * .42);
+  right: 0;
+  left: 0;
+  justify-content: center;
+
+  span {
+    max-width: 80vw;
+    padding: 6px 40px;
+    overflow: hidden;
+    background-color: $tl-ink;
+    color: $tl-night;
+    font-size: min(3vw, 30px);
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+    clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+    animation: tl-sub .4s cubic-bezier(.2, .9, .3, 1) .55s both;
+  }
+}
+
+.tl-intro-skip {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  color: $tl-dim;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: fade-in .3s ease-out .6s both;
+}
+
+@keyframes tl-plop {
+  0% {
+    opacity: 0;
+    transform: translateY(-150px) scale(.85, 1.15);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.2, .78);
+  }
+
+  80% {
+    transform: translateY(-9px) scale(.94, 1.06);
+  }
+
+  100% {
+    opacity: var(--tl-mon-opacity, 1);
+    transform: none;
+  }
+}
+
+@keyframes tl-draw {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tl-banner {
+  from {
+    opacity: 0;
+    transform: translateX(-30px) scaleX(.4);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tl-pop {
+  from {
+    opacity: 0;
+    transform: skewX(-10deg) scale(.6);
+  }
+
+  to {
+    opacity: 1;
+    transform: skewX(-10deg);
+  }
+}
+
+@keyframes tl-slash {
+  from {
+    transform: rotate(-14deg) translateX(-110%);
+  }
+
+  to {
+    transform: rotate(-14deg);
+  }
+}
+
+@keyframes tl-slam {
+  0% {
+    opacity: 0;
+    transform: skewX(-10deg) scale(2.6);
+  }
+
+  60% {
+    opacity: 1;
+    transform: skewX(-10deg) scale(.94);
+  }
+
+  100% {
+    opacity: 1;
+    transform: skewX(-10deg);
+  }
+}
+
+@keyframes tl-sub {
+  from {
+    opacity: 0;
+    transform: translateX(60vw);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tl-flash {
+  from {
+    opacity: .45;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes tl-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+
+  20% {
+    transform: translate(-7px, 4px);
+  }
+
+  40% {
+    transform: translate(6px, -4px);
+  }
+
+  60% {
+    transform: translate(-4px, 2px);
+  }
+
+  80% {
+    transform: translate(2px, -1px);
+  }
+}
+
+@keyframes tl-clear {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}

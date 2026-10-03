@@ -1,10 +1,11 @@
 import classNames from 'classnames';
 import { memo, useMemo } from 'react';
 
-import { BOX_COLUMNS, BOX_SIZE, TILE_SIZE, dexNumber } from '../../../utils/pokemon';
+import { BOX_SIZE, dexNumber } from '../../../utils/pokemon';
 import { Pokemon } from './Pokemon';
-import { isDisplaySealed, useTrackerActions } from './use-tracker';
+import { shineClip as clipFor, useTrackerActions } from './use-tracker';
 import { localizeBoxName } from '../../../i18n/names';
+import { translate } from '../../../i18n/translations';
 import { useDeferredRender } from '../../../hooks/use-deferred-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -15,7 +16,8 @@ import type { Locale } from '../../../i18n/translations';
 
 interface Props {
   captures: Capture[];
-  deferred: boolean;
+  // frames to wait before rendering, 0 for at once; only read as it mounts
+  deferFrames: number;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
@@ -28,41 +30,26 @@ function boxTitle (captures: Capture[], dex: Dex, locale: Locale): string {
   }
   const from = dexNumber(first, dex);
   const to = dexNumber(last, dex);
-  const range = from === to ? from : `${from} - ${to}`;
+  const range = from === to ? from : translate(locale, 'common.range', { from, to });
   const prefix = first.box?.split(':')[2];
-  return prefix ? `${localizeBoxName(locale, prefix)} ${range}` : range;
+  return prefix ? translate(locale, 'box.resetTitle', { name: localizeBoxName(locale, prefix), range }) : range;
 }
 
 function sameProps (prev: Props, next: Props): boolean {
-  return prev.deferred === next.deferred &&
-    prev.setSelectedPokemon === next.setSelectedPokemon &&
+  return prev.setSelectedPokemon === next.setSelectedPokemon &&
     prev.captures.length === next.captures.length &&
     prev.captures.every((capture, i) => capture === next.captures[i]);
 }
 
-export const Box = memo(function Box ({ captures, deferred, setSelectedPokemon }: Props) {
+export const Box = memo(function Box ({ captures, deferFrames, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { sealFx, narrow } = useTrackerActions();
   const { t, locale } = useTranslation();
-  const render = useDeferredRender(!deferred);
+  const render = useDeferredRender(deferFrames === 0, deferFrames);
   const checklist = Boolean(activeDex!.checklist);
 
-  // one band per box, clipped to the sealed slots — a per-tile shine layer exhausts GPU memory in a checklist
-  const shineClip = useMemo(() => {
-    // the clip is drawn for the 6-column grid, not the narrow list view
-    if (narrow) {
-      return null;
-    }
-    const holes = captures.reduce<string[]>((all, capture, index) => {
-      if (isDisplaySealed(capture, checklist, sealFx)) {
-        const x = (index % BOX_COLUMNS) * TILE_SIZE;
-        const y = Math.floor(index / BOX_COLUMNS) * TILE_SIZE;
-        all.push(`M${x} ${y}h${TILE_SIZE}v${TILE_SIZE}h-${TILE_SIZE}Z`);
-      }
-      return all;
-    }, []);
-    return holes.length > 0 ? `path('${holes.join('')}')` : null;
-  }, [captures, checklist, sealFx, narrow]);
+  // the clip is drawn for the 6-column grid, not the narrow list view
+  const shineClip = useMemo(() => (narrow ? null : clipFor(captures, checklist, sealFx)), [captures, checklist, sealFx, narrow]);
 
   if (!render) {
     return null;
@@ -77,7 +64,7 @@ export const Box = memo(function Box ({ captures, deferred, setSelectedPokemon }
         <h1>{boxTitle(captures, activeDexView!, locale)}</h1>
         {!checklist &&
           <span className={classNames('box-sealed-count', { complete: sealed === captures.length })}>
-            {sealed}/{captures.length} {t('box.sealed')}
+            {t('box.sealedCount', { sealed, total: captures.length })}
           </span>
         }
       </div>

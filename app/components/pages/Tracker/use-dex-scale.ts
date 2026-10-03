@@ -8,6 +8,9 @@ import { useLocalStorage } from '../../../hooks/use-local-storage';
 
 import type { RefObject } from 'react';
 
+// under a modal or the timeline, the dex behind keeps its zoom
+const COVERED = '.modal-overlay, .timeline';
+
 // screen px, not scaled px: scrollbars keep their size whatever the dex zoom, so room for a gutter either side
 const GUTTERS = 24;
 // screen px too: the search bar sits outside the zoom
@@ -158,6 +161,9 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
         return;
       }
       e.preventDefault();
+      if (document.querySelector(COVERED)) {
+        return;
+      }
       if (Math.sign(e.deltaY) !== Math.sign(wheel)) {
         wheel = 0;
       }
@@ -169,7 +175,7 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || document.querySelector(COVERED)) {
         return;
       }
       if (e.key === '=' || e.key === '+') {

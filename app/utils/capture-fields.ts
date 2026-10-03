@@ -60,7 +60,7 @@ export function nameMaxLength (language: string | null | undefined): number {
 export function saveLabel (save: GameSave, locale: Locale): string {
   const game = localizeOriginGame(locale, save.game, ORIGIN_GAME_NAMES.get(save.game) ?? save.game);
   const abbr = LANGUAGE_ABBRS.get(save.language);
-  return abbr ? `${game} (${abbr})` : game;
+  return abbr ? translate(locale, 'saves.label', { game, language: abbr }) : game;
 }
 
 // saves are keyed by game/language pair, never by id

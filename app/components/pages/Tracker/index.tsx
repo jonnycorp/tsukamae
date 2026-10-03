@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Dex } from './Dex';
+import { FlipPauseIndicator } from './FlipPauseIndicator';
 import { Footer } from '../../library/Footer';
 import { PokemonPopover } from './PokemonPopover';
 import { SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SearchBar } from './SearchBar';
+import { Timeline } from './Timeline';
 import { ZoomIndicator } from './ZoomIndicator';
 import { EMPTY_FILTERS } from './filters';
 import { TrackerContextProvider } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDexScale } from './use-dex-scale';
 import { useFlipClock } from './use-flip-clock';
+import { useHotkey } from '../../../hooks/use-hotkey';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { AnimationEvent, CSSProperties } from 'react';
@@ -48,17 +51,17 @@ function TrackerInner () {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [showScroll, setShowScroll] = useState(false);
   const [selectedPokemon, setSelectedPokemon] = useState(0);
+  const [showTimeline, setShowTimeline] = useState(false);
 
-  useFlipClock(containerRef);
+  const flipPause = useFlipClock(containerRef);
   const { scale, columns, measured, headerWidth, topGap, flipLines, zoom, nudges } = useDexScale(areaRef);
   // the ball badge draws a 20px sprite area at 15px (styles/tracker.scss): pixelated only once that's no longer a shrink
   const crispBalls = scale * window.devicePixelRatio >= 20 / 15;
 
   useEffect(() => {
-    const previous = document.title;
     document.title = `${activeDex!.title} | ${t('app.name')}`;
     return () => {
-      document.title = previous;
+      document.title = t('app.name');
     };
   }, [activeDex!.title, t]);
 
@@ -82,6 +85,30 @@ function TrackerInner () {
 
   const handlePopoverClose = useCallback(() => setSelectedPokemon(0), []);
 
+  // a checklist keeps no catch dates, so it has no timeline
+  const timeline = !activeDex!.checklist;
+  const handleOpenTimeline = useCallback(() => {
+    setSelectedPokemon(0);
+    setShowTimeline(true);
+  }, []);
+  const handleCloseTimeline = useCallback(() => setShowTimeline(false), []);
+  // a mon clicked on the timeline: back to the dex, its tile brought into view with its popover open, if it's showing
+  const handleLocate = useCallback((pokemon: number) => {
+    setShowTimeline(false);
+    requestAnimationFrame(() => {
+      const tile = document.querySelector(`.pokemon[data-pokemon-id='${pokemon}']`);
+      if (tile) {
+        tile.scrollIntoView({ block: 'center' });
+        setSelectedPokemon(pokemon);
+      }
+    });
+  }, []);
+  useHotkey('t', () => {
+    if (timeline && !document.querySelector('.facet-panel')) {
+      handleOpenTimeline();
+    }
+  });
+
   return (
     <div className="tracker-container" onAnimationStart={syncShine} ref={containerRef}>
       <div className="tracker" ref={areaRef}>
@@ -99,6 +126,7 @@ function TrackerInner () {
         >
           <SearchBar
             filters={filters}
+            onOpenTimeline={timeline ? handleOpenTimeline : undefined}
             query={query}
             setFilters={setFilters}
             setQuery={setQuery}
@@ -126,6 +154,8 @@ function TrackerInner () {
         }
       </div>
       <ZoomIndicator nudges={nudges} zoom={zoom} />
+      <FlipPauseIndicator paused={flipPause.paused} presses={flipPause.presses} />
+      {showTimeline && <Timeline onClose={handleCloseTimeline} onLocate={handleLocate} />}
     </div>
   );
 }

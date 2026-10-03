@@ -215,17 +215,37 @@ nav {
   }
 }
 
-// centred without a transform: a transformed box would anchor the dex menu's position: fixed to itself
+// centred without a transform: a transformed box would anchor the dex menu's position: fixed to itself. It's never
+// wider than the room the right side leaves either side of centre (its four icons and the window buttons), so it can't
+// slide under them; the dex's name gives way first
 .nav-dex-controls {
   display: flex;
   align-items: center;
   position: absolute;
   inset: 0;
   width: fit-content;
+  max-width: calc(100% - 2 * (#{4 * 44px} + 100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
   margin: 0 auto;
+
+  .dropdown {
+    min-width: 0;
+  }
 
   .tooltip .svg-inline--fa {
     font-size: 13px;
+  }
+}
+
+// too narrow to centre on the window: it takes the room between the logo and the icons instead
+@media (max-width: 800px) {
+  .nav-dex-controls {
+    position: static;
+    min-width: 0;
+    max-width: none;
+  }
+
+  nav > a.nav-logo:first-child {
+    margin-right: 0;
   }
 }
 
@@ -260,6 +280,7 @@ nav .nav-menu > a.tooltip .tooltip-text {
 }
 
 .nav-dex-select {
+  min-width: 0;
   max-width: 380px;
   margin-right: 10px;
   padding: 8px 12px;
@@ -737,10 +758,11 @@ form {
   }
 }
 
+// the line always carries the full breakdown, so it tightens as the bar narrows rather than wrapping out of it
 .progress-container {
   width: 100%;
   height: 28px;
-  cursor: pointer;
+  container-type: inline-size;
 
   .temporary-count {
     color: var(--ink-temporary);
@@ -762,13 +784,24 @@ form {
     position: absolute;
     width: 100%;
     padding: 5px;
+    overflow: hidden;
     color: var(--ink);
     text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-family: $font-secondary;
     font-size: 11px;
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 1px;
+
+    @container (max-width: 560px) {
+      letter-spacing: 0;
+    }
+
+    @container (max-width: 470px) {
+      font-size: 10px;
+    }
   }
 
   .progress-inner-row {

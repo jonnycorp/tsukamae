@@ -30,6 +30,13 @@ interface Props {
   showScrollButton: boolean;
 }
 
+// the first two boxes render at once; the rest fill in this many a frame after them, rather than all in one render
+const BOXES_PER_FRAME = 4;
+
+function deferFrames (box: number): number {
+  return box < 2 ? 0 : 2 + Math.floor((box - 2) / BOXES_PER_FRAME);
+}
+
 // the tiles the popover has worked on since it opened stay in a filtered view after an edit takes them out of it
 // (marked in Missing, finished in Incomplete), until it closes or the view itself changes; adjusted while rendering, so
 // a tile marked in Missing is still there when the popover first docks to it
@@ -105,14 +112,17 @@ export function Dex ({
               {boxes.map((box, i) => (
                 <Box
                   captures={box}
-                  deferred={i > 1}
+                  deferFrames={deferFrames(i)}
                   key={box[0].pokemon.id}
                   setSelectedPokemon={setSelectedPokemon}
                 />
               ))}
               {/* keyed by position, so a change of columns regroups the strips without restarting them; only once the
                   columns are measured, so a row's deferral matches its boxes' */}
-              {!narrow && measured && rows.map((row, r) => <FlipStrips deferred={(r + 1) * columns > 2} grids={row} key={r} row={r} />)}
+              {!narrow && measured && rows.map((row, r) => (
+                // with the last box of its row
+                <FlipStrips deferFrames={deferFrames((r + 1) * columns - 1)} grids={row} key={r} row={r} />
+              ))}
             </div>
           }
         </div>

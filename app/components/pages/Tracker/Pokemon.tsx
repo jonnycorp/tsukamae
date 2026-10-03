@@ -182,7 +182,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
     <FontAwesomeIcon
       className="stale-pin"
       icon={faCircleExclamation}
-      title={t('seal.stale', { fields: stale.map((field) => t(field.labelKey)).join(', ') })}
+      title={t('seal.stale', { fields: stale.map((field) => t(field.labelKey)).join(t('common.listSeparator')) })}
     />;
 
   if (narrow) {

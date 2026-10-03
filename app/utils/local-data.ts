@@ -52,17 +52,18 @@ export interface CatalogDex {
 
 type CatalogMeta = Omit<CatalogDex, 'pokemonList'>;
 
+// a paired release under both its names, written as the dexes' own names write them
 const GAME_NAME_OVERRIDES: Record<string, string> = {
-  scarlet: 'Scarlet/Violet',
-  scarlet_expansion_pass: 'Scarlet/Violet (Expansion Pass)',
-  sword: 'Sword/Shield',
-  sword_expansion_pass: 'Sword/Shield (Expansion Pass)',
-  brilliant_diamond: 'Brilliant Diamond/Shining Pearl',
-  lets_go_pikachu: 'Let\'s Go Pikachu/Eevee',
-  ultra_sun: 'Ultra Sun/Ultra Moon',
-  sun: 'Sun/Moon',
-  omega_ruby: 'Omega Ruby/Alpha Sapphire',
-  x: 'X/Y',
+  scarlet: 'Scarlet & Violet',
+  scarlet_expansion_pass: 'Scarlet & Violet (Expansion Pass)',
+  sword: 'Sword & Shield',
+  sword_expansion_pass: 'Sword & Shield (Expansion Pass)',
+  brilliant_diamond: 'Brilliant Diamond & Shining Pearl',
+  lets_go_pikachu: 'Let\'s Go, Pikachu & Eevee',
+  ultra_sun: 'Ultra Sun & Ultra Moon',
+  sun: 'Sun & Moon',
+  omega_ruby: 'Omega Ruby & Alpha Sapphire',
+  x: 'X & Y',
 };
 
 function catalogEntry (meta: unknown, pokemonList: unknown): CatalogDex {
@@ -71,7 +72,8 @@ function catalogEntry (meta: unknown, pokemonList: unknown): CatalogDex {
   if (gameName) {
     entry.game = { ...entry.game, name: gameName };
   }
-  entry.name = entry.name.replace(/^HOME /, '');
+  // upstream mixes in a curly apostrophe (Let’s Go); straight, as everywhere else
+  entry.name = entry.name.replace(/^HOME /, '').replaceAll('’', '\'');
   return entry;
 }
 
@@ -165,30 +167,46 @@ export function isAppState (raw: unknown): raw is AppState {
 
 // the file on disk is ours, but can be hand-edited: a dex without a progress map gets an empty one, a record that isn't
 // one (or has a status this version doesn't know) is dropped, and so is a game that isn't one, rather than failing every
-// launch after. Load then keeps no more than Import accepts, so any export of it can be restored
-function normalizeState (raw: unknown): AppState {
+// launch after. Load then keeps no more than Import accepts, so any export of it can be restored. `dropped` says whether
+// any of that happened, since the main process still holds the file as it was
+function normalizeState (raw: unknown): { state: AppState; dropped: boolean } {
   if (!isObject(raw) || !Array.isArray(raw.dexes)) {
-    return { activeDexId: '', dexes: [] };
+    return { state: { activeDexId: '', dexes: [] }, dropped: false };
   }
   const state = raw as unknown as AppState;
-  state.dexes = state.dexes.filter(isObject);
+  let dropped = false;
+  const dexes = state.dexes.filter(isObject);
+  if (dexes.length !== state.dexes.length) {
+    state.dexes = dexes;
+    dropped = true;
+  }
   for (const dex of state.dexes) {
     if (!isObject(dex.progress)) {
       dex.progress = {};
+      dropped = true;
     }
     for (const [id, entry] of Object.entries(dex.progress)) {
       if (!isObject(entry) || !isKnownStatus(entry.status)) {
         delete dex.progress[id];
+        dropped = true;
       }
     }
   }
   if (state.saves !== undefined) {
-    state.saves = Array.isArray(state.saves) ? state.saves.filter((save) => isObject(save) && typeof save.id === 'string') : [];
+    const saves = Array.isArray(state.saves) ? state.saves.filter((save) => isObject(save) && typeof save.id === 'string') : [];
+    if (!Array.isArray(state.saves) || saves.length !== state.saves.length) {
+      state.saves = saves;
+      dropped = true;
+    }
   }
-  if (typeof state.activeDexId !== 'string' || (state.activeDexId && !state.dexes.some((dex) => dex.id === state.activeDexId))) {
+  if (typeof state.activeDexId !== 'string') {
+    // a value Import would refuse, so the file needs it fixed too
+    state.activeDexId = '';
+    dropped = true;
+  } else if (state.activeDexId && !state.dexes.some((dex) => dex.id === state.activeDexId)) {
     state.activeDexId = '';
   }
-  return state;
+  return { state, dropped };
 }
 
 // the Electron preload bridge (electron/preload.js); absent in a browser
@@ -197,6 +215,8 @@ declare global {
     tracker?: {
       load: () => Promise<unknown>;
       save: (state: AppState) => Promise<void>;
+      // false when the main process holds no such dex to merge into
+      patch: (dexId: string, entries: Record<string, ProgressEntry | null>) => Promise<boolean>;
       importState: (state: AppState) => Promise<void>;
       onSaveStatus: (listener: (ok: boolean) => void) => () => void;
       setTitleBarColors: (colors: { color: string; symbolColor: string }) => void;
@@ -259,7 +279,14 @@ export function subscribeSaveStatus (listener: SaveStatusListener): () => void {
   };
 }
 
+// set while an import waits on its file: a change made meanwhile (the page stays live) stays in memory, as sent against
+// the tracker being replaced it would land on the import, or bring the old tracker back over it
+let importing = false;
+
 function save (state: AppState) {
+  if (importing) {
+    return;
+  }
   saveRaw(state).then(() => {
     if (!window.tracker || FRESH) {
       reportSave(true);
@@ -296,9 +323,11 @@ function fillBaselines (state: AppState): boolean {
 
 export async function loadAppState (): Promise<AppState> {
   if (!appState) {
-    appState = normalizeState(await loadRaw());
-    if (fillBaselines(appState)) {
-      save(appState);
+    const { state, dropped } = normalizeState(await loadRaw());
+    appState = state;
+    // filled or cleaned up: the main process gets the whole of it, as tile patches will merge into its copy
+    if (fillBaselines(state) || dropped) {
+      save(state);
     }
   }
   return appState;
@@ -331,10 +360,21 @@ export function exportAppState (): string {
 // built and saved in full before it replaces the live state, so a failure leaves everything as it was; in Electron that
 // waits for the file itself, not just for the write to be queued
 export async function importAppState (raw: AppState): Promise<void> {
-  const next = normalizeState(structuredClone(raw));
+  const { state: next } = normalizeState(structuredClone(raw));
   fillBaselines(next);
-  await (window.tracker && !FRESH ? window.tracker.importState(next) : saveRaw(next));
+  importing = true;
+  try {
+    await (window.tracker && !FRESH ? window.tracker.importState(next) : saveRaw(next));
+  } catch (err) {
+    // refused, so the tracker on the page stands, with whatever changed while it waited
+    importing = false;
+    if (appState) {
+      save(appState);
+    }
+    throw err;
+  }
   appState = next;
+  importing = false;
 }
 
 export function toDexView (dex: PersonalDex): Dex {
@@ -421,15 +461,49 @@ export interface UpdateCapturePayload extends Partial<CaptureMetadata> {
   sealed?: boolean;
 }
 
+// a tile's change, applied in memory at once; then only the records it changed go to the main process, which merges
+// them into the tracker it holds rather than taking the whole of it again every click. A browser saves everything, as
+// does a main process with no copy of the dex (a state it never saw)
+function commitRecords (dexId: string, mutator: (dex: PersonalDex, state: AppState) => number[]): void {
+  const state = getAppState();
+  let changed: number[];
+  let dex: PersonalDex;
+  try {
+    dex = findDex(state, dexId);
+    changed = mutator(dex, state);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('failed to apply change:', err);
+    return;
+  }
+  if (changed.length === 0) {
+    return;
+  }
+  if (!window.tracker || FRESH || importing) {
+    save(state);
+    return;
+  }
+  const entries = Object.fromEntries(changed.map((id) => [id, dex.progress[id] ?? null]));
+  window.tracker.patch(dexId, entries).then((applied) => {
+    // and only if this is still the tracker on the page: one replaced by an import mustn't be sent back over it
+    if (!applied && state === appState) {
+      save(state);
+    }
+  }, (err) => {
+    // eslint-disable-next-line no-console
+    console.error('failed to save:', err);
+    reportSave(false);
+  });
+}
+
 // editingSealed is the TESTING seal-fx bypass for fixing sealed records
 export function writeCapture (dexId: string, payload: UpdateCapturePayload, editingSealed = false): void {
   const { pokemon, ...changes } = payload;
-  commitAppState((state) => {
-    const dex = findDex(state, dexId);
+  commitRecords(dexId, (dex, state) => {
     const existing = dex.progress[pokemon];
 
     if (existing?.sealed && changes.sealed !== false && !editingSealed) {
-      return;
+      return [];
     }
 
     // unobtainable wiped the record, so leaving it starts over like a new mark
@@ -450,16 +524,16 @@ export function writeCapture (dexId: string, payload: UpdateCapturePayload, edit
     } else {
       dex.progress[pokemon] = dex.checklist ? next : withBaselines(next);
     }
+    return [pokemon];
   });
 }
 
 export function deleteCaptures (dexId: string, pokemonIds: number[]): void {
-  commitAppState((state) => {
-    const dex = findDex(state, dexId);
-    for (const id of pokemonIds) {
-      if (!dex.progress[id]?.sealed) {
-        delete dex.progress[id];
-      }
+  commitRecords(dexId, (dex) => pokemonIds.filter((id) => {
+    if (!dex.progress[id] || dex.progress[id].sealed) {
+      return false;
     }
-  });
+    delete dex.progress[id];
+    return true;
+  }));
 }

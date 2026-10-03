@@ -130,7 +130,9 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
       anchor.setAttribute('data-selected', '');
     }
 
-    const frame = (anchor.closest('.box-container, .search-results') ?? anchor).getBoundingClientRect();
+    // a box, or a box-sized chunk of results: a whole results list can run for screens, and docking to it pinned the
+    // popover to the top and never let it go
+    const frame = (anchor.closest('.box-container, .results-chunk') ?? anchor).getBoundingClientRect();
     const viewTop = anchor.closest('.dex-column')?.getBoundingClientRect().top ?? 0;
     if (frame.bottom < viewTop || frame.top > window.innerHeight) {
       dismiss();

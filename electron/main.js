@@ -42,8 +42,11 @@ function unreadableFile (n) {
   return path.join(app.getPath('userData'), n > 1 ? `dex_data.unreadable-${n}.json` : 'dex_data.unreadable.json');
 }
 
+// the tracker as the renderer last left it: replaced whole by a save, edited in place by a tile's patch
 let latestProgress = null;
-let savedProgress = null;
+// bumped by every change, so a write knows which changes it caught, and one made while it wrote still gets written
+let revision = 0;
+let savedRevision = 0;
 let saveTimer = null;
 // writes are debounced, atomic (temp file + rename) and serialized, so two can never share the temp file or land out of order
 let writeChain = Promise.resolve();
@@ -96,7 +99,8 @@ function setAsideSync (file) {
   }
 }
 
-async function writeProgress (progress) {
+// the text is taken before the first wait, so patches landing during the write can't tear it
+async function writeProgress (text) {
   const generation = sessionSaves;
   const file = progressFile();
   const tmp = `${file}.tmp`;
@@ -104,7 +108,7 @@ async function writeProgress (progress) {
   // on disk before the rename, so a power cut can't swap in a file that was never written
   const handle = await retrying(() => fsp.open(tmp, 'w'));
   try {
-    await handle.writeFile(JSON.stringify(progress, null, 2));
+    await handle.writeFile(text);
     await handle.sync();
   } finally {
     await handle.close();
@@ -131,7 +135,7 @@ async function writeProgress (progress) {
 function flushSaveSync () {
   clearTimeout(saveTimer);
   saveTimer = null;
-  if (latestProgress === savedProgress) {
+  if (revision === savedRevision || !latestProgress) {
     return;
   }
   const file = progressFile();
@@ -157,7 +161,7 @@ function flushSaveSync () {
     }
     fs.renameSync(tmp, file);
     sessionSaves++;
-    savedProgress = latestProgress;
+    savedRevision = revision;
   } catch (err) {
     console.error('failed to save progress:', err);
   }
@@ -179,10 +183,11 @@ function flushSave () {
     queuedWrite = writeChain = writeChain.then(async () => {
       // cleared as it starts, so a change made while it writes queues the next one
       queuedWrite = null;
-      if (latestProgress !== savedProgress) {
-        const progress = latestProgress;
-        if (await writeProgress(progress)) {
-          savedProgress = progress;
+      // nothing to write before a tracker exists here: a load that failed, an import that was refused
+      if (revision !== savedRevision && latestProgress) {
+        const written = revision;
+        if (await writeProgress(JSON.stringify(latestProgress, null, 2))) {
+          savedRevision = Math.max(savedRevision, written);
         }
       }
       reportSaveStatus(true);
@@ -194,10 +199,33 @@ function flushSave () {
   return writeChain;
 }
 
-function scheduleSave (progress) {
-  latestProgress = progress;
+function markChanged () {
+  revision++;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
+}
+
+function scheduleSave (progress) {
+  latestProgress = progress;
+  markChanged();
+}
+
+// a tile's record (null once released) merged into the tracker held here; false when there's no such dex to merge
+// into, and the renderer sends the whole tracker instead
+function applyPatch (dexId, entries) {
+  const dex = Array.isArray(latestProgress?.dexes) ? latestProgress.dexes.find((entry) => entry?.id === dexId) : null;
+  if (!dex || typeof dex.progress !== 'object' || dex.progress === null || typeof entries !== 'object' || entries === null) {
+    return false;
+  }
+  for (const [id, entry] of Object.entries(entries)) {
+    if (entry === null) {
+      delete dex.progress[id];
+    } else {
+      dex.progress[id] = entry;
+    }
+  }
+  markChanged();
+  return true;
 }
 
 function windowStateFile () {
@@ -381,12 +409,21 @@ function buildMenu () {
 if (app.requestSingleInstanceLock()) {
   // no file is a first run; a file that can't be read or parsed is an error, never an empty tracker, or the next save
   // would write that over it
-  ipcMain.handle('tracker:load', async () => {
+  ipcMain.handle('tracker:load', async (event) => {
     await flushSave();
+    // a reloaded page starts out believing its saves land; it hears otherwise from here, not from a change of status
+    if (!saveOk) {
+      event.sender.send('tracker:save-status', false);
+    }
+    // saves aren't reaching the disk, so the tracker held here is newer than the file, and is what a reload must show
+    if (latestProgress && revision !== savedRevision) {
+      return latestProgress;
+    }
     let text;
     try {
       text = await retrying(() => fsp.readFile(progressFile(), 'utf8'));
     } catch (err) {
+      latestProgress = null;
       if (err.code === 'ENOENT') {
         unreadable = false;
         return {};
@@ -405,8 +442,12 @@ if (app.requestSingleInstanceLock()) {
         throw new Error('dex_data.json does not hold tracker data');
       }
       unreadable = false;
+      // the copy patches merge into (the renderer gets a clone); it saves the whole tracker if loading changed any of it
+      latestProgress = progress;
+      savedRevision = revision;
       return progress;
     } catch (err) {
+      latestProgress = null;
       unreadable = true;
       throw err;
     }
@@ -416,15 +457,25 @@ if (app.requestSingleInstanceLock()) {
     scheduleSave(progress);
   });
 
+  // a tile's change: just the records that changed, rather than the whole tracker every click
+  ipcMain.handle('tracker:patch', (_event, patch) => applyPatch(patch?.dexId, patch?.entries));
+
   // unlike a save, resolves only once the import is on disk, so a failure leaves the renderer on the old data
   ipcMain.handle('tracker:import', async (_event, progress) => {
     const previous = latestProgress;
-    latestProgress = progress;
+    scheduleSave(progress);
+    const imported = revision;
     await flushSave();
-    if (savedProgress !== progress) {
-      // a refused import mustn't land later, with the next save or at quit
+    // refused too if something replaced it before it was written: the file then holds that, not the import
+    if (savedRevision < imported || latestProgress !== progress) {
+      // a refused import mustn't land later, with the next save or at quit; what it replaced is pending again
       if (latestProgress === progress) {
         latestProgress = previous;
+        if (previous) {
+          revision++;
+        } else {
+          savedRevision = revision;
+        }
       }
       throw new Error('the import could not be saved');
     }
@@ -480,7 +531,7 @@ if (app.requestSingleInstanceLock()) {
   // quitting waits for the last write, including one already in flight and one a closing window sent on its way out
   // (will-quit comes after the windows have closed; on macOS before-quit comes before)
   app.on('will-quit', (event) => {
-    if (flushedForQuit || (saveTimer === null && latestProgress === savedProgress)) {
+    if (flushedForQuit || (saveTimer === null && revision === savedRevision)) {
       return;
     }
     event.preventDefault();

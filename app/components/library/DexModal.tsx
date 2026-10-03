@@ -134,7 +134,12 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                   <Dropdown
                     id="dex_catalog"
                     onSelect={setCatalogKey}
-                    options={dexesForGame.map((entry) => ({ value: entry.key, label: `${localizeDexType(locale, entry.dex_type.name)} (${entry.total})` }))}
+                    options={dexesForGame.map((entry) => {
+                      const type = localizeDexType(locale, entry.dex_type.name);
+                      const base = entry.dex_type.base_dex_type && localizeDexType(locale, entry.dex_type.base_dex_type.name);
+                      const name = base ? t('dexModal.dexType', { base, type }) : type;
+                      return { value: entry.key, label: t('dexModal.dexOption', { name, total: entry.total }) };
+                    })}
                     value={catalogKey}
                   />
                 </div>
@@ -173,7 +178,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
           </div>
           {!checklist && <>
             <div className="form-section-label">
-              {t('dexModal.defaults')} <span className="optional-tag">{t('common.optional')}</span>
+              {t('dexModal.defaults')}<span className="optional-tag">{t('common.optional')}</span>
             </div>
             <div className="form-row">
               <div className="form-column">

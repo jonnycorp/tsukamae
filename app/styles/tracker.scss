@@ -56,6 +56,8 @@ $shine-band: 260px;
   display: flex;
   flex-direction: column;
   position: fixed;
+  // a short window can lift it over the nav, whose drag region would otherwise take its clicks
+  -webkit-app-region: no-drag;
   width: 280px;
   max-width: calc(100vw - 16px);
   // matches the 8px GAP the anchor logic uses; the body scrolls instead
@@ -395,7 +397,6 @@ $shine-band: 260px;
   .dex-search-bar-options {
     display: flex;
     gap: 18px;
-    margin-left: auto;
   }
 }
 
@@ -405,6 +406,27 @@ $shine-band: 260px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+// the filters' row ends with the way into the timeline
+.dex-search-bar .timeline-open {
+  @include filter-label;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 2px solid var(--field-edge);
+  background: none;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &:hover {
+    background-color: var(--hover-wash);
+  }
 }
 
 .filter-bar {
@@ -701,27 +723,6 @@ $shine-band: 260px;
     }
   }
 
-  // skips rendering offscreen by itself, like .flip-overlay, and for the same reason
-  .box-shine {
-    position: absolute;
-    inset: 1px;
-    z-index: 2;
-    content-visibility: auto;
-    pointer-events: none;
-  }
-
-  // one glint per row: each box's band starts a stride further back per column, so they line up as a single sweep
-  .box-shine-band {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(-1 * ((var(--column, 0) + 1) * #{$box-stride} + #{$shine-band * .5}));
-    width: $shine-band;
-    background: linear-gradient(105deg, transparent calc(50% - 45px), var(--shine) 50%, transparent calc(50% + 45px));
-    will-change: transform;
-    animation: seal-shine 7s ease-in-out infinite;
-  }
-
   &.box-complete {
     .tile-grid {
       border-color: var(--status-caught);
@@ -755,16 +756,53 @@ $shine-band: 260px;
   }
 }
 
-// a grid and what's laid over it: the flips, and a box's shine
+// a grid and what's laid over it: the flips and the shine, a box's or a box-sized chunk of search results'
 .box-container,
+.results-chunk,
 .search-results {
   position: relative;
   width: max-content;
 }
 
-.box-container > .tile-grid {
+.box-container > .tile-grid,
+.results-chunk > .tile-grid {
   content-visibility: auto;
   contain-intrinsic-size: auto #{$box-width} auto #{$box-rows * $pokemon-box-size + 2};
+}
+
+// results run on as one grid: each chunk after the first takes the one above's bottom frame as its top line, and its
+// overlays start at its first row, as a box's do inside its frame
+.results-chunk + .results-chunk {
+  > .tile-grid {
+    border-top: 0;
+  }
+
+  > .flip-overlay,
+  > .box-shine {
+    top: 0;
+  }
+}
+
+// skips rendering offscreen by itself, like .flip-overlay, and for the same reason
+.box-shine {
+  position: absolute;
+  inset: 1px;
+  z-index: 2;
+  content-visibility: auto;
+  pointer-events: none;
+}
+
+// one glint per row: each box's band starts a stride further back per column, so they line up as a single sweep; a
+// results chunk sweeps with the first column
+.box-shine-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * ((var(--column, 0) + 1) * #{$box-stride} + #{$shine-band * .5}));
+  width: $shine-band;
+  background: linear-gradient(105deg, transparent calc(50% - 45px), var(--shine) 50%, transparent calc(50% + 45px));
+  will-change: transform;
+  animation: seal-shine 7s ease-in-out infinite;
 }
 
 // sized by its grid cell; the grid lines are its own left and top borders, which the fill stops at
@@ -1248,6 +1286,7 @@ $shine-band: 260px;
   }
 
   .box-container,
+  .results-chunk,
   .search-results {
     width: auto;
   }
@@ -1268,7 +1307,8 @@ $shine-band: 260px;
     }
   }
 
-  .box-container > .tile-grid {
+  .box-container > .tile-grid,
+  .results-chunk > .tile-grid {
     contain-intrinsic-height: auto #{$box-columns * $box-rows * 80px};
   }
 
@@ -1335,6 +1375,50 @@ $shine-band: 260px;
     margin-right: 7px;
     font-size: 11px;
   }
+}
+
+// Space's pause (FlipPauseIndicator): each press flashes, and while held a quieter pill stays; bottom right, clear of
+// the scroll-to-top button (left) and the zoom badge (centre), and under the popover, which can reach that corner
+.flip-indicator {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 45;
+  padding: 7px 12px;
+  border-radius: 5px;
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  font-family: $font-secondary;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity .3s ease-out, transform .3s ease-out;
+
+  &.paused {
+    opacity: .6;
+    transform: none;
+  }
+
+  &.flash {
+    opacity: 1;
+    transform: none;
+    transition-duration: .05s;
+  }
+
+  .svg-inline--fa {
+    font-size: 11px;
+  }
+}
+
+// with nothing flipping in view (no seals shown, the list view) there's nothing paused to point at, and Space scrolls
+.tracker-container:not(:has(.flip-strip)) > .flip-indicator {
+  visibility: hidden;
 }
 
 .unseal-ring {

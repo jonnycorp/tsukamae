@@ -38,12 +38,12 @@ interface Props {
   grids: Capture[][];
   // the box grid's row these are, which the overlay spans (see .box-grid in styles/tracker.scss); unset for a lone grid
   row?: number;
-  deferred?: boolean;
+  // frames to wait before rendering, 0 for at once; only read as it mounts
+  deferFrames?: number;
 }
 
 function sameGrids (prev: Props, next: Props): boolean {
   return prev.row === next.row &&
-    prev.deferred === next.deferred &&
     prev.grids.length === next.grids.length &&
     prev.grids.every((captures, g) => captures.length === next.grids[g].length &&
       captures.every((capture, i) => capture === next.grids[g][i]));
@@ -52,10 +52,10 @@ function sameGrids (prev: Props, next: Props): boolean {
 // every sealed tile's flipping lines, lifted out of the tiles into an overlay: each tile row gets one clipped window
 // per line, spanning a whole row of boxes, whose faces slide as a single composited strip; the page's cost of a strip
 // grows with the number of them, so they're as few and as wide as the rows allow
-export const FlipStrips = memo(function FlipStrips ({ grids, row, deferred = false }: Props) {
+export const FlipStrips = memo(function FlipStrips ({ grids, row, deferFrames = 0 }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { sealFx } = useTrackerActions();
-  const render = useDeferredRender(!deferred);
+  const render = useDeferredRender(deferFrames === 0, deferFrames);
 
   if (!render || activeDex!.checklist) {
     return null;

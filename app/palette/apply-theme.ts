@@ -8,6 +8,8 @@ export const SOFT_DARK_STORAGE_KEY = 'nightMode';
 const MODAL_SHADE = 0.35;
 
 let titleBar = { color: '', symbolColor: '' };
+// a scene drawn over the nav (the timeline) puts its own colours under the window buttons while it's up
+let override: typeof titleBar | null = null;
 let openModals = 0;
 // how much of the backdrop's black is on the buttons: it fades in and out with the backdrop
 let shade = 0;
@@ -25,7 +27,13 @@ function shaded (color: string, alpha: number): string {
 
 // the desktop window buttons sit on the nav, drawn by the system, so they take its colours, and its dimming under a modal
 function sendTitleBar () {
-  window.tracker?.setTitleBarColors({ color: shaded(titleBar.color, shade), symbolColor: shaded(titleBar.symbolColor, shade) });
+  const colors = override ?? titleBar;
+  window.tracker?.setTitleBarColors({ color: shaded(colors.color, shade), symbolColor: shaded(colors.symbolColor, shade) });
+}
+
+export function overrideTitleBar (colors: typeof titleBar | null) {
+  override = colors;
+  sendTitleBar();
 }
 
 // frame by frame alongside the backdrop's fade (ease-out, as in the CSS), starting from wherever the last fade left it

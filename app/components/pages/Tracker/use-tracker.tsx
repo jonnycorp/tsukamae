@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { BOX_COLUMNS, TILE_SIZE } from '../../../utils/pokemon';
 import { TESTING } from '../../../utils/testing';
 import { EMPTY_METADATA } from '../../../utils/capture-fields';
 import { deleteCaptures, progressToCaptures, writeCapture } from '../../../utils/local-data';
@@ -11,6 +12,20 @@ import type { UpdateCapturePayload } from '../../../utils/local-data';
 
 export function isDisplaySealed (capture: Capture, checklist: boolean, sealFx: boolean): boolean {
   return sealFx && (checklist ? capture.status === 'caught' : capture.sealed);
+}
+
+// a box-sized grid's shine, one band clipped to its sealed slots — a per-tile shine layer exhausts GPU memory in a
+// checklist; null with nothing sealed. Boxes and search results chunks both draw it, so a seal shines in every view
+export function shineClip (captures: Capture[], checklist: boolean, sealFx: boolean): string | null {
+  const holes = captures.reduce<string[]>((all, capture, index) => {
+    if (isDisplaySealed(capture, checklist, sealFx)) {
+      const x = (index % BOX_COLUMNS) * TILE_SIZE;
+      const y = Math.floor(index / BOX_COLUMNS) * TILE_SIZE;
+      all.push(`M${x} ${y}h${TILE_SIZE}v${TILE_SIZE}h-${TILE_SIZE}Z`);
+    }
+    return all;
+  }, []);
+  return holes.length > 0 ? `path('${holes.join('')}')` : null;
 }
 
 // too narrow for one box: the legacy list view; keep in sync with the 750px media queries in styles/

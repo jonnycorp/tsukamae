@@ -150,7 +150,7 @@ export function FilterBar ({ filters, query, setFilters }: Props) {
         return (
           <button className="filter-chip" key={facet.id} onClick={() => setFacet(facet.id, [])} title={t('filter.clear')} type="button">
             <span className="filter-chip-label">{t(facet.labelKey)}</span>
-            {labels.length > 2 ? `${labels[0]} +${labels.length - 1}` : labels.join(', ')}
+            {labels.length > 2 ? t('filter.more', { first: labels[0], n: labels.length - 1 }) : labels.join(t('common.listSeparator'))}
             <FontAwesomeIcon icon={faXmark} />
           </button>
         );
