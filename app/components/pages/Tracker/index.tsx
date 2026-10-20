@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Dex } from './Dex';
-import { FlipPauseIndicator } from './FlipPauseIndicator';
 import { Footer } from '../../library/Footer';
+import { MoveMenu } from './MoveMenu';
+import { NameCopy } from './NameCopy';
 import { PokemonPopover } from './PokemonPopover';
 import { SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SearchBar } from './SearchBar';
@@ -10,10 +11,10 @@ import { Timeline } from './Timeline';
 import { ZoomIndicator } from './ZoomIndicator';
 import { EMPTY_FILTERS } from './filters';
 import { TrackerContextProvider } from './use-tracker';
+import { useHotkey } from '../../../hooks/use-hotkey';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDexScale } from './use-dex-scale';
 import { useFlipClock } from './use-flip-clock';
-import { useHotkey } from '../../../hooks/use-hotkey';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { AnimationEvent, CSSProperties } from 'react';
@@ -54,7 +55,7 @@ function TrackerInner () {
   const [showTimeline, setShowTimeline] = useState(false);
 
   const flipPause = useFlipClock(containerRef);
-  const { scale, columns, measured, headerWidth, topGap, flipLines, zoom, nudges } = useDexScale(areaRef);
+  const { scale, columns, measured, headerWidth, flipLines, zoom, nudges } = useDexScale(areaRef);
   // the ball badge draws a 20px sprite area at 15px (styles/tracker.scss): pixelated only once that's no longer a shrink
   const crispBalls = scale * window.devicePixelRatio >= 20 / 15;
 
@@ -118,14 +119,18 @@ function TrackerInner () {
           style={{
             '--dex-columns': columns,
             '--dex-header-width': `${headerWidth}px`,
-            '--dex-top-gap': `${topGap}px`,
             '--flip-names': `${flipLines.names}px`,
             '--flip-badges': `${flipLines.badges}px`,
             '--flip-numbers': `${flipLines.numbers}px`,
+            '--flip-band': `${flipLines.band}px`,
+            '--flip-lower': `${flipLines.band + flipLines.badges}px`,
+            '--type-glyph': `${flipLines.glyph}px`,
+            '--type-gap': `${flipLines.glyphGap}px`,
           } as CSSProperties}
         >
           <SearchBar
             filters={filters}
+            flipPause={flipPause}
             onOpenTimeline={timeline ? handleOpenTimeline : undefined}
             query={query}
             setFilters={setFilters}
@@ -154,7 +159,8 @@ function TrackerInner () {
         }
       </div>
       <ZoomIndicator nudges={nudges} zoom={zoom} />
-      <FlipPauseIndicator paused={flipPause.paused} presses={flipPause.presses} />
+      <NameCopy />
+      {!activeDex!.checklist && <MoveMenu />}
       {showTimeline && <Timeline onClose={handleCloseTimeline} onLocate={handleLocate} />}
     </div>
   );

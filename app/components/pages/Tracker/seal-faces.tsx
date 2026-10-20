@@ -39,18 +39,30 @@ const ORIGIN_MARK_SPRITES: Record<string, string> = {
   go: 'go',
 };
 
-// a sealed tile's lines that alternate with a second face: the name with its nickname, the badges with the catch
-// date, the number with the OT; FlipStrips slides these, and the tile leaves their space empty
+// a sealed tile's lines that alternate: the name with its nickname; the number and the badges with the OT and the
+// catch date, then together give way to the types' block. FlipStrips slides these, and the tile leaves their space
+// empty
 export function flippingLines (capture: Capture) {
+  const typed = (capture.pokemon.types?.length ?? 0) > 0;
   return {
     name: Boolean(capture.has_nickname && capture.nickname),
-    badges: Boolean(capture.catch_date),
-    number: Boolean(capture.ot),
+    badges: Boolean(capture.catch_date) || typed,
+    number: Boolean(capture.ot) || typed,
   };
 }
 
 interface Props {
   capture: Capture;
+}
+
+// a game's origin mark: its sprite, or a glyph for a trade or a gift (GO has a sprite of its own)
+export function OriginMark ({ game, title }: { game: string; title?: string }) {
+  const sprite = ORIGIN_MARK_SPRITES[game];
+  if (sprite) {
+    return <span className="origin-mark" style={{ maskImage: `url(/marks/${sprite}.png)` }} title={title} />;
+  }
+  const icon = ORIGIN_MARK_ICONS[game];
+  return icon ? <FontAwesomeIcon className={game === MYSTERY_GIFT ? 'gift-badge' : undefined} icon={icon} title={title} /> : null;
 }
 
 export function SpeciesLine ({ capture }: Props) {
@@ -67,7 +79,6 @@ export function BadgeRow ({ capture }: Props) {
   const originName = capture.origin_game
     ? localizeOriginGame(locale, capture.origin_game, ORIGIN_GAME_NAMES.get(capture.origin_game) || capture.origin_game)
     : '';
-  const originMarkSprite = capture.origin_game ? ORIGIN_MARK_SPRITES[capture.origin_game] : null;
 
   return (
     <span className="badge-row">
@@ -77,12 +88,7 @@ export function BadgeRow ({ capture }: Props) {
         }
       </span>
       <span className="badge-slot">
-        {originMarkSprite &&
-          <span className="origin-mark" style={{ maskImage: `url(/marks/${originMarkSprite}.png)` }} title={originName} />
-        }
-        {!originMarkSprite && capture.origin_game && ORIGIN_MARK_ICONS[capture.origin_game] &&
-          <FontAwesomeIcon className={capture.origin_game === MYSTERY_GIFT ? 'gift-badge' : undefined} icon={ORIGIN_MARK_ICONS[capture.origin_game]} title={originName} />
-        }
+        {capture.origin_game && <OriginMark game={capture.origin_game} title={originName} />}
       </span>
       <span className="badge-slot">
         {(capture.favorite === 'favorite' || capture.favorite === 'partner') &&
@@ -130,6 +136,18 @@ export function SlotsLine ({ capture, number }: Props & { number: string }) {
       <span>#{number}</span>
       <span className="slot-level">{typeof capture.level === 'number' && `Lv.${capture.level}`}</span>
     </p>
+  );
+}
+
+// the third face, over the number line and badges together: a glyph per type, Scarlet and Violet's symbols redrawn
+// (public/types) in each type's colour as solved for the theme
+export function TypesBlock ({ capture }: Props) {
+  return (
+    <div className="types-block">
+      {(capture.pokemon.types ?? []).map((type) => (
+        <span className="type-glyph" key={type} style={{ backgroundColor: `var(--type-${type})`, maskImage: `url(/types/${type}.svg)` }} />
+      ))}
+    </div>
   );
 }
 

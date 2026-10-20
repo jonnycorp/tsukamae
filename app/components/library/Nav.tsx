@@ -1,10 +1,8 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faFileExport, faFileImport, faFlask, faGamepad, faGear, faLanguage, faMoon, faPalette, faPencilAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faFileExport, faFileImport, faFlask, faGamepad, faGear, faLanguage, faLocationDot, faMoon, faPalette, faRotate } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
-import { DexModal } from './DexModal';
-import { Dropdown } from './Dropdown';
 import { SavesModal } from './SavesModal';
 import { THEMES, themePalette } from '../../palette/themes';
 import { exportAppState, importAppState, isAppState } from '../../utils/local-data';
@@ -13,7 +11,6 @@ import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/us
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { ChangeEvent, RefObject } from 'react';
-import type { PersonalDex } from '../../utils/local-data';
 
 // closes on a press outside, or on an Escape nothing else has claimed, as the Filters panel and the dropdowns do
 function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, close: () => void) {
@@ -48,15 +45,12 @@ const THEME_DOTS = ['chrome', 'accent', 'status-unobtainable', 'status-temporary
 
 export function Nav ({ onTogglePreview }: Props) {
   const { locale, setLocale } = useLocalStorageContext();
-  const { isSoftDark, setIsSoftDark, theme, setTheme } = useThemeContext();
-  const { dexes, activeDex, setActiveDex } = useDexContext();
+  const { isSoftDark, setIsSoftDark, theme, setTheme, locationTints, setLocationTints, flipTypes, setFlipTypes } = useThemeContext();
+  const { dexes, setActiveDex } = useDexContext();
   const { t } = useTranslation();
   // before the data loads, or when it can't be, there's nothing to export or edit, but Import can still restore an export
   const loaded = dexes !== null;
 
-  const [showCreate, setShowCreate] = useState(false);
-  // the dex Edit Dex opened for, so a save can only ever write to that one
-  const [editing, setEditing] = useState<PersonalDex | null>(null);
   const [showSaves, setShowSaves] = useState(false);
 
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -70,11 +64,8 @@ export function Nav ({ onTogglePreview }: Props) {
   useOutsideClickClose(showThemeMenu, themeMenuRef, () => setShowThemeMenu(false));
 
   const handleLanguageToggle = () => setLocale(locale === 'en' ? 'ja' : 'en');
+  // back to the landing page, where the dexes are opened, created and reordered
   const handleLogoClick = () => setActiveDex('');
-  const handleNewDexClick = () => setShowCreate(true);
-  const handleEditDexClick = () => setEditing(activeDex);
-  const handleCreateClose = () => setShowCreate(false);
-  const handleEditClose = () => setEditing(null);
 
   const handleExportClick = () => {
     const blob = new Blob([exportAppState()], { type: 'application/json' });
@@ -132,25 +123,6 @@ export function Nav ({ onTogglePreview }: Props) {
   return (
     <nav className={classNames('titlebar', { 'dropdown-open': showDataMenu || showThemeMenu })}>
       <a className="nav-logo" onClick={handleLogoClick}>{t('app.name')}</a>
-      {activeDex &&
-        <div className="nav-dex-controls">
-          <Dropdown
-            id="nav_dex"
-            onSelect={setActiveDex}
-            options={dexes!.map((dex) => ({ value: dex.id, label: dex.title }))}
-            triggerClassName="nav-dex-select"
-            value={activeDex.id}
-          />
-          <a className="nav-icon tooltip" onClick={handleEditDexClick}>
-            <FontAwesomeIcon icon={faPencilAlt} />
-            <span className="tooltip-text">{t('nav.editDex')}</span>
-          </a>
-          <a className="nav-icon tooltip" onClick={handleNewDexClick}>
-            <FontAwesomeIcon icon={faPlus} />
-            <span className="tooltip-text">{t('nav.newDex')}</span>
-          </a>
-        </div>
-      }
       <div className="nav-menu" ref={dataMenuRef}>
         <a className="nav-icon tooltip" onClick={() => setShowDataMenu((open) => !open)}>
           <FontAwesomeIcon icon={faGear} />
@@ -209,11 +181,20 @@ export function Nav ({ onTogglePreview }: Props) {
               {t('nav.softDark')}
               {isSoftDark && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
             </li>
+            {/* how the dex shows sealed tiles: washed by where each mon is, and whether the flips turn to the types */}
+            <li className={`theme-display ${locationTints ? 'theme-active' : ''}`} onClick={() => setLocationTints(!locationTints)}>
+              <FontAwesomeIcon icon={faLocationDot} />
+              {t('nav.locationTints')}
+              {locationTints && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+            </li>
+            <li className={flipTypes ? 'theme-active' : ''} onClick={() => setFlipTypes(!flipTypes)}>
+              <FontAwesomeIcon icon={faRotate} />
+              {t('nav.flipTypes')}
+              {flipTypes && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+            </li>
           </ul>
         }
       </div>
-      {showCreate && <DexModal onRequestClose={handleCreateClose} />}
-      {editing && <DexModal dex={editing} onRequestClose={handleEditClose} />}
       {showSaves && <SavesModal onRequestClose={() => setShowSaves(false)} />}
     </nav>
   );

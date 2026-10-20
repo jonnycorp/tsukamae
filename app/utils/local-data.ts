@@ -38,8 +38,9 @@ import xYRegionalMeta from '../../data/dexes/x-y-regional/meta.json';
 import xYRegionalPokemon from '../../data/dexes/x-y-regional/pokemon.json';
 
 import { EMPTY_METADATA, freshMetadata, withBaselines } from './capture-fields';
+import { movedRecord, placeOf, samePlace } from './location-moves';
 
-import type { Capture, CaptureMetadata, CapturePokemon, CaptureStatus, Dex, DexType, Game, GameSave } from '../types';
+import type { Capture, CaptureMetadata, CapturePokemon, CaptureStatus, Dex, DexType, Game, GameSave, Place } from '../types';
 
 export interface CatalogDex {
   key: string;
@@ -496,13 +497,12 @@ function commitRecords (dexId: string, mutator: (dex: PersonalDex, state: AppSta
   });
 }
 
-// editingSealed is the TESTING seal-fx bypass for fixing sealed records
-export function writeCapture (dexId: string, payload: UpdateCapturePayload, editingSealed = false): void {
+export function writeCapture (dexId: string, payload: UpdateCapturePayload): void {
   const { pokemon, ...changes } = payload;
   commitRecords(dexId, (dex, state) => {
     const existing = dex.progress[pokemon];
 
-    if (existing?.sealed && changes.sealed !== false && !editingSealed) {
+    if (existing?.sealed && changes.sealed !== false) {
       return [];
     }
 
@@ -515,7 +515,7 @@ export function writeCapture (dexId: string, payload: UpdateCapturePayload, edit
     };
 
     const next: ProgressEntry = { ...base, ...changes };
-    // sealing is only ever from Caught, so a record leaving it (only the TESTING bypass can) leaves the seal behind
+    // sealing is only ever from Caught, so a record leaving it leaves the seal behind
     if (next.status !== 'caught') {
       next.sealed = false;
     }
@@ -536,4 +536,18 @@ export function deleteCaptures (dexId: string, pokemonIds: number[]): void {
     delete dex.progress[id];
     return true;
   }));
+}
+
+// a sealed mon moved: the only write a sealed record takes besides unsealing, and only to where it is. A move to where
+// it already is, or of a record that isn't sealed, does nothing
+export function moveCapture (dexId: string, pokemon: number, to: Place): void {
+  commitRecords(dexId, (dex) => {
+    const entry = dex.progress[pokemon];
+    const here = entry && placeOf(entry);
+    if (!entry?.sealed || (here && samePlace(here, to))) {
+      return [];
+    }
+    dex.progress[pokemon] = movedRecord(entry, to);
+    return [pokemon];
+  });
 }

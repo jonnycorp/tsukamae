@@ -18,16 +18,20 @@ interface Props {
   onSelect: (value: string) => void;
   blankLabel?: string;
   triggerClassName?: string;
+  // the menu's edge that lines up with the trigger's, where it's wider: start, or end for a trigger set to the right
+  align?: 'start' | 'end';
 }
 
 const MENU_MAX_HEIGHT = 240;
+const EDGE = 8;
 
 // the menu is position: fixed so no overflow ancestor (modal, popover body) can clip it
-export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName }: Props) {
+export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, align = 'start' }: Props) {
   const [open, setOpen] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<{ top?: number; bottom?: number; left: number; width: number }>({ left: 0, width: 0 });
+  const [menuStyle, setMenuStyle] = useState<{ top?: number; bottom?: number; left: number; minWidth: number }>({ left: 0, minWidth: 0 });
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
 
   const all = blankLabel !== undefined ? [{ value: '', label: blankLabel }, ...options] : options;
@@ -35,19 +39,26 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
   // the option the keyboard is on while the menu's open; focus stays on the trigger
   const [active, setActive] = useState(-1);
 
+  // under the trigger, or over it where there's no room below; as wide as its widest option, so none is cut off, and
+  // never narrower than the trigger, kept inside the window
   useLayoutEffect(() => {
     if (!open) {
       return;
     }
-    const trigger = rootRef.current;
-    if (!trigger) {
+    // the button, which can reach past the wrapper (the sealed record's location is shaded into its row's padding)
+    const trigger = triggerRef.current;
+    const menu = menuRef.current;
+    if (!trigger || !menu) {
       return;
     }
     const rect = trigger.getBoundingClientRect();
-    const fitsBelow = rect.bottom + MENU_MAX_HEIGHT <= window.innerHeight - 8;
+    menu.style.minWidth = `${rect.width}px`;
+    const width = menu.offsetWidth;
+    const left = Math.max(EDGE, Math.min(align === 'end' ? rect.right - width : rect.left, window.innerWidth - width - EDGE));
+    const fitsBelow = rect.bottom + MENU_MAX_HEIGHT <= window.innerHeight - EDGE;
     setMenuStyle(fitsBelow
-      ? { top: rect.bottom, left: rect.left, width: rect.width }
-      : { bottom: window.innerHeight - rect.top, left: rect.left, width: rect.width });
+      ? { top: rect.bottom, left, minWidth: rect.width }
+      : { bottom: window.innerHeight - rect.top, left, minWidth: rect.width });
     setActive(Math.max(0, all.findIndex((option) => option.value === value)));
     requestAnimationFrame(() => {
       menuRef.current?.querySelector('.dropdown-selected')?.scrollIntoView({ block: 'nearest' });
@@ -147,6 +158,7 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
         id={id}
         onClick={() => setOpen((prev) => !prev)}
         onKeyDown={handleKeyDown}
+        ref={triggerRef}
         type="button"
       >
         <span className="dropdown-value">
@@ -156,13 +168,15 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
         <FontAwesomeIcon className="dropdown-chevron" icon={faChevronDown} />
       </button>
       {open &&
-        <ul className="dropdown-menu" ref={menuRef} role="listbox" style={menuStyle}>
+        <ul className="dropdown-menu" data-up={menuStyle.bottom !== undefined || undefined} ref={menuRef} role="listbox" style={menuStyle}>
           {all.map((option, index) => (
             <li
               aria-selected={option.value === value}
               className={classNames({ 'dropdown-selected': option.value === value, 'dropdown-active': index === active })}
               key={option.value || '(blank)'}
               onClick={() => handlePick(option.value)}
+              // the keyboard carries on from where the pointer is
+              onMouseEnter={() => setActive(index)}
               role="option"
             >
               {option.icon && <img alt="" src={`/${option.icon}`} />}

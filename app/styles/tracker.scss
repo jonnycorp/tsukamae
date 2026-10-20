@@ -5,8 +5,9 @@
 // keep in sync with HOLD_MS and SLIDE_MS in components/pages/Tracker/use-flip-clock.ts
 $flip-hold: 5.5s;
 $flip-slide: .8s;
-// face 0, a slide, face 1, a slide to face 2 (a copy of face 0), and round again
-$flip-cycle: 2 * ($flip-hold + $flip-slide);
+// a face's hold and the slide off it; three a cycle: the record's face, the trainer's, the types'
+$flip-phase: $flip-hold + $flip-slide;
+$flip-cycle: 3 * $flip-phase;
 $box-stride: $box-width + $dex-grid-gap;
 // wide enough for the 105deg glint's slant across a 550px box
 $shine-band: 260px;
@@ -240,6 +241,26 @@ $shine-band: 260px;
         font-size: 11px;
       }
     }
+
+    // a sealed record's location, the one thing it still changes: its value in the row's own type, in line with the
+    // values around it, and a chevron that brightens on hover (and turns while the menu's open, as every field's does)
+    .popover-move {
+      max-width: 100%;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: inherit;
+      font: inherit;
+
+      .dropdown-chevron {
+        margin-left: -2px;
+      }
+
+      &:hover .dropdown-chevron,
+      &[aria-expanded='true'] .dropdown-chevron {
+        opacity: 1;
+      }
+    }
   }
 
   .form-subgroup {
@@ -261,7 +282,7 @@ $shine-band: 260px;
       background-color: var(--overlay-deep);
       color: var(--on-overlay-muted);
       font-family: $font-secondary;
-      font-size: 11px;
+      @include small-text(11px);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -293,87 +314,146 @@ $shine-band: 260px;
   }
 }
 
+@mixin filter-label {
+  font-family: $font-secondary;
+  @include small-text(12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+// every control in the filters' row is this tall, its border included, so the row lines up whatever each one holds
+// (its words in either language, an icon): the views, Edit Dex, Filters and a chip
+$filter-control: 36px;
+// the row above it a size up, the same way: the search, Timeline, the pause's picker and its button
+$search-height: 42px;
+// a face of the pause's picker, square
+$flip-face-width: $search-height;
+
 .dex-search-bar {
   background-color: var(--paper-raised);
-  padding: 10px 12px;
+  padding: 12px;
 
-  // as wide as the boxes at 100% (--dex-header-width, from useDexScale); zooming never moves or scales it
+  // as wide as the boxes at 100% where the width alone sets the fit (--dex-header-width, from useDexScale): neither
+  // zooming nor a change of the window's height moves or scales it
   .dex-search-bar-inner {
+    container: dex-header / inline-size;
     max-width: var(--dex-header-width);
     margin: 0 auto;
   }
 
+  // the dex's name and progress at the left, the search in the middle and Timeline and the flips' pause after it: three
+  // columns, the outer two equal so the search sits on the centre line. Narrower, the search and what follows it go
+  // under the name and progress, the search taking the line's width
   .dex-search-bar-top {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: 'summary search after';
     align-items: center;
-    justify-content: space-between;
+    row-gap: 10px;
   }
 
   .dex-search-bar-summary {
-    flex: 1 1 auto;
+    grid-area: summary;
     min-width: 0;
-    margin-right: 32px;
+    max-width: 640px;
+    margin-right: 24px;
 
+    // the name, and the dex's tags right-justified to the progress bar's end: beside the name where they fit, under it
+    // where it's too long for them
     .header-row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      margin-bottom: 8px;
+      gap: 6px 14px;
+      margin-bottom: 10px;
 
       h1 {
-        margin: 0 12px 0 0;
+        min-width: 0;
+        max-width: 100%;
+        margin: 0;
         font-family: $font-secondary;
-        font-size: 24px;
+        font-size: 30px;
+        line-height: 1.15;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-    }
 
-    .progress-container {
-      max-width: 520px;
+      // a size up from the landing page's
+      .dex-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-left: 0;
+
+        .fa-star {
+          font-size: 10px;
+        }
+
+        .label {
+          margin-left: 0;
+          padding: 5px 8px;
+
+          @include small-text(12px);
+        }
+      }
     }
+  }
+
+  // Timeline right beside the search, then the pause, whose words slide out across the room it's given
+  .dex-search-bar-after {
+    display: flex;
+    grid-area: after;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin-left: 10px;
   }
 
   .dex-search-bar-search {
-    flex: 0 0 320px;
-  }
+    grid-area: search;
+    width: clamp(300px, 34cqw, 640px);
 
-  .form-group {
-    margin-bottom: 0;
+    .form-group {
+      position: relative;
+      margin-bottom: 0;
+    }
 
     // room for the magnifier and the clear button
     input {
-      padding: 0 32px;
+      height: $search-height;
+      padding: 0 40px;
+      font-size: 15px;
     }
 
     .fa-magnifying-glass {
       position: absolute;
-      bottom: 15px;
-      left: 14px;
-      font-size: 12px;
+      top: 50%;
+      left: 16px;
+      transform: translateY(-50%);
+      font-size: 14px;
       color: var(--ink-muted);
     }
 
     .clear-btn {
       display: flex;
       align-items: center;
-      cursor: pointer;
-      height: 100%;
       justify-content: center;
       position: absolute;
-      right: 0;
       top: 0;
-      width: 30px;
+      right: 0;
+      width: 40px;
+      height: 100%;
+      cursor: pointer;
 
       .fa-xmark {
-        font-size: 10px;
+        font-size: 12px;
         color: var(--ink-muted);
       }
 
-      &:hover {
-        .fa-xmark {
-          color: var(--ink);
-        }
+      &:hover .fa-xmark {
+        color: var(--ink);
       }
     }
   }
@@ -383,40 +463,38 @@ $shine-band: 260px;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 18px;
-    padding-top: 10px;
-
-    .form-group {
-      margin-bottom: 0;
-    }
-
-    .checkbox label {
-      white-space: nowrap;
-    }
-  }
-
-  .dex-search-bar-options {
-    display: flex;
-    gap: 18px;
+    padding-top: 12px;
   }
 }
 
-@mixin filter-label {
-  font-family: $font-secondary;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+@container dex-header (width < 1350px) {
+  .dex-search-bar {
+    .dex-search-bar-top {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: 'summary summary' 'search after';
+    }
+
+    .dex-search-bar-summary {
+      margin-right: 0;
+    }
+
+    .dex-search-bar-search {
+      width: auto;
+    }
+  }
 }
 
-// the filters' row ends with the way into the timeline
+
+// the way into the timeline, beside the search and as tall as it
 .dex-search-bar .timeline-open {
   @include filter-label;
 
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
-  padding: 6px 12px;
+  height: $search-height;
+  padding: 0 16px;
   border: 2px solid var(--field-edge);
   background: none;
   color: var(--ink);
@@ -437,14 +515,18 @@ $shine-band: 260px;
 
   .filter-views {
     display: flex;
+    height: $filter-control;
     border: 2px solid var(--field-edge);
   }
 
   .filter-view,
-  .filter-toggle {
+  .filter-toggle,
+  .filter-edit-dex {
     @include filter-label;
 
-    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
     border: 0;
     background: none;
     color: var(--ink);
@@ -470,14 +552,20 @@ $shine-band: 260px;
     position: relative;
   }
 
-  .filter-toggle {
-    display: flex;
-    align-items: center;
+  .filter-toggle,
+  .filter-edit-dex {
     gap: 8px;
+    height: $filter-control;
     border: 2px solid var(--field-edge);
+  }
 
+  .filter-edit-dex .svg-inline--fa {
+    font-size: 11px;
+  }
+
+  .filter-toggle {
     .svg-inline--fa {
-      font-size: 9px;
+      font-size: 10px;
       transition: transform .1s ease-out;
     }
 
@@ -490,12 +578,13 @@ $shine-band: 260px;
     display: flex;
     align-items: center;
     gap: 7px;
-    padding: 6px 10px;
+    height: $filter-control;
+    padding: 0 10px;
     border: 0;
     background-color: var(--accent);
     color: var(--on-accent);
     font-family: $font-primary;
-    font-size: 14px;
+    font-size: 15px;
     white-space: nowrap;
     cursor: pointer;
     transition: background-color .1s ease-out;
@@ -507,11 +596,11 @@ $shine-band: 260px;
     .filter-chip-label {
       @include filter-label;
 
-      font-size: 10px;
+      @include small-text(11px);
     }
 
     .svg-inline--fa {
-      font-size: 10px;
+      font-size: 11px;
     }
   }
 
@@ -565,7 +654,7 @@ $shine-band: 260px;
     @include filter-label;
 
     margin: 0 0 7px;
-    font-size: 10px;
+    @include small-text(10px);
   }
 
   .facet-options {
@@ -624,8 +713,8 @@ $shine-band: 260px;
 
 .dex {
   flex: 1 0 auto;
-  // --dex-top-gap (useDexScale) centres the first row of boxes in the room under the search bar
-  padding: var(--dex-top-gap, 30px) 0 100px;
+  // the same gap above the first row of boxes at any window height (TOP_GAP in useDexScale)
+  padding: 30px 0 100px;
 }
 
 // the scroll-to-top button: fixed, and outside the zoomed dex so it keeps its size
@@ -711,7 +800,7 @@ $shine-band: 260px;
       grid-column: 3;
       justify-self: end;
       font-family: $font-secondary;
-      font-size: 11px;
+      @include small-text(11px);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -863,6 +952,11 @@ $shine-band: 260px;
 
   &.captured.sealed.loc-champions {
     --wash: var(--wash-champions);
+  }
+
+  // in one of your games, out of a HOME dex's HOME (utils/location-moves)
+  &.captured.sealed.loc-out {
+    --wash: var(--wash-loan);
   }
 
   // rings inside the tile, clear of the shared grid lines
@@ -1026,9 +1120,38 @@ $shine-band: 260px;
   font-weight: 700;
   color: var(--on-tile-accent);
 
+  // a Japanese OT, a pixel up as small Japanese text is (small-text); its line's 11px comes from the tiles' shared rule
+  @include cjk {
+    font-size: 12px;
+  }
+
   &.gift {
     color: var(--gift);
   }
+}
+
+// the third face (TypesBlock), across the number line and badges together: a glyph per type in its colour solved for
+// the theme (--type-*), centred in the block; the glyph and the gap between two are whole screen pixels at any zoom
+// (useDexScale), so every tile draws a glyph alike and a pair sits on whole pixels
+.types-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--type-gap, 6px);
+
+  .type-glyph {
+    width: var(--type-glyph, 16px);
+    height: var(--type-glyph, 16px);
+  }
+}
+
+.type-glyph {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
 }
 
 .number-line-slots {
@@ -1115,8 +1238,9 @@ $shine-band: 260px;
   }
 }
 
-// no specificity of its own, so a line's class (the OT's bold) wins over it
-:where(.set-captured, .flip-numbers) p {
+// no specificity of its own, so a line's class (the OT's bold) wins over it; the badges' strip carries the number line
+// through as the types' block leaves
+:where(.set-captured, .flip-numbers, .flip-badges) p {
   margin: 0;
   font-family: $font-secondary;
   font-size: 11px;
@@ -1137,7 +1261,7 @@ $shine-band: 260px;
 
 // one clipped window per tile row and flipping line, whose faces slide together as a single composited strip; faces
 // are --flip-* tall, a whole number of screen pixels (useDexScale), so a strip only ever rests on whole pixels and
-// wrapping from face 2, a copy of face 0, back to 0 changes nothing on screen
+// wrapping from its last face, a copy of its first, back to the first changes nothing on screen
 .flip-window {
   position: absolute;
   right: 0;
@@ -1146,19 +1270,65 @@ $shine-band: 260px;
   color: var(--on-tile);
 }
 
-// every strip runs this on the compositor, all from one start (useFlipClock); wrapping from face 2 to face 0 moves
-// the strip a whole number of screen pixels onto the same picture
-@keyframes flip-cycle {
-  0%,
-  #{math.percentage(math.div($flip-hold, $flip-cycle))} {
+@function flip-at ($time) {
+  @return math.percentage(math.div($time, $flip-cycle));
+}
+
+// every strip runs one of these on the compositor, all from one start (useFlipClock). The number line and the badges
+// each slide their own line's height to the trainer's face, then a whole block (--flip-lower, the two lines' height)
+// into the types' face and on to their copies of the first, the two strips moving as one. A held line (.flip-hold),
+// whose trainer's face is its record's, swaps the two at the end of that slide instead: the same picture, so nothing
+// shows, where sliding it showed the line rolling over onto itself
+@mixin flip-cycle-block-frames ($swap-to-trainer: false) {
+  0% {
     transform: translateY(0);
   }
 
-  50%,
-  #{math.percentage(math.div(2 * $flip-hold + $flip-slide, $flip-cycle))} {
+  #{flip-at($flip-hold)} {
+    transform: translateY(0);
+
+    @if $swap-to-trainer {
+      animation-timing-function: step-end;
+    }
+  }
+
+  #{flip-at($flip-phase)},
+  #{flip-at($flip-phase + $flip-hold)} {
     transform: translateY(calc(-1 * var(--flip-face)));
   }
 
+  #{flip-at(2 * $flip-phase)},
+  #{flip-at(2 * $flip-phase + $flip-hold)} {
+    transform: translateY(calc(-1 * (var(--flip-face) + var(--flip-lower))));
+  }
+
+  100% {
+    transform: translateY(calc(-1 * (var(--flip-face) + 2 * var(--flip-lower))));
+  }
+}
+
+@keyframes flip-cycle-block {
+  @include flip-cycle-block-frames;
+}
+
+@keyframes flip-cycle-block-hold {
+  @include flip-cycle-block-frames($swap-to-trainer: true);
+}
+
+// a two-face line (the name and its nickname) in the same cycle: back on its first face, as its copy, for the types'
+// third, so nothing slides onto the picture already there
+@keyframes flip-cycle-pair {
+  0%,
+  #{flip-at($flip-hold)} {
+    transform: translateY(0);
+  }
+
+  #{flip-at($flip-phase)},
+  #{flip-at($flip-phase + $flip-hold)} {
+    transform: translateY(calc(-1 * var(--flip-face)));
+  }
+
+  #{flip-at(2 * $flip-phase)},
   100% {
     transform: translateY(calc(-2 * var(--flip-face)));
   }
@@ -1166,7 +1336,89 @@ $shine-band: 260px;
 
 .flip-strip {
   will-change: transform;
-  animation: flip-cycle $flip-cycle ease-in-out infinite;
+  animation: flip-cycle-pair $flip-cycle ease-in-out infinite;
+}
+
+:is(.flip-numbers, .flip-badges) .flip-strip {
+  animation-name: flip-cycle-block;
+}
+
+:is(.flip-numbers, .flip-badges).flip-hold .flip-strip {
+  animation-name: flip-cycle-block-hold;
+}
+
+// Types in Flips off (the palette menu, applyDisplay): two phases, the record's face and the trainer's, each line
+// swinging up to its trainer's face and back down rather than on through the types, which stay a face to hold while
+// paused. Only the animation changes, so switching renders nothing
+$flip-cycle-two: 2 * $flip-phase;
+
+@function flip-two-at ($time) {
+  @return math.percentage(math.div($time, $flip-cycle-two));
+}
+
+@keyframes flip-cycle-swing {
+  0%,
+  #{flip-two-at($flip-hold)} {
+    transform: translateY(0);
+  }
+
+  #{flip-two-at($flip-phase)},
+  #{flip-two-at($flip-phase + $flip-hold)} {
+    transform: translateY(calc(-1 * var(--flip-face)));
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+:root[data-flip-no-types] .tracker-container:not([data-flip-paused]) {
+  .flip-strip {
+    animation-name: flip-cycle-swing;
+    animation-duration: $flip-cycle-two;
+  }
+
+  // a held line's record and trainer's faces are the same picture: nothing to swing between
+  .flip-hold .flip-strip {
+    animation: none;
+  }
+}
+
+// Location Tints off (the palette menu, applyDisplay): a mon away from where its dex keeps them is washed as one there
+// is, so only those tiles change
+:root[data-plain-seals] .tracker-container .pokemon.captured.sealed:is(.loc-home, .loc-champions, .loc-out) {
+  --wash: var(--wash-seal);
+}
+
+// the move menu (MoveMenu, L over a sealed tile), a dropdown's list of where the mon can go, each with its mark
+.move-menu {
+  max-height: none;
+
+  .move-menu-icon {
+    flex: none;
+    width: 14px;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .move-menu-mark {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    image-rendering: auto;
+  }
+
+  .origin-mark {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    background-color: currentColor;
+  }
+
+  [aria-disabled='true'] {
+    cursor: default;
+  }
 }
 
 .flip-faces {
@@ -1191,19 +1443,89 @@ $shine-band: 260px;
   @include number-halo;
 }
 
+// the badges' window starts where the number line's ends, so the two never draw the same pixel, and its strip sits up
+// by the lines' overlap (the band is a little under the number line's height) to keep the badges in their place
+.flip-badges {
+  height: calc(var(--flip-lower, 34px) - var(--flip-numbers, 16px));
+
+  .flip-strip {
+    margin-top: calc(var(--flip-band, 14px) - var(--flip-numbers, 16px));
+  }
+
+  .number-line-slots {
+    @include number-halo;
+  }
+}
+
+// the block lines' faces sit where the block puts them rather than each under the last: the first two a line apart,
+// then the types and what passes through as the block moves (FlipStrips)
+:is(.flip-numbers, .flip-badges) .flip-faces > * {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+}
+
+.flip-numbers .flip-faces {
+  > :nth-child(2) {
+    top: var(--flip-face);
+  }
+
+  // the badges' trainer face, passing up through the number line as the block leaves for the types
+  > :nth-child(3) {
+    top: calc(var(--flip-face) + var(--flip-band, 14px));
+    height: var(--flip-badges, 20px);
+  }
+
+  > :nth-child(4) {
+    top: calc(var(--flip-face) + var(--flip-lower, 34px));
+    height: var(--flip-lower, 34px);
+  }
+
+  > :nth-child(5) {
+    top: calc(var(--flip-face) + 2 * var(--flip-lower, 34px));
+  }
+}
+
+.flip-badges .flip-faces {
+  > :nth-child(2) {
+    top: var(--flip-face);
+  }
+
+  > :nth-child(3) {
+    top: calc(2 * var(--flip-face));
+    height: var(--flip-lower, 34px);
+  }
+
+  // the number line's first face, passing up through the badges as the block comes back from the types
+  > :nth-child(4) {
+    top: calc(2 * var(--flip-face) + var(--flip-lower, 34px));
+    height: var(--flip-numbers, 16px);
+  }
+
+  > :nth-child(5) {
+    top: calc(var(--flip-face) + 2 * var(--flip-lower, 34px));
+  }
+}
+
 // a name wider than its tile overflows both sides evenly, as in the tile's own centred column, not just to the right
 .flip-names h4 {
   display: flex;
   justify-content: center;
 }
 
-// paused with space (useFlipClock), holding the face on show
+// paused with space (useFlipClock), holding the face on show, or the one picked since (which slides there); the name
+// holds its first for the types
 .tracker-container[data-flip-paused] .flip-strip {
   animation: none;
 }
 
 .tracker-container[data-flip-paused='1'] .flip-strip {
   transform: translateY(calc(-1 * var(--flip-face)));
+}
+
+.tracker-container[data-flip-paused='2'] :is(.flip-numbers, .flip-badges) .flip-strip {
+  transform: translateY(calc(-1 * (var(--flip-face) + var(--flip-lower))));
 }
 
 .set-status {
@@ -1377,48 +1699,275 @@ $shine-band: 260px;
   }
 }
 
-// Space's pause (FlipPauseIndicator): each press flashes, and while held a quieter pill stays; bottom right, clear of
-// the scroll-to-top button (left) and the zoom badge (centre), and under the popover, which can reach that corner
+// Space's pause (FlipPauseIndicator), at the end of the filters' row beside the Timeline button: each press says what
+// it did, and the words slide off to the side and go; for as long as the flips are held the pause button stays, the
+// picker open beside it from the moment they're paused. The picker's slot and the button keep their room in the row
+// whether shown or not, so pausing moves nothing and covers nothing; the indicator takes the row's spare width, and the
+// words, overlaying it, are clipped at its edge, so in a row with none to spare they pass under the picker rather than
+// over a filter
 .flip-indicator {
   display: flex;
+  position: relative;
+  flex: 1 1 auto;
   align-items: center;
-  gap: 7px;
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 45;
-  padding: 7px 12px;
-  border-radius: 5px;
-  background-color: var(--overlay);
-  color: var(--on-overlay);
-  font-family: $font-secondary;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  justify-content: flex-end;
+  gap: 6px;
+  container: flip-indicator / inline-size;
+  // the picker's slot, the gap and the button, which the container's size no longer brings
+  min-width: 3 * $flip-face-width + 2 * 2px + 6px + $search-height;
+  overflow-x: clip;
+  // room for a focused face's or the button's ring
+  overflow-clip-margin: 4px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .3s ease-out, visibility 0s linear .3s;
+
+  &.paused,
+  &.flash {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity .1s ease-out;
+  }
+
+}
+
+// keep in sync with FLASH_MS in components/pages/Tracker/FlipPauseIndicator.tsx: how long a press's words take to go
+$flip-flash: 1.2s;
+// the picker's wipe open, and the words' slide ahead of it: a little quicker, as the compositor starts them a frame or
+// two after the wipe
+$flip-wipe: .4s;
+$flip-push: .3s;
+$flip-wipe-easing: cubic-bezier(.2, .8, .2, 1);
+// as far as the words go to clear the picker: its three faces and two borders, and the gap it keeps from the button
+$flip-pushed: 3 * $flip-face-width + 2 * 2px + 6px;
+
+// pausing: the words keep just ahead of the picker's left edge as it wipes open, pushed aside by it, then drift on to
+// the side. The picker is drawn over them, so a frame where the two fall out of step tucks the words under it rather
+// than covering a face
+@keyframes flip-label-pushed {
+  0% {
+    transform: translateX(0);
+    animation-timing-function: $flip-wipe-easing;
+  }
+
+  #{math.percentage(math.div($flip-push, $flip-flash))} {
+    transform: translateX(-$flip-pushed);
+    animation-timing-function: ease-in;
+  }
+
+  100% {
+    transform: translateX(-$flip-pushed - 28px);
+  }
+}
+
+// resuming: once the picker has shut, the words beside the button, drifting off to the side
+@keyframes flip-label-away {
+  0%,
+  15% {
+    transform: translateX(6px);
+    animation-timing-function: ease-out;
+  }
+
+  30% {
+    transform: translateX(0);
+    animation-timing-function: ease-in;
+  }
+
+  100% {
+    transform: translateX(-28px);
+  }
+}
+
+// in quickly, then gone as they drift; resuming, only once the picker has shut
+@keyframes flip-label-fade {
+  0% {
+    opacity: 0;
+  }
+
+  6%,
+  50% {
+    opacity: 1;
+    animation-timing-function: ease-in;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes flip-label-fade-late {
+  0%,
+  15% {
+    opacity: 0;
+  }
+
+  30%,
+  55% {
+    opacity: 1;
+    animation-timing-function: ease-in;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+// as tall as the button, its text centred, so the words move only sideways: a box set half a pixel down and moved on
+// the compositor left a faint seam along its bottom edge
+.flip-indicator-label {
+  @include filter-label;
+
+  display: flex;
+  position: absolute;
+  top: 0;
+  // where the picker's right edge is: the button and the gap from it
+  right: $search-height + 6px;
+  bottom: 0;
+  align-items: center;
+  padding: 0 8px;
+  background-color: var(--paper-raised);
+  color: var(--ink-muted);
+  white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(6px);
-  transition: opacity .3s ease-out, transform .3s ease-out;
 
-  &.paused {
-    opacity: .6;
-    transform: none;
+  .flash.paused > & {
+    animation: flip-label-pushed $flip-flash linear both, flip-label-fade $flip-flash linear both;
   }
 
-  &.flash {
+  .flash:not(.paused) > & {
+    animation: flip-label-away $flip-flash linear both, flip-label-fade-late $flip-flash linear both;
+  }
+}
+
+// where the row leaves too little room beside the picker for the words to slide off whole (the longest, in Japanese,
+// with their drift), they don't show at all rather than as a clipped fragment; still read out, as the live region stays
+@container flip-indicator (width < 380px) {
+  .flip-indicator.flash > .flip-indicator-label {
+    animation: none;
+  }
+}
+
+// while the flips are held, from the moment they are: which face to hold, wiping open out of the pause button to its
+// left; picking one slides the tiles there (useFlipClock)
+.flip-picker {
+  display: flex;
+  position: relative;
+  z-index: 1;
+  height: $search-height;
+  border: 2px solid var(--field-edge);
+  background-color: var(--paper-raised);
+  clip-path: inset(0 0 0 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: clip-path .2s ease-in, opacity .2s ease-in;
+
+  .paused > & {
+    clip-path: inset(0);
     opacity: 1;
-    transform: none;
-    transition-duration: .05s;
+    pointer-events: auto;
+    transition: clip-path $flip-wipe $flip-wipe-easing, opacity .1s ease-out;
+  }
+}
+
+.flip-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: $flip-face-width;
+  height: 100%;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color .1s ease-out, color .1s ease-out;
+
+  &:hover {
+    background-color: var(--hover-wash);
   }
 
-  .svg-inline--fa {
-    font-size: 11px;
+  & + & {
+    border-left: 2px solid var(--field-edge);
+  }
+
+  &.active {
+    background-color: var(--accent);
+    color: var(--on-accent);
+  }
+}
+
+.flip-face-glyph {
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.flip-indicator-button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: $search-height;
+  height: $search-height;
+  padding: 0;
+  border: 2px solid var(--field-edge);
+  background: none;
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &:hover {
+    background-color: var(--hover-wash);
+  }
+
+  .paused > & {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--on-accent);
   }
 }
 
 // with nothing flipping in view (no seals shown, the list view) there's nothing paused to point at, and Space scrolls
-.tracker-container:not(:has(.flip-strip)) > .flip-indicator {
+.tracker-container:not(:has(.flip-strip)) .flip-indicator {
   visibility: hidden;
+}
+
+// a right-click's copied name (NameCopy): a tag that rises off the pointer, over everything, the timeline and the
+// popover included
+.name-copied {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: fixed;
+  z-index: 110;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  font-family: $font-secondary;
+  @include small-text(11px);
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  animation: name-copied 1s ease-out forwards;
+
+  // clear of the timeline's hover card, which sits above the mon
+  &.under {
+    animation-name: name-copied-under;
+  }
+
+  .svg-inline--fa {
+    font-size: 10px;
+  }
 }
 
 .unseal-ring {

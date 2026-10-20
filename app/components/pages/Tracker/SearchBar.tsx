@@ -1,40 +1,25 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faTimeline, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { DexModal } from '../../library/DexModal';
 import { FilterBar } from './FilterBar';
+import { FlipPauseIndicator } from './FlipPauseIndicator';
 import { Header } from '../../library/Header';
 import { Progress } from '../../library/Progress';
 import { MENU_OR_MODAL } from '../../../hooks/use-hotkey';
-import { TESTING } from '../../../utils/testing';
-import { useTrackerActions, useTrackerState } from './use-tracker';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
+import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
-import type { ChangeEvent, Dispatch, ReactNode, SetStateAction } from 'react';
+import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
+import type { FlipPause } from './use-flip-clock';
+import type { PersonalDex } from '../../../utils/local-data';
 import type { TrackerFilters } from './filters';
-
-interface CheckboxProps {
-  checked: boolean;
-  id: string;
-  label: ReactNode;
-  onChange: (checked: boolean) => void;
-}
-
-function FilterCheckbox ({ checked, id, label, onChange }: CheckboxProps) {
-  return (
-    <div className="form-group">
-      <div className="checkbox">
-        <label>
-          <input checked={checked} id={id} name={id} onChange={(e) => onChange(e.target.checked)} type="checkbox" />
-          <span className="checkbox-custom"><span /></span>{label}
-        </label>
-      </div>
-    </div>
-  );
-}
 
 interface Props {
   filters: TrackerFilters;
+  flipPause: FlipPause;
   // unset in a checklist, which keeps no catch dates
   onOpenTimeline?: () => void;
   query: string;
@@ -42,11 +27,15 @@ interface Props {
   setQuery: Dispatch<SetStateAction<string>>;
 }
 
-export function SearchBar ({ filters, onOpenTimeline, query, setFilters, setQuery }: Props) {
+// the dex's header: its name and tags over its progress, the search in the middle with Timeline and the flips' pause
+// after it, and the filters' row under them, Edit Dex among the filters
+export function SearchBar ({ filters, flipPause, onOpenTimeline, query, setFilters, setQuery }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { activeDex } = useDexContext();
   const { captures } = useTrackerState();
-  const { sealFx, setSealFx } = useTrackerActions();
   const { t } = useTranslation();
+  // the dex Edit Dex opened for, so a save can only ever write to that one
+  const [editing, setEditing] = useState<PersonalDex | null>(null);
 
   const counts = useMemo(() => {
     let marked = 0;
@@ -122,21 +111,20 @@ export function SearchBar ({ filters, onOpenTimeline, query, setFilters, setQuer
               }
             </div>
           </div>
+          <div className="dex-search-bar-after">
+            {onOpenTimeline &&
+              <button className="timeline-open" onClick={onOpenTimeline} type="button">
+                <FontAwesomeIcon icon={faTimeline} />{t('timeline.open')}
+              </button>
+            }
+            <FlipPauseIndicator face={flipPause.face} paused={flipPause.paused} pick={flipPause.pick} presses={flipPause.presses} toggle={flipPause.toggle} />
+          </div>
         </div>
         <div className="dex-search-bar-filters">
-          <FilterBar filters={filters} query={query} setFilters={setFilters} />
-          {onOpenTimeline &&
-            <button className="timeline-open" onClick={onOpenTimeline} type="button">
-              <FontAwesomeIcon icon={faTimeline} />{t('timeline.open')}
-            </button>
-          }
-          {TESTING &&
-            <div className="dex-search-bar-options">
-              <FilterCheckbox checked={sealFx} id="seal-fx" label="Seal FX" onChange={setSealFx} />
-            </div>
-          }
+          <FilterBar filters={filters} onEditDex={() => setEditing(activeDex)} query={query} setFilters={setFilters} />
         </div>
       </div>
+      {editing && <DexModal dex={editing} onRequestClose={() => setEditing(null)} />}
     </div>
   );
 }

@@ -39,3 +39,14 @@
     @content;
   }
 }
+
+// small text that may be Japanese (a label, a menu item, a note): kanji and kana don't read as well as Latin capitals at
+// these sizes, so Japanese is set a pixel larger at every size up to 12px. English keeps its size, and so does anything
+// whose own language isn't Japanese (a Latin nickname or OT in the Japanese UI); from 13px up the two read alike
+@mixin small-text ($size) {
+  font-size: $size;
+
+  @include cjk {
+    font-size: $size + 1px;
+  }
+}

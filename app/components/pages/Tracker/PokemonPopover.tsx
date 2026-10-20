@@ -6,8 +6,9 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } fr
 import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, freshMetadata, lookupOT, statusOptions, unansweredFields, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
 import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
-import { PokemonName } from '../../library/PokemonName';
+import { PokemonName, displayName } from '../../library/PokemonName';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
+import { destinations, placeFromKey, placeKey, placeLabel, placeOf } from '../../../utils/location-moves';
 import { serebiiLink } from '../../../utils/formatting';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../../hooks/use-dismissable';
@@ -52,7 +53,7 @@ interface Props {
 export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   const { activeDex, activeDexView, saves } = useDexContext();
   const { captures } = useTrackerState();
-  const { setCaptures, sealFx, updateCapture, releaseCaptures } = useTrackerActions();
+  const { setCaptures, updateCapture, releaseCaptures, moveTo } = useTrackerActions();
   const { t, locale } = useTranslation();
 
   const capture = useMemo(() => captures.find((cap) => cap.pokemon.id === selectedPokemon), [captures, selectedPokemon]);
@@ -100,7 +101,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
         }
       }
     }
-    // sealing is only ever from Caught, as writeCapture keeps it; only the TESTING bypass reaches a sealed mon's status
+    // sealing is only ever from Caught, as writeCapture keeps it
     if (capture.sealed && resolved.status !== undefined && resolved.status !== 'caught') {
       resolved = { ...resolved, sealed: false };
     }
@@ -217,7 +218,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
     if (!capture) {
       return;
     }
-    const name = locale === 'ja' && capture.pokemon.name_ja ? capture.pokemon.name_ja : capture.pokemon.name;
+    const name = displayName(capture.pokemon.name, capture.pokemon.name_ja, locale);
     if (window.confirm(t('seal.confirm', { name }))) {
       patch({ sealed: true });
     }
@@ -238,11 +239,13 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   }
 
   const { pokemon } = capture;
-  // seal fx off (TESTING) opens the form on sealed mons for data fixing
-  const sealed = capture.sealed && sealFx;
+  const { sealed } = capture;
   const dexView = activeDexView!;
   const fields = capture.status !== 'unobtainable';
   const stale = new Set(sealed ? missing.map((field) => field.id) : []);
+  // where a sealed mon is, and where it can be moved
+  const here = placeOf(capture);
+  const moveOptions = destinations(saves, activeDexView!.game.id === 'home').map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }));
 
   return (
     <div
@@ -253,7 +256,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
         <div className="popover-header">
           <i className={iconClass(pokemon, dexView)} />
           <div className="popover-title">
-            <h1><PokemonName name={pokemon.name} nameJa={pokemon.name_ja} /></h1>
+            <h1 data-copy-name={displayName(pokemon.name, pokemon.name_ja, locale)}><PokemonName name={pokemon.name} nameJa={pokemon.name_ja} /></h1>
             <p className="popover-meta">
               #{dexNumber(pokemon, dexView)}
               {!sealed &&
@@ -299,7 +302,23 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
                       <dt>{t(field.labelKey)}</dt>
                       <dd>
                         {stale.has(field.id) && <FontAwesomeIcon icon={faCircleExclamation} />}
-                        {formatFieldValue(field, capture, locale, saves)}
+                        {/* the one thing a sealed record still changes: where the mon is (utils/location-moves) */}
+                        {field.id === 'location'
+                          ? <Dropdown
+                            align="end"
+                            blankLabel={here ? undefined : formatFieldValue(field, capture, locale, saves)}
+                            id="popover_move"
+                            onSelect={(key) => {
+                              if (key) {
+                                moveTo(pokemon.id, placeFromKey(key));
+                              }
+                            }}
+                            options={moveOptions}
+                            triggerClassName="popover-move"
+                            value={here ? placeKey(here) : ''}
+                          />
+                          : formatFieldValue(field, capture, locale, saves)
+                        }
                       </dd>
                     </div>
                   ))}
@@ -339,8 +358,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
           }
         </div>
 
-        {/* keyed on the real flag: editing a sealed mon offers no Seal or Release */}
-        {capture.captured && !capture.sealed &&
+        {capture.captured && !sealed &&
           <div className="popover-footer">
             {capture.status === 'caught' &&
               <button

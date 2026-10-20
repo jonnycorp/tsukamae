@@ -35,6 +35,12 @@ export interface CaptureMetadata {
   favorite: FavoriteState | null;
 }
 
+// a place a mon can be: HOME, Champions, or one of your games (location_save)
+export interface Place {
+  location: CaptureLocation;
+  location_save: string | null;
+}
+
 export interface Capture extends CaptureMetadata {
   pokemon: CapturePokemon;
   captured: boolean;
@@ -42,6 +48,10 @@ export interface Capture extends CaptureMetadata {
   // only reachable from 'caught'
   sealed: boolean;
 }
+
+// the eighteen types, as PokéAPI names them
+export type PokemonType = 'normal' | 'fire' | 'water' | 'electric' | 'grass' | 'ice' | 'fighting' | 'poison' | 'ground' |
+  'flying' | 'psychic' | 'bug' | 'rock' | 'ghost' | 'dragon' | 'dark' | 'steel' | 'fairy';
 
 export interface CapturePokemon {
   id: number;
@@ -57,4 +67,6 @@ export interface CapturePokemon {
   // derived from PokéAPI, never authored
   legendary_class?: 'legendary' | 'mythical' | null;
   gender_lock?: GenderLock | null;
+  // one or two, in slot order, from scripts/enrich-types.mjs: a regional form's own (Alolan Vulpix is ice)
+  types?: PokemonType[];
 }

@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo } from 'react';
 
 import { DEFAULT_THEME, findTheme } from '../../palette/themes';
-import { SOFT_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
+import { FLIP_TYPES_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, SOFT_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
 import { useLocalStorage } from '../use-local-storage';
 
 import type { Locale } from '../../i18n/translations';
@@ -13,12 +13,17 @@ interface PreferencesState {
   setLocale: (locale: Locale) => void;
 }
 
-// kept apart so a theme switch doesn't re-render every tile
+// kept apart so a theme switch doesn't re-render every tile; the display switches ride along, read off the root
+// (applyDisplay) rather than by the tiles
 interface ThemeState {
   theme: string;
   setTheme: (theme: string) => void;
   isSoftDark: boolean;
   setIsSoftDark: (softDark: boolean) => void;
+  locationTints: boolean;
+  setLocationTints: (on: boolean) => void;
+  flipTypes: boolean;
+  setFlipTypes: (on: boolean) => void;
 }
 
 const PreferencesContext = createContext<PreferencesState>({
@@ -31,6 +36,10 @@ const ThemeContext = createContext<ThemeState>({
   setTheme: () => {},
   isSoftDark: false,
   setIsSoftDark: () => {},
+  locationTints: true,
+  setLocationTints: () => {},
+  flipTypes: true,
+  setFlipTypes: () => {},
 });
 
 interface Props {
@@ -43,12 +52,14 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   // a name no theme has any more (1.2's Sakura, Peach Milk…) renders as the default, so the menu ticks that
   const theme = findTheme(storedTheme).name;
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, false);
+  const [locationTints, setLocationTints] = useLocalStorage(LOCATION_TINTS_STORAGE_KEY, true);
+  const [flipTypes, setFlipTypes] = useLocalStorage(FLIP_TYPES_STORAGE_KEY, true);
 
   const preferences = useMemo<PreferencesState>(() => ({ locale, setLocale }), [locale, setLocale]);
 
   const themeState = useMemo<ThemeState>(
-    () => ({ theme, setTheme, isSoftDark, setIsSoftDark }),
-    [theme, setTheme, isSoftDark, setIsSoftDark],
+    () => ({ theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes }),
+    [theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes],
   );
 
   return (

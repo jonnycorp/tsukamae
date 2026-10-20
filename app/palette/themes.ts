@@ -2,6 +2,7 @@
 import { contrast, cssColor, deltaE, hueDistance, over, parseCssColor, toLch, toRgb } from './color.ts';
 
 import type { Lch, Rgb } from './color.ts';
+import type { PokemonType } from '../types';
 
 export type Mode = 'light' | 'dark';
 
@@ -46,7 +47,6 @@ const TONES: Record<Mode, Record<string, Tone>> = {
     chrome: [0.865, 0.062, 'hue'],
     'chrome-hover': [0.895, 0.052, 'hue'],
     'chrome-active': [0.925, 0.04, 'hue'],
-    'chrome-well': [0.83, 0.062, 'hue'],
     'chrome-pattern': [0.815, 0.068, 'hue'],
     meter: [0.83, 0.075, 'hue'],
     'meter-edge': [0.74, 0.085, 'hue'],
@@ -75,7 +75,6 @@ const TONES: Record<Mode, Record<string, Tone>> = {
     chrome: [0.26, 0.042, 'hue'],
     'chrome-hover': [0.3, 0.044, 'hue'],
     'chrome-active': [0.34, 0.046, 'hue'],
-    'chrome-well': [0.225, 0.04, 'hue'],
     'chrome-pattern': [0.295, 0.048, 'hue'],
     meter: [0.27, 0.05, 'hue'],
     'meter-edge': [0.5, 0.06, 'hue'],
@@ -118,6 +117,33 @@ const FIXED: Record<Mode, Record<string, Lch>> = {
   },
 };
 
+// each type's colour in Scarlet and Violet, where its glyph starts (seal-faces TypesBlock); only its lightness moves, per
+// theme and mode, until it reads on a sealed tile, so no theme's colours bend for them
+export const TYPE_COLORS: Record<PokemonType, string> = {
+  normal: '#9fa19f',
+  fire: '#e62829',
+  water: '#2980ef',
+  electric: '#fac000',
+  grass: '#3fa129',
+  ice: '#3dcef3',
+  fighting: '#ff8000',
+  poison: '#9141cb',
+  ground: '#915121',
+  flying: '#81b9ef',
+  psychic: '#ef4179',
+  bug: '#91a119',
+  rock: '#afa981',
+  ghost: '#704170',
+  dragon: '#5060e1',
+  dark: '#624d4e',
+  steel: '#60a1b8',
+  fairy: '#ef70ef',
+};
+
+// a glyph is a graphic, not text: WCAG's 3:1 for one, on a light tile. On a soft dark tile the darker types sat dim
+// at 3:1, so there each reaches 4:1
+export const GLYPH_CONTRAST: Record<Mode, number> = { light: 3, dark: 4 };
+
 interface WashLight {
   l: number;
   c: number;
@@ -128,20 +154,31 @@ interface WashLight {
 const HOME_CYAN = 200;
 
 // alpha is where each search starts, not the final strength
+// wash-loan is a sealed mon checked out, away from its shelf (utils/location-moves): a rose-coral, laid on firmly
+// enough to stay rose over a green tile, where a lighter coral blended to the tan of Champions' gold
 const WASHES: Record<Mode, Record<string, WashLight>> = {
   light: {
     'wash-seal': { l: 0.97, c: 0.04, h: 'caught', alpha: 0.62 },
     'wash-home': { l: 0.8, c: 0.14, h: 250, alpha: 0.2 },
     'wash-champions': { l: 0.86, c: 0.17, h: 80, alpha: 0.25 },
+    'wash-loan': { l: 0.7, c: 0.18, h: 8, alpha: 0.32 },
   },
   dark: {
     'wash-seal': { l: 0.66, c: 0.1, h: 'caught', alpha: 0.32 },
     'wash-home': { l: 0.72, c: 0.14, h: 250, alpha: 0.15 },
     'wash-champions': { l: 0.6, c: 0.14, h: 72, alpha: 0.2 },
+    'wash-loan': { l: 0.6, c: 0.17, h: 8, alpha: 0.3 },
   },
 };
 
-// the weakest wash whose top reads apart from the fill and every earlier top; champions must still read gold
+// washes that must still read as their colour once laid over the tile, not just as apart from it: Champions as gold,
+// a checked-out mon as rose
+const READS_AS: Record<string, { within: number; chroma: number }> = {
+  'wash-champions': { within: 45, chroma: 0.06 },
+  'wash-loan': { within: 20, chroma: 0.05 },
+};
+
+// the weakest wash whose top reads apart from the fill and every earlier top, and as its own colour where READS_AS says
 function solveWashes (tile: Lch, caught: number, mode: Mode): Record<string, Lch> {
   const fill = parseCssColor(cssColor(toRgb(tile)));
   const tops: Rgb[] = [];
@@ -156,8 +193,9 @@ function solveWashes (tile: Lch, caught: number, mode: Mode): Record<string, Lch
     for (let alpha = wash.alpha; alpha < 1.01; alpha += 0.02) {
       top = parseCssColor(cssColor(over({ ...light, a: Math.min(alpha, 1) }, fill)));
       const { c, h: topHue } = toLch(top);
-      const gold = name !== 'wash-champions' || (hueDistance(topHue, h) <= 45 && c >= 0.06);
-      if (gold && deltaE(top, fill) >= 0.045 && tops.every((other) => deltaE(top, other) >= 0.05)) {
+      const reads = READS_AS[name];
+      const colour = !reads || (hueDistance(topHue, h) <= reads.within && c >= reads.chroma);
+      if (colour && deltaE(top, fill) >= 0.045 && tops.every((other) => deltaE(top, other) >= 0.05)) {
         break;
       }
     }
@@ -168,7 +206,7 @@ function solveWashes (tile: Lch, caught: number, mode: Mode): Record<string, Lch
 }
 
 // dark yellows and oranges read as brown, so their chromatic dark tones sit higher
-const LIFTED = new Set(['chrome', 'chrome-hover', 'chrome-active', 'chrome-well', 'chrome-pattern', 'meter', 'tile-temporary', 'tile-temporary-stripe', 'tile-caught']);
+const LIFTED = new Set(['chrome', 'chrome-hover', 'chrome-active', 'chrome-pattern', 'meter', 'tile-temporary', 'tile-temporary-stripe', 'tile-caught']);
 const lift = (h: number) => 0.07 * Math.exp(-((hueDistance(h, 90) / 32) ** 2));
 // low-chroma yellows read as beige or khaki
 const vivify = (h: number) => 1 + 0.7 * Math.exp(-((hueDistance(h, 92) / 28) ** 2));
@@ -218,20 +256,24 @@ function buildPalette (seed: ThemeSeed, mode: Mode): Record<string, string> {
 
   lch.ink = solve(tint(dark ? 0.96 : 0.3, 0.02 * seed.chroma + 0.01, 'ink'), [rgb('paper', 'paper-raised', 'paper-sunken', 'chip', 'field'), 7]);
   lch['ink-muted'] = solve(tint(dark ? 0.84 : 0.5, 0.025 * seed.chroma + 0.005, 'ink'), [rgb('paper', 'paper-raised', 'paper-sunken'), 4.5]);
-  lch['on-chrome'] = solve(tint(dark ? 0.9 : 0.36, 0.04 * seed.chroma + 0.01, 'ink'), [rgb('chrome', 'chrome-hover', 'chrome-active', 'chrome-well', 'chrome-pattern'), 4.5]);
+  lch['on-chrome'] = solve(tint(dark ? 0.9 : 0.36, 0.04 * seed.chroma + 0.01, 'ink'), [rgb('chrome', 'chrome-hover', 'chrome-active', 'chrome-pattern'), 4.5]);
   lch['on-accent'] = solve(tint(dark ? 0.2 : 0.98, 0.01, 'hue'), [rgb('accent', 'accent-hover'), 4.5]);
   lch['on-overlay'] = solve(tint(0.96, 0.01, 'hue'), [rgb('overlay', 'overlay-deep', 'overlay-deeper'), 4.5]);
   lch['on-status'] = solve(tint(dark ? 0.2 : 0.99, 0.01, 'hue'), [rgb('status-unobtainable', 'status-temporary', 'status-caught'), 3]);
   lch['on-danger'] = solve({ l: dark ? 0.18 : 0.98, c: 0.01, h: 25 }, [rgb('danger', 'danger-hover'), 4.5]);
   lch['ink-danger'] = solve({ ...lch.danger }, [rgb('paper', 'paper-raised'), 4.5]);
-  const sealedTile = rgb('tile-caught', 'wash-seal', 'wash-home', 'wash-champions');
+  const sealedTile = rgb('tile-caught', 'wash-seal', 'wash-home', 'wash-champions', 'wash-loan');
   lch['on-tile'] = solve({ ...lch.ink }, [rgb('tile-unobtainable', 'tile-temporary', 'tile-temporary-stripe', 'tile-caught'), 7], [sealedTile, 4.5]);
   lch['on-tile-accent'] = solve(tint(dark ? 0.86 : 0.46, 0.11 * statusScale + 0.02, 'caught'), [sealedTile, 4.5]);
   lch['ink-caught'] = solve(tint(dark ? 0.86 : 0.5, 0.12 * statusScale + 0.02, 'caught'), [rgb('paper', 'paper-raised'), 4.5]);
   lch['ink-temporary'] = solve(tint(dark ? 0.86 : 0.5, 0.12 * statusScale + 0.02, 'temporary'), [rgb('paper', 'paper-raised'), 4.5]);
-  // the gift red only sits on a tile's lower third, where the wash has faded below half
+  // the gift red only sits on a tile's lower third, where the wash has faded below half; so do the type glyphs
   const fill = toRgb(lch['tile-caught']);
-  lch.gift = solve(lch.gift, [[fill, ...sealedTile.map((top) => over({ ...top, a: 0.45 }, fill))], 4.5]);
+  const lowerThird = [fill, ...sealedTile.map((top) => over({ ...top, a: 0.45 }, fill))];
+  lch.gift = solve(lch.gift, [lowerThird, 4.5]);
+  for (const [type, color] of Object.entries(TYPE_COLORS)) {
+    lch[`type-${type}`] = solve(toLch(parseCssColor(color)), [lowerThird, GLYPH_CONTRAST[mode]]);
+  }
   lch['mark-blue'] = solve(lch['mark-blue'], [rgb('tile-caught', 'tile-unobtainable'), 3]);
   lch['mark-pink'] = solve(lch['mark-pink'], [rgb('tile-caught', 'tile-unobtainable'), 3]);
 

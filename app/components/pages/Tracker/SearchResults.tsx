@@ -39,10 +39,10 @@ function sameChunk (prev: ChunkProps, next: ChunkProps): boolean {
 // tile looks the same in every view, an offscreen chunk skips its work, and an edit re-renders one chunk, not the list
 const ResultsChunk = memo(function ResultsChunk ({ captures, padding, setSelectedPokemon }: ChunkProps) {
   const { activeDex } = useDexContext();
-  const { sealFx, narrow } = useTrackerActions();
+  const { narrow } = useTrackerActions();
   const checklist = Boolean(activeDex!.checklist);
 
-  const clip = useMemo(() => (narrow ? null : shineClip(captures, checklist, sealFx)), [captures, checklist, sealFx, narrow]);
+  const clip = useMemo(() => (narrow ? null : shineClip(captures, checklist)), [captures, checklist, narrow]);
 
   return (
     <div className="results-chunk">

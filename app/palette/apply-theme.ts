@@ -3,6 +3,9 @@ import { DEFAULT_THEME, findTheme, themePalette } from './themes';
 
 export const THEME_STORAGE_KEY = 'theme';
 export const SOFT_DARK_STORAGE_KEY = 'nightMode';
+// the palette menu's two display switches, both on by default
+export const LOCATION_TINTS_STORAGE_KEY = 'locationTints';
+export const FLIP_TYPES_STORAGE_KEY = 'flipTypes';
 
 // the modal backdrop's black, rgba(0, 0, 0, .35) in styles/main.scss
 const MODAL_SHADE = 0.35;
@@ -71,6 +74,15 @@ export function applyTheme (name: string, softDark: boolean) {
   requestAnimationFrame(() => setTimeout(sendTitleBar));
 }
 
+// attributes on the root for styles/tracker.scss and useFlipClock to read, so switching either restyles the dex without
+// rendering a tile: with location tints off every sealed tile takes a game's wash; with types out of the flips the
+// cycle swings between the record's face and the trainer's
+export function applyDisplay (locationTints: boolean, flipTypes: boolean) {
+  const root = document.documentElement;
+  root.toggleAttribute('data-plain-seals', !locationTints);
+  root.toggleAttribute('data-flip-no-types', !flipTypes);
+}
+
 function readJson<T> (key: string, fallback: T): T {
   try {
     const raw = window.localStorage.getItem(key);
@@ -84,5 +96,6 @@ function readJson<T> (key: string, fallback: T): T {
 // paint, so the buttons take their colours straight away
 export function bootstrapTheme () {
   setTokens(readJson(THEME_STORAGE_KEY, DEFAULT_THEME), readJson(SOFT_DARK_STORAGE_KEY, false));
+  applyDisplay(readJson(LOCATION_TINTS_STORAGE_KEY, true), readJson(FLIP_TYPES_STORAGE_KEY, true));
   sendTitleBar();
 }

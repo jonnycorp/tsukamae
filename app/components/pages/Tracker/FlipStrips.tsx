@@ -1,8 +1,8 @@
 import { memo } from 'react';
 
 import { BOX_COLUMNS, BOX_GAP, BOX_WIDTH, TILE_SIZE, dexNumber } from '../../../utils/pokemon';
-import { BadgeRow, CatchDateLine, NicknameLine, OTLine, SlotsLine, SpeciesLine, flippingLines } from './seal-faces';
-import { isDisplaySealed, useTrackerActions } from './use-tracker';
+import { BadgeRow, CatchDateLine, NicknameLine, OTLine, SlotsLine, SpeciesLine, TypesBlock, flippingLines } from './seal-faces';
+import { isDisplaySealed } from './use-tracker';
 import { useDeferredRender } from '../../../hooks/use-deferred-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 
@@ -13,24 +13,25 @@ type Line = 'names' | 'badges' | 'numbers';
 const LINE_ORDER: Record<Line, number> = { names: 0, badges: 1, numbers: 2 };
 
 // a sealed tile's layout, unscaled; keep in sync with styles/tracker.scss: a 22/49/16 name, sprite and number stack
-// centred above the badges' 18px, and the 20px badge row 2px off the bottom
+// centred above the badges' 18px, and the 20px badge row --flip-band (14px, about 2px off the bottom) below the number
 const NAME = 22;
 const SPRITE = 49;
 const NUMBER = 16;
-const BADGES = 20;
-const BADGES_BOTTOM = 2;
 const SEALED_PADDING = 18;
 
 // where a row's window for one line sits over the tiles; below the first row and right of the first column, a tile's
-// own grid line takes its first pixel
-function lineTop (line: Line, row: number): number {
+// own grid line takes its first pixel. The badges' window starts where the number line's ends, its strip drawn up to
+// the badges' own place, --flip-band (whole screen pixels) under the number, so the types' block, drawn across both
+// windows, lines up where they meet and no pixel is drawn twice
+function lineTop (line: Line, row: number): number | string {
   const top = row * TILE_SIZE + (row > 0 ? 1 : 0);
   const height = TILE_SIZE - (row > 0 ? 1 : 0);
   const stack = top + (height - SEALED_PADDING - (NAME + SPRITE + NUMBER)) / 2;
   if (line === 'names') {
     return stack;
   }
-  return line === 'numbers' ? stack + NAME + SPRITE : top + height - BADGES_BOTTOM - BADGES;
+  const number = stack + NAME + SPRITE;
+  return line === 'numbers' ? number : `calc(${number}px + var(--flip-numbers, 16px))`;
 }
 
 interface Props {
@@ -54,19 +55,20 @@ function sameGrids (prev: Props, next: Props): boolean {
 // grows with the number of them, so they're as few and as wide as the rows allow
 export const FlipStrips = memo(function FlipStrips ({ grids, row, deferFrames = 0 }: Props) {
   const { activeDex, activeDexView } = useDexContext();
-  const { sealFx } = useTrackerActions();
   const render = useDeferredRender(deferFrames === 0, deferFrames);
 
   if (!render || activeDex!.checklist) {
     return null;
   }
 
-  const windows = new Map<string, { line: Line; row: number; faces: ReactNode[] }>();
-  const add = (line: Line, grid: number, index: number, faces: ReactNode) => {
+  const windows = new Map<string, { line: Line; row: number; hold: boolean; faces: ReactNode[] }>();
+  // a held line (one whose trainer's face is its record's) goes in a window of its own beside the row's other, which
+  // swaps the two faces, the same picture, rather than sliding them (.flip-hold in styles/tracker.scss)
+  const add = (line: Line, grid: number, index: number, faces: ReactNode, hold = false) => {
     const tileRow = Math.floor(index / BOX_COLUMNS);
-    const key = `${line}-${tileRow}`;
+    const key = `${line}-${tileRow}${hold ? '-hold' : ''}`;
     if (!windows.has(key)) {
-      windows.set(key, { line, row: tileRow, faces: [] });
+      windows.set(key, { line, row: tileRow, hold, faces: [] });
     }
     const col = index % BOX_COLUMNS;
     const left = grid * (BOX_WIDTH + BOX_GAP) + col * TILE_SIZE + (col > 0 ? 1 : 0);
@@ -76,7 +78,7 @@ export const FlipStrips = memo(function FlipStrips ({ grids, row, deferFrames = 
   };
 
   grids.forEach((captures, grid) => captures.forEach((capture, index) => {
-    if (!isDisplaySealed(capture, false, sealFx)) {
+    if (!isDisplaySealed(capture, false)) {
       return;
     }
     const lines = flippingLines(capture);
@@ -87,20 +89,31 @@ export const FlipStrips = memo(function FlipStrips ({ grids, row, deferFrames = 
         <SpeciesLine capture={capture} />
       </>);
     }
+    // the number line and the badges below it each slide their own line from the record's face to the trainer's, then
+    // both slide a whole block, the lines' height together, into the types and out again: each strip carries what
+    // passes through it as the block moves, the catch date up through the number line on the way in and the number up
+    // through the badges' on the way out (styles/tracker.scss places them). A record sealed before OT or catch date
+    // were asked for holds that line's first face through the trainer's, then goes with the block
+    const number = dexNumber(capture.pokemon, activeDexView!);
+    const slots = <SlotsLine capture={capture} number={number} />;
+    const trainerBadges = capture.catch_date ? <CatchDateLine capture={capture} /> : <BadgeRow capture={capture} />;
     if (lines.badges) {
       add('badges', grid, index, <>
         <BadgeRow capture={capture} />
-        <CatchDateLine capture={capture} />
+        {trainerBadges}
+        <TypesBlock capture={capture} />
+        {slots}
         <BadgeRow capture={capture} />
-      </>);
+      </>, !capture.catch_date);
     }
     if (lines.number) {
-      const number = dexNumber(capture.pokemon, activeDexView!);
       add('numbers', grid, index, <>
-        <SlotsLine capture={capture} number={number} />
-        <OTLine capture={capture} />
-        <SlotsLine capture={capture} number={number} />
-      </>);
+        {slots}
+        {capture.ot ? <OTLine capture={capture} /> : slots}
+        {trainerBadges}
+        <TypesBlock capture={capture} />
+        {slots}
+      </>, !capture.ot);
     }
   }));
 
@@ -112,8 +125,8 @@ export const FlipStrips = memo(function FlipStrips ({ grids, row, deferFrames = 
     // an absolutely positioned grid item's auto end line is the grid's far edge, so the span is spelled out
     <div className="flip-overlay" style={row === undefined ? undefined : { gridRow: `${row + 1} / span 1` }}>
       {/* a fixed order: moving a window restarts its strip's animation */}
-      {[...windows].sort(([, a], [, b]) => a.row - b.row || LINE_ORDER[a.line] - LINE_ORDER[b.line]).map(([key, { line, row: tileRow, faces }]) => (
-        <div className={`flip-window flip-${line}`} key={key} style={{ top: lineTop(line, tileRow) }}>
+      {[...windows].sort(([, a], [, b]) => a.row - b.row || LINE_ORDER[a.line] - LINE_ORDER[b.line] || Number(a.hold) - Number(b.hold)).map(([key, { line, row: tileRow, hold, faces }]) => (
+        <div className={`flip-window flip-${line}${hold ? ' flip-hold' : ''}`} key={key} style={{ top: lineTop(line, tileRow) }}>
           <div className="flip-strip">{faces}</div>
         </div>
       ))}

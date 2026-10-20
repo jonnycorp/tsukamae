@@ -1,6 +1,8 @@
 // explicit .ts extensions: scripts/check-themes.mjs loads these modules in node
-import { THEMES, themePalette } from './themes.ts';
-import { contrast, deltaE, parseCssColor } from './color.ts';
+import { GLYPH_CONTRAST, THEMES, TYPE_COLORS, themePalette } from './themes.ts';
+import { contrast, deltaE, over, parseCssColor } from './color.ts';
+
+import type { Rgb } from './color.ts';
 
 import type { Mode, ThemeSeed } from './themes.ts';
 
@@ -21,7 +23,7 @@ const CONTRAST_RULES: ContrastRule[] = [
   { fg: 'ink', bg: ['paper', 'paper-raised', 'paper-sunken', 'chip', 'field', 'meter', 'tile-unobtainable', 'tile-temporary', 'tile-caught'], min: 4.5 },
   { fg: 'ink', bg: ['paper', 'paper-raised'], min: 7 },
   { fg: 'ink-muted', bg: ['paper', 'paper-raised', 'paper-sunken'], min: 4.5 },
-  { fg: 'on-chrome', bg: ['chrome', 'chrome-hover', 'chrome-active', 'chrome-well'], min: 4.5 },
+  { fg: 'on-chrome', bg: ['chrome', 'chrome-hover', 'chrome-active'], min: 4.5 },
   { fg: 'on-accent', bg: ['accent', 'accent-hover'], min: 4.5 },
   { fg: 'on-overlay', bg: ['overlay', 'overlay-deep', 'overlay-deeper'], min: 4.5 },
   { fg: 'on-overlay-muted', bg: ['overlay', 'overlay-deep'], min: 4.5 },
@@ -29,8 +31,8 @@ const CONTRAST_RULES: ContrastRule[] = [
   { fg: 'ink-danger', bg: ['paper', 'paper-raised'], min: 4.5 },
   { fg: 'on-status', bg: ['status-unobtainable', 'status-temporary', 'status-caught'], min: 3 },
   { fg: 'on-tile', bg: ['tile-unobtainable', 'tile-temporary', 'tile-temporary-stripe', 'tile-caught'], min: 7 },
-  { fg: 'on-tile', bg: ['wash-seal', 'wash-home', 'wash-champions'], min: 4.5 },
-  { fg: 'on-tile-accent', bg: ['tile-caught', 'wash-seal', 'wash-home', 'wash-champions'], min: 4.5 },
+  { fg: 'on-tile', bg: ['wash-seal', 'wash-home', 'wash-champions', 'wash-loan'], min: 4.5 },
+  { fg: 'on-tile-accent', bg: ['tile-caught', 'wash-seal', 'wash-home', 'wash-champions', 'wash-loan'], min: 4.5 },
   { fg: 'gift', bg: ['tile-caught'], min: 4.5 },
   { fg: 'ink-caught', bg: ['paper', 'paper-raised'], min: 4.5 },
   { fg: 'ink-temporary', bg: ['paper', 'paper-raised'], min: 4.5 },
@@ -48,9 +50,10 @@ const DISTINCT_RULES: DistinctRule[] = [
   { a: 'chrome', b: ['paper'], min: 0.05 },
   { a: 'paper-raised', b: ['paper'], min: 0.02 },
   { a: 'gift', b: ['on-tile-accent', 'on-tile'], min: 0.12 },
-  { a: 'tile-caught', b: ['wash-seal', 'wash-home', 'wash-champions'], min: 0.045 },
-  { a: 'wash-seal', b: ['wash-home', 'wash-champions'], min: 0.05 },
-  { a: 'wash-home', b: ['wash-champions'], min: 0.05 },
+  { a: 'tile-caught', b: ['wash-seal', 'wash-home', 'wash-champions', 'wash-loan'], min: 0.045 },
+  { a: 'wash-seal', b: ['wash-home', 'wash-champions', 'wash-loan'], min: 0.05 },
+  { a: 'wash-home', b: ['wash-champions', 'wash-loan'], min: 0.05 },
+  { a: 'wash-champions', b: ['wash-loan'], min: 0.05 },
 ];
 
 export interface AuditResult {
@@ -82,6 +85,17 @@ export function auditTheme (seed: ThemeSeed, mode: Mode): AuditResult[] {
   for (const { a, b, min } of DISTINCT_RULES) {
     for (const name of b) {
       record(`${a} vs ${name} (ΔE)`, deltaE(color(a), color(name)), min);
+    }
+  }
+  // each type glyph on a sealed tile's lower third, where it sits: the fill, and each location's wash faded below half
+  const fill = color('tile-caught');
+  const lowerThird: [string, Rgb][] = [
+    ['tile-caught', fill],
+    ...['wash-seal', 'wash-home', 'wash-champions', 'wash-loan'].map((name): [string, Rgb] => [`${name} at 45%`, over({ ...color(name), a: 0.45 }, fill)]),
+  ];
+  for (const type of Object.keys(TYPE_COLORS)) {
+    for (const [name, backdrop] of lowerThird) {
+      record(`type-${type} on ${name}`, contrast(color(`type-${type}`), backdrop), GLYPH_CONTRAST[mode]);
     }
   }
   return results;

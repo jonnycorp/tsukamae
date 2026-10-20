@@ -1,17 +1,23 @@
 import type { Capture } from '../../../types';
 
-// unscaled px; keep in sync with $tl-slot-w and $tl-slot-h in styles/timeline.scss
+// unscaled px, as the stage draws them at 100%; keep in sync with $tl-slot-w and $tl-slot-h in styles/timeline.scss
 export const SLOT_W = 40;
 export const SLOT_H = 34;
+// between the day stacks of a month
+const DAY_GAP = 4;
 // a month with nothing in it, kept as a sliver so a short lull still reads as time passing
 const EMPTY_MONTH_W = 18;
 // longer lulls fold into one card, "3 YEARS LATER"
 const SKIP_MONTHS = 3;
 const SKIP_W = 168;
-// a year's banner is about this wide (.tl-year): the next year's starts no closer
+// how far a skip card reaches above the spine (.tl-skip); a scene with one is at least this tall
+const SKIP_TOP = 130;
+// a year's banner is about this wide (.tl-year) at 100%: the next year's starts no closer
 const YEAR_BANNER_W = 124;
 const GAP = 8;
 const EDGE = 96;
+// the undated pile is no day's stack: it stands as tall as the tallest of them (at least this), and widens past it
+const UNDATED_ROWS = 8;
 
 // a real calendar date: a hand-edited 2017-13-05 would otherwise file itself under the next year, or not at all
 const DATE = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
@@ -26,6 +32,12 @@ export interface TimelineSprite {
   dated: boolean;
 }
 
+// a day's stack: where it stands, relative to its month, and which day it is
+export interface DayColumn {
+  dx: number;
+  day: number;
+}
+
 interface Segment {
   x: number;
   width: number;
@@ -37,6 +49,7 @@ export interface MonthSegment extends Segment {
   // 1-12
   month: number;
   count: number;
+  days: DayColumn[];
   // the first year shown, or the first month shown of a new year, carries the year's banner
   opensYear: boolean;
   firstOrder: number;
@@ -44,7 +57,7 @@ export interface MonthSegment extends Segment {
 
 export interface SkipSegment extends Segment {
   kind: 'skip';
-  // from the last pile's month to the next one's
+  // from the last stack's month to the next one's
   months: number;
   firstOrder: number;
 }
@@ -61,6 +74,8 @@ export interface TimelineLayout {
   segments: TimelineSegment[];
   sprites: TimelineSprite[];
   width: number;
+  // how tall the scene stands above the spine, unscaled: its tallest stack, or a skip card
+  height: number;
   dated: number;
   undated: number;
   // the busiest month, if any month has a mon
@@ -74,16 +89,10 @@ interface Dated {
   date: string;
 }
 
-// a pile grows up to the stage's height, then widens: a busy month becomes a wall rather than a tower out of sight
-function pile (count: number, rowsMax: number) {
-  const columns = Math.max(1, Math.ceil(count / rowsMax));
-  return { columns, width: columns * SLOT_W };
-}
-
-// every marked mon that has a record to show (unobtainable ones hold none), placed by catch date: one pile per month
-// from the first to the last, filling bottom up and left to right in date order
-export function layoutTimeline (captures: Capture[], rowsMax: number): TimelineLayout {
-  const rows = Math.max(1, rowsMax);
+// every marked mon that has a record to show (unobtainable ones hold none), placed by catch date: a stack per day, the
+// days of a month side by side, from the first month to the last. A busy day stands tall rather than widening, so a
+// stack's height is that day's count at a glance; the stage zooms out to take in the tallest
+export function layoutTimeline (captures: Capture[]): TimelineLayout {
   const dated: Dated[] = [];
   const undated: Capture[] = [];
   captures.forEach((capture, index) => {
@@ -106,12 +115,9 @@ export function layoutTimeline (captures: Capture[], rowsMax: number): TimelineL
   let peak: TimelineLayout['peak'] = null;
   let order = 0;
   let bannerX = -Infinity;
-
-  const place = (mons: Capture[], left: number, columns: number, isDated: boolean) => {
-    mons.forEach((capture, j) => {
-      sprites.push({ capture, x: left + (j % columns) * SLOT_W, row: Math.floor(j / columns), order: order++, dated: isDated });
-    });
-  };
+  // in rows
+  let tallest = 0;
+  let skipped = false;
 
   // a month opening a year waits until the last banner has room, so two years a month apart don't stack their banners
   const openYear = () => {
@@ -120,13 +126,13 @@ export function layoutTimeline (captures: Capture[], rowsMax: number): TimelineL
   };
 
   if (dated.length > 0) {
-    const byMonth = new Map<number, Capture[]>();
-    for (const { capture, key } of dated) {
-      const month = byMonth.get(key);
+    const byMonth = new Map<number, Dated[]>();
+    for (const entry of dated) {
+      const month = byMonth.get(entry.key);
       if (month) {
-        month.push(capture);
+        month.push(entry);
       } else {
-        byMonth.set(key, [capture]);
+        byMonth.set(entry.key, [entry]);
       }
     }
     const first = dated[0].key;
@@ -136,9 +142,10 @@ export function layoutTimeline (captures: Capture[], rowsMax: number): TimelineL
 
     const closeLull = (resumeAt: number) => {
       if (lull >= SKIP_MONTHS) {
-        // "3 years later" is from one pile's month to the next, the empty months and one more
+        // "3 years later" is from one stack's month to the next, the empty months and one more
         segments.push({ kind: 'skip', months: lull + 1, x, width: SKIP_W, firstOrder: order });
         x += SKIP_W + GAP;
+        skipped = true;
       } else {
         for (let k = resumeAt - lull; k < resumeAt; k++) {
           const year = Math.floor(k / 12);
@@ -146,7 +153,7 @@ export function layoutTimeline (captures: Capture[], rowsMax: number): TimelineL
           if (opensYear) {
             openYear();
           }
-          segments.push({ kind: 'month', year, month: (k % 12) + 1, count: 0, opensYear, firstOrder: order, x, width: EMPTY_MONTH_W });
+          segments.push({ kind: 'month', year, month: (k % 12) + 1, count: 0, days: [], opensYear, firstOrder: order, x, width: EMPTY_MONTH_W });
           lastYear = year;
           x += EMPTY_MONTH_W + GAP;
         }
@@ -166,25 +173,45 @@ export function layoutTimeline (captures: Capture[], rowsMax: number): TimelineL
       if (opensYear) {
         openYear();
       }
-      const { columns, width } = pile(mons.length, rows);
-      segments.push({ kind: 'month', year, month: (key % 12) + 1, count: mons.length, opensYear, firstOrder: order, x, width });
+      const firstOrder = order;
+      // the month's days in order, already sorted: a run of one date is one stack
+      const days: DayColumn[] = [];
+      for (let start = 0; start < mons.length;) {
+        let end = start;
+        while (end < mons.length && mons[end].date === mons[start].date) {
+          end++;
+        }
+        const dx = days.length * (SLOT_W + DAY_GAP);
+        days.push({ dx, day: Number(mons[start].date.slice(8, 10)) });
+        for (let row = 0; row < end - start; row++) {
+          sprites.push({ capture: mons[start + row].capture, x: x + dx, row, order: order++, dated: true });
+        }
+        tallest = Math.max(tallest, end - start);
+        start = end;
+      }
+      const width = days.length * SLOT_W + (days.length - 1) * DAY_GAP;
+      segments.push({ kind: 'month', year, month: (key % 12) + 1, count: mons.length, days, opensYear, firstOrder, x, width });
       lastYear = year;
       if (!peak || mons.length > peak.count) {
         peak = { year, month: (key % 12) + 1, count: mons.length };
       }
-      place(mons, x, columns, true);
       x += width + GAP;
     }
   }
 
   if (undated.length > 0) {
-    const { columns, width } = pile(undated.length, rows);
+    const rows = Math.max(tallest, UNDATED_ROWS);
+    const columns = Math.ceil(undated.length / rows);
     // set apart from the dated ones
     x += dated.length > 0 ? GAP * 4 : 0;
-    segments.push({ kind: 'undated', count: undated.length, firstOrder: order, x, width });
-    place(undated, x, columns, false);
-    x += width + GAP;
+    segments.push({ kind: 'undated', count: undated.length, firstOrder: order, x, width: columns * SLOT_W });
+    undated.forEach((capture, j) => {
+      sprites.push({ capture, x: x + (j % columns) * SLOT_W, row: Math.floor(j / columns), order: order++, dated: false });
+    });
+    tallest = Math.max(tallest, Math.ceil(undated.length / columns));
+    x += columns * SLOT_W + GAP;
   }
 
-  return { segments, sprites, width: x - GAP + EDGE, dated: dated.length, undated: undated.length, peak };
+  const height = Math.max(tallest * SLOT_H, skipped ? SKIP_TOP : 0);
+  return { segments, sprites, width: x - GAP + EDGE, height, dated: dated.length, undated: undated.length, peak };
 }

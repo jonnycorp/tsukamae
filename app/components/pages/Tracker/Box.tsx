@@ -43,13 +43,13 @@ function sameProps (prev: Props, next: Props): boolean {
 
 export const Box = memo(function Box ({ captures, deferFrames, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView } = useDexContext();
-  const { sealFx, narrow } = useTrackerActions();
+  const { narrow } = useTrackerActions();
   const { t, locale } = useTranslation();
   const render = useDeferredRender(deferFrames === 0, deferFrames);
   const checklist = Boolean(activeDex!.checklist);
 
   // the clip is drawn for the 6-column grid, not the narrow list view
-  const shineClip = useMemo(() => (narrow ? null : clipFor(captures, checklist, sealFx)), [captures, checklist, sealFx, narrow]);
+  const shineClip = useMemo(() => (narrow ? null : clipFor(captures, checklist)), [captures, checklist, narrow]);
 
   if (!render) {
     return null;

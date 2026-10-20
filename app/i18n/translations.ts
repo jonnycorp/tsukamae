@@ -5,14 +5,14 @@ export type Locale = 'en' | 'ja';
 // Japanese: full-width punctuation, no space between Japanese and Latin text or digits, 、 between list items, and
 // the games' own terms (ソフト for a title, おや, 性別不明, …のすがた)
 const en = {
-  'nav.editDex': 'Edit Dex',
-  'nav.newDex': 'Create Dex',
   'nav.data': 'Data',
   'nav.export': 'Export Data',
   'nav.import': 'Import Data',
   'nav.saves': 'My Games',
   'nav.theme': 'Theme',
   'nav.softDark': 'Soft Dark',
+  'nav.locationTints': 'Location Tints',
+  'nav.flipTypes': 'Types in Flips',
   'nav.importInvalidJson': 'That file isn\'t valid JSON.',
   'nav.importNotExport': 'That file doesn\'t look like a tsukamae export.',
   'nav.importConfirm': 'Importing will REPLACE all current dexes, progress and My Games. Continue?',
@@ -28,6 +28,13 @@ const en = {
 
   'flips.paused': 'Flips paused',
   'flips.resumed': 'Flips resumed',
+  'flips.pause': 'Pause Flips',
+  'flips.resume': 'Resume Flips',
+  'flips.faces': 'Face to Hold',
+  'flips.face0': 'Numbers and Badges',
+  'flips.face1': 'Nicknames, Catch Dates and OTs',
+  'flips.face2': 'Types',
+  'name.copied': 'Name copied',
 
   'timeline.open': 'Timeline',
   'timeline.title': 'Timeline',
@@ -44,6 +51,11 @@ const en = {
   'timeline.month': '{n} month',
   'timeline.months': '{n} months',
   'timeline.join': ' ',
+  'timeline.zoomIn': 'Zoom In',
+  'timeline.zoomOut': 'Zoom Out',
+  'timeline.fit': 'Fit to Window',
+  'timeline.originSeparator': ' · ',
+  'timeline.yours': 'One of Your Games',
 
   'filter.views': 'Show',
   'filter.all': 'All',
@@ -52,6 +64,7 @@ const en = {
   'filter.unsealed': 'Unsealed',
   'filter.incomplete': 'Incomplete',
   'filter.facets': 'Filters',
+  'filter.editDex': 'Edit Dex',
   'filter.generation': 'Generation',
   'filter.gen': 'Gen {n}',
   'filter.class': 'Legendary & Mythical',
@@ -118,6 +131,7 @@ const en = {
   'location.game': 'In a game',
   'location.champions': 'In Champions',
   'location.whichGame': 'Which Game',
+  'move.title': 'Move',
 
   'trained.none': 'Untrained',
   'trained.ivs': '3+ perfect IVs',
@@ -181,14 +195,14 @@ const en = {
 export type TranslationKey = keyof typeof en;
 
 const ja: Record<TranslationKey, string> = {
-  'nav.editDex': '図鑑を編集',
-  'nav.newDex': '図鑑を作成',
   'nav.data': 'データ',
   'nav.export': 'データを書き出す',
   'nav.import': 'データを読み込む',
   'nav.saves': '自分のソフト',
   'nav.theme': 'テーマ',
   'nav.softDark': 'ソフトダーク',
+  'nav.locationTints': '現在地の色分け',
+  'nav.flipTypes': 'タイプも切り替え表示',
   'nav.importInvalidJson': '有効なJSONファイルではありません。',
   'nav.importNotExport': 'tsukamaeから書き出したデータではないようです。',
   'nav.importConfirm': '読み込むと、現在の図鑑、進捗、自分のソフトがすべて置き換えられます。続けますか？',
@@ -205,6 +219,13 @@ const ja: Record<TranslationKey, string> = {
 
   'flips.paused': '切り替え表示を一時停止中',
   'flips.resumed': '切り替え表示を再開しました',
+  'flips.pause': '切り替え表示を一時停止',
+  'flips.resume': '切り替え表示を再開',
+  'flips.faces': '表示する面',
+  'flips.face0': '番号とバッジ',
+  'flips.face1': 'ニックネーム・捕獲日・おや',
+  'flips.face2': 'タイプ',
+  'name.copied': '名前をコピーしました',
 
   'timeline.open': 'タイムライン',
   'timeline.title': 'タイムライン',
@@ -221,6 +242,11 @@ const ja: Record<TranslationKey, string> = {
   'timeline.month': '{n}か月',
   'timeline.months': '{n}か月',
   'timeline.join': '',
+  'timeline.zoomIn': '拡大',
+  'timeline.zoomOut': '縮小',
+  'timeline.fit': 'ウィンドウに合わせる',
+  'timeline.originSeparator': '・',
+  'timeline.yours': '自分のソフト',
 
   'filter.views': '表示',
   'filter.all': 'すべて',
@@ -229,6 +255,7 @@ const ja: Record<TranslationKey, string> = {
   'filter.unsealed': '未確定',
   'filter.incomplete': '未入力',
   'filter.facets': '絞り込み',
+  'filter.editDex': '図鑑を編集',
   'filter.generation': '世代',
   'filter.gen': '第{n}世代',
   'filter.class': '伝説・幻',
@@ -294,6 +321,7 @@ const ja: Record<TranslationKey, string> = {
   'location.game': 'ソフト内',
   'location.champions': 'チャンピオンズ内',
   'location.whichGame': 'どのソフト',
+  'move.title': '移動',
 
   'trained.none': '未育成',
   'trained.ivs': '個体値3V以上',

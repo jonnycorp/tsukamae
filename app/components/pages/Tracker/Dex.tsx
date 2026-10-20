@@ -64,7 +64,7 @@ export function Dex ({
   showScrollButton,
 }: Props) {
   const { captures } = useTrackerState();
-  const { releaseCaptures, narrow } = useTrackerActions();
+  const { releaseCaptures, openMoveMenu, narrow } = useTrackerActions();
 
   const boxes = useMemo(() => groupBoxes(captures), [captures]);
   // each row of boxes shares its flips' overlay
@@ -75,6 +75,17 @@ export function Dex ({
     }
     return all;
   }, [boxes, columns]);
+
+  // L over a sealed tile: where it can be moved, in a menu beside it (MoveMenu)
+  useHotkey('l', () => {
+    const tile = document.querySelector<HTMLElement>('.pokemon.sealed[data-pokemon-id]:hover');
+    const id = Number(tile?.dataset.pokemonId);
+    const capture = captures.find((cap) => cap.pokemon.id === id);
+    if (!tile || !capture?.sealed || tile.classList.contains('checklist')) {
+      return;
+    }
+    openMoveMenu(id, tile);
+  });
 
   useHotkey('d', () => {
     const tile = document.querySelector<HTMLElement>('.pokemon[data-pokemon-id]:hover');

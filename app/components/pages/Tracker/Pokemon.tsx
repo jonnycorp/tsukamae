@@ -6,9 +6,10 @@ import { memo, useEffect, useRef, useState } from 'react';
 
 import { EMPTY_METADATA, STATUSES, freshMetadata, unansweredFields, withBaselines } from '../../../utils/capture-fields';
 import { BadgeRow, SlotsLine, flippingLines } from './seal-faces';
-import { PokemonName } from '../../library/PokemonName';
+import { PokemonName, displayName } from '../../library/PokemonName';
 import { defaultStatus } from '../../../utils/local-data';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
+import { locationTint } from '../../../utils/location-moves';
 import { isDisplaySealed, useTrackerActions } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLongPress } from '../../../hooks/use-long-press';
@@ -62,13 +63,13 @@ interface Props {
 
 export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView, saves } = useDexContext();
-  const { setCaptures, sealFx, updateCapture, releaseCaptures, narrow } = useTrackerActions();
-  const { t } = useTranslation();
+  const { setCaptures, updateCapture, releaseCaptures, narrow } = useTrackerActions();
+  const { t, locale } = useTranslation();
 
   const [armed, setArmed] = useState(false);
 
   const checklist = Boolean(activeDex!.checklist);
-  const displaySealed = isDisplaySealed(capture, checklist, sealFx);
+  const displaySealed = isDisplaySealed(capture, checklist);
 
   const suppressClickRef = useRef(false);
   const { wheel, handlers: unsealHandlers } = useLongPress({
@@ -160,23 +161,24 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
     applyStatus(status);
   };
 
-  const classes = classNames('pokemon', {
+  // a sealed mon away from where its dex keeps them is tinted for where it is (utils/location-moves)
+  const tint = displaySealed && !checklist ? locationTint(capture.location, activeDexView!.game.id === 'home') : null;
+  const classes = classNames('pokemon', tint && `loc-${tint}`, {
     captured: capture.captured,
     unobtainable: capture.status === 'unobtainable',
     temporary: capture.status === 'temporary',
     caught: capture.status === 'caught',
     sealed: displaySealed,
     checklist,
-    'loc-home': displaySealed && capture.location === 'home',
-    'loc-champions': displaySealed && capture.location === 'champions',
   });
 
   const speciesName = <PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} />;
+  // what a right-click anywhere on the tile copies (NameCopy), the flipping name drawn over it included
+  const copyName = displayName(capture.pokemon.name, capture.pokemon.name_ja, locale);
   const statusButtons = checklist && !narrow && capture.status !== 'caught' ? STATUSES.filter((status) => status !== capture.status) : [];
 
   const unsealRing = wheel && <UnsealRing at={wheel} />;
 
-  // keyed on the real flag, so it also shows while seal fx is off for fixing
   const stale = capture.sealed ? unansweredFields(capture, capture.pokemon.gender_lock) : [];
   const stalePin = stale.length > 0 &&
     <FontAwesomeIcon
@@ -187,7 +189,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
 
   if (narrow) {
     return (
-      <div className={classes} data-pokemon-id={capture.pokemon.id}>
+      <div className={classes} data-copy-name={copyName} data-pokemon-id={capture.pokemon.id}>
         <div className="set-captured-mobile" onClick={handleTileClick} {...pressHandlers}>
           <div className="icon-wrapper">
             <i className={icon} />
@@ -217,6 +219,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
   return (
     <div
       className={classes}
+      data-copy-name={copyName}
       data-pokemon-id={capture.pokemon.id}
       onMouseEnter={statusButtons.length > 0 && !armed ? () => setArmed(true) : undefined}
     >

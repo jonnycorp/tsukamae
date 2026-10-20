@@ -1,16 +1,18 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBan, faCheck, faChevronDown, faClock, faGamepad, faGear, faGift, faHeart, faLock, faLongArrowAltRight, faMars, faPencilAlt, faPlus, faStar, faTrash, faVenus, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useMemo } from 'react';
+import { faBan, faCheck, faChevronDown, faClock, faGamepad, faGear, faGift, faHeart, faLock, faLongArrowAltRight, faMars, faPencilAlt, faStar, faTrash, faVenus, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { BOX_COLUMNS, TILE_SIZE } from '../../utils/pokemon';
 import { Progress } from '../library/Progress';
-import { THEMES, themePalette } from '../../palette/themes';
+import { THEMES, TYPE_COLORS, themePalette } from '../../palette/themes';
 import { auditTheme } from '../../palette/audit';
+import { contrast, cssColor, over, parseCssColor } from '../../palette/color';
 import { padding } from '../../utils/formatting';
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import type { Mode, ThemeSeed } from '../../palette/themes';
+import type { PokemonType } from '../../types';
 
 interface Sample {
   id: number;
@@ -21,11 +23,12 @@ interface Sample {
   ot?: string;
   date?: string;
   gift?: boolean;
-  location?: 'home' | 'champions';
+  location?: 'home' | 'champions' | 'out';
   partner?: boolean;
   female?: boolean;
-  // shows each flipping line's second face instead of its first
-  flipped?: boolean;
+  // the flipping lines' face on show: 1 the trainer's (nickname, catch date, OT), 2 the types'; else the record's
+  face?: 1 | 2;
+  types?: PokemonType[];
   hovered?: boolean;
 }
 
@@ -36,17 +39,30 @@ const ROWS: Sample[][] = [
     { id: 3, name: 'Venusaur', status: 'temporary' },
     { id: 4, name: 'Charmander', status: 'caught' },
     { id: 5, name: 'Charmeleon', status: 'caught', sealed: true, nickname: 'Ember', ot: 'Jay', date: '2026/03/14' },
-    { id: 6, name: 'Charizard', status: 'caught', sealed: true, ot: 'GAME FREAK', date: '2026/05/01', gift: true, flipped: true },
+    { id: 6, name: 'Charizard', status: 'caught', sealed: true, ot: 'GAME FREAK', date: '2026/05/01', gift: true, face: 1 },
   ],
   [
     { id: 7, name: 'Squirtle', status: 'caught', sealed: true, ot: 'Jay', date: '2026/01/02', location: 'home' },
-    { id: 8, name: 'Wartortle', status: 'caught', sealed: true, nickname: 'Shelly', ot: 'Jay', date: '2026/02/20', location: 'champions', partner: true, female: true, flipped: true },
-    { id: 9, name: 'Blastoise' },
+    { id: 8, name: 'Wartortle', status: 'caught', sealed: true, nickname: 'Shelly', ot: 'Jay', date: '2026/02/20', location: 'champions', partner: true, female: true, face: 1 },
+    { id: 9, name: 'Blastoise', status: 'caught', sealed: true, ot: 'Jay', date: '2026/04/09', location: 'out', face: 1 },
     { id: 10, name: 'Caterpie', status: 'unobtainable' },
     { id: 11, name: 'Metapod', status: 'temporary' },
     { id: 12, name: 'Butterfree', status: 'caught' },
   ],
+  // the types' face, in every location's wash, single and dual
+  [
+    { id: 25, name: 'Pikachu', status: 'caught', sealed: true, face: 2, types: ['electric'] },
+    { id: 94, name: 'Gengar', status: 'caught', sealed: true, face: 2, types: ['ghost', 'poison'], location: 'home' },
+    { id: 149, name: 'Dragonite', status: 'caught', sealed: true, face: 2, types: ['dragon', 'flying'], location: 'champions' },
+    { id: 124, name: 'Jynx', status: 'caught', sealed: true, face: 2, types: ['ice', 'psychic'], location: 'out' },
+    { id: 208, name: 'Steelix', status: 'caught', sealed: true, face: 2, types: ['steel', 'ground'], location: 'home' },
+    { id: 197, name: 'Umbreon', status: 'caught', sealed: true, face: 2, types: ['dark'], location: 'champions' },
+  ],
 ];
+
+const GLYPHS = Object.keys(TYPE_COLORS) as PokemonType[];
+
+const glyphStyle = (type: PokemonType): CSSProperties => ({ backgroundColor: `var(--type-${type})`, maskImage: `url(/types/${type}.svg)` });
 
 const SHINE_CLIP = `path('${ROWS.flat().map((sample, index) => {
   if (!sample.sealed) {
@@ -82,6 +98,13 @@ function SampleTile ({ sample }: { sample: Sample }) {
     </p>
   );
 
+  let numberLine: ReactNode = slots;
+  if (sample.face === 1) {
+    numberLine = <p className={classNames('number-line-ot', { gift: sample.gift })}>{sample.ot}</p>;
+  } else if (sample.face === 2) {
+    numberLine = null;
+  }
+
   return (
     <div
       className={classNames('pokemon', sample.status, {
@@ -89,13 +112,18 @@ function SampleTile ({ sample }: { sample: Sample }) {
         sealed: sample.sealed,
         'loc-home': sample.location === 'home',
         'loc-champions': sample.location === 'champions',
+        'loc-out': sample.location === 'out',
         'theme-preview-hovered': sample.hovered,
       })}
     >
       {sample.sealed &&
         <div className="seal-badges">
-          {sample.flipped ? <span className={classNames('badge-row seal-date', { gift: sample.gift })}>{sample.date}</span> : badgeRow}
+          {sample.face === 1 && <span className={classNames('badge-row seal-date', { gift: sample.gift })}>{sample.date}</span>}
+          {sample.face === undefined && badgeRow}
         </div>
+      }
+      {sample.face === 2 &&
+        <div className="types-block theme-preview-types">{sample.types?.map((type) => <span className="type-glyph" key={type} style={glyphStyle(type)} />)}</div>
       }
       {sample.hovered &&
         <div className="set-status">
@@ -105,38 +133,72 @@ function SampleTile ({ sample }: { sample: Sample }) {
         </div>
       }
       <div className="set-captured">
-        <h4>{sample.nickname && sample.flipped ? <span className="nickname">{sample.nickname}</span> : sample.name}</h4>
+        <h4>{sample.nickname && sample.face === 1 ? <span className="nickname">{sample.nickname}</span> : sample.name}</h4>
         <div className="icon-wrapper">
           <i className={`pkicon pkicon-${padding(sample.id, 3)} game-family-home`} />
         </div>
-        {sample.sealed
-          ? (
-            <div className="number-scroll">
-              {sample.flipped ? <p className={classNames('number-line-ot', { gift: sample.gift })}>{sample.ot}</p> : slots}
-            </div>
-          )
-          : <p>{number}</p>}
+        {sample.sealed ? <div className="number-scroll">{numberLine}</div> : <p>{number}</p>}
       </div>
     </div>
   );
 }
 
+function themeTokens (seed: ThemeSeed, mode: Mode): CSSProperties {
+  const style: Record<string, string> = { colorScheme: mode };
+  for (const [name, value] of Object.entries(themePalette(seed, mode))) {
+    style[`--${name}`] = value;
+  }
+  return style as CSSProperties;
+}
+
+// every type's glyph on what a sealed tile puts behind it, the fill and each location's wash faded below half (as
+// app/palette/themes.ts solves them), at the tile's size, with each one's ratio on hover
+function GlyphSheet ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
+  const palette = themePalette(seed, mode);
+  const tokens = useMemo(() => themeTokens(seed, mode), [seed, mode]);
+  const fill = parseCssColor(palette['tile-caught']);
+  const backdrops: [string, string][] = [
+    ['tile', palette['tile-caught']],
+    ...([['game', 'wash-seal'], ['HOME', 'wash-home'], ['Champions', 'wash-champions'], ['Out', 'wash-loan']] as const).map(([label, wash]): [string, string] => [
+      label,
+      cssColor(over({ ...parseCssColor(palette[wash]), a: 0.45 }, fill)),
+    ]),
+  ];
+
+  return (
+    <div className="theme-preview-glyph-sheet" style={tokens}>
+      <h3>{mode === 'dark' ? 'soft dark' : 'light'}</h3>
+      <div className="theme-preview-glyph-specimens" style={{ backgroundColor: palette['tile-caught'] }}>
+        {GLYPHS.map((type) => (
+          <div className="theme-preview-glyph-specimen" key={type}>
+            <span className="type-glyph" style={glyphStyle(type)} />
+            <small>{type}</small>
+          </div>
+        ))}
+      </div>
+      {backdrops.map(([label, background]) => (
+        <div className="theme-preview-glyph-row" key={label}>
+          <span className="theme-preview-glyph-label">{label}</span>
+          <div className="theme-preview-glyph-strip" style={{ backgroundColor: background }}>
+            {GLYPHS.map((type) => {
+              const ratio = contrast(parseCssColor(palette[`type-${type}`]), parseCssColor(background));
+              return <span className="type-glyph" key={type} style={glyphStyle(type)} title={`${type} ${ratio.toFixed(2)}:1`} />;
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
-  const tokens = useMemo(() => {
-    const style: Record<string, string> = { colorScheme: mode };
-    for (const [name, value] of Object.entries(themePalette(seed, mode))) {
-      style[`--${name}`] = value;
-    }
-    return style as CSSProperties;
-  }, [seed, mode]);
+  const tokens = useMemo(() => themeTokens(seed, mode), [seed, mode]);
   const failures = useMemo(() => auditTheme(seed, mode).filter((result) => !result.pass), [seed, mode]);
 
   return (
     <div className="theme-preview-panel" style={tokens}>
       <nav>
         <a className="nav-logo">tsukamae</a>
-        <a className="nav-icon"><FontAwesomeIcon icon={faPencilAlt} /></a>
-        <a className="nav-icon"><FontAwesomeIcon icon={faPlus} /></a>
         <a className="nav-icon"><FontAwesomeIcon icon={faGear} /></a>
         <a className="nav-icon"><FontAwesomeIcon icon={faGamepad} /></a>
       </nav>
@@ -159,6 +221,7 @@ function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
               <button className="filter-view active" type="button">Missing</button>
               <button className="filter-view" type="button">Temporary</button>
             </div>
+            <button className="filter-edit-dex" type="button"><FontAwesomeIcon icon={faPencilAlt} />Edit Dex</button>
             <button className="filter-toggle" type="button">Filters <FontAwesomeIcon icon={faChevronDown} /></button>
             <button className="filter-chip" type="button"><span className="filter-chip-label">Generation</span>Gen 9 <FontAwesomeIcon icon={faXmark} /></button>
             <span className="filter-count">97 Pokémon</span>
@@ -220,7 +283,7 @@ function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
           <button className="btn btn-delete btn-compact" type="button">Delete</button>
           <div className="form-group">
             <div className="checkbox">
-              <label><input checked readOnly type="checkbox" /><span className="checkbox-custom"><span /></span>Seal FX</label>
+              <label><input checked readOnly type="checkbox" /><span className="checkbox-custom"><span /></span>Nickname</label>
             </div>
           </div>
           <p className={failures.length > 0 ? 'theme-preview-fail' : 'theme-preview-pass'}>
@@ -232,21 +295,140 @@ function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
   );
 }
 
+const ZOOM_MIN = 0.4;
+const ZOOM_MAX = 4;
+// a press that moves this far is a drag, which pans, rather than a click
+const DRAG_PX = 4;
+
+interface Drag {
+  id: number;
+  x: number;
+  y: number;
+  left: number;
+  top: number;
+  moved: boolean;
+}
+
+// Ctrl+scroll zooms the whole sheet about the pointer (Ctrl+0 back to 100%) and a drag pans it, for a close look at a
+// glyph or a tile
 export function ThemePreview () {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  // the sheet's point under the pointer (unscaled, from the canvas's corner), held at that spot on screen across a zoom
+  const anchorRef = useRef<{ x: number; y: number; clientX: number; clientY: number } | null>(null);
+  const dragRef = useRef<Drag | null>(null);
+  const [panning, setPanning] = useState(false);
+
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    const anchor = anchorRef.current;
+    if (scroller && anchor) {
+      anchorRef.current = null;
+      const canvas = canvasRef.current!.getBoundingClientRect();
+      scroller.scrollLeft += canvas.left + anchor.x * zoom - anchor.clientX;
+      scroller.scrollTop += canvas.top + anchor.y * zoom - anchor.clientY;
+    }
+  }, [zoom]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current!;
+    const zoomAt = (next: number, clientX: number, clientY: number) => {
+      const z = zoomRef.current;
+      const target = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
+      if (Math.abs(target - z) < 0.001) {
+        return;
+      }
+      const canvas = canvasRef.current!.getBoundingClientRect();
+      anchorRef.current = { x: (clientX - canvas.left) / z, y: (clientY - canvas.top) / z, clientX, clientY };
+      setZoom(target);
+    };
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        return;
+      }
+      e.preventDefault();
+      zoomAt(zoomRef.current * Math.exp(-e.deltaY * 0.002), e.clientX, e.clientY);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        const rect = scroller.getBoundingClientRect();
+        zoomAt(1, rect.left + scroller.clientWidth / 2, rect.top + scroller.clientHeight / 2);
+      }
+    };
+    scroller.addEventListener('wheel', handleWheel, { passive: false });
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      scroller.removeEventListener('wheel', handleWheel);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) {
+      return;
+    }
+    const scroller = e.currentTarget;
+    dragRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, left: scroller.scrollLeft, top: scroller.scrollTop, moved: false };
+  };
+
+  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.id !== e.pointerId) {
+      return;
+    }
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (!drag.moved) {
+      if (Math.abs(dx) + Math.abs(dy) < DRAG_PX) {
+        return;
+      }
+      drag.moved = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setPanning(true);
+    }
+    e.currentTarget.scrollLeft = drag.left - dx;
+    e.currentTarget.scrollTop = drag.top - dy;
+  };
+
+  const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.id === e.pointerId) {
+      dragRef.current = null;
+      setPanning(false);
+    }
+  };
+
   return (
-    <div className="theme-preview">
-      {THEMES.map((seed) => (
-        <section key={seed.name}>
-          <h2>
-            {seed.name}
-            <small>hue {seed.hue} · ink {seed.ink} · unobtainable {seed.unobtainable} · temporary {seed.temporary} · caught {seed.caught} · chroma {seed.chroma}</small>
-          </h2>
-          <div className="theme-preview-modes">
-            <Panel mode="light" seed={seed} />
-            <Panel mode="dark" seed={seed} />
-          </div>
-        </section>
-      ))}
+    <div
+      className={classNames('theme-preview', { panning })}
+      onPointerCancel={handlePointerUp}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      ref={scrollerRef}
+    >
+      <div className="theme-preview-canvas" ref={canvasRef} style={{ zoom }}>
+        {THEMES.map((seed) => (
+          <section key={seed.name}>
+            <h2>
+              {seed.name}
+              <small>hue {seed.hue} · ink {seed.ink} · unobtainable {seed.unobtainable} · temporary {seed.temporary} · caught {seed.caught} · chroma {seed.chroma}</small>
+            </h2>
+            <div className="theme-preview-modes">
+              <Panel mode="light" seed={seed} />
+              <Panel mode="dark" seed={seed} />
+              <div className="theme-preview-glyphs">
+                <GlyphSheet mode="light" seed={seed} />
+                <GlyphSheet mode="dark" seed={seed} />
+              </div>
+            </div>
+          </section>
+        ))}
+      </div>
+      <div className="theme-preview-zoom">{Math.round(zoom * 100)}% · Ctrl+scroll to zoom, drag to pan, Ctrl+0 to reset</div>
     </div>
   );
 }

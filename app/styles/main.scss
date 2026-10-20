@@ -30,6 +30,9 @@ body {
   background-color: var(--paper);
   color: var(--ink);
   color-scheme: light;
+  // nothing on the page selects, so a drag that strays off the scrollbar or across the tiles can't highlight half of
+  // it; a Pokémon's name copies with a right-click instead (NameCopy)
+  user-select: none;
 }
 
 // form controls don't inherit body's line-height
@@ -38,6 +41,14 @@ input,
 select,
 textarea {
   line-height: 1.35;
+}
+
+// what's typed into a field still selects, as does an error, whose file names are worth copying out
+input,
+textarea,
+.load-failed,
+.save-failed {
+  user-select: text;
 }
 
 .soft-dark {
@@ -138,6 +149,9 @@ nav {
   -webkit-app-region: no-drag;
 }
 
+// the gear's and the palette's menus come out of the bar itself: in its colours rather than the popover's, flush with
+// its bottom edge and open to it (no edge along the top), unfurling down from it as the dropdowns do from their fields;
+// rows split by a hairline, the one under the pointer a shade lighter, a ticked option marked by its tick alone
 .nav-menu {
   display: flex;
   position: relative;
@@ -147,28 +161,38 @@ nav {
     top: 100%;
     right: 0;
     z-index: 10;
-    width: 210px;
+    width: max-content;
+    min-width: 210px;
     margin: 0;
     padding: 0;
     list-style: none;
-    background-color: var(--chrome-hover);
+    border: 2px solid var(--chrome-active);
+    border-top: 0;
+    background-color: var(--chrome);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .22);
+    animation: dropdown-furl .2s cubic-bezier(.2, .9, .3, 1);
 
     li {
       display: flex;
       align-items: center;
       padding: 12px 14px;
-      border-top: 2px solid var(--chrome);
+      border-top: 1px solid color-mix(in srgb, var(--on-chrome) 14%, transparent);
       font-family: $font-secondary;
-      font-size: 11px;
+      @include small-text(11px);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--on-chrome);
       white-space: nowrap;
       cursor: pointer;
+      transition: background-color .1s ease-out;
+
+      &:first-child {
+        border-top: 0;
+      }
 
       &:hover {
-        background-color: var(--chrome-active);
+        background-color: var(--chrome-hover);
       }
     }
   }
@@ -205,47 +229,11 @@ nav {
       font-size: 11px;
     }
 
-    &.theme-active {
-      background-color: var(--chrome-active);
+    // the next group (Soft Dark, then the display switches) sets off with a band of the bar's deeper shade
+    &.theme-soft-dark,
+    &.theme-display {
+      border-top: 4px solid var(--chrome-active);
     }
-
-    &.theme-soft-dark {
-      border-top-width: 6px;
-    }
-  }
-}
-
-// centred without a transform: a transformed box would anchor the dex menu's position: fixed to itself. It's never
-// wider than the room the right side leaves either side of centre (its four icons and the window buttons), so it can't
-// slide under them; the dex's name gives way first
-.nav-dex-controls {
-  display: flex;
-  align-items: center;
-  position: absolute;
-  inset: 0;
-  width: fit-content;
-  max-width: calc(100% - 2 * (#{4 * 44px} + 100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
-  margin: 0 auto;
-
-  .dropdown {
-    min-width: 0;
-  }
-
-  .tooltip .svg-inline--fa {
-    font-size: 13px;
-  }
-}
-
-// too narrow to centre on the window: it takes the room between the logo and the icons instead
-@media (max-width: 800px) {
-  .nav-dex-controls {
-    position: static;
-    min-width: 0;
-    max-width: none;
-  }
-
-  nav > a.nav-logo:first-child {
-    margin-right: 0;
   }
 }
 
@@ -279,21 +267,6 @@ nav .nav-menu > a.tooltip .tooltip-text {
   }
 }
 
-.nav-dex-select {
-  min-width: 0;
-  max-width: 380px;
-  margin-right: 10px;
-  padding: 8px 12px;
-  font-size: 13px;
-  line-height: 1;
-  border: 0;
-  background-color: var(--chrome-well);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), inset 0 1px 3px rgba(0, 0, 0, .18);
-  color: var(--on-chrome);
-  font-family: $font-secondary;
-  font-weight: 700;
-}
-
 .btn {
   display: block;
   position: relative;
@@ -302,7 +275,7 @@ nav .nav-menu > a.tooltip .tooltip-text {
   border: 0;
   border-radius: 0;
   font-family: $font-secondary;
-  font-size: 11px;
+  @include small-text(11px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -407,50 +380,70 @@ form {
     flex-shrink: 0;
     font-size: 10px;
     opacity: .6;
+    transition: opacity .1s ease-out, transform .2s cubic-bezier(.2, .9, .3, 1);
+  }
+
+  // turned while the menu's open, as it unfurls
+  .dropdown-trigger[aria-expanded='true'] .dropdown-chevron {
+    transform: rotate(180deg);
   }
 }
 
+// every dropdown's menu, and the move menu (L): in the popover's colours, edge and shadow, a little clear of its field
+// and as wide as its widest option (Dropdown keeps it at least the field's width), so no label is cut off. It unfurls
+// from the field, or up from it where it opens above (data-up); the row under the pointer or the arrow keys is the
+// deeper shade, the selected one bold and ticked
 .dropdown-menu {
   @include scrollbar-fade;
 
+  // the page's thumb is ink, which the overlay would swallow
+  --scroll-thumb: color-mix(in srgb, var(--on-overlay) 40%, transparent);
+
   position: fixed;
   z-index: 70;
+  width: max-content;
+  max-width: calc(100vw - 16px);
   max-height: 240px;
-  margin: 0;
+  margin: 4px 0;
   padding: 0;
   overflow-y: auto;
   list-style: none;
-  background-color: var(--chrome-hover);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
+  border: 2px solid var(--overlay-edge);
+  background-color: var(--overlay);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
+  animation: dropdown-furl .2s cubic-bezier(.2, .9, .3, 1);
+
+  &[data-up] {
+    animation-name: dropdown-furl-up;
+  }
 
   li {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 9px 12px;
-    border-top: 2px solid var(--chrome);
+    border-top: 1px solid var(--overlay-line);
     font-family: $font-primary;
     font-size: 14px;
-    color: var(--on-chrome);
+    color: var(--on-overlay);
     white-space: nowrap;
     cursor: pointer;
+    transition: background-color .1s ease-out;
+
+    &:first-child {
+      border-top: 0;
+    }
 
     img {
       @include ball-sprite;
     }
 
-    &:hover {
-      background-color: var(--chrome-active);
+    &.dropdown-active {
+      background-color: var(--overlay-deep);
     }
 
     &.dropdown-selected {
-      background-color: var(--chrome-active);
       font-weight: 700;
-    }
-
-    // where the arrow keys are; a ring, since the selected option already has the hover colour
-    &.dropdown-active {
-      box-shadow: inset 0 0 0 2px var(--accent);
     }
 
     .dropdown-check {
@@ -522,7 +515,7 @@ form {
     display: block;
     margin-bottom: 7px;
     font-family: $font-secondary;
-    font-size: 11px;
+    @include small-text(11px);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -632,7 +625,7 @@ form {
   margin-top: 47vh;
   text-align: center;
   font-family: $font-secondary;
-  font-size: 11px;
+  @include small-text(11px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -743,7 +736,7 @@ form {
   .form-section-label {
     margin-bottom: $space-field;
     font-family: $font-secondary;
-    font-size: 12px;
+    @include small-text(12px);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -761,7 +754,7 @@ form {
 // the line always carries the full breakdown, so it tightens as the bar narrows rather than wrapping out of it
 .progress-container {
   width: 100%;
-  height: 28px;
+  height: 34px;
   container-type: inline-size;
 
   .temporary-count {
@@ -776,31 +769,37 @@ form {
 .progress-outer {
   position: relative;
   width: 100%;
-  height: 28px;
+  height: 34px;
   background-color: var(--paper-raised);
   border: 2px solid var(--meter-edge);
 
+  // one line, centred down the bar's inside
   .progress-numbers {
     position: absolute;
     width: 100%;
-    padding: 5px;
+    padding: 0 6px;
+    line-height: 30px;
     overflow: hidden;
     color: var(--ink);
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: $font-secondary;
-    font-size: 11px;
+    @include small-text(12px);
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 1px;
 
-    @container (max-width: 560px) {
+    @container (max-width: 620px) {
       letter-spacing: 0;
     }
 
+    @container (max-width: 520px) {
+      @include small-text(11px);
+    }
+
     @container (max-width: 470px) {
-      font-size: 10px;
+      @include small-text(10px);
     }
   }
 
@@ -841,7 +840,7 @@ form {
   .label {
     margin-left: 7px;
     border-radius: 3px;
-    font-size: 10px;
+    @include small-text(10px);
     padding: 4px 6px;
     background-color: var(--chip);
     color: var(--ink);
@@ -862,7 +861,7 @@ form {
   text-align: center;
   background-color: var(--paper-sunken);
   font-family: $font-secondary;
-  font-size: 10px;
+  @include small-text(10px);
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-top: auto;
@@ -898,7 +897,7 @@ form {
 
   nav a {
     padding: 14px 10px;
-    font-size: 10px;
+    @include small-text(10px);
   }
 }
 
@@ -941,7 +940,7 @@ $saves-table-width: 640px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--line-soft);
     font-family: $font-secondary;
-    font-size: 11px;
+    @include small-text(11px);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -974,7 +973,7 @@ $saves-table-width: 640px;
         border: 0;
         background: none;
         color: var(--ink-muted);
-        font-size: 12px;
+        @include small-text(12px);
         opacity: .6;
         cursor: pointer;
         transition: opacity .1s ease-out;

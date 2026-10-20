@@ -1,4 +1,5 @@
 @use 'variables' as *;
+@use 'mixins' as *;
 
 // the timeline (components/pages/Tracker/Timeline.tsx): a scene of its own over the whole window, nav included, in a
 // palette of its own rather than the theme's. Keep in sync with STAGE_COLOR, SPINE_BOTTOM and HEADROOM there, and
@@ -87,7 +88,7 @@ $tl-spine-at: 1s;
   margin-left: auto;
   overflow: hidden;
   color: $tl-dim;
-  font-size: 11px;
+  @include small-text(11px);
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -120,24 +121,66 @@ $tl-spine-at: 1s;
   }
 }
 
+// − 100% +: the level fits the stage again when clicked
+.tl-zoom {
+  display: flex;
+  flex: none;
+  align-items: center;
+
+  .tl-button {
+    width: 28px;
+    font-size: 12px;
+  }
+}
+
+.tl-zoom-level {
+  min-width: 52px;
+  padding: 4px 6px;
+  border: 2px solid transparent;
+  background: none;
+  color: $tl-ink;
+  font-family: $font-secondary;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: border-color .1s ease-out, color .1s ease-out;
+
+  &:hover,
+  &:focus-visible {
+    border-color: $tl-pink;
+    color: $tl-pink;
+  }
+}
+
 // the background stays put while the track scrolls past it: a halftone over a dusk that reddens toward the spine
 .tl-stage {
   position: relative;
   flex: 1 1 auto;
   outline: none;
   min-height: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: auto;
   background:
     radial-gradient(circle, rgba(246, 241, 255, .06) 1px, transparent 1.6px) 0 0 / 16px 16px,
     linear-gradient(180deg, $tl-night 0%, $tl-night-2 62%, #2e0f24 100%);
 
   &::-webkit-scrollbar {
+    width: 10px;
     height: 10px;
   }
 
-  &::-webkit-scrollbar-track {
+  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-corner {
     background: transparent;
+  }
+
+  &.settled {
+    cursor: grab;
+  }
+
+  &.panning,
+  &.panning .tl-mon {
+    cursor: grabbing;
   }
 
   &::-webkit-scrollbar-thumb {
@@ -148,10 +191,10 @@ $tl-spine-at: 1s;
   }
 }
 
+// sized by the zoom (Timeline.tsx), which it hands its contents as --z
 .tl-track {
   position: relative;
   min-width: 100%;
-  height: 100%;
 }
 
 // the line every mon lands on, drawn left to right as the title card clears
@@ -182,6 +225,8 @@ $tl-spine-at: 1s;
 .tl-month {
   position: absolute;
   bottom: 0;
+  left: calc(var(--x) * var(--z) * 1px);
+  width: calc(var(--w) * var(--z) * 1px);
   height: $tl-spine-bottom - 6px;
   border-left: 1px solid rgba(246, 241, 255, .2);
   animation: fade-in .4s ease-out $tl-spine-at + .2s both;
@@ -191,43 +236,65 @@ $tl-spine-at: 1s;
   }
 }
 
+// shown where the month is wide enough for it at the zoom, so a narrow month's never runs into the next
 .tl-month-label {
   position: absolute;
-  top: 20px;
+  top: 29px;
   left: 6px;
   color: $tl-dim;
-  font-size: 11px;
+  @include small-text(11px);
   font-weight: 800;
   letter-spacing: 1px;
   text-transform: uppercase;
   white-space: nowrap;
+  opacity: clamp(0, calc((var(--w) * var(--z) - 34) * 100), 1);
+}
+
+// each day's date under its stack (--dx into the month), once the stacks are wide enough at the zoom to take one
+.tl-day {
+  position: absolute;
+  top: 15px;
+  left: calc((var(--dx) + 20) * var(--z) * 1px);
+  color: $tl-ink;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  opacity: clamp(0, calc((var(--z) * 40 - 17) * 100), 1);
+  transform: translateX(-50%);
 }
 
 .tl-undated .tl-month-label {
   top: 16px;
+  opacity: 1;
   color: $tl-pink;
   font-size: 20px;
   font-weight: 900;
 }
 
+// smaller as the stage zooms out, all of it, as the years come closer together: a year's banner starts no nearer the
+// last one than one banner's width at 100% (timeline-layout.ts), so scaled whole it never reaches the next. Too small
+// to read under 30%, it goes, as the skip cards' words do
 .tl-year {
+  --banner: min(1, var(--z));
+
   position: absolute;
   bottom: 10px;
-  left: -10px;
-  padding: 0 18px 0 12px;
+  left: calc(-10px * var(--banner));
+  padding: 0 calc(18px * var(--banner)) 0 calc(12px * var(--banner));
   background-color: $tl-pink;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px * var(--banner)) 100%, 0 100%);
+  opacity: clamp(0, calc((var(--z) - .3) * 1000), 1);
   transform-origin: left center;
   // its delay is its first mon's, so the banner goes up as the cascade reaches its year
   animation: tl-banner .45s cubic-bezier(.2, 1.4, .4, 1) both;
 
   span {
     display: inline-block;
-    font-size: 26px;
+    font-size: calc(26px * var(--banner));
     font-style: italic;
     font-weight: 900;
-    letter-spacing: 2px;
-    text-shadow: 3px 3px 0 $tl-pink-deep;
+    letter-spacing: calc(2px * var(--banner));
+    text-shadow: calc(3px * var(--banner)) calc(3px * var(--banner)) 0 $tl-pink-deep;
     transform: skewX(-8deg);
   }
 }
@@ -236,19 +303,23 @@ $tl-spine-at: 1s;
 .tl-skip {
   display: flex;
   position: absolute;
-  bottom: $tl-spine-bottom + 18px;
+  bottom: calc(#{$tl-spine-bottom} + 18px * var(--z));
+  left: calc(var(--x) * var(--z) * 1px);
   align-items: center;
   justify-content: center;
-  height: 112px;
+  width: calc(var(--w) * var(--z) * 1px);
+  height: calc(112px * var(--z));
   border: 2px solid $tl-pink;
   background: repeating-linear-gradient(-45deg, rgba(255, 45, 127, .16) 0 14px, transparent 14px 28px);
   transform: skewX(-10deg);
   animation: tl-pop .4s cubic-bezier(.2, 1.4, .4, 1) both;
 
+  // the words go below 30%, where the card is too small to hold them, leaving the card to mark the lull
   span {
-    padding: 0 10px;
-    font-size: 15px;
+    padding: 0 calc(10px * min(1, var(--z)));
+    font-size: clamp(7px, calc(15px * var(--z)), 15px);
     font-style: italic;
+    opacity: clamp(0, calc((var(--z) - .3) * 1000), 1);
     font-weight: 900;
     letter-spacing: 2px;
     line-height: 1.3;
@@ -256,6 +327,20 @@ $tl-spine-at: 1s;
     text-transform: uppercase;
     transform: skewX(10deg);
   }
+}
+
+// the mons' layer, standing on the spine and zoomed as one; they're placed in it unscaled
+.tl-scene {
+  position: absolute;
+  bottom: $tl-spine-bottom;
+  left: 0;
+}
+
+.tl-scene-zoom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  zoom: var(--z);
 }
 
 // a mon, standing in its slot on the spine or its pile; it drops in on its turn and squashes as it lands
@@ -326,11 +411,13 @@ $tl-spine-at: 1s;
   padding: 8px 18px;
   background-color: $tl-ink;
   color: $tl-night;
-  font-size: 12px;
+  @include small-text(12px);
   white-space: nowrap;
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
   pointer-events: none;
-  transform: translateX(-50%);
+  // centred over its mon (--card-x), but kept inside the track's ends (--track-w), which the first and last stacks come
+  // close to as the stage zooms out
+  transform: translateX(clamp(calc(6px - var(--card-x) * 1px), -50%, calc((var(--track-w) - var(--card-x)) * 1px - 100% - 6px)));
 
   b {
     font-size: 15px;
@@ -348,25 +435,49 @@ $tl-spine-at: 1s;
     letter-spacing: 1px;
   }
 
-  .tl-card-status {
-    margin-top: 2px;
-    padding: 1px 8px;
-    background-color: $tl-night;
-    color: $tl-ink;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+  // sealed, or temporary, beside the name
+  .tl-card-mark {
+    margin-left: 6px;
+    font-size: 11px;
+    vertical-align: 1px;
 
     &.sealed {
-      background-color: $tl-gold;
-      color: $tl-night;
-    }
-
-    &.temporary {
-      background-color: $tl-pink-deep;
+      color: $tl-pink-deep;
     }
   }
+
+  // where it came from: the game's mark, the game and language, the OT, and a pad when that's one of your games
+  .tl-card-origin {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    padding: 2px 8px;
+    background-color: $tl-night;
+    color: $tl-ink;
+    @include small-text(11px);
+    font-weight: 700;
+
+    .origin-mark {
+      width: 12px;
+      height: 12px;
+      background-color: $tl-ink;
+    }
+
+    .svg-inline--fa {
+      font-size: 10px;
+    }
+
+    .fa-gamepad {
+      color: $tl-gold;
+    }
+  }
+}
+
+// a name copied off the stage (NameCopy, a right-click on a mon) says so in the stage's colours
+body:has(> .timeline) > .name-copied {
+  background-color: $tl-gold;
+  color: $tl-night;
 }
 
 .tl-empty {
@@ -467,7 +578,7 @@ $tl-spine-at: 1s;
   right: 24px;
   bottom: 20px;
   color: $tl-dim;
-  font-size: 11px;
+  @include small-text(11px);
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;

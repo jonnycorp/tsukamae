@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faPencilAlt, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, appliedFacets, facetOptions, filterMatcher, hasQuery, queryMatcher } from './filters';
@@ -61,11 +61,13 @@ function FacetPanel ({ facets, filters, onToggle, query, regional }: PanelProps)
 
 interface Props {
   filters: TrackerFilters;
+  // the dex's settings, its defaults among them, in reach for marking a run of mons from one game
+  onEditDex: () => void;
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
 }
 
-export function FilterBar ({ filters, query, setFilters }: Props) {
+export function FilterBar ({ filters, onEditDex, query, setFilters }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { captures } = useTrackerState();
   const { t, locale } = useTranslation();
@@ -136,6 +138,10 @@ export function FilterBar ({ filters, query, setFilters }: Props) {
           </button>
         ))}
       </div>
+
+      <button className="filter-edit-dex" onClick={onEditDex} type="button">
+        <FontAwesomeIcon icon={faPencilAlt} />{t('filter.editDex')}
+      </button>
 
       <div className="filter-anchor" ref={anchorRef}>
         <button aria-expanded={open} className={classNames('filter-toggle', { open })} onClick={() => setOpen((prev) => !prev)} type="button">

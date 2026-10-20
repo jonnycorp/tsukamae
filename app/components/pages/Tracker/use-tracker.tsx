@@ -1,24 +1,24 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { BOX_COLUMNS, TILE_SIZE } from '../../../utils/pokemon';
-import { TESTING } from '../../../utils/testing';
 import { EMPTY_METADATA } from '../../../utils/capture-fields';
-import { deleteCaptures, progressToCaptures, writeCapture } from '../../../utils/local-data';
+import { deleteCaptures, moveCapture, progressToCaptures, writeCapture } from '../../../utils/local-data';
+import { movedRecord, placeOf, samePlace } from '../../../utils/location-moves';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 
-import type { Capture } from '../../../types';
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { Capture, Place } from '../../../types';
+import type { Dispatch, MutableRefObject, ReactNode, SetStateAction } from 'react';
 import type { UpdateCapturePayload } from '../../../utils/local-data';
 
-export function isDisplaySealed (capture: Capture, checklist: boolean, sealFx: boolean): boolean {
-  return sealFx && (checklist ? capture.status === 'caught' : capture.sealed);
+export function isDisplaySealed (capture: Capture, checklist: boolean): boolean {
+  return checklist ? capture.status === 'caught' : capture.sealed;
 }
 
 // a box-sized grid's shine, one band clipped to its sealed slots — a per-tile shine layer exhausts GPU memory in a
 // checklist; null with nothing sealed. Boxes and search results chunks both draw it, so a seal shines in every view
-export function shineClip (captures: Capture[], checklist: boolean, sealFx: boolean): string | null {
+export function shineClip (captures: Capture[], checklist: boolean): string | null {
   const holes = captures.reduce<string[]>((all, capture, index) => {
-    if (isDisplaySealed(capture, checklist, sealFx)) {
+    if (isDisplaySealed(capture, checklist)) {
       const x = (index % BOX_COLUMNS) * TILE_SIZE;
       const y = Math.floor(index / BOX_COLUMNS) * TILE_SIZE;
       all.push(`M${x} ${y}h${TILE_SIZE}v${TILE_SIZE}h-${TILE_SIZE}Z`);
@@ -50,13 +50,22 @@ interface TrackerState {
   captures: Capture[];
 }
 
+// the move menu for a sealed mon, opened beside its tile (L)
+export interface MoveTarget {
+  pokemon: number;
+  anchor: DOMRect;
+}
+
 interface TrackerActions {
   setCaptures: Dispatch<SetStateAction<Capture[]>>;
   updateCapture: (payload: UpdateCapturePayload) => void;
   // blanks the tiles and deletes the records; sealed ones are skipped by both
   releaseCaptures: (pokemon: number[]) => void;
-  sealFx: boolean;
-  setSealFx: Dispatch<SetStateAction<boolean>>;
+  // a sealed mon moved, the tile and the record alike; an unsealed one is skipped by both
+  moveTo: (pokemon: number, to: Place) => void;
+  openMoveMenu: (pokemon: number, anchor: Element) => void;
+  // set by the one MoveMenu; read only when the menu's asked for, so opening it renders no tile
+  moveMenuHost: MutableRefObject<((target: MoveTarget) => void) | null>;
   narrow: boolean;
 }
 
@@ -66,8 +75,9 @@ const TrackerActionsContext = createContext<TrackerActions>({
   setCaptures: () => {},
   updateCapture: () => {},
   releaseCaptures: () => {},
-  sealFx: true,
-  setSealFx: () => {},
+  moveTo: () => {},
+  openMoveMenu: () => {},
+  moveMenuHost: { current: null },
   narrow: false,
 });
 
@@ -97,24 +107,31 @@ export const TrackerContextProvider = ({ children }: Props) => {
       return changed ? next : prev;
     });
   }, [saves]);
-  const [sealFx, setSealFx] = useState(true);
   const narrow = useMediaQuery(NARROW_QUERY);
 
-  const updateCapture = useCallback(
-    (payload: UpdateCapturePayload) => writeCapture(dexId, payload, TESTING && !sealFx),
-    [dexId, sealFx],
-  );
+  const updateCapture = useCallback((payload: UpdateCapturePayload) => writeCapture(dexId, payload), [dexId]);
   const releaseCaptures = useCallback((pokemon: number[]) => {
     setCaptures((prev) => prev.map((cap) => (pokemon.includes(cap.pokemon.id) && cap.captured && !cap.sealed
       ? { ...cap, ...EMPTY_METADATA, captured: false, status: null, sealed: false }
       : cap)));
     deleteCaptures(dexId, pokemon);
   }, [dexId]);
+  const moveTo = useCallback((pokemon: number, to: Place) => {
+    setCaptures((prev) => prev.map((cap) => {
+      const here = placeOf(cap);
+      return cap.pokemon.id === pokemon && cap.sealed && !(here && samePlace(here, to)) ? movedRecord(cap, to) : cap;
+    }));
+    moveCapture(dexId, pokemon, to);
+  }, [dexId]);
+  const moveMenuHost = useRef<((target: MoveTarget) => void) | null>(null);
+  const openMoveMenu = useCallback((pokemon: number, anchor: Element) => {
+    moveMenuHost.current?.({ pokemon, anchor: anchor.getBoundingClientRect() });
+  }, []);
 
   const stateValue = useMemo<TrackerState>(() => ({ captures }), [captures]);
   const actionsValue = useMemo<TrackerActions>(
-    () => ({ setCaptures, updateCapture, releaseCaptures, sealFx, setSealFx, narrow }),
-    [updateCapture, releaseCaptures, sealFx, narrow],
+    () => ({ setCaptures, updateCapture, releaseCaptures, moveTo, openMoveMenu, moveMenuHost, narrow }),
+    [updateCapture, releaseCaptures, moveTo, openMoveMenu, narrow],
   );
 
   return (
