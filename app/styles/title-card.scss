@@ -1,0 +1,219 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// a scene's title card (components/pages/Tracker/TitleCard.tsx: the timeline, the review, the almanac), over the scene
+// below its bar: a slash of the accent cuts open across it, the scene's name slams down onto it with a flash and a
+// shake, the dex's name slides in under it, then the card clears. In step with CARD_MS and REVEAL_MS there, and with the
+// timeline's INTRO_MS. It lets every click through to the scene, which skips it. Every part that moves is a layer of
+// its own from the first frame (will-change), so none is set up mid-motion, and moves only by transform and opacity,
+// which the compositor runs off the page's thread: the scene building itself under it can't make it judder
+$card-slam-at: .26s;
+$card-impact-at: .42s;
+$card-clear-at: 1.05s;
+
+.title-card {
+  position: absolute;
+  inset: $nav-height 0 0;
+  z-index: 10;
+  overflow: hidden;
+  font-family: $font-secondary;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: title-card-shake .3s linear $card-impact-at, title-card-clear .3s ease-in $card-clear-at both;
+}
+
+.title-card-flash {
+  position: absolute;
+  inset: 0;
+  background-color: var(--shine);
+  opacity: 0;
+  will-change: opacity;
+  // forwards, not both: the flash's first frame mustn't hold through the delay
+  animation: title-card-flash .35s ease-out $card-impact-at forwards;
+}
+
+// across the window at its slant with room to spare (160vw), so its ends are never in sight: it opens out from a cut
+// along its middle rather than sliding in along itself, which showed its end crossing the window as a bar of its own
+.title-card-slash {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160vw;
+  height: 30vh;
+  margin: -15vh 0 0 -80vw;
+  background-color: var(--accent);
+  box-shadow: 0 0 0 10px var(--paper), 0 0 0 16px var(--accent);
+  transform: rotate(-14deg);
+  will-change: transform;
+  animation: title-card-slash .42s cubic-bezier(.25, 1.35, .45, 1) .08s both;
+}
+
+.title-card-title {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  text-align: center;
+  transform: translateY(-62%);
+
+  span {
+    display: inline-block;
+    color: var(--on-accent);
+    font-size: min(15vw, 190px);
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1;
+    text-shadow: .06em .06em 0 var(--accent-shadow);
+    text-transform: uppercase;
+    will-change: transform, opacity;
+    animation: title-card-slam .5s cubic-bezier(.2, 1.6, .4, 1) $card-slam-at both;
+  }
+}
+
+.title-card-sub {
+  display: flex;
+  position: absolute;
+  top: calc(50% + min(15vw, 190px) * .42);
+  right: 0;
+  left: 0;
+  justify-content: center;
+
+  span {
+    max-width: 80vw;
+    padding: 6px 40px;
+    overflow: hidden;
+    background-color: var(--ink);
+    color: var(--paper);
+    font-size: min(3vw, 30px);
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+    clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+    will-change: transform, opacity;
+    animation: title-card-sub .4s cubic-bezier(.2, .9, .3, 1) .55s both;
+  }
+}
+
+.title-card-skip {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  color: var(--ink-muted);
+  @include small-text(11px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: fade-in .3s ease-out .6s both;
+}
+
+@keyframes title-card-slash {
+  from {
+    transform: rotate(-14deg) scaleY(0);
+  }
+}
+
+@keyframes title-card-slam {
+  0% {
+    opacity: 0;
+    transform: skewX(-10deg) scale(2.6);
+  }
+
+  60% {
+    opacity: 1;
+    transform: skewX(-10deg) scale(.94);
+  }
+
+  100% {
+    opacity: 1;
+    transform: skewX(-10deg);
+  }
+}
+
+@keyframes title-card-sub {
+  from {
+    opacity: 0;
+    transform: translateX(60vw);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes title-card-flash {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes title-card-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+
+  20% {
+    transform: translate(-7px, 4px);
+  }
+
+  40% {
+    transform: translate(6px, -4px);
+  }
+
+  60% {
+    transform: translate(-4px, 2px);
+  }
+
+  80% {
+    transform: translate(2px, -1px);
+  }
+}
+
+// a fade alone, which the compositor runs (a visibility in it would pull the whole of it back onto the page's thread);
+// cleared, the card draws nothing, and its clicks always went through
+@keyframes title-card-clear {
+  to {
+    opacity: 0;
+  }
+}
+
+// what's under a scene's title card as it opens (data-intro: the review's, the almanac's): out of sight, its entrance
+// held at its start, till the card's about to clear, then faded in as it does. Important, the one place: an animation
+// shorthand sets the play state too, and the scenes' own run as deep as their selectors do
+.review-body,
+.almanac-body {
+  transition: opacity .24s ease-out;
+}
+
+[data-intro] {
+  opacity: 0;
+  pointer-events: none;
+
+  *,
+  *::before,
+  *::after {
+    animation-play-state: paused !important;
+  }
+}
+
+// a scene's motion while its first frames go by (data-gate, TitleCard.tsx's useCalmStart): all of it held at its
+// start, its title card included, so none of it moves through the stall its first paint brings. The scene itself
+// isn't held, so it paints in the meantime
+[data-gate] *,
+[data-gate] *::before,
+[data-gate] *::after {
+  animation-play-state: paused !important;
+}
+
+// Still mode (M): the review and the almanac open with no card (TitleCard.tsx), shown at once
+:root[data-still] :is(.review-body, .almanac-body) {
+  transition: none;
+}

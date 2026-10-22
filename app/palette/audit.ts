@@ -24,7 +24,16 @@ const CONTRAST_RULES: ContrastRule[] = [
   { fg: 'ink', bg: ['paper', 'paper-raised'], min: 7 },
   { fg: 'ink-muted', bg: ['paper', 'paper-raised', 'paper-sunken'], min: 4.5 },
   { fg: 'on-chrome', bg: ['chrome', 'chrome-hover', 'chrome-active'], min: 4.5 },
+  { fg: 'on-chrome-muted', bg: ['chrome', 'chrome-hover'], min: 4.5 },
   { fg: 'on-accent', bg: ['accent', 'accent-hover'], min: 4.5 },
+  // an offset shadow's edge against the lettering it's under (themes.ts shadowFor), so it never thickens the glyphs,
+  // and against the fill it's on, so it shows as a shadow at all
+  { fg: 'on-accent', bg: ['accent-shadow'], min: 3 },
+  { fg: 'accent-shadow', bg: ['accent'], min: 1.5 },
+  { fg: 'ink', bg: ['paper-shadow'], min: 3 },
+  { fg: 'paper-shadow', bg: ['paper-raised'], min: 1.5 },
+  // the accent as a mark or as large lettering on the page: the timeline's undated months, a field the seal waits on
+  { fg: 'accent', bg: ['paper', 'paper-raised', 'paper-sunken'], min: 3 },
   { fg: 'on-overlay', bg: ['overlay', 'overlay-deep', 'overlay-deeper'], min: 4.5 },
   { fg: 'on-overlay-muted', bg: ['overlay', 'overlay-deep'], min: 4.5 },
   { fg: 'on-danger', bg: ['danger', 'danger-hover'], min: 4.5 },
@@ -33,7 +42,8 @@ const CONTRAST_RULES: ContrastRule[] = [
   { fg: 'on-tile', bg: ['tile-unobtainable', 'tile-temporary', 'tile-temporary-stripe', 'tile-caught'], min: 7 },
   { fg: 'on-tile', bg: ['wash-seal', 'wash-home', 'wash-champions', 'wash-loan'], min: 4.5 },
   { fg: 'on-tile-accent', bg: ['tile-caught', 'wash-seal', 'wash-home', 'wash-champions', 'wash-loan'], min: 4.5 },
-  { fg: 'gift', bg: ['tile-caught'], min: 4.5 },
+  // a mark's floor: the gift's own red over a contrast its lines never needed (they're short, bold, and the red says it)
+  { fg: 'gift', bg: ['tile-caught'], min: 3 },
   { fg: 'ink-caught', bg: ['paper', 'paper-raised'], min: 4.5 },
   { fg: 'ink-temporary', bg: ['paper', 'paper-raised'], min: 4.5 },
   { fg: 'tile-badge', bg: ['tile-unobtainable', 'tile-caught'], min: 3 },

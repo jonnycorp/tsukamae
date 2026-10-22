@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleExclamation, faLock, faLongArrowAltRight, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
-import { CAPTURE_FIELDS, EMPTY_METADATA, formatFieldValue, freshMetadata, lookupOT, statusOptions, unansweredFields, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
+import { CAPTURE_FIELDS, formatFieldValue, statusOptions, unansweredFields } from '../../../utils/capture-fields';
 import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { PokemonName, displayName } from '../../library/PokemonName';
@@ -12,10 +12,12 @@ import { destinations, placeFromKey, placeKey, placeLabel, placeOf } from '../..
 import { serebiiLink } from '../../../utils/formatting';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../../hooks/use-dismissable';
+import { usePatchRecords } from './use-patch';
 import { useTrackerActions, useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
-import type { Capture, CaptureMetadata, CaptureStatus } from '../../../types';
+import type { CaptureStatus } from '../../../types';
+import type { RecordPatch } from './use-patch';
 
 // a family missing here (a dataset newer than this list) falls back to the newest dex, home's
 const SEREBII_LINKS: Record<string, string> = {
@@ -51,67 +53,27 @@ interface Props {
 }
 
 export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
-  const { activeDex, activeDexView, saves } = useDexContext();
+  const { activeDexView, saves } = useDexContext();
   const { captures } = useTrackerState();
-  const { setCaptures, updateCapture, releaseCaptures, moveTo } = useTrackerActions();
+  const { releaseCaptures, moveTo } = useTrackerActions();
+  const patchRecords = usePatchRecords();
   const { t, locale } = useTranslation();
 
   const capture = useMemo(() => captures.find((cap) => cap.pokemon.id === selectedPokemon), [captures, selectedPokemon]);
 
   const popoverRef = useRef<HTMLDivElement>(null);
-  // a tile click retargets the popover rather than closing it
-  const { closing, dismiss, revive } = useDismissable({ onDismissed: onClose, ref: popoverRef, keepOpenOn: '.pokemon:not(.empty)' });
+  // a tile's or a ledger row's click retargets the popover rather than closing it
+  const { closing, dismiss, revive } = useDismissable({ onDismissed: onClose, ref: popoverRef, keepOpenOn: '.pokemon:not(.empty), .ledger-row' });
 
   useEffect(() => revive(), [selectedPokemon, revive]);
 
   const missing = capture ? unansweredFields(capture, capture.pokemon.gender_lock) : [];
 
-  const patch = (changes: Partial<CaptureMetadata> & { status?: CaptureStatus; sealed?: boolean }) => {
-    if (!capture) {
-      return;
+  // the edit as storage will keep it, mirrored here (use-patch: shared with the ledger's batch edits)
+  const patch = (changes: RecordPatch) => {
+    if (capture) {
+      patchRecords([capture], changes);
     }
-    // switching to unobtainable wipes the record here too, so the mirror matches storage, and leaving it starts over
-    // like a new mark, as writeCapture does
-    const reviving = capture.status === 'unobtainable' && changes.status !== undefined && changes.status !== 'unobtainable';
-    const fresh = () => freshMetadata({
-      defaults: activeDex!.captureDefaults,
-      checklist: false,
-      homeDex: activeDexView!.game.id === 'home',
-      genderLock: capture.pokemon.gender_lock,
-      saves,
-    });
-    let resolved: Partial<CaptureMetadata> & { status?: CaptureStatus; sealed?: boolean };
-    if (changes.status === 'unobtainable') {
-      resolved = { ...changes, ...EMPTY_METADATA };
-    } else if (reviving) {
-      resolved = { ...fresh(), ...changes, sealed: false };
-    } else {
-      resolved = { ...changes, ...withFieldInvariants(capture, changes) };
-      // a game or language moved by hand onto another of your games takes that game's OT, as picking it would; a typed
-      // OT, or one moving onto a game that isn't yours, stays
-      if (!('ot' in changes) && ('origin_game' in resolved || 'language' in resolved)) {
-        const stamped = lookupOT(saves, capture.origin_game, capture.language);
-        const restamped = lookupOT(
-          saves,
-          'origin_game' in resolved ? resolved.origin_game ?? null : capture.origin_game,
-          'language' in resolved ? resolved.language ?? null : capture.language,
-        );
-        if (stamped !== null && restamped !== null && capture.ot === stamped) {
-          resolved.ot = restamped;
-        }
-      }
-    }
-    // sealing is only ever from Caught, as writeCapture keeps it
-    if (capture.sealed && resolved.status !== undefined && resolved.status !== 'caught') {
-      resolved = { ...resolved, sealed: false };
-    }
-    // mirrors writeCapture's baseline fill; checklists never reach this popover
-    const mirror = (cap: Capture) => {
-      const next = { ...cap, ...resolved };
-      return next.status === 'unobtainable' ? next : withBaselines(next);
-    };
-    setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === capture.pokemon.id ? mirror(cap) : cap)));
-    updateCapture({ pokemon: capture.pokemon.id, ...resolved });
   };
 
   // beside the tile's box, or where there's no room for that, clear of the tile's row
@@ -132,8 +94,9 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
     }
 
     // a box, or a box-sized chunk of results: a whole results list can run for screens, and docking to it pinned the
-    // popover to the top and never let it go
-    const frame = (anchor.closest('.box-container, .results-chunk') ?? anchor).getBoundingClientRect();
+    // popover to the top and never let it go. A ledger row spans the table, so it names the part to dock beside (its
+    // name and status), and the popover covers the columns after them rather than the row
+    const frame = (anchor.closest('.box-container, .results-chunk') ?? anchor.querySelector('[data-dock]') ?? anchor).getBoundingClientRect();
     const viewTop = anchor.closest('.dex-column')?.getBoundingClientRect().top ?? 0;
     if (frame.bottom < viewTop || frame.top > window.innerHeight) {
       dismiss();
@@ -168,7 +131,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   }, [selectedPokemon, onClose, dismiss]);
 
   useLayoutEffect(() => () => {
-    document.querySelector('.pokemon[data-selected]')?.removeAttribute('data-selected');
+    document.querySelector('[data-pokemon-id][data-selected]')?.removeAttribute('data-selected');
   }, [selectedPokemon]);
 
   useLayoutEffect(() => {

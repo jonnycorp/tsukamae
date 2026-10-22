@@ -1,25 +1,26 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-// the timeline (components/pages/Tracker/Timeline.tsx): a scene of its own over the whole window, nav included, in a
-// palette of its own rather than the theme's. Keep in sync with STAGE_COLOR, SPINE_BOTTOM and HEADROOM there, and
-// SLOT_W and SLOT_H in timeline-layout.ts
-$tl-night: #151019;
-$tl-night-2: #1f1628;
-$tl-ink: #f6f1ff;
-$tl-dim: rgba(246, 241, 255, .6);
-$tl-pink: #ff2d7f;
-$tl-pink-deep: #9e1048;
-$tl-gold: #ffd24a;
+// the timeline (components/pages/Tracker/Timeline.tsx): a scene of its own over the whole window, nav included, in the
+// theme's colours: the stage on the page's paper, sinking toward the spine into a dusk of the accent, the accent for
+// the spine's underline and glow, the banners and the title card, the overlays' colours for a mon's card. Keep in sync
+// with SPINE_BOTTOM and HEADROOM there, and SLOT_W and SLOT_H in timeline-layout.ts
+$tl-stage: var(--paper);
+$tl-stage-2: var(--paper-sunken);
+$tl-ink: var(--ink);
+$tl-dim: var(--ink-muted);
+$tl-accent: var(--accent);
+// under the lettering on the accent (themes.ts shadowFor): off the accent and off the lettering both
+$tl-shadow: var(--accent-shadow);
+$tl-on-accent: var(--on-accent);
+// a sealed mon's glow on the ground under it, in the caught colour the sealed tiles wear
+$tl-seal: var(--status-caught);
 $tl-spine-bottom: 96px;
 $tl-slot-w: 40px;
 $tl-slot-h: 34px;
 
-// the entrance, in step with INTRO_MS (1250ms) in Timeline.tsx: the slash sweeps in, the title slams down with a
-// flash and a shake, the dex's name slides in under it, then the card clears as the spine draws across
-$tl-slam-at: .26s;
-$tl-impact-at: .42s;
-$tl-clear-at: 1.05s;
+// the entrance, in step with INTRO_MS (1250ms) in Timeline.tsx: the title card (title-card.scss) clears as the spine
+// draws across
 $tl-spine-at: 1s;
 
 .timeline {
@@ -28,7 +29,7 @@ $tl-spine-at: 1s;
   position: fixed;
   inset: 0;
   z-index: 90;
-  background-color: $tl-night;
+  background-color: $tl-stage;
   color: $tl-ink;
   font-family: $font-secondary;
   // it covers the nav, whose drag region is still there underneath: only the stage's own bar drags the window
@@ -37,57 +38,37 @@ $tl-spine-at: 1s;
 }
 
 .tl-bar {
-  display: flex;
-  flex: 0 0 $nav-height;
-  align-items: center;
-  gap: 18px;
-  height: $nav-height;
-  // clear of the window buttons the system draws over its right end, as the nav is
-  padding-right: calc(14px + 100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
-  border-bottom: 2px solid $tl-pink;
-  -webkit-app-region: drag;
+  @include scene-bar;
 
-  button {
-    -webkit-app-region: no-drag;
-  }
+  box-shadow: inset 0 -2px $tl-accent;
 }
 
 .tl-logo {
-  display: flex;
-  align-self: stretch;
-  align-items: center;
+  @include scene-logo;
+
   padding: 0 34px 0 18px;
-  background-color: $tl-pink;
   clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
 
   span {
-    font-size: 19px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    text-shadow: 2px 2px 0 $tl-pink-deep;
+    text-shadow: 2px 2px 0 $tl-shadow;
     transform: skewX(-10deg);
   }
 }
 
 .tl-dex {
+  @include scene-title;
+
   max-width: 30vw;
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
 }
 
+// how far the count's got and what the run spans, quieter than the bar's own words
 .tl-stats {
   display: flex;
   gap: 18px;
   min-width: 0;
   margin-left: auto;
   overflow: hidden;
-  color: $tl-dim;
+  color: var(--on-chrome-muted);
   @include small-text(11px);
   font-weight: 700;
   letter-spacing: 1px;
@@ -95,65 +76,49 @@ $tl-spine-at: 1s;
   white-space: nowrap;
 
   b {
-    color: $tl-ink;
+    color: var(--on-chrome);
     font-size: 13px;
   }
 }
 
 .tl-button {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 2px solid transparent;
-  background: none;
-  color: $tl-ink;
-  font-size: 15px;
-  cursor: pointer;
-  transition: border-color .1s ease-out, color .1s ease-out;
-
-  &:hover,
-  &:focus-visible {
-    border-color: $tl-pink;
-    color: $tl-pink;
-  }
+  @include scene-button;
 }
 
 // − 100% +: the level fits the stage again when clicked
 .tl-zoom {
   display: flex;
   flex: none;
-  align-items: center;
+  align-self: stretch;
 
   .tl-button {
-    width: 28px;
+    width: 32px;
     font-size: 12px;
   }
 }
 
 .tl-zoom-level {
+  align-self: stretch;
   min-width: 52px;
-  padding: 4px 6px;
-  border: 2px solid transparent;
+  padding: 0 6px;
+  border: 0;
   background: none;
-  color: $tl-ink;
+  color: inherit;
   font-family: $font-secondary;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: border-color .1s ease-out, color .1s ease-out;
+  transition: background-color .1s ease-out;
 
   &:hover,
   &:focus-visible {
-    border-color: $tl-pink;
-    color: $tl-pink;
+    background-color: var(--chrome-hover);
   }
 }
 
-// the background stays put while the track scrolls past it: a halftone over a dusk that reddens toward the spine
+// the background stays put while the track scrolls past it: a halftone in the ink over the paper, sinking to its
+// sunken shade and on into a dusk of the accent toward the spine; scrolled by the app's thin bar in the accent
 .tl-stage {
   position: relative;
   flex: 1 1 auto;
@@ -161,18 +126,10 @@ $tl-spine-at: 1s;
   min-height: 0;
   overflow: auto;
   background:
-    radial-gradient(circle, rgba(246, 241, 255, .06) 1px, transparent 1.6px) 0 0 / 16px 16px,
-    linear-gradient(180deg, $tl-night 0%, $tl-night-2 62%, #2e0f24 100%);
-
-  &::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  &::-webkit-scrollbar-track,
-  &::-webkit-scrollbar-corner {
-    background: transparent;
-  }
+    radial-gradient(circle, color-mix(in srgb, #{$tl-ink} 7%, transparent) 1px, transparent 1.6px) 0 0 / 16px 16px,
+    linear-gradient(180deg, $tl-stage 0%, $tl-stage-2 62%, color-mix(in srgb, #{$tl-accent} 18%, #{$tl-stage-2}) 100%);
+  scrollbar-color: color-mix(in srgb, #{$tl-accent} 55%, transparent) transparent;
+  scrollbar-width: thin;
 
   &.settled {
     cursor: grab;
@@ -181,13 +138,6 @@ $tl-spine-at: 1s;
   &.panning,
   &.panning .tl-mon {
     cursor: grabbing;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    border: 2px solid transparent;
-    border-radius: 5px;
-    background-color: rgba(255, 45, 127, .55);
-    background-clip: padding-box;
   }
 }
 
@@ -205,7 +155,7 @@ $tl-spine-at: 1s;
   left: 0;
   height: 6px;
   background-color: $tl-ink;
-  box-shadow: 0 3px 0 $tl-pink, 0 0 18px rgba(255, 45, 127, .6);
+  box-shadow: 0 3px 0 $tl-accent, 0 0 18px color-mix(in srgb, #{$tl-accent} 60%, transparent);
   transform-origin: left center;
   animation: tl-draw .6s cubic-bezier(.2, .8, .2, 1) $tl-spine-at both;
 
@@ -217,7 +167,7 @@ $tl-spine-at: 1s;
     left: 0;
     height: 8px;
     margin-top: 6px;
-    background: repeating-linear-gradient(-45deg, rgba(255, 45, 127, .45) 0 10px, transparent 10px 20px);
+    background: repeating-linear-gradient(-45deg, color-mix(in srgb, #{$tl-accent} 45%, transparent) 0 10px, transparent 10px 20px);
   }
 }
 
@@ -228,7 +178,7 @@ $tl-spine-at: 1s;
   left: calc(var(--x) * var(--z) * 1px);
   width: calc(var(--w) * var(--z) * 1px);
   height: $tl-spine-bottom - 6px;
-  border-left: 1px solid rgba(246, 241, 255, .2);
+  border-left: 1px solid color-mix(in srgb, #{$tl-ink} 20%, transparent);
   animation: fade-in .4s ease-out $tl-spine-at + .2s both;
 
   &.empty {
@@ -266,7 +216,7 @@ $tl-spine-at: 1s;
 .tl-undated .tl-month-label {
   top: 16px;
   opacity: 1;
-  color: $tl-pink;
+  color: $tl-accent;
   font-size: 20px;
   font-weight: 900;
 }
@@ -281,7 +231,8 @@ $tl-spine-at: 1s;
   bottom: 10px;
   left: calc(-10px * var(--banner));
   padding: 0 calc(18px * var(--banner)) 0 calc(12px * var(--banner));
-  background-color: $tl-pink;
+  background-color: $tl-accent;
+  color: $tl-on-accent;
   clip-path: polygon(0 0, 100% 0, calc(100% - 12px * var(--banner)) 100%, 0 100%);
   opacity: clamp(0, calc((var(--z) - .3) * 1000), 1);
   transform-origin: left center;
@@ -294,7 +245,7 @@ $tl-spine-at: 1s;
     font-style: italic;
     font-weight: 900;
     letter-spacing: calc(2px * var(--banner));
-    text-shadow: calc(3px * var(--banner)) calc(3px * var(--banner)) 0 $tl-pink-deep;
+    text-shadow: calc(3px * var(--banner)) calc(3px * var(--banner)) 0 $tl-shadow;
     transform: skewX(-8deg);
   }
 }
@@ -309,8 +260,8 @@ $tl-spine-at: 1s;
   justify-content: center;
   width: calc(var(--w) * var(--z) * 1px);
   height: calc(112px * var(--z));
-  border: 2px solid $tl-pink;
-  background: repeating-linear-gradient(-45deg, rgba(255, 45, 127, .16) 0 14px, transparent 14px 28px);
+  border: 2px solid $tl-accent;
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, #{$tl-accent} 16%, transparent) 0 14px, transparent 14px 28px);
   transform: skewX(-10deg);
   animation: tl-pop .4s cubic-bezier(.2, 1.4, .4, 1) both;
 
@@ -367,7 +318,7 @@ $tl-spine-at: 1s;
     --tl-mon-opacity: .5;
   }
 
-  // sealed: a gold glow on the ground under it
+  // sealed: a glow on the ground under it in the sealed tiles' caught colour
   &.sealed::before {
     content: '';
     position: absolute;
@@ -376,7 +327,7 @@ $tl-spine-at: 1s;
     left: 3px;
     height: 12px;
     border-radius: 50%;
-    background: radial-gradient(closest-side, rgba(255, 210, 74, .8), transparent);
+    background: radial-gradient(closest-side, color-mix(in srgb, #{$tl-seal} 80%, transparent), transparent);
   }
 
   &.undated .pkicon {
@@ -409,8 +360,8 @@ $tl-spine-at: 1s;
   align-items: center;
   gap: 2px;
   padding: 8px 18px;
-  background-color: $tl-ink;
-  color: $tl-night;
+  background-color: var(--overlay);
+  color: var(--on-overlay);
   @include small-text(12px);
   white-space: nowrap;
   clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
@@ -442,7 +393,7 @@ $tl-spine-at: 1s;
     vertical-align: 1px;
 
     &.sealed {
-      color: $tl-pink-deep;
+      color: var(--on-overlay-muted);
     }
   }
 
@@ -453,31 +404,27 @@ $tl-spine-at: 1s;
     gap: 5px;
     margin-top: 3px;
     padding: 2px 8px;
-    background-color: $tl-night;
-    color: $tl-ink;
+    background-color: var(--overlay-deeper);
+    color: var(--on-overlay);
     @include small-text(11px);
     font-weight: 700;
 
     .origin-mark {
       width: 12px;
       height: 12px;
-      background-color: $tl-ink;
+      background-color: currentColor;
     }
 
     .svg-inline--fa {
       font-size: 10px;
     }
-
-    .fa-gamepad {
-      color: $tl-gold;
-    }
   }
 }
 
-// a name copied off the stage (NameCopy, a right-click on a mon) says so in the stage's colours
+// a name copied off the stage (NameCopy, a right-click on a mon) says so in the stage's accent
 body:has(> .timeline) > .name-copied {
-  background-color: $tl-gold;
-  color: $tl-night;
+  background-color: $tl-accent;
+  color: $tl-on-accent;
 }
 
 .tl-empty {
@@ -493,96 +440,6 @@ body:has(> .timeline) > .name-copied {
   font-weight: 900;
   letter-spacing: 2px;
   text-transform: uppercase;
-}
-
-// the title card, over the stage until the cascade starts; it lets every click through to the stage, where one skips it
-.tl-intro {
-  position: absolute;
-  inset: $nav-height 0 0;
-  z-index: 10;
-  overflow: hidden;
-  pointer-events: none;
-  animation: tl-shake .3s linear $tl-impact-at, tl-clear .3s ease-in $tl-clear-at both;
-}
-
-.tl-intro-flash {
-  position: absolute;
-  inset: 0;
-  background-color: $tl-ink;
-  opacity: 0;
-  // forwards, not both: the flash's first frame mustn't hold through the delay
-  animation: tl-flash .35s ease-out $tl-impact-at forwards;
-}
-
-.tl-intro-slash {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 260vw;
-  height: 30vh;
-  margin: -15vh 0 0 -130vw;
-  background-color: $tl-pink;
-  box-shadow: 0 0 0 10px $tl-night, 0 0 0 16px $tl-pink;
-  animation: tl-slash .55s cubic-bezier(.7, 0, .2, 1) .08s both;
-}
-
-.tl-intro-title {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  left: 0;
-  text-align: center;
-  transform: translateY(-62%);
-
-  span {
-    display: inline-block;
-    color: $tl-ink;
-    font-size: min(15vw, 190px);
-    font-style: italic;
-    font-weight: 900;
-    letter-spacing: .04em;
-    line-height: 1;
-    text-shadow: .05em .05em 0 $tl-night, .09em .09em 0 $tl-pink-deep;
-    text-transform: uppercase;
-    animation: tl-slam .5s cubic-bezier(.2, 1.6, .4, 1) $tl-slam-at both;
-  }
-}
-
-.tl-intro-sub {
-  display: flex;
-  position: absolute;
-  top: calc(50% + min(15vw, 190px) * .42);
-  right: 0;
-  left: 0;
-  justify-content: center;
-
-  span {
-    max-width: 80vw;
-    padding: 6px 40px;
-    overflow: hidden;
-    background-color: $tl-ink;
-    color: $tl-night;
-    font-size: min(3vw, 30px);
-    font-weight: 900;
-    letter-spacing: .12em;
-    text-overflow: ellipsis;
-    text-transform: uppercase;
-    white-space: nowrap;
-    clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
-    animation: tl-sub .4s cubic-bezier(.2, .9, .3, 1) .55s both;
-  }
-}
-
-.tl-intro-skip {
-  position: absolute;
-  right: 24px;
-  bottom: 20px;
-  color: $tl-dim;
-  @include small-text(11px);
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  animation: fade-in .3s ease-out .6s both;
 }
 
 @keyframes tl-plop {
@@ -637,84 +494,5 @@ body:has(> .timeline) > .name-copied {
   to {
     opacity: 1;
     transform: skewX(-10deg);
-  }
-}
-
-@keyframes tl-slash {
-  from {
-    transform: rotate(-14deg) translateX(-110%);
-  }
-
-  to {
-    transform: rotate(-14deg);
-  }
-}
-
-@keyframes tl-slam {
-  0% {
-    opacity: 0;
-    transform: skewX(-10deg) scale(2.6);
-  }
-
-  60% {
-    opacity: 1;
-    transform: skewX(-10deg) scale(.94);
-  }
-
-  100% {
-    opacity: 1;
-    transform: skewX(-10deg);
-  }
-}
-
-@keyframes tl-sub {
-  from {
-    opacity: 0;
-    transform: translateX(60vw);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes tl-flash {
-  from {
-    opacity: .45;
-  }
-
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes tl-shake {
-  0%,
-  100% {
-    transform: none;
-  }
-
-  20% {
-    transform: translate(-7px, 4px);
-  }
-
-  40% {
-    transform: translate(6px, -4px);
-  }
-
-  60% {
-    transform: translate(-4px, 2px);
-  }
-
-  80% {
-    transform: translate(2px, -1px);
-  }
-}
-
-@keyframes tl-clear {
-  to {
-    opacity: 0;
-    visibility: hidden;
   }
 }

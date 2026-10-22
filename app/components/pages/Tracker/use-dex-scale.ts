@@ -9,12 +9,13 @@ import { useLocalStorage } from '../../../hooks/use-local-storage';
 import type { RefObject } from 'react';
 
 // under a modal or the timeline, the dex behind keeps its zoom
-const COVERED = '.modal-overlay, .timeline';
+const COVERED = '.modal-overlay, .timeline, .almanac, .review, .command-palette';
 
 // screen px, not scaled px: scrollbars keep their size whatever the dex zoom, so room for a gutter either side
 const GUTTERS = 24;
-// screen px too: the header (search bar) sits outside the zoom, and is measured; this is about what it is until it has been
-const HEADER_GUESS = 150;
+// screen px too: the header sits outside the dex's zoom, and is measured as it shows, its own zoom and all; this is
+// about what it is until it has been
+const HEADER_GUESS = 160;
 // unscaled px: a box's title with its margin, and its tiles
 const BOX_HEIGHT = 44 + (BOX_SIZE / BOX_COLUMNS) * TILE_SIZE + 2;
 // scaled px above the first row of boxes, whatever the window's height, and the room the fit leaves below it
@@ -108,7 +109,8 @@ interface DexScale {
   columns: number;
   // false for the first render, before the area has been measured
   measured: boolean;
-  // screen px the boxes span at 100%: the search bar lines up with them there, and never moves as the zoom changes
+  // screen px the boxes span at 100%: the header (its meter end to end) lines up with them there, and never moves as
+  // the zoom changes
   headerWidth: number;
   flipLines: Record<keyof typeof FLIP_LINES, number>;
   zoom: number;
@@ -139,9 +141,6 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
   }, []);
 
   const fit = fitScale(area.width, area.height, area.header);
-  // the fit the width alone gives: the search bar spans the boxes at that, so a change of height, which can stop them
-  // enlarging, never moves it
-  const widthFit = fitScale(area.width, Infinity);
   const steps = zoomSteps(area.width, fit);
 
   const zoomRef = useRef(zoom);
@@ -161,7 +160,7 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
   useLayoutEffect(() => {
     const el = ref.current!;
     const header = el.querySelector<HTMLElement>('.dex-search-bar');
-    const measure = () => setArea({ width: el.clientWidth, height: el.clientHeight, header: header?.offsetHeight ?? HEADER_GUESS });
+    const measure = () => setArea({ width: el.clientWidth, height: el.clientHeight, header: header?.getBoundingClientRect().height ?? HEADER_GUESS });
     measure();
     // synchronous, so a resized window never paints a frame at the old scale
     const observer = new ResizeObserver(() => flushSync(measure));
@@ -224,7 +223,7 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
     scale,
     columns: columnsAt(area.width, scale),
     measured: area.width > 0,
-    headerWidth: (columnsAt(area.width, widthFit) * (BOX_WIDTH + BOX_GAP) - BOX_GAP) * widthFit,
+    headerWidth: (columnsAt(area.width, fit) * (BOX_WIDTH + BOX_GAP) - BOX_GAP) * fit,
     flipLines: flipLinesAt(scale),
     zoom: steppedZoom,
     nudges,

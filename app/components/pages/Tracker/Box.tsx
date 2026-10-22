@@ -22,7 +22,7 @@ interface Props {
 }
 
 // reset boxes are "reset:<number>:<prefix>" and restart the numbering under a prefix
-function boxTitle (captures: Capture[], dex: Dex, locale: Locale): string {
+export function boxTitle (captures: Capture[], dex: Dex, locale: Locale): string {
   const first = captures[0].pokemon;
   const last = captures[captures.length - 1].pokemon;
   if (first.box && !first.box.startsWith('reset')) {

@@ -55,8 +55,17 @@ export function destinations (saves: GameSave[], homeDex: boolean): Place[] {
   ];
 }
 
+// where a record shows it is, a game whose save is unanswered (a new mark in a game's dex, a save since deleted) as
+// just a game, where placeOf leaves it unanswered
+export function shownPlace (meta: Located): Place | null {
+  if (meta.location === 'game' && !meta.location_save) {
+    return { location: 'game', location_save: null };
+  }
+  return placeOf(meta);
+}
+
 export function placeKey (place: Place): string {
-  return place.location === 'game' ? `game:${place.location_save}` : place.location;
+  return place.location === 'game' && place.location_save ? `game:${place.location_save}` : place.location;
 }
 
 export function placeFromKey (key: string): Place {

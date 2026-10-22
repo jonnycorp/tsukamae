@@ -1,0 +1,114 @@
+@use 'variables' as *;
+
+// a theme's character beyond its colours, keyed on [data-theme] and [data-mode] (palette/apply-theme sets both on the
+// root, and the Theme Preview on each panel). Every touch here is a static background, border or shadow: nothing that
+// costs a frame
+
+// Game Boy: the page a dot-matrix screen, under a pocket console's heavier rules (its lineAlpha)
+:root[data-theme='game-boy'] body,
+.theme-preview-panel[data-theme='game-boy'] {
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 10%, transparent) 0.7px, transparent 1.1px);
+  background-size: 4px 4px;
+}
+
+// Ink: an unobtainable slot hatched, as a printed checklist strikes one out
+[data-theme='ink'] .pokemon.captured.unobtainable {
+  background-image: repeating-linear-gradient(-45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 7px);
+}
+
+// Midnight, after dark: a sealed tile edged in neon, its wash's own colour
+[data-theme='midnight'][data-mode='dark'] .pokemon.captured.sealed:not([data-selected]) {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--wash) 75%, white),
+    inset 0 0 14px color-mix(in srgb, var(--wash) 55%, transparent);
+}
+
+// Pokédex: the device's blue lens beside the name on the bar, and a screen's rounded corners on every box
+[data-theme='pokedex'] .nav-logo::before {
+  content: '';
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #fff 0 14%, #8fdcff 22%, #1a7fd1 62%, #0b4d8a 100%);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgb(0 0 0 / 25%);
+}
+
+// Pokédex and HOME: boxes as rounded panels, the shine kept inside them
+[data-theme='pokedex'],
+[data-theme='home'] {
+  .tile-grid {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .box-shine {
+    border-radius: 11px;
+  }
+}
+
+// and the tiles in their corners rounded inside the frame, so the ring a selected or hovered tile draws turns the
+// corner with the box: a box's four, where a short last row (search results) has its own; keep in sync with the 750px
+// media queries in tracker.scss
+@media (min-width: 751px) {
+  :is([data-theme='pokedex'], [data-theme='home']) .tile-grid > .pokemon {
+    &:first-child {
+      border-top-left-radius: 11px;
+    }
+
+    &:nth-child(#{$box-columns}) {
+      border-top-right-radius: 11px;
+    }
+
+    &:nth-child(#{$box-columns}n + 1):nth-last-child(-n + #{$box-columns}) {
+      border-bottom-left-radius: 11px;
+    }
+
+    &:nth-child(#{$box-columns}n):last-child {
+      border-bottom-right-radius: 11px;
+    }
+  }
+}
+
+// a narrow window's list: its first row and its last shown (the empty slots after it are hidden)
+@media (max-width: 750px) {
+  :is([data-theme='pokedex'], [data-theme='home']) .tile-grid > .pokemon {
+    &:first-child {
+      border-top-left-radius: 11px;
+      border-top-right-radius: 11px;
+    }
+
+    &:not(.empty, :has(~ .pokemon:not(.empty))) {
+      border-bottom-left-radius: 11px;
+      border-bottom-right-radius: 11px;
+    }
+  }
+}
+
+// a complete box's frame: square, it's a border and an outline a screen pixel each, but an outline doesn't follow a
+// rounded corner as the border does; a ring a screen pixel wide (--dex-px) does, so the corner matches the sides
+:is([data-theme='pokedex'], [data-theme='home']) .box-complete .tile-grid {
+  outline: none;
+  box-shadow: 0 0 0 var(--dex-px, 1px) var(--status-caught);
+}
+
+// search results run on as one grid (tracker.scss): rounded at its two ends, square where one chunk meets the next
+:is([data-theme='pokedex'], [data-theme='home']) .search-results {
+  .results-chunk:not(:first-child) > :is(.tile-grid, .box-shine),
+  .results-chunk:not(:first-child) > .tile-grid > .pokemon {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .results-chunk:not(:last-child) > :is(.tile-grid, .box-shine),
+  .results-chunk:not(:last-child) > .tile-grid > .pokemon {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+// Ember: a line of the ember orange under the charcoal bar
+[data-theme='ember'] nav {
+  box-shadow: inset 0 -3px 0 var(--accent);
+}

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 // a modal, the timeline, or a menu open anywhere: a dropdown (whose type-ahead a letter belongs to) or the nav's gear
 // and theme menus; every keyboard shortcut stands down while one is up
-export const MENU_OR_MODAL = '.modal-overlay, .timeline, .dropdown-menu, .nav-menu-dropdown';
+export const MENU_OR_MODAL = '.modal-overlay, .timeline, .almanac, .review, .command-palette, .dropdown-menu, .nav-menu-dropdown';
 
 // a bare letter; stays quiet while typing, under a modal or an open menu, for a key a control has already claimed, on
 // key repeat and beside cmd/ctrl/alt

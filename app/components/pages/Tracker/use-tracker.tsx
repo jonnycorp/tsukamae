@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { BOX_COLUMNS, TILE_SIZE } from '../../../utils/pokemon';
 import { EMPTY_METADATA } from '../../../utils/capture-fields';
-import { deleteCaptures, moveCapture, progressToCaptures, writeCapture } from '../../../utils/local-data';
+import { deleteCaptures, moveCapture, progressToCaptures, subscribeHistory, writeCapture } from '../../../utils/local-data';
 import { movedRecord, placeOf, samePlace } from '../../../utils/location-moves';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 
@@ -32,7 +32,7 @@ export function shineClip (captures: Capture[], checklist: boolean): string | nu
 export const NARROW_WIDTH = 750;
 const NARROW_QUERY = `(max-width: ${NARROW_WIDTH}px)`;
 
-function useMediaQuery (query: string): boolean {
+export function useMediaQuery (query: string): boolean {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
 
   useEffect(() => {
@@ -66,6 +66,8 @@ interface TrackerActions {
   openMoveMenu: (pokemon: number, anchor: Element) => void;
   // set by the one MoveMenu; read only when the menu's asked for, so opening it renders no tile
   moveMenuHost: MutableRefObject<((target: MoveTarget) => void) | null>;
+  // a mon about to be brought into view (a locate): the ledger unfolds the group it's in, so there's a row to find
+  revealHost: MutableRefObject<((pokemon: number) => void) | null>;
   narrow: boolean;
 }
 
@@ -78,11 +80,16 @@ const TrackerActionsContext = createContext<TrackerActions>({
   moveTo: () => {},
   openMoveMenu: () => {},
   moveMenuHost: { current: null },
+  revealHost: { current: null },
   narrow: false,
 });
 
 interface Props {
   children: ReactNode;
+}
+
+function withoutDeletedSave (cap: Capture, saveIds: Set<string>): Capture {
+  return cap.location_save && !saveIds.has(cap.location_save) ? { ...cap, location_save: null } : cap;
 }
 
 export const TrackerContextProvider = ({ children }: Props) => {
@@ -93,21 +100,38 @@ export const TrackerContextProvider = ({ children }: Props) => {
   // a record naming a game since deleted from My Games no longer says which game it's in, so it's shown and checked as
   // unanswered (sealing, a sealed record's stale pin, the Incomplete view); storage keeps the id, as nothing outside a
   // dex edits capture data. Hidden whatever the location, so moving a record back to "In a game" can't bring it back
+  const saveIds = useMemo(() => new Set(saves.map((save) => save.id)), [saves]);
   useEffect(() => {
-    const ids = new Set(saves.map((save) => save.id));
     setCaptures((prev) => {
       let changed = false;
       const next = prev.map((cap) => {
-        if (cap.location_save && !ids.has(cap.location_save)) {
-          changed = true;
-          return { ...cap, location_save: null };
-        }
-        return cap;
+        const shown = withoutDeletedSave(cap, saveIds);
+        changed ||= shown !== cap;
+        return shown;
       });
       return changed ? next : prev;
     });
-  }, [saves]);
+  }, [saveIds]);
   const narrow = useMediaQuery(NARROW_QUERY);
+
+  // a step undone or redone (Ctrl+Z) put records back in storage; the tiles take them as they now are, as a dex's
+  // captures are first read (progressToCaptures), a deleted game hidden as above
+  useEffect(() => subscribeHistory((step, direction) => {
+    if (step.dexId !== dexId) {
+      return;
+    }
+    const records = direction === 'undo' ? step.before : step.after;
+    setCaptures((prev) => prev.map((cap) => {
+      const key = String(cap.pokemon.id);
+      if (!(key in records)) {
+        return cap;
+      }
+      const entry = records[key];
+      return entry
+        ? withoutDeletedSave({ ...EMPTY_METADATA, ...entry, pokemon: cap.pokemon, captured: true, status: entry.status, sealed: Boolean(entry.sealed) }, saveIds)
+        : { ...EMPTY_METADATA, pokemon: cap.pokemon, captured: false, status: null, sealed: false };
+    }));
+  }), [dexId, saveIds]);
 
   const updateCapture = useCallback((payload: UpdateCapturePayload) => writeCapture(dexId, payload), [dexId]);
   const releaseCaptures = useCallback((pokemon: number[]) => {
@@ -128,9 +152,11 @@ export const TrackerContextProvider = ({ children }: Props) => {
     moveMenuHost.current?.({ pokemon, anchor: anchor.getBoundingClientRect() });
   }, []);
 
+  const revealHost = useRef<((pokemon: number) => void) | null>(null);
+
   const stateValue = useMemo<TrackerState>(() => ({ captures }), [captures]);
   const actionsValue = useMemo<TrackerActions>(
-    () => ({ setCaptures, updateCapture, releaseCaptures, moveTo, openMoveMenu, moveMenuHost, narrow }),
+    () => ({ setCaptures, updateCapture, releaseCaptures, moveTo, openMoveMenu, moveMenuHost, revealHost, narrow }),
     [updateCapture, releaseCaptures, moveTo, openMoveMenu, narrow],
   );
 

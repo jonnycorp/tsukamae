@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { faBan, faCheck, faCircleExclamation, faClock } from '@fortawesome/free-solid-svg-icons';
 import { memo, useEffect, useRef, useState } from 'react';
 
-import { EMPTY_METADATA, STATUSES, freshMetadata, unansweredFields, withBaselines } from '../../../utils/capture-fields';
+import { STATUSES, unansweredFields } from '../../../utils/capture-fields';
 import { BadgeRow, SlotsLine, flippingLines } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { defaultStatus } from '../../../utils/local-data';
@@ -13,10 +13,11 @@ import { locationTint } from '../../../utils/location-moves';
 import { isDisplaySealed, useTrackerActions } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLongPress } from '../../../hooks/use-long-press';
+import { useMark } from './use-mark';
 import { useTranslation } from '../../../hooks/use-translation';
 
-import type { Capture, CaptureStatus } from '../../../types';
-import type { Dispatch, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from 'react';
+import type { Capture, CaptureStatus, PokemonType } from '../../../types';
+import type { CSSProperties, Dispatch, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from 'react';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 const STATUS_ICONS: Record<CaptureStatus, IconDefinition> = {
@@ -25,8 +26,25 @@ const STATUS_ICONS: Record<CaptureStatus, IconDefinition> = {
   unobtainable: faBan,
 };
 
-const UNSEAL_HOLD = { delay: 250, duration: 1000 };
+// a sealed tile held this long unseals (the review's unseal is held as long)
+export const UNSEAL_HOLD = { delay: 250, duration: 1000 };
 const NO_FLIPS = { name: false, badges: false, number: false };
+
+// a tile's types for Types on Tiles (styles/tile-types.scss), read only while it's on: their colours, and their glyphs
+// as masks, the first over the second, a single type's where the second's would be
+function typeVars (types: PokemonType[] | undefined): CSSProperties | undefined {
+  if (!types?.length) {
+    return undefined;
+  }
+  const [a, b = a] = types;
+  return {
+    '--type-a': `var(--type-${a})`,
+    '--type-b': `var(--type-${b})`,
+    '--glyph-a': `url(/types/${a}.svg)`,
+    '--glyph-b': types.length > 1 ? `url(/types/${b}.svg)` : 'none',
+    '--glyph-a-at': types.length > 1 ? 'center top' : 'center bottom',
+  } as CSSProperties;
+}
 
 interface Point {
   x: number;
@@ -62,8 +80,9 @@ interface Props {
 }
 
 export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: Props) {
-  const { activeDex, activeDexView, saves } = useDexContext();
+  const { activeDex, activeDexView } = useDexContext();
   const { setCaptures, updateCapture, releaseCaptures, narrow } = useTrackerActions();
+  const mark = useMark();
   const { t, locale } = useTranslation();
 
   const [armed, setArmed] = useState(false);
@@ -97,28 +116,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
       return;
     }
 
-    setCaptures((prev) => prev.map((cap) => {
-      if (cap.pokemon.id !== capture.pokemon.id) {
-        return cap;
-      }
-      if (status === 'unobtainable') {
-        return { ...cap, ...EMPTY_METADATA, captured: true, status };
-      }
-      if (cap.captured && cap.status !== 'unobtainable') {
-        return checklist ? { ...cap, status } : withBaselines({ ...cap, status });
-      }
-      // a new mark, or one coming back from unobtainable: as writeCapture builds it
-      const fresh = freshMetadata({
-        defaults: activeDex!.captureDefaults,
-        checklist,
-        homeDex: dex.game.id === 'home',
-        genderLock: cap.pokemon.gender_lock,
-        saves,
-      });
-      return { ...cap, ...fresh, captured: true, status };
-    }));
-
-    updateCapture({ pokemon: capture.pokemon.id, status });
+    mark(capture.pokemon.id, status);
 
     if (!checklist) {
       setSelectedPokemon(capture.pokemon.id);
@@ -222,6 +220,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
       data-copy-name={copyName}
       data-pokemon-id={capture.pokemon.id}
       onMouseEnter={statusButtons.length > 0 && !armed ? () => setArmed(true) : undefined}
+      style={typeVars(capture.pokemon.types)}
     >
       {sealBadges}
       {stalePin}

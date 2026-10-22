@@ -1,0 +1,649 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// the ledger (components/pages/Tracker/Ledger.tsx): the dex as a table in place of the boxes, inside the dex's zoom and
+// as wide as the boxes would be. Its columns drop out by priority as it narrows, by a container query on its own width:
+// the template for each width comes from Ledger.tsx (--ledger-cols-1/2/3)
+$ledger-head: 40px;
+
+.ledger {
+  container: ledger / inline-size;
+  width: min(100%, calc(var(--dex-columns) * #{$box-width} + (var(--dex-columns) - 1) * #{$dex-grid-gap}));
+  margin: 0 auto;
+
+  // four columns read across better kept close together
+  &.checklist {
+    max-width: $box-width;
+  }
+}
+
+.ledger-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ledger-toolbar-label {
+  @include filter-label;
+
+  color: var(--ink-muted);
+}
+
+.ledger-group-pick,
+.ledger-tool {
+  @include filter-label;
+  @include outline-button;
+
+  gap: 10px;
+
+  .dropdown-chevron {
+    font-size: 10px;
+  }
+}
+
+.ledger-head,
+.ledger-row {
+  display: grid;
+  grid-template-columns: var(--ledger-cols-3);
+  align-items: center;
+}
+
+// each step down where its columns' least widths no longer fit (COLUMNS in Ledger.tsx); a checklist's four fit in far
+// less, a box's width (where its type would otherwise never show), so it has its own one step
+@container ledger (width < 1300px) {
+  .ledger:not(.checklist) :is(.ledger-head, .ledger-row) {
+    grid-template-columns: var(--ledger-cols-2);
+  }
+
+  .ledger:not(.checklist) .ledger-cell.p3 {
+    display: none;
+  }
+}
+
+@container ledger (width < 900px) {
+  .ledger:not(.checklist) :is(.ledger-head, .ledger-row) {
+    grid-template-columns: var(--ledger-cols-1);
+  }
+
+  .ledger:not(.checklist) .ledger-cell.p2 {
+    display: none;
+  }
+}
+
+@container ledger (width < 480px) {
+  .ledger.checklist :is(.ledger-head, .ledger-row) {
+    grid-template-columns: var(--ledger-cols-1);
+  }
+
+  .ledger.checklist .ledger-cell.p2 {
+    display: none;
+  }
+}
+
+.ledger-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 10px;
+  font-size: 15px;
+  white-space: nowrap;
+
+  @include cjk {
+    font-size: 14px;
+  }
+}
+
+// the column heads stay at the top of the dex as the rows scroll under them; one pressed sorts by it
+.ledger-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: $ledger-head;
+  border-bottom: 2px solid var(--field-edge);
+  background-color: var(--paper);
+
+  .ledger-cell {
+    @include filter-label;
+    @include small-text(11px);
+
+    height: 100%;
+    border: 0;
+    background: none;
+    color: var(--ink-muted);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .1s ease-out, color .1s ease-out;
+
+    &:hover {
+      background-color: var(--hover-wash);
+      color: var(--ink);
+    }
+
+    &.sorted {
+      color: var(--ink);
+    }
+
+    .svg-inline--fa {
+      flex: none;
+      font-size: 11px;
+    }
+  }
+
+  .ledger-head-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// offscreen rows skip their layout and paint
+.ledger-row {
+  min-height: 42px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 43px;
+  transition: background-color .08s ease-out;
+
+  &:hover {
+    background-color: var(--hover-wash);
+  }
+
+  // the popover's row, as its tile is ringed
+  &[data-selected] {
+    background-color: var(--hover-wash);
+    box-shadow: inset 4px 0 0 var(--accent);
+  }
+
+  &.state-unmarked {
+    color: var(--ink-muted);
+  }
+
+  .col-number,
+  .col-date,
+  .col-level,
+  .col-language {
+    font-family: $font-secondary;
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .col-number {
+    color: var(--ink-muted);
+  }
+
+  .type-glyph {
+    flex: none;
+    width: 18px;
+    height: 18px;
+  }
+
+  .col-types {
+    gap: 4px;
+  }
+
+  .origin-mark {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    background-color: currentColor;
+  }
+
+  .col-ball img {
+    @include ball-sprite;
+  }
+}
+
+// a game's mark in a slot of its own, kept for a game without one (HOME, Other) so the names after it line up
+.ledger-mark {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  width: 15px;
+
+  .ledger-group-head & {
+    width: 17px;
+  }
+}
+
+// the sprites are cut to the mon; each sits in a box the height of a row, which the few taller ones stretch rather than
+// spill over the next
+.ledger-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 40px;
+}
+
+.ledger-name,
+.ledger-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ledger-favorite {
+  flex: none;
+  color: var(--mark-blue);
+  font-size: 11px;
+
+  &.partner {
+    color: var(--mark-pink);
+  }
+}
+
+.ledger-blank {
+  color: var(--ink-muted);
+  opacity: .6;
+}
+
+// a tile's colours in small: its status, a sealed one's wash over caught, tinted for where it is as its tile is
+.ledger-swatch {
+  --wash: var(--wash-seal);
+
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--line);
+  background-clip: padding-box;
+
+  .state-caught & {
+    background-color: var(--tile-caught);
+  }
+
+  .state-temporary & {
+    background-color: var(--tile-temporary);
+    background-image: repeating-linear-gradient(45deg, transparent 0 3px, var(--tile-temporary-stripe) 3px 6px);
+  }
+
+  .state-unobtainable & {
+    background-color: var(--tile-unobtainable);
+  }
+
+  .state-sealed & {
+    background-color: var(--tile-caught);
+    background-image: linear-gradient(var(--wash), var(--wash));
+  }
+
+  .state-unmarked & {
+    border-style: dashed;
+  }
+
+  .loc-home & {
+    --wash: var(--wash-home);
+  }
+
+  .loc-champions & {
+    --wash: var(--wash-champions);
+  }
+
+  .loc-out & {
+    --wash: var(--wash-loan);
+  }
+}
+
+// Location Tints off: as the tiles (styles/tracker.scss)
+:root[data-plain-seals] .ledger-row:is(.loc-home, .loc-champions, .loc-out) .ledger-swatch {
+  --wash: var(--wash-seal);
+}
+
+.ledger-lock {
+  flex: none;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.ledger-state {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ledger-stale {
+  flex: none;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+// a group's head: what it is, how much of it is marked, its statuses in a bar; pressed, it folds the group away. It
+// stays under the column heads while its rows scroll
+.ledger-group-head {
+  display: flex;
+  position: sticky;
+  top: $ledger-head;
+  z-index: 2;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background-color: var(--paper-raised);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  // the wash over its own fill, not in place of it: stuck at the top, its rows pass under it
+  &:hover {
+    background-image: linear-gradient(var(--hover-wash), var(--hover-wash));
+  }
+
+  .ledger-chevron {
+    flex: none;
+    font-size: 11px;
+    transition: transform .15s ease-out;
+  }
+
+  &[aria-expanded='false'] .ledger-chevron {
+    transform: rotate(-90deg);
+  }
+
+  .type-glyph {
+    flex: none;
+    width: 20px;
+    height: 20px;
+  }
+
+  .origin-mark {
+    flex: none;
+    width: 17px;
+    height: 17px;
+    background-color: currentColor;
+  }
+
+  .ledger-group-ball {
+    @include ball-sprite;
+  }
+
+  .ledger-group-label {
+    min-width: 0;
+    overflow: hidden;
+    font-family: $font-secondary;
+    font-size: 15px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ledger-group-count {
+    flex: none;
+    font-family: $font-secondary;
+    font-size: 13px;
+    font-weight: 700;
+
+    small {
+      color: var(--ink-muted);
+      font-weight: 400;
+    }
+  }
+
+  .ledger-group-sealed {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    color: var(--ink-muted);
+    font-family: $font-secondary;
+    font-size: 12px;
+    font-weight: 700;
+
+    .svg-inline--fa {
+      font-size: 10px;
+    }
+  }
+
+  .ledger-group-n {
+    flex: none;
+    min-width: 96px;
+    color: var(--ink-muted);
+    font-size: 14px;
+    text-align: right;
+  }
+}
+
+.ledger-group-bar {
+  display: flex;
+  flex: 0 1 240px;
+  height: 8px;
+  margin-left: auto;
+  overflow: hidden;
+  background-color: var(--paper-sunken);
+
+  > span {
+    flex: none;
+    height: 100%;
+  }
+
+  .seg-caught {
+    background-color: var(--status-caught);
+  }
+
+  // striped as a temporary tile is
+  .seg-temporary {
+    background-color: var(--status-temporary);
+    background-image: repeating-linear-gradient(45deg, transparent 0 4px, color-mix(in srgb, var(--on-status) 25%, transparent) 4px 8px);
+  }
+
+  .seg-unobtainable {
+    background-color: var(--status-unobtainable);
+  }
+}
+
+.ledger-group + .ledger-group .ledger-group-head {
+  border-top: 1px solid var(--line);
+}
+
+// the selection's box at the start of each row; the head's takes every row shown
+.ledger-row .col-select,
+.ledger-head .col-select {
+  justify-content: center;
+  padding: 0;
+}
+
+.ledger-check {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid var(--field-edge);
+  background-color: var(--field);
+  color: var(--on-accent);
+  font-size: 10px;
+  cursor: pointer;
+
+  .selected &,
+  &.on,
+  &[aria-checked='mixed'] {
+    border-color: var(--accent);
+    background-color: var(--accent);
+  }
+}
+
+.ledger-row {
+  user-select: none;
+
+  &.selected {
+    background-color: color-mix(in srgb, var(--accent) 13%, transparent);
+
+    &:hover {
+      background-color: color-mix(in srgb, var(--accent) 19%, transparent);
+    }
+  }
+}
+
+// room under the last rows for the batch bar, and a row scrolled to (a located mon) kept clear of it
+.ledger.selecting {
+  padding-bottom: 120px;
+}
+
+.dex-column:has(.ledger.selecting) {
+  scroll-padding-bottom: 130px;
+}
+
+@keyframes batch-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
+}
+
+// the selection's actions, floating at the foot of the window in the popover's colours: what's picked, a status for
+// them all, a field to set on them all, sealing and releasing
+.batch-bar {
+  display: flex;
+  flex-wrap: wrap;
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  z-index: 45;
+  align-items: center;
+  gap: 10px 18px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 52px 10px 16px;
+  border: 2px solid var(--overlay-edge);
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 28%);
+  transform: translateX(-50%);
+  animation: batch-rise .2s cubic-bezier(.2, .9, .3, 1) both;
+  -webkit-app-region: no-drag;
+
+  .form-group {
+    margin: 0;
+
+    // the field picked beside it says what this is
+    > label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+  }
+
+  .form-subgroup {
+    margin-top: 6px;
+  }
+}
+
+.batch-count {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-family: $font-secondary;
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+}
+
+.batch-link {
+  @include link-button;
+
+  color: var(--on-overlay-muted);
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+
+  &:hover {
+    color: var(--on-overlay);
+  }
+}
+
+.batch-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.batch-control {
+  min-width: 190px;
+}
+
+.batch-field-pick,
+.batch-button {
+  @include action-button;
+
+  background-color: var(--overlay-deep);
+  color: var(--on-overlay);
+  transition: background-color .1s ease-out, color .1s ease-out, opacity .1s ease-out;
+
+  &:hover:not(:disabled) {
+    background-color: var(--overlay-deeper);
+  }
+
+  &:disabled {
+    opacity: .4;
+    cursor: default;
+  }
+
+  .svg-inline--fa {
+    font-size: 11px;
+  }
+
+  .dropdown-chevron {
+    font-size: 9px;
+  }
+}
+
+.batch-button.status-caught {
+  @include status-icon(caught);
+}
+
+.batch-button.status-temporary {
+  @include status-icon(temporary);
+}
+
+.batch-button.status-unobtainable {
+  @include status-icon(unobtainable);
+}
+
+// the accent once there's a value to set
+.batch-apply.ready {
+  background-color: var(--accent);
+  color: var(--on-accent);
+
+  &:hover {
+    background-color: var(--accent-hover);
+  }
+}
+
+.batch-release:hover:not(:disabled) {
+  background-color: var(--danger);
+  color: var(--on-danger);
+}
+
+.batch-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  border: 0;
+  border-left: 2px solid var(--overlay-edge);
+  background: none;
+  color: var(--on-overlay-muted);
+  font-size: 15px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--overlay-deep);
+    color: var(--on-overlay);
+  }
+}

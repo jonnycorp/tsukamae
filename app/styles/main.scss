@@ -35,11 +35,14 @@ body {
   user-select: none;
 }
 
-// form controls don't inherit body's line-height
+// form controls take the text around them as everything else does: left to the browser, a control that sets no font
+// of its own shows its system face at 13.33px, in black whatever the theme; nor do they inherit body's line height
 button,
 input,
 select,
 textarea {
+  color: inherit;
+  font: inherit;
   line-height: 1.35;
 }
 
@@ -169,19 +172,16 @@ nav {
     border: 2px solid var(--chrome-active);
     border-top: 0;
     background-color: var(--chrome);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, .22);
+    box-shadow: $menu-shadow;
     animation: dropdown-furl .2s cubic-bezier(.2, .9, .3, 1);
 
     li {
+      @include caps-label(11px, $header: true);
+
       display: flex;
       align-items: center;
       padding: 12px 14px;
       border-top: 1px solid color-mix(in srgb, var(--on-chrome) 14%, transparent);
-      font-family: $font-secondary;
-      @include small-text(11px);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
       color: var(--on-chrome);
       white-space: nowrap;
       cursor: pointer;
@@ -216,16 +216,19 @@ nav {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+      // its edge in the bar's own ink, so it shows on a dark bar as on a light one
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-chrome) 25%, transparent);
 
       + .theme-dot {
         margin-left: 3px;
       }
     }
 
+    // at the row's end, kept clear of its widest label, which sets the menu's width
     .theme-check {
       margin-left: auto;
       margin-right: 0;
+      padding-left: 14px;
       font-size: 11px;
     }
 
@@ -268,17 +271,14 @@ nav .nav-menu > a.tooltip .tooltip-text {
 }
 
 .btn {
+  @include caps-label(11px);
+
   display: block;
   position: relative;
   width: 100%;
   padding: 15px;
   border: 0;
   border-radius: 0;
-  font-family: $font-secondary;
-  @include small-text(11px);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
   text-decoration: none;
   transition: background-color .1s ease-out;
 
@@ -410,7 +410,7 @@ form {
   list-style: none;
   border: 2px solid var(--overlay-edge);
   background-color: var(--overlay);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
+  box-shadow: $menu-shadow;
   animation: dropdown-furl .2s cubic-bezier(.2, .9, .3, 1);
 
   &[data-up] {
@@ -424,7 +424,7 @@ form {
     padding: 9px 12px;
     border-top: 1px solid var(--overlay-line);
     font-family: $font-primary;
-    font-size: 14px;
+    font-size: $field-font;
     color: var(--on-overlay);
     white-space: nowrap;
     cursor: pointer;
@@ -453,9 +453,14 @@ form {
   }
 }
 
-// the invisible native input anchors the calendar popup that showPicker() opens
+// the invisible native input anchors the calendar popup that showPicker() opens; the typed date clear of the picker's
+// button at its right end
 .date-input {
   position: relative;
+
+  .form-control {
+    padding-right: 30px;
+  }
 
   .date-input-picker {
     position: absolute;
@@ -488,15 +493,18 @@ form {
   }
 }
 
+// a field, one size wherever it is ($field-height, $field-font); the search, a size up, sets its own
 .form-control {
   width: 100%;
+  height: $field-height;
   appearance: none;
   border: 2px solid var(--field-edge);
   border-radius: 0;
   background-color: var(--field);
   color: var(--ink);
-  padding: 6px;
+  padding: 0 10px;
   font-family: $font-primary;
+  font-size: $field-font;
 
   &::placeholder {
     color: var(--ink-muted);
@@ -519,12 +527,6 @@ form {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-  }
-
-  .form-control {
-    height: 43px;
-    padding: 0 10px;
-    font-size: 15px;
   }
 
   .checkbox {

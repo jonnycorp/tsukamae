@@ -66,6 +66,39 @@ const ResultsChunk = memo(function ResultsChunk ({ captures, padding, setSelecte
   );
 }, sameChunk);
 
+interface NoResultsProps {
+  filters: TrackerFilters;
+  query: string;
+  setFilters: Dispatch<SetStateAction<TrackerFilters>>;
+  setQuery: Dispatch<SetStateAction<string>>;
+}
+
+// what an emptied view or search says, with the way back out of it; the ledger says it too
+export function NoResults ({ filters, query, setFilters, setQuery }: NoResultsProps) {
+  const { t, locale } = useTranslation();
+  const searching = hasQuery(query);
+  const viewOnly = !searching && appliedFacets(filters).length === 0;
+  const viewEmpty = VIEW_EMPTY[filters.view];
+  const clearFilters = <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.clearFilters')}</a>;
+  const clearSearch = <a className="link" onClick={() => setQuery('')}>{t('searchResults.clearSearch')}</a>;
+  const showAll = <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.showAll')}</a>;
+
+  let parts: ReactNode[] = [t('searchResults.noneMatching'), searching && clearSearch, clearFilters];
+  if (viewOnly && viewEmpty) {
+    parts = [t(viewEmpty), showAll];
+  } else if (filters.view === 'all' && appliedFacets(filters).length === 0) {
+    parts = [t('searchResults.none'), clearSearch];
+  }
+  // English spaces its sentences apart; Japanese runs on straight after the 。
+  const gap = locale === 'ja' ? '' : ' ';
+
+  return (
+    <div className="search-results search-results-empty">
+      <p>{parts.filter(Boolean).map((part, i) => <Fragment key={i}>{i > 0 && gap}{part}</Fragment>)}</p>
+    </div>
+  );
+}
+
 interface Props {
   captures: Capture[];
   filters: TrackerFilters;
@@ -79,9 +112,7 @@ interface Props {
 
 export function SearchResults ({ captures, filters, held, query, setFilters, setQuery, setSelectedPokemon }: Props) {
   const { activeDexView } = useDexContext();
-  const { t, locale } = useTranslation();
   const regional = Boolean(activeDexView?.regional);
-  const searching = hasQuery(query);
 
   const results = useMemo(() => {
     const matchesFilters = filterMatcher(filters);
@@ -98,26 +129,7 @@ export function SearchResults ({ captures, filters, held, query, setFilters, set
   }, [results]);
 
   if (results.length === 0) {
-    const viewOnly = !searching && appliedFacets(filters).length === 0;
-    const viewEmpty = VIEW_EMPTY[filters.view];
-    const clearFilters = <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.clearFilters')}</a>;
-    const clearSearch = <a className="link" onClick={() => setQuery('')}>{t('searchResults.clearSearch')}</a>;
-    const showAll = <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.showAll')}</a>;
-
-    let parts: ReactNode[] = [t('searchResults.noneMatching'), searching && clearSearch, clearFilters];
-    if (viewOnly && viewEmpty) {
-      parts = [t(viewEmpty), showAll];
-    } else if (filters.view === 'all' && appliedFacets(filters).length === 0) {
-      parts = [t('searchResults.none'), clearSearch];
-    }
-    // English spaces its sentences apart; Japanese runs on straight after the 。
-    const gap = locale === 'ja' ? '' : ' ';
-
-    return (
-      <div className="search-results search-results-empty">
-        <p>{parts.filter(Boolean).map((part, i) => <Fragment key={i}>{i > 0 && gap}{part}</Fragment>)}</p>
-      </div>
-    );
+    return <NoResults filters={filters} query={query} setFilters={setFilters} setQuery={setQuery} />;
   }
 
   return (

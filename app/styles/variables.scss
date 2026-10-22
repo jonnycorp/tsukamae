@@ -20,3 +20,18 @@ $space-xs: 6px;
 $space-sm: 12px;
 $space-field: 24px;
 $space-section: 40px;
+
+// every control in the filters' row is this tall, its border included, so the row lines up whatever each one holds
+// (its words in either language, an icon): the views, Edit Dex, Filters and a chip, the ledger's tools
+$filter-control: 36px;
+// the row above it a size up, the same way: the search, Timeline and Almanac, the layout switch, the pause's picker and
+// its button
+$search-height: 42px;
+// the header's meter, its centerpiece: taller than the controls around it
+$meter-height: 46px;
+// every field (a text box, a date, a menu's button) wherever it's filled in: a form, a popover, the review, the batch
+// bar; this tall with its border, its words this size
+$field-height: 36px;
+$field-font: 15px;
+// what a menu or a panel opening over the page casts: the dropdowns, the nav's and the dex's menus, the Filters panel
+$menu-shadow: 0 6px 16px rgb(0 0 0 / 24%);

@@ -1,0 +1,180 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// the command palette (components/pages/Tracker/CommandPalette.tsx), Ctrl+K: a box over a dimmed page, in the
+// overlays' colours as the menus and the popover are, unfurling from its search as a dropdown does
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(.98);
+  }
+}
+
+.command-palette {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14vh 16px 16px;
+  background-color: rgb(0 0 0 / 22%);
+  -webkit-app-region: no-drag;
+  animation: fade-in .12s ease-out;
+}
+
+.palette-box {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: min(560px, 76vh);
+  border: 2px solid var(--overlay-edge);
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+  transform-origin: top center;
+  animation: palette-in .16s cubic-bezier(.2, .9, .3, 1) both;
+}
+
+.palette-search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-bottom: 2px solid var(--overlay-edge);
+
+  > .svg-inline--fa {
+    color: var(--on-overlay-muted);
+    font-size: 15px;
+  }
+
+  kbd {
+    @include key-cap(var(--overlay-line), var(--on-overlay-muted));
+  }
+}
+
+.palette-input {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  border: 0;
+  background: none;
+  color: var(--on-overlay);
+  font-family: $font-primary;
+  font-size: 18px;
+  outline: none;
+
+  &::placeholder {
+    color: var(--on-overlay-muted);
+  }
+}
+
+.palette-list {
+  @include scrollbar-fade;
+
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px 0;
+  overflow-y: auto;
+  // the page's thumb is ink, which the overlay would swallow
+  --scroll-thumb: color-mix(in srgb, var(--on-overlay) 40%, transparent);
+}
+
+.palette-section h3 {
+  margin: 8px 16px 4px;
+  color: var(--on-overlay-muted);
+  font-family: $font-secondary;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+
+  @include small-text(10px);
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 4px 16px;
+  cursor: pointer;
+
+  &[data-active] {
+    background-color: var(--overlay-deep);
+    box-shadow: inset 3px 0 0 var(--overlay-edge);
+  }
+}
+
+// a sprite in a box the height of most; the few taller ones stretch their row
+.palette-icon {
+  display: flex;
+  position: relative;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-height: 30px;
+  color: var(--on-overlay-muted);
+  font-size: 14px;
+
+  .type-glyph {
+    position: relative;
+    width: 18px;
+    height: 18px;
+  }
+
+  // a type's glyph on the tiles' caught colour, which its colour is solved against (themes.ts): the overlay could
+  // swallow it
+  &:has(> .type-glyph)::before {
+    content: '';
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background-color: var(--tile-caught);
+  }
+
+  .origin-mark {
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+  }
+
+  .palette-ball {
+    @include ball-sprite;
+  }
+}
+
+.palette-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-hint {
+  flex: none;
+  color: var(--on-overlay-muted);
+  font-family: $font-secondary;
+  font-weight: 700;
+
+  @include small-text(12px);
+}
+
+.palette-empty {
+  margin: 18px 16px;
+  color: var(--on-overlay-muted);
+  font-size: 15px;
+}
+
+.palette-footer {
+  flex: none;
+  padding: 8px 16px;
+  border-top: 1px solid var(--overlay-line);
+  color: var(--on-overlay-muted);
+
+  @include small-text(12px);
+}

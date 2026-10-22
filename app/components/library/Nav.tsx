@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faFileExport, faFileImport, faFlask, faGamepad, faGear, faLanguage, faLocationDot, faMoon, faPalette, faRotate } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCirclePause, faFileExport, faFileImport, faFlask, faGamepad, faGear, faLanguage, faLocationDot, faMoon, faPalette, faRotate, faShapes } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { SavesModal } from './SavesModal';
@@ -45,7 +45,7 @@ const THEME_DOTS = ['chrome', 'accent', 'status-unobtainable', 'status-temporary
 
 export function Nav ({ onTogglePreview }: Props) {
   const { locale, setLocale } = useLocalStorageContext();
-  const { isSoftDark, setIsSoftDark, theme, setTheme, locationTints, setLocationTints, flipTypes, setFlipTypes } = useThemeContext();
+  const { isSoftDark, setIsSoftDark, theme, setTheme, locationTints, setLocationTints, flipTypes, setFlipTypes, tileTypes, setTileTypes, still, setStill } = useThemeContext();
   const { dexes, setActiveDex } = useDexContext();
   const { t } = useTranslation();
   // before the data loads, or when it can't be, there's nothing to export or edit, but Import can still restore an export
@@ -181,7 +181,8 @@ export function Nav ({ onTogglePreview }: Props) {
               {t('nav.softDark')}
               {isSoftDark && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
             </li>
-            {/* how the dex shows sealed tiles: washed by where each mon is, and whether the flips turn to the types */}
+            {/* how the dex shows its tiles: sealed ones washed by where each mon is and turning to their types in the
+                flips, the rest with their types' glyphs at their feet */}
             <li className={`theme-display ${locationTints ? 'theme-active' : ''}`} onClick={() => setLocationTints(!locationTints)}>
               <FontAwesomeIcon icon={faLocationDot} />
               {t('nav.locationTints')}
@@ -191,6 +192,17 @@ export function Nav ({ onTogglePreview }: Props) {
               <FontAwesomeIcon icon={faRotate} />
               {t('nav.flipTypes')}
               {flipTypes && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+            </li>
+            <li className={tileTypes ? 'theme-active' : ''} onClick={() => setTileTypes(!tileTypes)}>
+              <FontAwesomeIcon icon={faShapes} />
+              {t('nav.tileTypes')}
+              {tileTypes && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+            </li>
+            {/* still mode (M): nothing on the page moves */}
+            <li className={still ? 'theme-active' : ''} onClick={() => setStill(!still)} title={`${t('nav.still')} (M)`}>
+              <FontAwesomeIcon icon={faCirclePause} />
+              {t('nav.still')}
+              {still && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
             </li>
           </ul>
         }

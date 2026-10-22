@@ -9,7 +9,7 @@ import type { CaptureField } from '../../utils/capture-fields';
 import type { CaptureMetadata, GenderLock } from '../../types';
 import type { ReactNode } from 'react';
 
-const NOT_MINE = 'not-mine';
+export const NOT_MINE = 'not-mine';
 
 interface Props {
   field: CaptureField;

@@ -2,6 +2,7 @@ import { useDeferredValue, useMemo, useState } from 'react';
 
 import { Box } from './Box';
 import { FlipStrips } from './FlipStrips';
+import { Ledger } from './Ledger';
 import { Scroll } from './Scroll';
 import { SearchResults } from './SearchResults';
 import { anyFilterActive, hasQuery } from './filters';
@@ -9,13 +10,17 @@ import { groupBoxes } from '../../../utils/pokemon';
 import { useHotkey } from '../../../hooks/use-hotkey';
 import { useTrackerActions, useTrackerState } from './use-tracker';
 
+import type { CSSProperties } from 'react';
 import type { Capture } from '../../../types';
+import type { DexLayout } from './ledger-model';
 import type { Dispatch, MouseEventHandler, SetStateAction } from 'react';
 import type { TrackerFilters } from './filters';
 
 interface Props {
   // boxes across the grid, once the area has been measured
   columns: number;
+  // the boxes, or the ledger in their place
+  layout: DexLayout;
   measured: boolean;
   filters: TrackerFilters;
   onScrollButtonClick: MouseEventHandler<HTMLDivElement>;
@@ -52,6 +57,7 @@ function useHeldTiles (selected: number, filters: TrackerFilters, query: string)
 
 export function Dex ({
   columns,
+  layout,
   measured,
   filters,
   onScrollButtonClick,
@@ -76,9 +82,9 @@ export function Dex ({
     return all;
   }, [boxes, columns]);
 
-  // L over a sealed tile: where it can be moved, in a menu beside it (MoveMenu)
+  // L over a sealed tile (or a sealed mon's ledger row): where it can be moved, in a menu beside it (MoveMenu)
   useHotkey('l', () => {
-    const tile = document.querySelector<HTMLElement>('.pokemon.sealed[data-pokemon-id]:hover');
+    const tile = document.querySelector<HTMLElement>(':is(.pokemon, .ledger-row).sealed[data-pokemon-id]:hover');
     const id = Number(tile?.dataset.pokemonId);
     const capture = captures.find((cap) => cap.pokemon.id === id);
     if (!tile || !capture?.sealed || tile.classList.contains('checklist')) {
@@ -88,7 +94,7 @@ export function Dex ({
   });
 
   useHotkey('d', () => {
-    const tile = document.querySelector<HTMLElement>('.pokemon[data-pokemon-id]:hover');
+    const tile = document.querySelector<HTMLElement>(':is(.pokemon, .ledger-row)[data-pokemon-id]:hover');
     const id = Number(tile?.dataset.pokemonId);
     const capture = captures.find((cap) => cap.pokemon.id === id);
     if (!capture?.captured || capture.sealed) {
@@ -107,9 +113,21 @@ export function Dex ({
     <>
       {/* outside the zoom, so it's the same size at every scale */}
       <Scroll onClick={onScrollButtonClick} showScroll={showScrollButton} />
-      <div className="dex" style={{ zoom: scale }}>
+      {/* --dex-px: a screen pixel in the dex's own px, for lines and halos that stay that fine at any zoom */}
+      <div className="dex" style={{ zoom: scale, '--dex-px': `${1 / (scale * window.devicePixelRatio)}px` } as CSSProperties}>
         <div className="wrapper">
-          {hasQuery(deferredQuery) || anyFilterActive(deferredFilters) ?
+          {layout === 'ledger' &&
+            <Ledger
+              captures={captures}
+              filters={deferredFilters}
+              held={held}
+              query={deferredQuery}
+              setFilters={setFilters}
+              setQuery={setQuery}
+              setSelectedPokemon={setSelectedPokemon}
+            />
+          }
+          {layout === 'boxes' && (hasQuery(deferredQuery) || anyFilterActive(deferredFilters) ?
             <SearchResults
               captures={captures}
               filters={deferredFilters}
@@ -135,7 +153,7 @@ export function Dex ({
                 <FlipStrips deferFrames={deferFrames((r + 1) * columns - 1)} grids={row} key={r} row={r} />
               ))}
             </div>
-          }
+          )}
         </div>
       </div>
     </>

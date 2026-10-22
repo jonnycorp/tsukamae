@@ -1,19 +1,20 @@
 import { FADE_MS } from '../hooks/use-dismissable';
-import { DEFAULT_THEME, findTheme, themePalette } from './themes';
+import { DEFAULT_THEME, findTheme, themePalette, themeSlug } from './themes';
 
 export const THEME_STORAGE_KEY = 'theme';
 export const SOFT_DARK_STORAGE_KEY = 'nightMode';
-// the palette menu's two display switches, both on by default
+// the palette menu's display switches: the first two on by default, types on the tiles off
 export const LOCATION_TINTS_STORAGE_KEY = 'locationTints';
 export const FLIP_TYPES_STORAGE_KEY = 'flipTypes';
+export const TILE_TYPES_STORAGE_KEY = 'tileTypes';
+export const STILL_STORAGE_KEY = 'stillMode';
 
 // the modal backdrop's black, rgba(0, 0, 0, .35) in styles/main.scss
 const MODAL_SHADE = 0.35;
 
 let titleBar = { color: '', symbolColor: '' };
-// a scene drawn over the nav (the timeline) puts its own colours under the window buttons while it's up
-let override: typeof titleBar | null = null;
-let openModals = 0;
+// the backdrops up, each its own black; the buttons take the darkest
+const openShades: number[] = [];
 // how much of the backdrop's black is on the buttons: it fades in and out with the backdrop
 let shade = 0;
 let shadeFrame = 0;
@@ -28,22 +29,22 @@ function shaded (color: string, alpha: number): string {
   return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 }
 
-// the desktop window buttons sit on the nav, drawn by the system, so they take its colours, and its dimming under a modal
+// the desktop window buttons sit on the nav (or a scene's bar, in the nav's colours), drawn by the system, so they take
+// its colours, and its dimming under a modal
 function sendTitleBar () {
-  const colors = override ?? titleBar;
-  window.tracker?.setTitleBarColors({ color: shaded(colors.color, shade), symbolColor: shaded(colors.symbolColor, shade) });
+  window.tracker?.setTitleBarColors({ color: shaded(titleBar.color, shade), symbolColor: shaded(titleBar.symbolColor, shade) });
 }
 
-export function overrideTitleBar (colors: typeof titleBar | null) {
-  override = colors;
-  sendTitleBar();
-}
-
-// frame by frame alongside the backdrop's fade (ease-out, as in the CSS), starting from wherever the last fade left it
-export function dimTitleBar (dim: boolean) {
-  openModals = Math.max(0, openModals + (dim ? 1 : -1));
+// frame by frame alongside the backdrop's fade (ease-out, as in the CSS), starting from wherever the last fade left it;
+// a backdrop lighter than a modal's (the palette's) gives its own
+export function dimTitleBar (dim: boolean, amount = MODAL_SHADE) {
+  if (dim) {
+    openShades.push(amount);
+  } else if (openShades.includes(amount)) {
+    openShades.splice(openShades.indexOf(amount), 1);
+  }
   const from = shade;
-  const to = openModals > 0 ? MODAL_SHADE : 0;
+  const to = Math.max(0, ...openShades);
   const start = performance.now();
   cancelAnimationFrame(shadeFrame);
   const step = (now: number) => {
@@ -59,11 +60,15 @@ export function dimTitleBar (dim: boolean) {
 
 function setTokens (name: string, softDark: boolean) {
   const root = document.documentElement;
-  const palette = themePalette(findTheme(name), softDark ? 'dark' : 'light');
+  const seed = findTheme(name);
+  const palette = themePalette(seed, softDark ? 'dark' : 'light');
   for (const [token, value] of Object.entries(palette)) {
     root.style.setProperty(`--${token}`, value);
   }
   root.classList.toggle('soft-dark', softDark);
+  // a theme's character beyond its colours keys on these (styles/themes.scss)
+  root.dataset.theme = themeSlug(seed.name);
+  root.dataset.mode = softDark ? 'dark' : 'light';
   titleBar = { color: palette.chrome, symbolColor: palette['on-chrome'] };
 }
 
@@ -74,13 +79,17 @@ export function applyTheme (name: string, softDark: boolean) {
   requestAnimationFrame(() => setTimeout(sendTitleBar));
 }
 
-// attributes on the root for styles/tracker.scss and useFlipClock to read, so switching either restyles the dex without
-// rendering a tile: with location tints off every sealed tile takes a game's wash; with types out of the flips the
-// cycle swings between the record's face and the trainer's
-export function applyDisplay (locationTints: boolean, flipTypes: boolean) {
+// attributes on the root for styles/tracker.scss and useFlipClock to read, so switching any of them restyles the dex
+// without rendering a tile: with location tints off every sealed tile takes a game's wash; with types out of the flips
+// the cycle swings between the record's face and the trainer's; with types on the tiles each unsealed tile shows its
+// types' glyphs at its foot (styles/tile-types.scss); in still mode nothing moves (the boxes' shine, the meter's water;
+// useFlipClock holds the flips), the sealed look staying as it is
+export function applyDisplay (locationTints: boolean, flipTypes: boolean, tileTypes = false, still = false) {
   const root = document.documentElement;
   root.toggleAttribute('data-plain-seals', !locationTints);
   root.toggleAttribute('data-flip-no-types', !flipTypes);
+  root.toggleAttribute('data-tile-types', tileTypes);
+  root.toggleAttribute('data-still', still);
 }
 
 function readJson<T> (key: string, fallback: T): T {
@@ -96,6 +105,6 @@ function readJson<T> (key: string, fallback: T): T {
 // paint, so the buttons take their colours straight away
 export function bootstrapTheme () {
   setTokens(readJson(THEME_STORAGE_KEY, DEFAULT_THEME), readJson(SOFT_DARK_STORAGE_KEY, false));
-  applyDisplay(readJson(LOCATION_TINTS_STORAGE_KEY, true), readJson(FLIP_TYPES_STORAGE_KEY, true));
+  applyDisplay(readJson(LOCATION_TINTS_STORAGE_KEY, true), readJson(FLIP_TYPES_STORAGE_KEY, true), readJson(TILE_TYPES_STORAGE_KEY, false), readJson(STILL_STORAGE_KEY, false));
   sendTitleBar();
 }

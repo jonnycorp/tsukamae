@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { BOX_COLUMNS, TILE_SIZE } from '../../utils/pokemon';
 import { Progress } from '../library/Progress';
-import { THEMES, TYPE_COLORS, themePalette } from '../../palette/themes';
+import { THEMES, TYPE_COLORS, themePalette, themeSlug } from '../../palette/themes';
 import { auditTheme } from '../../palette/audit';
 import { contrast, cssColor, over, parseCssColor } from '../../palette/color';
 import { padding } from '../../utils/formatting';
@@ -166,7 +166,7 @@ function GlyphSheet ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
   ];
 
   return (
-    <div className="theme-preview-glyph-sheet" style={tokens}>
+    <div className="theme-preview-glyph-sheet" data-mode={mode} data-theme={themeSlug(seed.name)} style={tokens}>
       <h3>{mode === 'dark' ? 'soft dark' : 'light'}</h3>
       <div className="theme-preview-glyph-specimens" style={{ backgroundColor: palette['tile-caught'] }}>
         {GLYPHS.map((type) => (
@@ -196,7 +196,7 @@ function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
   const failures = useMemo(() => auditTheme(seed, mode).filter((result) => !result.pass), [seed, mode]);
 
   return (
-    <div className="theme-preview-panel" style={tokens}>
+    <div className="theme-preview-panel" data-mode={mode} data-theme={themeSlug(seed.name)} style={tokens}>
       <nav>
         <a className="nav-logo">tsukamae</a>
         <a className="nav-icon"><FontAwesomeIcon icon={faGear} /></a>

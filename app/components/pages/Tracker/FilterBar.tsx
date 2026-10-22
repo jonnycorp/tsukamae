@@ -1,38 +1,42 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faPencilAlt, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, appliedFacets, facetOptions, filterMatcher, hasQuery, queryMatcher } from './filters';
+import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, appliedFacets, facetOptions, filterMatcher, hasQuery, holdsSealed, queryMatcher } from './filters';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useHotkey } from '../../../hooks/use-hotkey';
 import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { Facet, FacetId, TrackerFilters } from './filters';
+
+// the gap the panel keeps from the window's edges, as its width does (tracker.scss)
+const PANEL_EDGE = 16;
 
 interface PanelProps {
   facets: Facet[];
   filters: TrackerFilters;
   onToggle: (facet: FacetId, value: string) => void;
+  panelRef: RefObject<HTMLDivElement>;
   query: string;
   regional: boolean;
 }
 
-function FacetPanel ({ facets, filters, onToggle, query, regional }: PanelProps) {
+function FacetPanel ({ facets, filters, onToggle, panelRef, query, regional }: PanelProps) {
   const { captures } = useTrackerState();
   const { t, locale } = useTranslation();
 
   return (
-    <div className="facet-panel">
+    <div className="facet-panel" ref={panelRef}>
       {facets.map((facet) => {
         const options = facetOptions(facet, captures, filters, query, regional, locale);
         if (options.length === 0) {
           return null;
         }
         const selected = filters.facets[facet.id] ?? [];
-        const setAside = !facet.species && filters.view === 'missing';
+        const setAside = !facet.species && !holdsSealed(filters.view);
         return (
           <section className={classNames('facet', { 'set-aside': setAside })} key={facet.id}>
             <h3>{t(facet.labelKey)}</h3>
@@ -47,6 +51,11 @@ function FacetPanel ({ facets, filters, onToggle, query, regional }: PanelProps)
                   type="button"
                 >
                   {option.icon && <img alt="" src={`/${option.icon}`} />}
+                  {option.glyph && (
+                    <span className="facet-glyph-chip">
+                      <span className="type-glyph facet-glyph" style={{ backgroundColor: `var(--type-${option.glyph})`, maskImage: `url(/types/${option.glyph}.svg)` }} />
+                    </span>
+                  )}
                   {option.label}
                   <span className="facet-count">{option.count}</span>
                 </button>
@@ -62,18 +71,18 @@ function FacetPanel ({ facets, filters, onToggle, query, regional }: PanelProps)
 interface Props {
   filters: TrackerFilters;
   // the dex's settings, its defaults among them, in reach for marking a run of mons from one game
-  onEditDex: () => void;
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
 }
 
-export function FilterBar ({ filters, onEditDex, query, setFilters }: Props) {
+export function FilterBar ({ filters, query, setFilters }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { captures } = useTrackerState();
   const { t, locale } = useTranslation();
   const [open, setOpen] = useState(false);
   const regional = Boolean(activeDexView?.regional);
   const anchorRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useHotkey('f', () => setOpen((prev) => !prev));
   useHotkey('r', () => setFilters(EMPTY_FILTERS));
@@ -107,12 +116,29 @@ export function FilterBar ({ filters, onEditDex, query, setFilters }: Props) {
         setOpen(false);
       }
     };
+    // a resize lays the header out again, leaving the panel where the toggle was: it closes, as a dropdown's menu does
+    const close = () => setOpen(false);
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', close);
     return () => {
       document.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', close);
     };
+  }, [open]);
+
+  // under the toggle, moved left as far as it would run past the window: a narrow window has the toggle near its edge
+  useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    const panel = panelRef.current;
+    if (!open || !anchor || !panel) {
+      return;
+    }
+    // in screen px, then the header's own (it zooms with a wide window)
+    const left = anchor.getBoundingClientRect().left;
+    const overflow = left + panel.getBoundingClientRect().width - (window.innerWidth - PANEL_EDGE);
+    panel.style.left = `${-Math.max(0, Math.min(overflow, left - PANEL_EDGE)) / panel.currentCSSZoom}px`;
   }, [open]);
 
   const setFacet = (facet: FacetId, values: string[]) => setFilters((prev) => ({ ...prev, facets: { ...prev.facets, [facet]: values } }));
@@ -139,16 +165,12 @@ export function FilterBar ({ filters, onEditDex, query, setFilters }: Props) {
         ))}
       </div>
 
-      <button className="filter-edit-dex" onClick={onEditDex} type="button">
-        <FontAwesomeIcon icon={faPencilAlt} />{t('filter.editDex')}
-      </button>
-
       <div className="filter-anchor" ref={anchorRef}>
         <button aria-expanded={open} className={classNames('filter-toggle', { open })} onClick={() => setOpen((prev) => !prev)} type="button">
           {t('filter.facets')}
           <FontAwesomeIcon icon={faChevronDown} />
         </button>
-        {open && <FacetPanel facets={facets} filters={filters} onToggle={toggleValue} query={query} regional={regional} />}
+        {open && <FacetPanel facets={facets} filters={filters} onToggle={toggleValue} panelRef={panelRef} query={query} regional={regional} />}
       </div>
 
       {appliedFacets(filters).map((facet) => {

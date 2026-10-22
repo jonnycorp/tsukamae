@@ -1,0 +1,984 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// the review (components/pages/Tracker/Review.tsx), W: the dex's record keeping, one mon at a time over the window, a
+// scene of its own in the theme's colours. Its dress is a viewfinder's: the mon in a round lens framed by brackets, its
+// dex number traced large behind, each field a plate wired to it either side, a pip under it for each field the seal
+// waits on, the seal a stamp. A mon comes in from the side the run moved to, the lens scanned and the sprite dropped
+// in, its plates lit one after another; a field answered ticks its plate, lights its wire and its pip. The run's list
+// down the left. Still mode keeps all of it still (at the foot)
+$review-ease: cubic-bezier(.2, .9, .3, 1);
+$review-spring: cubic-bezier(.2, 1.5, .4, 1);
+// the list's width, at the scene's scale (--scale)
+$run-width: 268px;
+$lens: 272px;
+// the wires' length, between a side's plates and the mon
+$wire: 30px;
+
+@keyframes review-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(46px);
+  }
+}
+
+@keyframes review-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-46px);
+  }
+}
+
+@keyframes review-brackets {
+  from {
+    opacity: 0;
+    transform: scale(1.16);
+  }
+}
+
+@keyframes review-scan {
+  from {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes review-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-34px) scale(.86, 1.14);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.14, .86);
+  }
+
+  80% {
+    transform: translateY(-4px) scale(.96, 1.04);
+  }
+}
+
+@keyframes review-tick {
+  0% {
+    transform: scale(0);
+  }
+
+  60% {
+    transform: scale(1.4);
+  }
+}
+
+@keyframes review-stamp {
+  0% {
+    opacity: 0;
+    transform: rotate(-24deg) scale(2.6);
+  }
+
+  60% {
+    opacity: 1;
+    transform: rotate(-12deg) scale(.92);
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotate(-12deg);
+  }
+}
+
+@keyframes review-hold {
+  to {
+    transform: none;
+  }
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background-color: var(--paper);
+  color: var(--ink);
+  -webkit-app-region: no-drag;
+  animation: fade-in .15s ease-out;
+}
+
+// the scenes' bar (mixins)
+.review-top {
+  @include scene-bar;
+
+  h1 {
+    @include scene-title;
+  }
+}
+
+// the scene's name in the accent, a viewfinder's corners round it as round the mon
+.review-logo {
+  @include scene-logo;
+
+  padding: 0 18px;
+
+  span {
+    position: relative;
+    padding: 3px 10px;
+
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border: 2px solid currentColor;
+    }
+
+    &::before {
+      top: 0;
+      left: 0;
+      border-right: 0;
+      border-bottom: 0;
+    }
+
+    &::after {
+      right: 0;
+      bottom: 0;
+      border-top: 0;
+      border-left: 0;
+    }
+  }
+}
+
+.review-position {
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.review-tally {
+  color: var(--on-chrome-muted);
+  white-space: nowrap;
+
+  @include small-text(11px);
+}
+
+.review-hint {
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--on-chrome-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @include small-text(11px);
+}
+
+.review-list-toggle,
+.review-close {
+  @include scene-button;
+}
+
+.review-list-toggle {
+  opacity: .6;
+
+  &.on {
+    opacity: 1;
+  }
+}
+
+// how far through the run, a line under the bar
+.review-progress {
+  flex: none;
+  height: 3px;
+  background-color: var(--paper-sunken);
+
+  span {
+    display: block;
+    height: 100%;
+    background-color: var(--accent);
+    transform-origin: left;
+    transition: transform .25s $review-ease;
+  }
+}
+
+// the run's list beside the mon where it's shown, each its own scroll
+.review-body {
+  display: grid;
+  position: relative;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+
+  &.listed {
+    grid-template-columns: calc(#{$run-width} * var(--scale, 1)) minmax(0, 1fr);
+  }
+}
+
+.review-run {
+  @include scrollbar-fade;
+
+  min-height: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  background-color: var(--paper-raised);
+
+  ol {
+    margin: 0;
+    padding: 6px 0 16px;
+    list-style: none;
+  }
+}
+
+// a mon of the run: sprite, number, name, and how far its record has got; drawn only as it scrolls into sight
+.review-run-row {
+  display: grid;
+  grid-template-columns: 40px 46px minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px 0 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 40px;
+
+  &:hover {
+    background-color: var(--hover-wash);
+  }
+
+  &.current {
+    background-color: color-mix(in srgb, var(--accent) 13%, var(--paper-raised));
+    box-shadow: inset 4px 0 var(--accent);
+  }
+
+  &.state-unmarked .review-run-mon {
+    filter: grayscale(1);
+    opacity: .55;
+  }
+}
+
+// the sprites are cut to the mon, the tallest (56px) brought down to the row
+.review-run-mon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+
+  .pkicon {
+    zoom: .7;
+  }
+}
+
+.review-run-number {
+  color: var(--ink-muted);
+  font-family: $font-secondary;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-run-name {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-run-mark {
+  display: flex;
+  justify-content: flex-end;
+  color: var(--ink-muted);
+  font-size: 12px;
+
+  .state-caught.ready & {
+    color: var(--status-caught);
+  }
+
+  .state-temporary & {
+    color: var(--status-temporary);
+  }
+}
+
+.review-run-hollow {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+
+// how many fields left to fill, in the accent
+.review-run-left {
+  min-width: 18px;
+  padding: 1px 5px;
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font-family: $font-secondary;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 900;
+  text-align: center;
+}
+
+.review-main {
+  @include scrollbar-fade;
+
+  min-width: 0;
+  min-height: 0;
+  padding: 24px 28px 30px;
+  overflow-y: auto;
+  outline: none;
+}
+
+// zoomed up to a wide window (Review.tsx), its own width what lays it out: the mon between its two sides of plates,
+// then over them, then all in one column
+.review-stage {
+  container-type: inline-size;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-areas: 'left bay right';
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 460px) minmax(0, 1fr);
+  align-items: start;
+  column-gap: $wire;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.review-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &.left {
+    grid-area: left;
+  }
+
+  &.right {
+    grid-area: right;
+  }
+}
+
+@container (width < 960px) {
+  .review-grid {
+    grid-template-areas: 'bay bay' 'left right';
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 20px;
+  }
+
+  // nothing beside the mon to wire to it
+  .review-plate::after,
+  .review-plate::before {
+    display: none;
+  }
+}
+
+@container (width < 600px) {
+  .review-grid {
+    grid-template-areas: 'bay' 'left' 'right';
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .review-side.right {
+    margin-top: -14px;
+  }
+}
+
+// the mon: number, lens, name and types, the pips, its marks; in from the side the run moved to
+.review-bay {
+  --wash: var(--wash-seal);
+
+  display: flex;
+  grid-area: bay;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  text-align: center;
+  animation: review-in-right .3s $review-ease backwards;
+
+  &[data-dir='-1'] {
+    animation-name: review-in-left;
+  }
+
+  &.loc-home {
+    --wash: var(--wash-home);
+  }
+
+  &.loc-champions {
+    --wash: var(--wash-champions);
+  }
+
+  &.loc-out {
+    --wash: var(--wash-loan);
+  }
+
+  h2 {
+    margin: 12px 0 0;
+    font-family: $font-secondary;
+    font-size: 26px;
+    font-weight: 800;
+  }
+}
+
+:root[data-plain-seals] .review-bay:is(.loc-home, .loc-champions, .loc-out) {
+  --wash: var(--wash-seal);
+}
+
+// the dex number traced large behind the lens's top
+.review-bay-number {
+  margin: 0 0 -40px;
+  color: transparent;
+  font-family: $font-secondary;
+  font-size: 78px;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 3px;
+  line-height: 1;
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--ink) 24%, transparent);
+  user-select: none;
+}
+
+.review-lens {
+  position: relative;
+  z-index: 1;
+  width: $lens;
+  height: $lens;
+  padding: 16px;
+}
+
+.review-brackets {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3px;
+  vector-effect: non-scaling-stroke;
+  animation: review-brackets .35s $review-spring .05s backwards;
+}
+
+// the mon on its tile's colours: a status's, a sealed one's wash tinted for where it is, grey and faded till it's marked
+.review-lens-glass {
+  --glass: var(--paper-sunken);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--glass) 35%, var(--paper-raised)), var(--glass) 72%);
+
+  .state-caught & {
+    --glass: var(--tile-caught);
+  }
+
+  .state-unobtainable & {
+    --glass: var(--tile-unobtainable);
+  }
+
+  .state-temporary & {
+    background: repeating-linear-gradient(45deg, var(--tile-temporary) 0 12px, var(--tile-temporary-stripe) 12px 24px);
+  }
+
+  .state-sealed & {
+    background: linear-gradient(180deg, var(--wash), color-mix(in srgb, var(--wash) 17%, transparent)), var(--tile-caught);
+  }
+
+  .state-unmarked & .pkicon {
+    filter: grayscale(1);
+    opacity: .5;
+  }
+
+  // a band of light down the glass, once, as the mon comes up
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 38%, color-mix(in srgb, var(--shine) 95%, transparent) 50%, transparent 62%);
+    transform: translateY(100%);
+    animation: review-scan .7s ease-in-out .1s backwards;
+    pointer-events: none;
+  }
+
+  // the widest sprite (67px) still inside the glass
+  .pkicon {
+    zoom: 3.2;
+    animation: review-drop .5s $review-ease .12s backwards;
+  }
+}
+
+// sealed: stamped across the lens, slammed down as it's sealed here
+.review-stamp {
+  position: absolute;
+  right: -10px;
+  bottom: 24px;
+  z-index: 2;
+  padding: 5px 14px;
+  border: 5px double var(--accent);
+  background-color: color-mix(in srgb, var(--paper-raised) 85%, transparent);
+  color: var(--accent);
+  font-family: $font-secondary;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  transform: rotate(-12deg);
+
+  &.slam {
+    animation: review-stamp .32s $review-spring both;
+  }
+}
+
+.review-types {
+  display: flex;
+  gap: 14px;
+  margin: 6px 0 0;
+}
+
+.review-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+
+  .type-glyph {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// a pip for each field the seal waits on, lit as it's answered
+.review-pips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.review-pip {
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--accent);
+  transform: rotate(45deg) scale(.78);
+  transition: background-color .2s ease-out, border-color .2s ease-out, transform .35s $review-spring;
+
+  &.on {
+    border-color: var(--status-caught);
+    background-color: var(--status-caught);
+    transform: rotate(45deg);
+  }
+}
+
+.review-pips-count {
+  margin-left: 4px;
+  font-family: $font-secondary;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+// its status, by a press or 1 2 3: the one it has filled in its colour
+.review-marks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 16px;
+}
+
+.review-mark {
+  @include caps-label(11px);
+
+  --mark: var(--status-caught);
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: $search-height;
+  padding: 0 8px;
+  border: 2px solid var(--field-edge);
+  background-color: var(--paper-raised);
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+
+  @include status-icon(caught);
+
+  &.status-temporary {
+    --mark: var(--status-temporary);
+
+    @include status-icon(temporary);
+  }
+
+  &.status-unobtainable {
+    --mark: var(--status-unobtainable);
+
+    @include status-icon(unobtainable);
+  }
+
+  kbd {
+    @include key-cap;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--hover-wash);
+  }
+
+  &.on {
+    border-color: var(--mark);
+    background-color: color-mix(in srgb, var(--mark) 20%, var(--paper-raised));
+  }
+
+  &:disabled {
+    opacity: .45;
+    cursor: default;
+  }
+}
+
+// letting go of a mark, or holding a sealed one open again, quietly under the marks
+.review-release,
+.review-unseal {
+  @include caps-label(11px);
+
+  display: flex;
+  position: relative;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  overflow: hidden;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--hover-wash);
+    color: var(--ink);
+  }
+}
+
+// filling along as it's held (--hold, the hold's length), as a sealed tile's wheel goes round
+.review-unseal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.review-unseal.holding::before {
+  animation: review-hold var(--hold) linear forwards;
+}
+
+.review-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  background-color: var(--paper-sunken);
+  font-size: 14px;
+  text-align: left;
+
+  &.missing .svg-inline--fa {
+    color: var(--accent);
+  }
+
+  &.ready .svg-inline--fa {
+    color: var(--status-caught);
+  }
+}
+
+// a field's plate, lit in its turn as the mon comes up (--k): only its opacity moves, as a menu inside a transformed
+// box would be placed by it and clipped by the scroll; wired to the mon, the wire lit once the field's in, dashed in
+// the accent while the seal waits on it
+.review-plate {
+  position: relative;
+  padding: 9px 14px 12px;
+  border: 1px solid var(--line);
+  background-color: var(--paper-raised);
+  animation: fade-in .3s ease-out backwards;
+  animation-delay: calc(80ms + var(--k, 0) * 22ms);
+
+  .form-group {
+    margin: 0;
+  }
+
+  label,
+  .review-plate-label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--ink-muted);
+    font-family: $font-secondary;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+
+    @include small-text(11px);
+  }
+
+  .checkbox label {
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .form-subgroup {
+    margin-top: 8px;
+  }
+
+  // its side toward the mon a thicker edge, then a wire across to a dot at the mon's side
+  --wire: var(--line);
+
+  .left > & {
+    border-right: 3px solid var(--wire);
+  }
+
+  .right > & {
+    border-left: 3px solid var(--wire);
+  }
+
+  &::after,
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    background-color: var(--wire);
+  }
+
+  &::after {
+    width: $wire;
+    height: 2px;
+    margin-top: -1px;
+  }
+
+  &::before {
+    width: 7px;
+    height: 7px;
+    margin-top: -3.5px;
+    border-radius: 50%;
+  }
+
+  .left > &::after {
+    left: 100%;
+  }
+
+  .left > &::before {
+    left: calc(100% + #{$wire} - 4px);
+  }
+
+  .right > &::after {
+    right: 100%;
+  }
+
+  .right > &::before {
+    right: calc(100% + #{$wire} - 4px);
+  }
+
+  &.waiting {
+    --wire: var(--accent);
+
+    border-style: dashed;
+    border-color: var(--accent);
+
+    &::after {
+      background: repeating-linear-gradient(90deg, var(--accent) 0 4px, transparent 4px 8px);
+    }
+  }
+
+  &.done {
+    --wire: var(--status-caught);
+  }
+
+  // its open menu over the plates after it, which are still their own layers while they fade in
+  &:has(.dropdown-menu) {
+    z-index: 2;
+  }
+}
+
+.review-plate-mark {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 12px;
+
+  .waiting & {
+    color: var(--accent);
+  }
+
+  .done & {
+    color: var(--status-caught);
+  }
+
+  .svg-inline--fa {
+    animation: review-tick .35s $review-spring backwards;
+  }
+}
+
+.review-plate-value {
+  min-height: 22px;
+  margin: 0;
+  font-size: 16px;
+
+  &.blank {
+    color: var(--ink-muted);
+  }
+}
+
+.review-empty {
+  margin: 60px 0;
+  color: var(--ink-muted);
+  font-size: 16px;
+  text-align: center;
+}
+
+// the moves, at the foot: back, the seal (when it can), on, each with its key
+.review-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background-color: var(--paper-raised);
+}
+
+.review-spacer {
+  flex: 1;
+}
+
+.review-nav,
+.review-seal {
+  @include filter-label;
+  @include outline-button($search-height);
+
+  gap: 10px;
+  padding: 0 18px;
+
+  kbd {
+    @include key-cap;
+  }
+
+  &:disabled {
+    opacity: .4;
+    cursor: default;
+  }
+}
+
+.review-seal {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  color: var(--on-accent);
+
+  &:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+  }
+
+  kbd {
+    @include key-cap(color-mix(in srgb, var(--on-accent) 45%, transparent), inherit);
+  }
+}
+
+// the seal just made, beside the foot's buttons and as tall: the overlays' colours and words, as the undo toast's
+.review-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: $search-height;
+  margin: 0;
+  padding: 0 12px;
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  font-size: 14px;
+  animation: fade-in .15s ease-out;
+
+  button {
+    @include link-button;
+  }
+}
+
+// a narrow window: the run's list over the mon while it's wanted, the bar's keys left to the foot's buttons
+@media (width < 1000px) {
+  .review-body.listed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .review-run {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 3;
+    width: min(300px, 86vw);
+    box-shadow: 0 0 28px rgb(0 0 0 / 22%);
+  }
+
+  .review-hint {
+    display: none;
+  }
+
+  .review-list-toggle {
+    margin-left: auto;
+  }
+}
+
+@media (width < 640px) {
+  .review-tally {
+    display: none;
+  }
+}
+
+// Still mode (M): nothing of it moves; a held unseal still fills, as that's the hold answering
+:root[data-still] {
+  :is(.review, .review-bay, .review-brackets, .review-lens-glass .pkicon, .review-stamp, .review-plate, .review-plate-mark .svg-inline--fa, .review-toast),
+  .review-lens-glass::after {
+    animation: none;
+  }
+
+  :is(.review-pip, .review-progress span) {
+    transition: none;
+  }
+}
+
+// what Ctrl+Z just did (UndoToast.tsx), a moment at the window's foot in the overlays' colours
+.undo-toast {
+  display: flex;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  z-index: 96;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 2px solid var(--overlay-edge);
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  font-size: 14px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 28%);
+  transform: translateX(-50%);
+  animation: batch-rise .2s cubic-bezier(.2, .9, .3, 1) both;
+  // only its button takes a click: what's under it stays pressable
+  pointer-events: none;
+
+  > .svg-inline--fa {
+    color: var(--on-overlay-muted);
+  }
+
+  button {
+    @include link-button;
+
+    pointer-events: auto;
+  }
+}

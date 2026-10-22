@@ -24,11 +24,13 @@ interface Props {
 
 const MENU_MAX_HEIGHT = 240;
 const EDGE = 8;
+// between the menu and its field
+const GAP = 4;
 
 // the menu is position: fixed so no overflow ancestor (modal, popover body) can clip it
 export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, align = 'start' }: Props) {
   const [open, setOpen] = useState(false);
-  const [menuStyle, setMenuStyle] = useState<{ top?: number; bottom?: number; left: number; minWidth: number }>({ left: 0, minWidth: 0 });
+  const [up, setUp] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -40,7 +42,9 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
   const [active, setActive] = useState(-1);
 
   // under the trigger, or over it where there's no room below; as wide as its widest option, so none is cut off, and
-  // never narrower than the trigger, kept inside the window
+  // never narrower than the trigger, kept inside the window. Placed by where it lands: what holds a fixed element isn't
+  // always the window (an ancestor with a transform is: the batch bar, the review's stage), nor are its pixels always
+  // the screen's (a zoomed ancestor scales them: the dex, a scene), so it's measured at 0, 0, unfurl held, and moved
   useLayoutEffect(() => {
     if (!open) {
       return;
@@ -52,13 +56,24 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       return;
     }
     const rect = trigger.getBoundingClientRect();
-    menu.style.minWidth = `${rect.width}px`;
-    const width = menu.offsetWidth;
-    const left = Math.max(EDGE, Math.min(align === 'end' ? rect.right - width : rect.left, window.innerWidth - width - EDGE));
-    const fitsBelow = rect.bottom + MENU_MAX_HEIGHT <= window.innerHeight - EDGE;
-    setMenuStyle(fitsBelow
-      ? { top: rect.bottom, left, minWidth: rect.width }
-      : { bottom: window.innerHeight - rect.top, left, minWidth: rect.width });
+    const zoom = menu.currentCSSZoom;
+    menu.style.animation = 'none';
+    menu.style.minWidth = `${rect.width / zoom}px`;
+    menu.style.left = '0px';
+    menu.style.top = '0px';
+    const origin = menu.getBoundingClientRect();
+    const left = Math.max(EDGE, Math.min(align === 'end' ? rect.right - origin.width : rect.left, window.innerWidth - origin.width - EDGE));
+    menu.style.left = `${(left - origin.left) / zoom}px`;
+    const below = rect.bottom + MENU_MAX_HEIGHT * zoom <= window.innerHeight - EDGE;
+    if (below) {
+      menu.style.top = `${(rect.bottom + GAP * zoom - origin.top) / zoom}px`;
+    } else {
+      menu.style.top = '';
+      menu.style.bottom = '0px';
+      menu.style.bottom = `${(menu.getBoundingClientRect().bottom - rect.top + GAP * zoom) / zoom}px`;
+    }
+    menu.style.animation = '';
+    setUp(!below);
     setActive(Math.max(0, all.findIndex((option) => option.value === value)));
     requestAnimationFrame(() => {
       menuRef.current?.querySelector('.dropdown-selected')?.scrollIntoView({ block: 'nearest' });
@@ -122,7 +137,10 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       }
       return;
     }
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      // not a pick: the menu closes, and the page's own Ctrl+Enter (the review's seal) goes ahead
+      setOpen(false);
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       setActive((index) => (index + (e.key === 'ArrowDown' ? 1 : -1) + all.length) % all.length);
     } else if (e.key === 'Home' || e.key === 'End') {
@@ -168,7 +186,7 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
         <FontAwesomeIcon className="dropdown-chevron" icon={faChevronDown} />
       </button>
       {open &&
-        <ul className="dropdown-menu" data-up={menuStyle.bottom !== undefined || undefined} ref={menuRef} role="listbox" style={menuStyle}>
+        <ul className="dropdown-menu" data-up={up || undefined} ref={menuRef} role="listbox">
           {all.map((option, index) => (
             <li
               aria-selected={option.value === value}

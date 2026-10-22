@@ -1,0 +1,76 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// the boxes' and the list's banner (components/pages/Tracker/SceneBanner.tsx): the name of the one coming on a tab
+// hanging from the bottom of the header, on its left margin (index.tsx's view curtain), square there and slanted at
+// its end as the scenes' logos are. It glides in from the left and rests while the dex under it builds and fades in,
+// then glides on out to the right; it only moves on its own layer (transform, opacity) and only while the page is
+// still. In step with ENTER_MS, REVEAL_MS and EXIT_MS there
+.scene-banner {
+  display: flex;
+  pointer-events: none;
+}
+
+.scene-banner-tab {
+  height: 36px;
+  padding: 0 36px 0 24px;
+  background-color: var(--accent);
+  color: var(--on-accent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+  font-family: $font-secondary;
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 2px;
+  line-height: 36px;
+  text-shadow: 2px 2px 0 var(--accent-shadow);
+  text-transform: uppercase;
+  white-space: nowrap;
+  will-change: transform, opacity;
+  animation: scene-banner-in .3s cubic-bezier(.2, .8, .3, 1) both;
+
+  @include cjk {
+    font-size: 19px;
+  }
+
+  .leaving > & {
+    animation: scene-banner-out .26s cubic-bezier(.6, 0, .9, .5) both;
+  }
+}
+
+@keyframes scene-banner-in {
+  from {
+    opacity: 0;
+    transform: translateX(-48px);
+  }
+}
+
+@keyframes scene-banner-out {
+  to {
+    opacity: 0;
+    transform: translateX(200px);
+  }
+}
+
+// the dex column as the boxes and the list swap (index.tsx): faded out, then out of sight and unpainted while the new
+// one builds, then faded back in before the banner goes
+.dex-column {
+  transition: opacity .24s ease-out;
+
+  &[data-veil] {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity .14s ease-in, visibility 0s .14s;
+  }
+}
+
+// Still mode (M): the tab there and gone without moving, the dex under it shown at once
+:root[data-still] {
+  .scene-banner-tab {
+    animation: none;
+  }
+
+  .dex-column {
+    transition: none;
+  }
+}

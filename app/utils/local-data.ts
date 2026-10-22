@@ -376,6 +376,8 @@ export async function importAppState (raw: AppState): Promise<void> {
   }
   appState = next;
   importing = false;
+  // its steps were changes to records an import has replaced
+  histories.clear();
 }
 
 export function toDexView (dex: PersonalDex): Dex {
@@ -462,6 +464,110 @@ export interface UpdateCapturePayload extends Partial<CaptureMetadata> {
   sealed?: boolean;
 }
 
+// the undo history (Ctrl+Z, Ctrl+Shift+Z): each step what a change did to the records it touched, as they were and as
+// they became (null where there was none); the writes of one press are one step, a whole batch's records among them.
+// Per dex, in memory only, dropped by an import
+const HISTORY_LIMIT = 50;
+
+export interface HistoryStep {
+  dexId: string;
+  before: Record<string, ProgressEntry | null>;
+  after: Record<string, ProgressEntry | null>;
+}
+
+export type HistoryDirection = 'undo' | 'redo';
+type HistoryListener = (step: HistoryStep, direction: HistoryDirection) => void;
+
+const histories = new Map<string, { undo: HistoryStep[]; redo: HistoryStep[] }>();
+const historyListeners = new Set<HistoryListener>();
+let openStep: HistoryStep | null = null;
+// set while a step is put back, which is no new step of its own
+let restoring = false;
+
+function historyOf (dexId: string) {
+  if (!histories.has(dexId)) {
+    histories.set(dexId, { undo: [], redo: [] });
+  }
+  return histories.get(dexId)!;
+}
+
+// the records a change touched, into the step this task's writes share; it closes once the task's code has run
+function remember (dexId: string, before: Progress, dex: PersonalDex, changed: number[]) {
+  if (restoring) {
+    return;
+  }
+  if (!openStep || openStep.dexId !== dexId) {
+    const step: HistoryStep = { dexId, before: {}, after: {} };
+    openStep = step;
+    queueMicrotask(() => {
+      if (openStep === step) {
+        openStep = null;
+      }
+      const history = historyOf(dexId);
+      history.undo.push(step);
+      if (history.undo.length > HISTORY_LIMIT) {
+        history.undo.shift();
+      }
+      history.redo = [];
+    });
+  }
+  for (const id of changed) {
+    if (!(id in openStep.before)) {
+      openStep.before[id] = before[id] ?? null;
+    }
+    openStep.after[id] = dex.progress[id] ?? null;
+  }
+}
+
+// each record put back exactly as the step had it, sealed or not: past the rules a change goes through, as every one of
+// them was a state the tracker held
+function restore (step: HistoryStep, records: Record<string, ProgressEntry | null>, direction: HistoryDirection) {
+  restoring = true;
+  try {
+    commitRecords(step.dexId, (dex) => Object.entries(records).map(([id, entry]) => {
+      if (entry) {
+        dex.progress[id] = entry;
+      } else {
+        delete dex.progress[id];
+      }
+      return Number(id);
+    }));
+  } finally {
+    restoring = false;
+  }
+  historyListeners.forEach((listener) => listener(step, direction));
+}
+
+export function undoRecords (dexId: string): HistoryStep | null {
+  const history = historyOf(dexId);
+  const step = history.undo.pop();
+  if (!step) {
+    return null;
+  }
+  restore(step, step.before, 'undo');
+  history.redo.push(step);
+  return step;
+}
+
+export function redoRecords (dexId: string): HistoryStep | null {
+  const history = historyOf(dexId);
+  const step = history.redo.pop();
+  if (!step) {
+    return null;
+  }
+  restore(step, step.after, 'redo');
+  history.undo.push(step);
+  return step;
+}
+
+// a step undone or redone, so what shows it can show the records as they now are
+export function subscribeHistory (listener: HistoryListener): () => void {
+  historyListeners.add(listener);
+  return () => {
+    historyListeners.delete(listener);
+  };
+}
+
 // a tile's change, applied in memory at once; then only the records it changed go to the main process, which merges
 // them into the tracker it holds rather than taking the whole of it again every click. A browser saves everything, as
 // does a main process with no copy of the dex (a state it never saw)
@@ -469,8 +575,11 @@ function commitRecords (dexId: string, mutator: (dex: PersonalDex, state: AppSta
   const state = getAppState();
   let changed: number[];
   let dex: PersonalDex;
+  let before: Progress;
   try {
     dex = findDex(state, dexId);
+    // a change replaces a record rather than editing it, so this keeps each as it was
+    before = { ...dex.progress };
     changed = mutator(dex, state);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -480,6 +589,7 @@ function commitRecords (dexId: string, mutator: (dex: PersonalDex, state: AppSta
   if (changed.length === 0) {
     return;
   }
+  remember(dexId, before, dex, changed);
   if (!window.tracker || FRESH || importing) {
     save(state);
     return;

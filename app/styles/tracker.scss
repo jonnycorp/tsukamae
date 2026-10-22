@@ -12,9 +12,13 @@ $box-stride: $box-width + $dex-grid-gap;
 // wide enough for the 105deg glint's slant across a 550px box
 $shine-band: 260px;
 
-// sets a sealed tile's number line off from the enlarged sprite it can overlap
+// sets a sealed tile's number line off from the enlarged sprite it can overlap: a screen pixel each way (--dex-px), so
+// a zoomed-in dex doesn't spread it into a rim round every stroke
 @mixin number-halo {
-  text-shadow: -1px 0 1px var(--tile-caught), 1px 0 1px var(--tile-caught), 0 -1px 1px var(--tile-caught), 0 1px 1px var(--tile-caught);
+  $px: var(--dex-px, 1px);
+  $out: calc(-1 * #{$px});
+
+  text-shadow: $out 0 $px var(--tile-caught), $px 0 $px var(--tile-caught), 0 $out $px var(--tile-caught), 0 $px $px var(--tile-caught);
 }
 
 .tracker {
@@ -26,9 +30,19 @@ $shine-band: 260px;
   // min-width: 0 so the search bar's widest row can't push the dex past the window
   .dex-wrapper {
     display: flex;
+    position: relative;
     flex-direction: column;
     flex-grow: 1;
     min-width: 0;
+
+    // the boxes' and the list's banner as one swaps for the other (SceneBanner), hanging from the bottom of the header
+    // on its left margin (its top and left, the header's then)
+    .view-curtain {
+      position: absolute;
+      right: 0;
+      z-index: 30;
+      pointer-events: none;
+    }
 
     // composited, so scrolling never repaints: at 100% display scaling Chromium otherwise keeps a see-through
     // scroller on the main thread, to spare its subpixel text; the opaque local background is what lets it keep that
@@ -163,6 +177,9 @@ $shine-band: 260px;
   .popover-body {
     @include overflow-y-scroll;
 
+    // the page's thumb is ink, which the overlay would swallow
+    --scroll-thumb: color-mix(in srgb, var(--on-overlay) 40%, transparent);
+
     flex: 1 1 auto;
     min-height: 0;
     padding: 12px 14px 2px;
@@ -172,16 +189,6 @@ $shine-band: 260px;
 
       label {
         margin-bottom: 5px;
-      }
-
-      .form-control {
-        height: 34px;
-        padding: 0 10px 0 8px;
-        font-size: 14px;
-      }
-
-      .date-input .form-control {
-        padding-right: 30px;
       }
 
       .checkbox {
@@ -276,23 +283,12 @@ $shine-band: 260px;
 
     .popover-seal,
     .popover-release {
+      @include action-button;
+
       flex: 1;
-      padding: 11px;
-      border: 0;
       background-color: var(--overlay-deep);
       color: var(--on-overlay-muted);
-      font-family: $font-secondary;
-      @include small-text(11px);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      cursor: pointer;
       transition: background-color .1s ease-out, color .1s ease-out, opacity .1s ease-out;
-
-      .svg-inline--fa {
-        font-size: 11px;
-        margin-right: 5px;
-      }
     }
 
     .popover-seal {
@@ -314,19 +310,6 @@ $shine-band: 260px;
   }
 }
 
-@mixin filter-label {
-  font-family: $font-secondary;
-  @include small-text(12px);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-// every control in the filters' row is this tall, its border included, so the row lines up whatever each one holds
-// (its words in either language, an icon): the views, Edit Dex, Filters and a chip
-$filter-control: 36px;
-// the row above it a size up, the same way: the search, Timeline, the pause's picker and its button
-$search-height: 42px;
 // a face of the pause's picker, square
 $flip-face-width: $search-height;
 
@@ -334,17 +317,17 @@ $flip-face-width: $search-height;
   background-color: var(--paper-raised);
   padding: 12px;
 
-  // as wide as the boxes at 100% where the width alone sets the fit (--dex-header-width, from useDexScale): neither
-  // zooming nor a change of the window's height moves or scales it
+  // as wide as the boxes at 100% (--dex-header-width, from useDexScale, in screen px, so divided by the header's own
+  // zoom), the meter's ends on theirs: zooming the boxes never moves it
   .dex-search-bar-inner {
     container: dex-header / inline-size;
-    max-width: var(--dex-header-width);
+    max-width: calc(var(--dex-header-width) / var(--header-zoom, 1));
     margin: 0 auto;
   }
 
-  // the dex's name and progress at the left, the search in the middle and Timeline and the flips' pause after it: three
-  // columns, the outer two equal so the search sits on the centre line. Narrower, the search and what follows it go
-  // under the name and progress, the search taking the line's width
+  // the dex's name at the left, the search in the middle and the flips' pause after it: three columns, the outer two
+  // equal so the search sits on the centre line. Narrower, the search and the pause go under the name, the search
+  // taking the line's width
   .dex-search-bar-top {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -359,14 +342,12 @@ $flip-face-width: $search-height;
     max-width: 640px;
     margin-right: 24px;
 
-    // the name, and the dex's tags right-justified to the progress bar's end: beside the name where they fit, under it
-    // where it's too long for them
+    // the name (the dex's menu, DexMenu) and its tags: beside the name where they fit, under it where it's too long
     .header-row {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 6px 14px;
-      margin-bottom: 10px;
 
       h1 {
         min-width: 0;
@@ -401,7 +382,7 @@ $flip-face-width: $search-height;
     }
   }
 
-  // Timeline right beside the search, then the pause, whose words slide out across the room it's given
+  // the pause right beside the search, whose words slide out across the room it's given
   .dex-search-bar-after {
     display: flex;
     grid-area: after;
@@ -467,7 +448,7 @@ $flip-face-width: $search-height;
   }
 }
 
-@container dex-header (width < 1350px) {
+@container dex-header (width < 900px) {
   .dex-search-bar {
     .dex-search-bar-top {
       grid-template-columns: minmax(0, 1fr) auto;
@@ -484,26 +465,77 @@ $flip-face-width: $search-height;
   }
 }
 
+// the dex's name as its menu (DexMenu): a chevron after it, turning as the menu opens under it, in the nav menus' look
+// with each item's key at its end; the layouts set off from the scenes, and Edit Dex from both
+.dex-menu {
+  h1 button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
 
-// the way into the timeline, beside the search and as tall as it
-.dex-search-bar .timeline-open {
-  @include filter-label;
+    &:hover .dex-menu-chevron {
+      color: var(--ink);
+    }
+  }
 
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-  height: $search-height;
-  padding: 0 16px;
-  border: 2px solid var(--field-edge);
-  background: none;
-  color: var(--ink);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color .1s ease-out;
+  .dex-menu-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-  &:hover {
-    background-color: var(--hover-wash);
+  .dex-indicator {
+    margin-left: 0;
+  }
+
+  .dex-menu-chevron {
+    flex: none;
+    font-size: 15px;
+    color: var(--ink-muted);
+    transition: transform .15s ease-out, color .1s ease-out;
+
+    &.open {
+      transform: rotate(180deg);
+    }
+  }
+
+  .nav-menu-dropdown.dex-menu-dropdown {
+    top: calc(100% + 8px);
+    right: auto;
+    left: 0;
+    z-index: 40;
+    border-top: 2px solid var(--chrome-active);
+
+    li {
+      &.dex-menu-group {
+        border-top: 4px solid var(--chrome-active);
+      }
+
+    }
+  }
+
+  .dex-menu-label {
+    margin-right: 28px;
+  }
+
+  // inside the row's line, so a row with its key is as tall as one without
+  .dex-menu-key {
+    @include key-cap(color-mix(in srgb, var(--on-chrome) 35%, transparent), var(--on-chrome-muted));
+
+    margin: -2px 0 -2px auto;
+  }
+
+  .dex-menu-check {
+    margin-right: 0;
+    margin-left: 10px;
+    font-size: 11px;
   }
 }
 
@@ -519,10 +551,9 @@ $flip-face-width: $search-height;
     border: 2px solid var(--field-edge);
   }
 
-  .filter-view,
-  .filter-toggle,
-  .filter-edit-dex {
-    @include filter-label;
+  // a view, in the views' bordered group
+  .filter-view {
+    @include filter-label($header: true);
 
     display: flex;
     align-items: center;
@@ -539,6 +570,12 @@ $flip-face-width: $search-height;
     }
   }
 
+  .filter-toggle,
+  .filter-edit-dex {
+    @include filter-label($header: true);
+    @include outline-button;
+  }
+
   .filter-view + .filter-view {
     border-left: 2px solid var(--field-edge);
   }
@@ -550,13 +587,6 @@ $flip-face-width: $search-height;
 
   .filter-anchor {
     position: relative;
-  }
-
-  .filter-toggle,
-  .filter-edit-dex {
-    gap: 8px;
-    height: $filter-control;
-    border: 2px solid var(--field-edge);
   }
 
   .filter-edit-dex .svg-inline--fa {
@@ -594,9 +624,7 @@ $flip-face-width: $search-height;
     }
 
     .filter-chip-label {
-      @include filter-label;
-
-      @include small-text(11px);
+      @include caps-label(11px, $header: true);
     }
 
     .svg-inline--fa {
@@ -605,14 +633,14 @@ $flip-face-width: $search-height;
   }
 
   .filter-count {
-    @include filter-label;
+    @include filter-label($header: true);
 
     margin-left: 4px;
     color: var(--ink-muted);
   }
 
   .filter-clear {
-    @include filter-label;
+    @include filter-label($header: true);
 
     padding: 0;
     border: 0;
@@ -630,6 +658,9 @@ $flip-face-width: $search-height;
 .facet-panel {
   @include scrollbar-fade;
 
+  // the page's thumb is ink, which the bar's colours could swallow
+  --scroll-thumb: color-mix(in srgb, var(--on-chrome) 40%, transparent);
+
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
@@ -640,7 +671,8 @@ $flip-face-width: $search-height;
   padding: 14px 16px 4px;
   background-color: var(--chrome-hover);
   color: var(--on-chrome);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
+  box-shadow: $menu-shadow;
+  animation: dropdown-furl .2s cubic-bezier(.2, .9, .3, 1);
 
   .facet {
     margin-bottom: 14px;
@@ -651,10 +683,27 @@ $flip-face-width: $search-height;
   }
 
   h3 {
-    @include filter-label;
+    @include caps-label(10px, $header: true);
 
     margin: 0 0 7px;
-    @include small-text(10px);
+  }
+
+  // a type's glyph on the tiles' caught colour, which its colour is solved against (themes.ts): the bar's colours
+  // could swallow it
+  .facet-glyph-chip {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--tile-caught);
+  }
+
+  .facet-glyph {
+    width: 14px;
+    height: 14px;
   }
 
   .facet-options {
@@ -667,6 +716,7 @@ $flip-face-width: $search-height;
     display: flex;
     align-items: center;
     gap: 6px;
+    min-height: 30px;
     padding: 5px 9px;
     border: 0;
     background-color: var(--chrome);
@@ -674,6 +724,11 @@ $flip-face-width: $search-height;
     font-family: $font-primary;
     font-size: 14px;
     white-space: nowrap;
+
+    // Japanese a step up, as the header's other words now are
+    @include cjk {
+      font-size: 15px;
+    }
     cursor: pointer;
     transition: background-color .1s ease-out;
 
@@ -872,6 +927,11 @@ $flip-face-width: $search-height;
   }
 }
 
+// still mode (applyDisplay): no shine, the sealed boxes' wash left as it is
+:root[data-still] .box-shine {
+  display: none;
+}
+
 // skips rendering offscreen by itself, like .flip-overlay, and for the same reason
 .box-shine {
   position: absolute;
@@ -1064,6 +1124,22 @@ $flip-face-width: $search-height;
 
 .dex-wrapper[data-crisp-balls] .ball-badge {
   image-rendering: pixelated;
+}
+
+// a ball the record calls unknown, which has no sprite: a ? in a ball's outline, the sprite's size
+.ball-unknown {
+  @include ball-sprite;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-family: $font-secondary;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: .7;
 }
 
 // masked, so only a sprite's alpha counts: every mark is a one-colour silhouette
@@ -1508,9 +1584,12 @@ $flip-cycle-two: 2 * $flip-phase;
   }
 }
 
-// a name wider than its tile overflows both sides evenly, as in the tile's own centred column, not just to the right
+// a name wider than its tile overflows both sides evenly, as in the tile's own centred column, not just to the right;
+// on its text's baseline, so a ♂ or ♀ sits as it does in the tile's line rather than at the face's top, where it rose
+// a pixel into the face above (the nickname's, as a stray dash)
 .flip-names h4 {
   display: flex;
+  align-items: baseline;
   justify-content: center;
 }
 
@@ -1815,7 +1894,7 @@ $flip-pushed: 3 * $flip-face-width + 2 * 2px + 6px;
 // as tall as the button, its text centred, so the words move only sideways: a box set half a pixel down and moved on
 // the compositor left a faint seam along its bottom edge
 .flip-indicator-label {
-  @include filter-label;
+  @include filter-label($header: true);
 
   display: flex;
   position: absolute;
@@ -1909,28 +1988,23 @@ $flip-pushed: 3 * $flip-face-width + 2 * 2px + 6px;
 }
 
 .flip-indicator-button {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: $search-height;
-  height: $search-height;
-  padding: 0;
-  border: 2px solid var(--field-edge);
-  background: none;
-  color: var(--ink);
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color .1s ease-out;
+  @include outline-button($search-height);
 
-  &:hover {
-    background-color: var(--hover-wash);
-  }
+  flex: none;
+  width: $search-height;
+  padding: 0;
+  font-size: 13px;
 
   .paused > & {
     border-color: var(--accent);
     background-color: var(--accent);
     color: var(--on-accent);
+
+    // the accent's own hover, not outline-button's see-through wash, which would leave the icon on next to nothing
+    &:hover:not(:disabled) {
+      border-color: var(--accent-hover);
+      background-color: var(--accent-hover);
+    }
   }
 }
 

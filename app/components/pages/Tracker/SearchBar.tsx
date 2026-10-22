@@ -1,39 +1,49 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faTimeline, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { DexMenu } from './DexMenu';
+import { DexMeter, MeterCounts } from './DexMeter';
 import { DexModal } from '../../library/DexModal';
 import { FilterBar } from './FilterBar';
 import { FlipPauseIndicator } from './FlipPauseIndicator';
-import { Header } from '../../library/Header';
-import { Progress } from '../../library/Progress';
 import { MENU_OR_MODAL } from '../../../hooks/use-hotkey';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
+import { useSceneScale } from './use-scene-scale';
 import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
-import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
+import type { CSSProperties, ChangeEvent, Dispatch, SetStateAction } from 'react';
+import type { DexLayout } from './ledger-model';
 import type { FlipPause } from './use-flip-clock';
 import type { PersonalDex } from '../../../utils/local-data';
 import type { TrackerFilters } from './filters';
 
+// the header grows with a wide window as the scenes do, though less: its height comes out of the boxes' fit
+const HEADER_MAX_SCALE = 1.2;
+
 interface Props {
   filters: TrackerFilters;
   flipPause: FlipPause;
-  // unset in a checklist, which keeps no catch dates
+  layout: DexLayout;
+  onLayout: (layout: DexLayout) => void;
+  // unset in a checklist, which keeps no catch dates and no records to review
   onOpenTimeline?: () => void;
+  onOpenReview?: () => void;
+  onOpenAlmanac: () => void;
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   setQuery: Dispatch<SetStateAction<string>>;
 }
 
-// the dex's header: its name and tags over its progress, the search in the middle with Timeline and the flips' pause
-// after it, and the filters' row under them, Edit Dex among the filters
-export function SearchBar ({ filters, flipPause, onOpenTimeline, query, setFilters, setQuery }: Props) {
+// the dex's header: its name (a menu of the scenes, the layouts and Edit Dex) and tags, the search in the middle with
+// the flips' pause after it; the meter, its centerpiece, across the whole width under them; the filters' row last
+export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac, onOpenReview, onOpenTimeline, query, setFilters, setQuery }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { activeDex } = useDexContext();
   const { captures } = useTrackerState();
   const { t } = useTranslation();
+  const scale = useSceneScale(HEADER_MAX_SCALE);
   // the dex Edit Dex opened for, so a save can only ever write to that one
   const [editing, setEditing] = useState<PersonalDex | null>(null);
 
@@ -80,12 +90,18 @@ export function SearchBar ({ filters, flipPause, onOpenTimeline, query, setFilte
   };
 
   return (
-    <div className="dex-search-bar">
+    <div className="dex-search-bar" style={{ zoom: scale, '--header-zoom': scale } as CSSProperties}>
       <div className="dex-search-bar-inner">
         <div className="dex-search-bar-top">
           <div className="dex-search-bar-summary">
-            <Header />
-            <Progress caught={counts.caught} marked={counts.marked} temporary={counts.temporary} total={captures.length} />
+            <DexMenu
+              layout={layout}
+              onEditDex={() => setEditing(activeDex)}
+              onLayout={onLayout}
+              onOpenAlmanac={onOpenAlmanac}
+              onOpenReview={onOpenReview}
+              onOpenTimeline={onOpenTimeline}
+            />
           </div>
           <div className="dex-search-bar-search">
             <div className="form-group">
@@ -112,16 +128,13 @@ export function SearchBar ({ filters, flipPause, onOpenTimeline, query, setFilte
             </div>
           </div>
           <div className="dex-search-bar-after">
-            {onOpenTimeline &&
-              <button className="timeline-open" onClick={onOpenTimeline} type="button">
-                <FontAwesomeIcon icon={faTimeline} />{t('timeline.open')}
-              </button>
-            }
             <FlipPauseIndicator face={flipPause.face} paused={flipPause.paused} pick={flipPause.pick} presses={flipPause.presses} toggle={flipPause.toggle} />
           </div>
         </div>
+        <DexMeter marked={counts.marked} total={captures.length} />
         <div className="dex-search-bar-filters">
-          <FilterBar filters={filters} onEditDex={() => setEditing(activeDex)} query={query} setFilters={setFilters} />
+          <FilterBar filters={filters} query={query} setFilters={setFilters} />
+          <MeterCounts caught={counts.caught} marked={counts.marked} temporary={counts.temporary} total={captures.length} />
         </div>
       </div>
       {editing && <DexModal dex={editing} onRequestClose={() => setEditing(null)} />}

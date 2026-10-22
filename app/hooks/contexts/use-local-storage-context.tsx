@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo } from 'react';
 
 import { DEFAULT_THEME, findTheme } from '../../palette/themes';
-import { FLIP_TYPES_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, SOFT_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
+import { FLIP_TYPES_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, SOFT_DARK_STORAGE_KEY, STILL_STORAGE_KEY, THEME_STORAGE_KEY, TILE_TYPES_STORAGE_KEY } from '../../palette/apply-theme';
 import { useLocalStorage } from '../use-local-storage';
 
 import type { Locale } from '../../i18n/translations';
@@ -24,6 +24,11 @@ interface ThemeState {
   setLocationTints: (on: boolean) => void;
   flipTypes: boolean;
   setFlipTypes: (on: boolean) => void;
+  tileTypes: boolean;
+  setTileTypes: (on: boolean) => void;
+  // nothing on the page moves (applyDisplay): for long sessions, or the dex left up on another screen
+  still: boolean;
+  setStill: (on: boolean) => void;
 }
 
 const PreferencesContext = createContext<PreferencesState>({
@@ -40,6 +45,10 @@ const ThemeContext = createContext<ThemeState>({
   setLocationTints: () => {},
   flipTypes: true,
   setFlipTypes: () => {},
+  tileTypes: false,
+  setTileTypes: () => {},
+  still: false,
+  setStill: () => {},
 });
 
 interface Props {
@@ -54,12 +63,14 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, false);
   const [locationTints, setLocationTints] = useLocalStorage(LOCATION_TINTS_STORAGE_KEY, true);
   const [flipTypes, setFlipTypes] = useLocalStorage(FLIP_TYPES_STORAGE_KEY, true);
+  const [tileTypes, setTileTypes] = useLocalStorage(TILE_TYPES_STORAGE_KEY, false);
+  const [still, setStill] = useLocalStorage(STILL_STORAGE_KEY, false);
 
   const preferences = useMemo<PreferencesState>(() => ({ locale, setLocale }), [locale, setLocale]);
 
   const themeState = useMemo<ThemeState>(
-    () => ({ theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes }),
-    [theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes],
+    () => ({ theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes, tileTypes, setTileTypes, still, setStill }),
+    [theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes, tileTypes, setTileTypes, still, setStill],
   );
 
   return (

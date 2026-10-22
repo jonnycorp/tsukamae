@@ -12,6 +12,7 @@
     "dataset:types": "node scripts/enrich-types.mjs",
     "sprites:balls": "node scripts/fetch-ball-sprites.mjs",
     "sprites:marks": "node scripts/fetch-origin-marks.mjs",
+    "sprites:fit": "node scripts/fit-tall-sprites.mjs",
     "electron:build": "yarn lint:all && yarn build && electron-builder --win",
     "electron:dev": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron .\"",
     "electron:dev:fresh": "concurrently -k \"yarn start\" \"wait-on http-get://localhost:9898 && electron . --fresh\"",

@@ -55,7 +55,7 @@ interface Held {
 // this starts each from one shared epoch, so a strip styled later (a box scrolling into view, a row's first seal) joins
 // in step, and pauses them all on the face on show, where styles/tracker.scss holds them by a static transform. toggle()
 // says whether the flips are now held, or about to be, and on which face; pick() moves the held face
-function createFlipClock (el: HTMLElement) {
+function createFlipClock (el: HTMLElement, still: () => boolean) {
   let epoch = now();
   let paused = false;
   let landing = 0;
@@ -155,7 +155,10 @@ function createFlipClock (el: HTMLElement) {
       }
       stopSlides();
       pauseOn(face);
-      playSlides(from, face);
+      // in still mode the face changes where it stands
+      if (!still()) {
+        playSlides(from, face);
+      }
       return true;
     },
     stop () {
@@ -180,18 +183,29 @@ export interface FlipPause {
 
 // space freezes the flips on whatever face they show instead of paging the dex down; quiet like the other hotkeys while
 // typing, under a modal or an open menu, once claimed and beside a modifier, a control focused from the keyboard keeps
-// its Space, and with nothing flipping (no seals yet, a checklist, the list view) it pages the dex as usual
-export function useFlipClock (ref: RefObject<HTMLElement>): FlipPause {
+// its Space, and with nothing flipping (no seals yet, a checklist, the list view) it pages the dex as usual. Still mode
+// holds them: frozen as it comes on, as Space would (the picker open on the face that shows), let go as it goes, and
+// neither Space nor the pause button lets them go in between
+export function useFlipClock (ref: RefObject<HTMLElement>, still = false): FlipPause {
   const [state, setState] = useState({ paused: false, face: 0, presses: 0 });
   const clockRef = useRef<ReturnType<typeof createFlipClock> | null>(null);
+  const stillRef = useRef(still);
+  stillRef.current = still;
+  const pausedRef = useRef(state.paused);
+  pausedRef.current = state.paused;
 
-  const toggle = useCallback(() => {
+  const flip = useCallback(() => {
     const clock = clockRef.current;
     if (clock) {
       const { paused, face } = clock.toggle();
       setState((prev) => ({ paused, face, presses: prev.presses + 1 }));
     }
   }, []);
+  const toggle = useCallback(() => {
+    if (!(stillRef.current && pausedRef.current)) {
+      flip();
+    }
+  }, [flip]);
 
   const pick = useCallback((face: number) => {
     if (clockRef.current?.pick(face)) {
@@ -201,7 +215,7 @@ export function useFlipClock (ref: RefObject<HTMLElement>): FlipPause {
 
   useEffect(() => {
     const el = ref.current!;
-    const clock = createFlipClock(el);
+    const clock = createFlipClock(el, () => stillRef.current);
     clockRef.current = clock;
 
     const handleKeydown = (e: KeyboardEvent) => {
@@ -228,6 +242,12 @@ export function useFlipClock (ref: RefObject<HTMLElement>): FlipPause {
       clockRef.current = null;
     };
   }, [toggle]);
+
+  useEffect(() => {
+    if (clockRef.current && still !== pausedRef.current) {
+      flip();
+    }
+  }, [still, flip]);
 
   return { ...state, toggle, pick };
 }

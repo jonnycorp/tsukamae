@@ -1,3 +1,5 @@
+@use 'variables' as *;
+
 // the thumb fades with .is-scrolling (useScrollbarFade); never style ::-webkit-scrollbar, chromium caches it
 @mixin scrollbar-fade {
   scrollbar-width: thin;
@@ -48,5 +50,183 @@
 
   @include cjk {
     font-size: $size + 1px;
+  }
+}
+
+// small text in the header's menus and filters (the filter row and its panel, the ways into the scenes, the nav's
+// menus): Japanese a step further up than small-text's, where the user found it still read small
+@mixin header-text ($size) {
+  font-size: $size;
+
+  @include cjk {
+    font-size: $size + 2px;
+  }
+}
+
+// small capitals in the secondary face: a label, a button's words, a menu's rows; a step further up in Japanese in the
+// header's menus and filters (header-text) than elsewhere (small-text)
+@mixin caps-label ($size: 12px, $header: false) {
+  font-family: $font-secondary;
+  @if $header {
+    @include header-text($size);
+  } @else {
+    @include small-text($size);
+  }
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+// the filters' row's words: the views, Filters, a chip's label; the ledger's heads and tools too, which keep
+// small-text's step where the header's own take header-text's
+@mixin filter-label ($header: false) {
+  @include caps-label(12px, $header);
+}
+
+// a key's name beside what it does: small, in the secondary face (a kbd is the browser's monospace otherwise), boxed by
+// a fine edge in the colours of what it's on
+@mixin key-cap ($edge: var(--line), $color: var(--ink-muted)) {
+  padding: 1px 5px;
+  border: 1px solid $edge;
+  color: $color;
+  font-family: $font-secondary;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+}
+
+// an outlined button on the page (the filters' row's, the ledger's tools, the flips' pause, the review's foot): the
+// fields' edge, no fill till it's hovered
+@mixin outline-button ($height: $filter-control) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: $height;
+  padding: 0 12px;
+  border: 2px solid var(--field-edge);
+  background: none;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &:hover:not(:disabled) {
+    background-color: var(--hover-wash);
+  }
+}
+
+// a status's icon on a chip of its colour, its glyph in the colour the theme solves for that (on-status): the status
+// colours alone fall under 3:1 on a panel or the page in some light themes
+@mixin status-icon ($status) {
+  .svg-inline--fa {
+    box-sizing: content-box;
+    padding: 2px;
+    background-color: var(--status-#{$status});
+    color: var(--on-status);
+  }
+}
+
+// a button set in a line of words, a toast's Undo: its words, bold and underlined
+@mixin link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+// a scene's bar over the nav (the timeline, the almanac, the review): the nav's height and colours, so the window
+// buttons the system draws on its right end sit on what they already match; it drags the window, as the nav under it
+// can't
+@mixin scene-bar {
+  display: flex;
+  flex: 0 0 $nav-height;
+  align-items: center;
+  gap: 16px;
+  height: $nav-height;
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+  background-color: var(--chrome);
+  color: var(--on-chrome);
+  font-family: $font-secondary;
+  -webkit-app-region: drag;
+
+  button {
+    -webkit-app-region: no-drag;
+  }
+}
+
+// the scene's name at its bar's left end, the bar's height in the accent; each scene shapes the block its own way
+@mixin scene-logo {
+  display: flex;
+  flex: none;
+  align-self: stretch;
+  align-items: center;
+  background-color: var(--accent);
+  color: var(--on-accent);
+
+  span {
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+}
+
+// the dex's name beside it
+@mixin scene-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+// an icon button on a scene's bar: the bar's height, the nav's hover
+@mixin scene-button {
+  display: flex;
+  flex: none;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--chrome-hover);
+  }
+}
+
+// a panel's action button (the popover's seal and release, the batch bar's): small capitals in the secondary face, as
+// tall as the filters' row's controls; its icon the words' size, before them
+@mixin action-button {
+  @include caps-label(11px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: $filter-control;
+  padding: 0 12px;
+  border: 0;
+  white-space: nowrap;
+  cursor: pointer;
+
+  .svg-inline--fa {
+    font-size: 11px;
   }
 }

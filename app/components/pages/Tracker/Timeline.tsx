@@ -8,9 +8,9 @@ import { LANGUAGE_ABBRS, ORIGIN_GAME_NAMES, findSave, nameLang } from '../../../
 import { OriginMark } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { SLOT_H, SLOT_W, layoutTimeline } from './timeline-layout';
+import { TitleCard, useCalmStart } from './TitleCard';
 import { iconClass } from '../../../utils/pokemon';
 import { localizeOriginGame } from '../../../i18n/names';
-import { overrideTitleBar } from '../../../palette/apply-theme';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
 import { useTrackerState } from './use-tracker';
@@ -24,7 +24,6 @@ import type { MonthSegment, TimelineLayout, TimelineSprite } from './timeline-la
 // keep in sync with styles/timeline.scss: the stage's colour (under the window buttons too), the spine's distance from
 // the stage's bottom, which holds the month and day labels and the year banners, and the room kept above the tallest
 // stack
-const STAGE_COLOR = { color: '#151019', symbolColor: '#f6f1ff' };
 const SPINE_BOTTOM = 96;
 const HEADROOM = 56;
 // the stage's scrollbars' thickness: the fit always leaves the horizontal one its room, or a track just wider than the
@@ -225,6 +224,8 @@ export function Timeline ({ onClose, onLocate }: Props) {
   // replay bumps it, remounting the track so every animation starts over
   const [run, setRun] = useState(0);
   const [settled, setSettled] = useState(false);
+  // the whole entrance (card, spine, cascade) held till the stage's first paint has gone by (useCalmStart)
+  const calm = useCalmStart();
   const [hovered, setHovered] = useState<TimelineSprite | null>(null);
   const [panning, setPanning] = useState(false);
 
@@ -272,16 +273,6 @@ export function Timeline ({ onClose, onLocate }: Props) {
   // the page, not to the Timeline button, where Space would open it again instead of pausing the flips
   useEffect(() => {
     stageRef.current?.focus({ preventScroll: true });
-  }, []);
-
-  // the window buttons sit on the stage now, so they take its colours while it's up; sent once the change has painted,
-  // as applyTheme does, so they never switch a frame ahead of the stage or the nav
-  useEffect(() => {
-    const send = (colors: typeof STAGE_COLOR | null) => requestAnimationFrame(() => setTimeout(() => overrideTitleBar(colors)));
-    send(STAGE_COLOR);
-    return () => {
-      send(null);
-    };
   }, []);
 
   // holds the unscaled point under (px, py) in place across the coming zoom or resize
@@ -362,8 +353,11 @@ export function Timeline ({ onClose, onLocate }: Props) {
   }, [run, measured]);
 
   // the entrance, per run: counts the mons in as they land and pans the stage along with the front of the cascade,
-  // until it's scrolled or dragged by hand; settles once the last one is down
+  // until it's scrolled or dragged by hand; settles once the last one is down. Its clock starts with the stage calm
   useEffect(() => {
+    if (!calm) {
+      return undefined;
+    }
     const stage = stageRef.current!;
     const counter = counterRef.current;
     const total = layoutRef.current.sprites.length;
@@ -407,7 +401,7 @@ export function Timeline ({ onClose, onLocate }: Props) {
       stage.removeEventListener('wheel', stopFollowing);
       stage.removeEventListener('pointerdown', stopFollowing);
     };
-  }, [run]);
+  }, [run, calm]);
 
   useEffect(() => {
     if (settled && counterRef.current) {
@@ -584,7 +578,7 @@ export function Timeline ({ onClose, onLocate }: Props) {
   }
 
   return createPortal(
-    <div aria-label={t('timeline.title')} aria-modal="true" className="timeline" role="dialog">
+    <div aria-label={t('timeline.title')} aria-modal="true" className="timeline" data-gate={(!calm && !settled) || undefined} role="dialog">
       <div className="tl-bar">
         <div className="tl-logo"><span>{t('timeline.title')}</span></div>
         <div className="tl-dex">{activeDex!.title}</div>
@@ -646,15 +640,7 @@ export function Timeline ({ onClose, onLocate }: Props) {
         {count === 0 && <p className="tl-empty">{t('timeline.empty')}</p>}
       </div>
 
-      {!settled &&
-        <div className="tl-intro" key={`intro-${run}`}>
-          <div className="tl-intro-flash" />
-          <div className="tl-intro-slash" />
-          <div className="tl-intro-title"><span>{t('timeline.title')}</span></div>
-          <div className="tl-intro-sub"><span>{activeDex!.title}</span></div>
-          <div className="tl-intro-skip">{t('timeline.skip')}</div>
-        </div>
-      }
+      {!settled && <TitleCard hint={t('scene.skip')} key={`intro-${run}`} sub={activeDex!.title} title={t('timeline.title')} />}
     </div>,
     document.body,
   );

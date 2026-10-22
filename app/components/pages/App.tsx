@@ -14,7 +14,7 @@ import { useTranslation } from '../../hooks/use-translation';
 
 export function App () {
   const { locale } = useLocalStorageContext();
-  const { isSoftDark, theme, locationTints, flipTypes } = useThemeContext();
+  const { isSoftDark, theme, locationTints, flipTypes, tileTypes, still } = useThemeContext();
 
   useScrollbarFade();
   useProdPreviewHotkey();
@@ -29,8 +29,8 @@ export function App () {
   }, [theme, isSoftDark]);
 
   useEffect(() => {
-    applyDisplay(locationTints, flipTypes);
-  }, [locationTints, flipTypes]);
+    applyDisplay(locationTints, flipTypes, tileTypes, still);
+  }, [locationTints, flipTypes, tileTypes, still]);
 
   return (
     <div className="root">

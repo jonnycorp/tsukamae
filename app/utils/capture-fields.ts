@@ -343,7 +343,8 @@ export function formatFieldValue (field: CaptureField, meta: Partial<CaptureMeta
 
   switch (field.kind) {
     case 'select': {
-      const value = meta[field.keys[0]];
+      // a favorite the app never writes reads as unanswered, as in its control
+      const value = field.id === 'favorite' ? readFavorite(meta.favorite) : meta[field.keys[0]];
       if (value === null || value === undefined || value === '') {
         return blank;
       }
