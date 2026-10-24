@@ -813,13 +813,28 @@ $flip-face-width: $search-height;
   initial-value: 0;
 }
 
-// as many boxes across as the scaled width holds (--dex-columns, from useDexScale), rows reading left to right
+// as many boxes across as the scaled width holds (--dex-columns, from useDexScale), rows reading left to right. Out of
+// sight and out of reach (data-hidden) till the screenful it opens on is built, then faded in (Dex's BoxGrid); the row
+// gap is use-dex-scale's BOX_ROW_GAP
 .box-grid {
   display: grid;
   grid-template-columns: repeat(var(--dex-columns), $box-width);
   justify-content: center;
   gap: 60px $dex-grid-gap;
   position: relative;
+  transition: opacity .3s ease-out;
+
+  // painted while it's hidden, as each box comes (a plain opacity 0 is skipped, which left all of it to paint in the
+  // one frame it showed); a layer of its own only till then, as one kept for good slowed every frame after
+  &[data-hidden] {
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  :root[data-still] & {
+    transition: none;
+  }
 
   > .box {
     --column: mod(sibling-index() - 1, var(--dex-columns));
@@ -836,6 +851,15 @@ $flip-face-width: $search-height;
 // sized by its grid, never by the row it sits in
 .box {
   width: max-content;
+
+  // one not built yet (BoxGrid, Box): a box's size, its title's line and margin over its tiles, with nothing in it. The
+  // frame's two lines are borders, as the tiles' are, so at any zoom they round to the pixel the same way
+  &.box-placeholder {
+    box-sizing: content-box;
+    width: $box-width;
+    height: calc(25px * 1.35 + 10px + #{$box-rows * $pokemon-box-size});
+    border-block: 1px solid transparent;
+  }
 
   .box-header {
     display: grid;
@@ -908,10 +932,11 @@ $flip-face-width: $search-height;
   width: max-content;
 }
 
+// the size it's given out of sight is its content's, inside the frame's lines, as a drawn one's is
 .box-container > .tile-grid,
 .results-chunk > .tile-grid {
   content-visibility: auto;
-  contain-intrinsic-size: auto #{$box-width} auto #{$box-rows * $pokemon-box-size + 2};
+  contain-intrinsic-size: auto #{$box-columns * $pokemon-box-size} auto #{$box-rows * $pokemon-box-size};
 }
 
 // results run on as one grid: each chunk after the first takes the one above's bottom frame as its top line, and its

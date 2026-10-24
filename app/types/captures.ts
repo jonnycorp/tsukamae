@@ -29,7 +29,13 @@ export interface CaptureMetadata {
   has_nickname: boolean | null;
   nickname: string | null;
   ot: string | null;
+  // the OT's ID No., as the summary shows it beside the OT: written with the OT when one of My Games is picked for it
+  // (so two files of one game, same game, language and OT, stay apart), typed for a mon from anyone else
+  tid: string | null;
   gender: GenderState | null;
+  // a natures id from utils/capture-fields: the nature the summary names, which a mint never changes (it changes only
+  // the stats, and the summary then notes the mint beside the original)
+  nature: string | null;
   level: number | null;
   trained: TrainedState | null;
   favorite: FavoriteState | null;

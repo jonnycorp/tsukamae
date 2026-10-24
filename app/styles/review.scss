@@ -837,6 +837,14 @@ $wire: 30px;
   }
 }
 
+// a sealed record's ball, its sprite before its name
+.review-ball {
+  @include ball-sprite;
+
+  margin-right: 6px;
+  vertical-align: -4px;
+}
+
 .review-empty {
   margin: 60px 0;
   color: var(--ink-muted);

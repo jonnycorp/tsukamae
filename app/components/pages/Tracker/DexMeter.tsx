@@ -15,7 +15,7 @@ interface Props {
 }
 
 // the figure's count, as long as the bar's draw-in as the dex opens and its spring to a new value (styles/meter.scss)
-const COUNT_MS = 700;
+export const COUNT_MS = 700;
 
 interface Pop {
   id: number;
@@ -107,10 +107,12 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
       <div className="dex-meter-figure"><span ref={figureRef} /></div>
       <div className="dex-meter-bar">
         <div className="dex-meter-track">
-          <div className="dex-meter-fill" style={{ width: `${percent}%` }} />
-          <div className="dex-meter-water" style={{ width: `${percent}%` }} />
+          <div className="dex-meter-liquid">
+            <div className="dex-meter-fill" style={{ width: `${percent}%` }} />
+            <div className="dex-meter-water" style={{ width: `${percent}%` }} />
+          </div>
           {latest && <span className="dex-meter-shine" key={latest.id} style={{ width: `${percent}%` }} />}
-          <span className="dex-meter-edge" style={{ left: `${percent}%` }} />
+          <span className="dex-meter-edge" style={{ left: `${percent}%`, '--meter-at': percent } as CSSProperties} />
           {milestone && <i className="dex-meter-flare" key={milestone.id} style={{ left: `${milestone.tenth * 10}%` }} />}
           {pops.map((pop) => (
             <span

@@ -12,6 +12,8 @@ const SLIDE_MS = 800;
 // though the types stay a face to hold while paused
 const PHASE_MS = HOLD_MS + SLIDE_MS;
 const cycleFaces = () => (document.documentElement.hasAttribute('data-flip-no-types') ? 2 : 3);
+// the keys that pick each held face, in the picker's order
+export const FACE_KEYS = ['1', '2', '3'];
 
 const now = () => document.timeline.currentTime as number;
 const isFlip = (animation: Animation) => 'animationName' in animation && String(animation.animationName).startsWith('flip-cycle');
@@ -183,9 +185,10 @@ export interface FlipPause {
 
 // space freezes the flips on whatever face they show instead of paging the dex down; quiet like the other hotkeys while
 // typing, under a modal or an open menu, once claimed and beside a modifier, a control focused from the keyboard keeps
-// its Space, and with nothing flipping (no seals yet, a checklist, the list view) it pages the dex as usual. Still mode
-// holds them: frozen as it comes on, as Space would (the picker open on the face that shows), let go as it goes, and
-// neither Space nor the pause button lets them go in between
+// its Space, and with nothing flipping (no seals yet, a checklist, the list view) it pages the dex as usual. While
+// they're held, 1 2 3 pick the face as the picker does, in its order. Still mode holds them: frozen as it comes on, as
+// Space would (the picker open on the face that shows), let go as it goes, and neither Space nor the pause button lets
+// them go in between
 export function useFlipClock (ref: RefObject<HTMLElement>, still = false): FlipPause {
   const [state, setState] = useState({ paused: false, face: 0, presses: 0 });
   const clockRef = useRef<ReturnType<typeof createFlipClock> | null>(null);
@@ -219,10 +222,21 @@ export function useFlipClock (ref: RefObject<HTMLElement>, still = false): FlipP
     clockRef.current = clock;
 
     const handleKeydown = (e: KeyboardEvent) => {
-      if (e.key !== ' ' || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || document.querySelector(MENU_OR_MODAL)) {
+      if (e.defaultPrevented || e.isComposing || e.metaKey || e.ctrlKey || e.altKey || document.querySelector(MENU_OR_MODAL)) {
         return;
       }
-      if (e.target instanceof Element && (e.target.closest('input, textarea, [contenteditable]') || e.target.matches(':focus-visible'))) {
+      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')) {
+        return;
+      }
+      const face = FACE_KEYS.indexOf(e.key);
+      if (face >= 0) {
+        if (pausedRef.current && !e.repeat) {
+          e.preventDefault();
+          pick(face);
+        }
+        return;
+      }
+      if (e.key !== ' ' || (e.target instanceof Element && e.target.matches(':focus-visible'))) {
         return;
       }
       if (!el.querySelector('.flip-strip')) {
@@ -241,7 +255,7 @@ export function useFlipClock (ref: RefObject<HTMLElement>, still = false): FlipP
       clock.stop();
       clockRef.current = null;
     };
-  }, [toggle]);
+  }, [toggle, pick]);
 
   useEffect(() => {
     if (clockRef.current && still !== pausedRef.current) {

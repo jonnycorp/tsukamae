@@ -1,5 +1,6 @@
 import { BALLS, BALL_NAMES, CAPTURE_FIELDS, LANGUAGES, LANGUAGE_ABBRS, ORIGIN_GAMES, ORIGIN_GAME_NAMES, isRecordComplete, readFavorite } from '../../../utils/capture-fields';
-import { localizeBall, localizeOriginGame } from '../../../i18n/names';
+import { getCatalogDex } from '../../../utils/local-data';
+import { localizeBall, localizeCatalogGame, localizeNature, localizeOriginGame } from '../../../i18n/names';
 import { padding } from '../../../utils/formatting';
 import { translate } from '../../../i18n/translations';
 
@@ -8,7 +9,7 @@ import type { Locale, TranslationKey } from '../../../i18n/translations';
 
 export type FilterView = 'all' | 'missing' | 'temporary' | 'unsealed' | 'incomplete';
 
-export type FacetId = 'generation' | 'class' | 'type' | 'origin_game' | 'language' | 'ot' | 'location' | 'ball' | 'trained' | 'favorite';
+export type FacetId = 'generation' | 'class' | 'type' | 'game_dex' | 'origin_game' | 'language' | 'ot' | 'location' | 'ball' | 'nature' | 'trained' | 'favorite';
 
 export interface TrackerFilters {
   view: FilterView;
@@ -66,6 +67,39 @@ const indexIn = (list: readonly string[]) => (value: string) => list.indexOf(val
 // a record field's facet lists its values in the order the popover offers them
 const fieldOrder = (id: FacetId) => indexIn(CAPTURE_FIELDS.find((field) => field.id === id)!.options!('en').map((option) => option.value));
 
+// a game's own Pokédex, its DLC's included, as the catalogs list them (the national dexes that only list what a game can
+// hold are left out), newest first as the origin games are; ids are the catalogs' games, so names come from the same
+// place as the dex picker's
+const GAME_DEXES: { id: string; name: string; catalogs: string[] }[] = [
+  { id: 'legends_za', name: 'Legends: Z-A', catalogs: ['legends-z-a-regional', 'legends-z-a-mega-dimension'] },
+  { id: 'scarlet', name: 'Scarlet & Violet', catalogs: ['scarlet-violet-regional', 'kitakami', 'blueberry', 'paldea-full'] },
+  { id: 'legends_arceus', name: 'Legends: Arceus', catalogs: ['legends-arceus-regional'] },
+  { id: 'brilliant_diamond', name: 'Brilliant Diamond & Shining Pearl', catalogs: ['bdsp-regional', 'bdsp-national'] },
+  { id: 'sword', name: 'Sword & Shield', catalogs: ['sword-shield-regional', 'sword-shield-expansion-regional'] },
+  { id: 'lets_go_pikachu', name: 'Let\'s Go, Pikachu & Eevee', catalogs: ['lets-go-regional'] },
+  { id: 'ultra_sun', name: 'Ultra Sun & Ultra Moon', catalogs: ['ultra-sun-ultra-moon-regional'] },
+  { id: 'sun', name: 'Sun & Moon', catalogs: ['sun-moon-regional'] },
+  { id: 'omega_ruby', name: 'Omega Ruby & Alpha Sapphire', catalogs: ['oras-regional'] },
+  { id: 'x', name: 'X & Y', catalogs: ['x-y-regional'] },
+];
+
+// a species, a regional form its own (Paldean Wooper isn't Wooper): its national number and form, which every catalog
+// agrees on, where a catalog's own ids don't (Z-A's, Full Paldea's and Sword and Shield's DLC count differently)
+const speciesKey = (mon: { national_id: number; form?: string | null }) => `${mon.national_id}:${mon.form ?? ''}`;
+
+// which games' dexes list a species, worked out once
+let gameDexesBySpecies: Map<string, string[]> | null = null;
+function gameDexesOf (mon: { national_id: number; form?: string | null }): string[] {
+  if (!gameDexesBySpecies) {
+    gameDexesBySpecies = new Map();
+    for (const game of GAME_DEXES) {
+      const species = new Set(game.catalogs.flatMap((key) => getCatalogDex(key).pokemonList.map(speciesKey)));
+      species.forEach((key) => gameDexesBySpecies!.set(key, [...(gameDexesBySpecies!.get(key) ?? []), game.id]));
+    }
+  }
+  return gameDexesBySpecies.get(speciesKey(mon)) ?? [];
+}
+
 // a stored value the app never writes has no translation, so it shows as stored
 function known (locale: Locale, key: TranslationKey, value: string): string {
   const label = translate(locale, key);
@@ -98,6 +132,16 @@ export const FACETS: Facet[] = [
     label: (value, locale) => translate(locale, `type.${value as PokemonType}`),
     rank: indexIn(TYPE_ORDER),
     glyph: (value) => value as PokemonType,
+  },
+  {
+    // the games whose own Pokédex lists the mon, DLC included: a HOME dex narrowed to one shows everything that game
+    // has, in national order with its regional forms at the end
+    id: 'game_dex',
+    labelKey: 'filter.gameDex',
+    species: true,
+    value: (capture) => gameDexesOf(capture.pokemon),
+    label: (value, locale) => localizeCatalogGame(locale, value, GAME_DEXES.find((game) => game.id === value)?.name ?? value),
+    rank: indexIn(GAME_DEXES.map((game) => game.id)),
   },
   {
     id: 'origin_game',
@@ -138,6 +182,14 @@ export const FACETS: Facet[] = [
     label: (value, locale) => localizeBall(locale, value, BALL_NAMES.get(value) ?? value),
     rank: indexIn(BALLS.map((ball) => ball.id)),
     icon: (value) => (value === 'unknown' ? undefined : `balls/${value}.png`),
+  },
+  {
+    // the most common first: twenty-five names read better by how many carry them than in any fixed order
+    id: 'nature',
+    labelKey: 'info.nature',
+    species: false,
+    value: (capture) => capture.nature,
+    label: (value, locale) => localizeNature(locale, value, value.charAt(0).toUpperCase() + value.slice(1)),
   },
   {
     id: 'trained',

@@ -27,6 +27,25 @@ const EDGE = 8;
 // between the menu and its field
 const GAP = 4;
 
+// a label's click passes on to its control, which for a dropdown's trigger opened the menu from the field's name; the
+// name only names the field and focuses it, as a native select's label does, and the trigger alone opens it. One
+// listener for every dropdown, set up by the first
+let labelsGuarded = false;
+function guardLabels () {
+  if (labelsGuarded) {
+    return;
+  }
+  labelsGuarded = true;
+  document.addEventListener('click', (e) => {
+    const label = e.target instanceof Element ? e.target.closest('label') : null;
+    const control = label?.control;
+    if (control?.classList.contains('dropdown-trigger')) {
+      e.preventDefault();
+      control.focus({ preventScroll: true });
+    }
+  }, true);
+}
+
 // the menu is position: fixed so no overflow ancestor (modal, popover body) can clip it
 export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, align = 'start' }: Props) {
   const [open, setOpen] = useState(false);
@@ -40,6 +59,10 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
   const selected = all.find((option) => option.value === value);
   // the option the keyboard is on while the menu's open; focus stays on the trigger
   const [active, setActive] = useState(-1);
+  // set as a key moves it, so only then is the menu scrolled to keep it in sight (the pointer's is where it points)
+  const keyedRef = useRef(false);
+
+  useEffect(guardLabels, []);
 
   // under the trigger, or over it where there's no room below; as wide as its widest option, so none is cut off, and
   // never narrower than the trigger, kept inside the window. Placed by where it lands: what holds a fixed element isn't
@@ -65,6 +88,8 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
     const left = Math.max(EDGE, Math.min(align === 'end' ? rect.right - origin.width : rect.left, window.innerWidth - origin.width - EDGE));
     menu.style.left = `${(left - origin.left) / zoom}px`;
     const below = rect.bottom + MENU_MAX_HEIGHT * zoom <= window.innerHeight - EDGE;
+    // the way it unfurls, on the menu itself before the unfurl starts, so it never starts one way and turns
+    menu.toggleAttribute('data-up', !below);
     if (below) {
       menu.style.top = `${(rect.bottom + GAP * zoom - origin.top) / zoom}px`;
     } else {
@@ -72,19 +97,41 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       menu.style.bottom = '0px';
       menu.style.bottom = `${(menu.getBoundingClientRect().bottom - rect.top + GAP * zoom) / zoom}px`;
     }
+    // opened on what's chosen, near the menu's top: the option before it in view, the ones after it below (a long list,
+    // My Game's or the balls', would otherwise leave it on the menu's edge). Set before the first paint, so the menu
+    // opens already there rather than moving to it, and on the menu alone, as a scrollIntoView could scroll the page
+    // under it too, which closes it
+    const chosen = menu.querySelector<HTMLElement>('.dropdown-selected');
+    if (chosen) {
+      menu.scrollTop = ((chosen.previousElementSibling as HTMLElement | null) ?? chosen).offsetTop;
+    }
     menu.style.animation = '';
     setUp(!below);
     setActive(Math.max(0, all.findIndex((option) => option.value === value)));
-    requestAnimationFrame(() => {
-      menuRef.current?.querySelector('.dropdown-selected')?.scrollIntoView({ block: 'nearest' });
-    });
   }, [open]);
 
+  // the option a key moved to kept in sight, by scrolling the menu alone; one the pointer's on is in sight already
   useEffect(() => {
-    if (open && active >= 0) {
-      menuRef.current?.children[active]?.scrollIntoView({ block: 'nearest' });
+    const menu = menuRef.current;
+    const item = menu?.children[active] as HTMLElement | undefined;
+    if (!open || !keyedRef.current || !menu || !item) {
+      return;
+    }
+    keyedRef.current = false;
+    if (item.offsetTop < menu.scrollTop) {
+      menu.scrollTop = item.offsetTop;
+    } else if (item.offsetTop + item.offsetHeight > menu.scrollTop + menu.clientHeight) {
+      menu.scrollTop = item.offsetTop + item.offsetHeight - menu.clientHeight;
     }
   }, [open, active]);
+
+  // a closed menu's keyboard place is forgotten, so the next opening starts from the chosen option, not the last one
+  // the keyboard was on (which would scroll the menu back off it)
+  useEffect(() => {
+    if (!open) {
+      setActive(-1);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -142,9 +189,11 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       setOpen(false);
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
+      keyedRef.current = true;
       setActive((index) => (index + (e.key === 'ArrowDown' ? 1 : -1) + all.length) % all.length);
     } else if (e.key === 'Home' || e.key === 'End') {
       e.preventDefault();
+      keyedRef.current = true;
       setActive(e.key === 'Home' ? 0 : all.length - 1);
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -160,6 +209,7 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       for (let step = 1; step <= all.length; step++) {
         const index = (active + step) % all.length;
         if (all[index].label.toLocaleLowerCase().startsWith(letter)) {
+          keyedRef.current = true;
           setActive(index);
           break;
         }
@@ -193,8 +243,12 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
               className={classNames({ 'dropdown-selected': option.value === value, 'dropdown-active': index === active })}
               key={option.value || '(blank)'}
               onClick={() => handlePick(option.value)}
-              // the keyboard carries on from where the pointer is
-              onMouseEnter={() => setActive(index)}
+              // the keyboard carries on from where the pointer is, which is in sight already (a key's move that changed
+              // nothing could have left the menu set to scroll to it)
+              onMouseEnter={() => {
+                keyedRef.current = false;
+                setActive(index);
+              }}
               role="option"
             >
               {option.icon && <img alt="" src={`/${option.icon}`} />}

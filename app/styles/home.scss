@@ -80,47 +80,91 @@
     }
   }
 
+  // the dexes as tiles stacked flush into one raised block, each picked up by its grip and dragged into its place; room
+  // kept right of the stack and under it for its drop, which the scroller would otherwise clip
   .dex-list {
     @include overflow-y-scroll;
 
+    display: flex;
+    flex-direction: column;
     width: 100%;
-    max-width: 640px;
+    max-width: 760px;
     min-height: 0;
     margin: 0 0 24px;
-    padding: 0;
+    padding: 0 $block-drop-room $block-drop-room 0;
     list-style: none;
     text-align: left;
   }
 
+  // the tile opens its dex: the pointer's hand for that, the grab hand on its grip alone. Its words a size up from the
+  // dex page's own (DexIndicator, Progress), the list being the page
   .dex-list-item {
-    padding: 14px 20px 18px;
-    border-bottom: 1px solid var(--line-soft);
+    @include block-slab;
+
+    flex: none;
+    padding: 16px 22px 18px 42px;
     cursor: pointer;
-    transition: background-color .1s ease-out;
-
-    &:first-child {
-      border-top: 1px solid var(--line-soft);
-    }
-
-    &:hover {
-      background-color: var(--hover-wash);
-    }
 
     .dex-list-item-title {
       display: flex;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
 
       h3 {
         flex: 1 1 auto;
         min-width: 0;
         margin: 0;
         font-family: $font-secondary;
-        font-size: 18px;
+        font-size: 22px;
         font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+    }
+
+    .dex-indicator {
+      .fa-star {
+        font-size: 11px;
+      }
+
+      .label {
+        @include small-text(12px);
+
+        padding: 5px 8px;
+      }
+    }
+
+    .progress-container,
+    .progress-outer {
+      height: 38px;
+    }
+
+    // the breakdown's one line, tightening as the bar narrows (as Progress's own does, from a size up): each step where
+    // the longest English line (a national dex's, its counts in four digits) would no longer fit at the size above it
+    .progress-outer .progress-numbers {
+      font-size: 14px;
+      line-height: 34px;
+      letter-spacing: 1px;
+
+      @container (max-width: 600px) {
+        letter-spacing: 0;
+      }
+
+      @container (max-width: 540px) {
+        font-size: 13px;
+      }
+
+      @container (max-width: 505px) {
+        @include small-text(12px);
+      }
+
+      @container (max-width: 470px) {
+        @include small-text(11px);
+      }
+
+      @container (max-width: 435px) {
+        @include small-text(10px);
       }
     }
 
@@ -156,6 +200,7 @@
     }
   }
 
+  // editing: a slab no longer opens its dex (its grip still drags it)
   .dex-list.editing .dex-list-item {
     cursor: default;
   }

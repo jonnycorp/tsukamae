@@ -30,7 +30,7 @@ import type { HistoryDirection, HistoryStep } from '../../../utils/local-data';
 import type { DexLayout } from './ledger-model';
 import type { FacetId } from './filters';
 
-// frames a located mon is looked for before it's taken as filtered out
+// frames a located mon is looked for before it's taken as filtered out, beyond those the boxes are still going in for
 const LOCATE_FRAMES = 30;
 
 export function Tracker () {
@@ -83,7 +83,7 @@ function TrackerInner () {
   // still mode (M): no moving part anywhere, the flips held on the face its picker shows (useFlipClock), the sealed
   // boxes' shine gone and the meter at rest; kept through a restart
   useHotkey('m', () => setStill(!still));
-  const { scale, columns, measured, headerWidth, flipLines, zoom, nudges } = useDexScale(areaRef);
+  const { scale, columns, rows, measured, headerWidth, flipLines, zoom, nudges } = useDexScale(areaRef);
   // the ball badge draws a 20px sprite area at 15px (styles/tracker.scss): pixelated only once that's no longer a shrink
   const crispBalls = scale * window.devicePixelRatio >= 20 / 15;
 
@@ -135,7 +135,7 @@ function TrackerInner () {
         if (select) {
           setSelectedPokemon(pokemon);
         }
-      } else if (frames++ < LOCATE_FRAMES) {
+      } else if (document.querySelector('.dex [data-building]') || frames++ < LOCATE_FRAMES) {
         // in a folded ledger group it has no row until the group opens
         revealHost.current?.(pokemon);
         requestAnimationFrame(find);
@@ -320,6 +320,7 @@ function TrackerInner () {
               measured={measured}
               onScrollButtonClick={handleScrollButtonClick}
               query={query}
+              rows={rows}
               scale={scale}
               selectedPokemon={selectedPokemon}
               setFilters={setFilters}

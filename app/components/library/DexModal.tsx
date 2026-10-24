@@ -191,7 +191,8 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                     value={defaultStatus}
                   />
                 </div>
-                {DEFAULTABLE_FIELDS.slice(0, 2).map((field) => (
+                {/* the status and My Game (which sets the game and language too) here, the rest beside them */}
+                {DEFAULTABLE_FIELDS.slice(0, 1).map((field) => (
                   <CaptureFieldControl
                     defaultsMode
                     field={field}
@@ -203,7 +204,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                 ))}
               </div>
               <div className="form-column">
-                {DEFAULTABLE_FIELDS.slice(2).map((field) => (
+                {DEFAULTABLE_FIELDS.slice(1).map((field) => (
                   <CaptureFieldControl
                     defaultsMode
                     field={field}

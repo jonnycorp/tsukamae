@@ -134,6 +134,9 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
     document.querySelector('[data-pokemon-id][data-selected]')?.removeAttribute('data-selected');
   }, [selectedPokemon]);
 
+  // its own size changing (a field opening up, a longer value) refits it the frame after: its width is set in place(),
+  // and set inside its own observer's callback, that changes what the observer watches, which the browser reports as a
+  // "ResizeObserver loop" error. One observer for as long as it's open, as each new one reports at once
   useLayoutEffect(() => {
     const el = popoverRef.current;
     if (!el) {
@@ -141,9 +144,24 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
     }
 
     place(true);
-    const observer = new ResizeObserver(() => place(true));
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => place(true));
+    });
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [place]);
+
+  // a zoom, or the dex rescaling to a resized window, moves its tile: placed beside it at once, so no frame shows it off
+  // the tile, and refitted the frame after, as a resize renders this inside the dex's own observer callback (useDexScale)
+  useLayoutEffect(() => {
+    place(false);
+    const frame = requestAnimationFrame(() => place(true));
+    return () => cancelAnimationFrame(frame);
   }, [place, scale]);
 
   useEffect(() => {

@@ -51,8 +51,9 @@ export const Box = memo(function Box ({ captures, deferFrames, setSelectedPokemo
   // the clip is drawn for the 6-column grid, not the narrow list view
   const shineClip = useMemo(() => (narrow ? null : clipFor(captures, checklist)), [captures, checklist, narrow]);
 
+  // its place held till it renders, a box's size and nothing in it, so the grid is its full height from the start
   if (!render) {
-    return null;
+    return narrow ? null : <div aria-hidden="true" className="box box-placeholder" />;
   }
 
   const complete = captures.every((capture) => capture.status === 'caught' || capture.status === 'unobtainable');

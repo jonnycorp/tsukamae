@@ -1,7 +1,7 @@
 import { DateInput } from './DateInput';
 import { DraftInput } from './DraftInput';
 import { Dropdown } from './Dropdown';
-import { NAME_MAX_FALLBACK, favoriteOptions, findSave, genderOptions, locationOptions, readFavorite, saveLabel } from '../../utils/capture-fields';
+import { LANGUAGE_ABBRS, NAME_MAX_FALLBACK, favoriteOptions, findSave, genderOptions, locationOptions, readFavorite, saveLabel, stampedSave } from '../../utils/capture-fields';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../hooks/use-translation';
 
@@ -10,6 +10,7 @@ import type { CaptureMetadata, GenderLock } from '../../types';
 import type { ReactNode } from 'react';
 
 export const NOT_MINE = 'not-mine';
+const STRAY_GAME = 'stray-game';
 
 interface Props {
   field: CaptureField;
@@ -78,9 +79,10 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
       return wrap(
         <DraftInput
           id={id}
+          inputMode={field.numeric ? 'numeric' : undefined}
           maxLength={field.maxLength?.(value) ?? 100}
           name={id}
-          onCommit={(raw) => onChange({ [field.keys[0]]: raw.trim() || null })}
+          onCommit={(raw) => onChange({ [field.keys[0]]: (field.normalize ? field.normalize(raw) : raw.trim()) || null })}
           type="text"
           value={(value[field.keys[0]] as string) || ''}
         />,
@@ -133,12 +135,27 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
     }
 
     case 'save': {
-      const matched = findSave(saves, value.origin_game ?? null, value.language ?? null);
-      const current = matched ? matched.id : (value.origin_game || value.language ? NOT_MINE : '');
+      // a record shows the game it's still all four fields of; a dex's defaults keep no OT, so they go by the game and
+      // the language, and the ID No. between two files of one game
+      const matched = defaultsMode
+        ? findSave(saves, value.origin_game ?? null, value.language ?? null, value.tid ?? null)
+        : stampedSave(saves, value);
+      // a dex's defaults from when the game and language were defaults of their own may name a game that isn't one of
+      // yours. New marks still take it, so it shows as what it is, not as Not my game; Unspecified or Not my game clears it
+      const stray = defaultsMode && !matched && Boolean(value.origin_game || value.language);
+      const current = matched ? matched.id : stray ? STRAY_GAME : (value.origin_game || value.language ? NOT_MINE : '');
 
       const options = [
-        ...saves.map((save) => ({ value: save.id, label: saveLabel(save, locale) })),
+        ...saves.map((save) => ({ value: save.id, label: saveLabel(save, locale, saves) })),
         { value: NOT_MINE, label: t('saves.notMine') },
+        ...(stray
+          ? [{
+            value: STRAY_GAME,
+            label: value.origin_game
+              ? saveLabel({ id: STRAY_GAME, game: value.origin_game, language: value.language ?? '', ot: '' }, locale)
+              : LANGUAGE_ABBRS.get(value.language!) ?? value.language!,
+          }]
+          : []),
       ];
 
       return wrap(select(id, current, options, (next) => {
@@ -150,16 +167,17 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
             return;
           }
           return onChange(defaultsMode
-            ? { origin_game: null, language: null }
-            : { origin_game: null, language: null, ot: null });
+            ? { origin_game: null, language: null, tid: null }
+            : { origin_game: null, language: null, ot: null, tid: null });
         }
         const save = saves.find((entry) => entry.id === next);
         if (!save) {
           return;
         }
+        // the ID No. goes with it, so a record (or a dex's default) says which of two files of one game it means
         onChange(defaultsMode
-          ? { origin_game: save.game, language: save.language }
-          : { origin_game: save.game, language: save.language, ot: save.ot });
+          ? { origin_game: save.game, language: save.language, tid: save.tid ?? null }
+          : { origin_game: save.game, language: save.language, ot: save.ot, tid: save.tid ?? null });
       }));
     }
 
@@ -182,7 +200,7 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
               {select(
                 `${id}-game`,
                 value.location_save || '',
-                saves.map((save) => ({ value: save.id, label: saveLabel(save, locale) })),
+                saves.map((save) => ({ value: save.id, label: saveLabel(save, locale, saves) })),
                 (next) => onChange({ location_save: next || null }),
               )}
             </div>

@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHashtag, faPause, faPlay, faSignature } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useState } from 'react';
 
+import { FACE_KEYS } from './use-flip-clock';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { FlipPause } from './use-flip-clock';
@@ -20,7 +21,7 @@ const FACES: { face: number; labelKey: TranslationKey; icon?: IconDefinition }[]
 ];
 
 // Space's answer, at the end of the filters' row: a pause button for as long as the flips are held, and beside it, from
-// the moment they're held, a picker for the face they hold; each press's words slide off to the side and go
+// the moment they're held, a picker for the face they hold (1 2 3 too); each press's words slide off to the side and go
 export function FlipPauseIndicator ({ paused, face, presses, toggle, pick }: FlipPause) {
   const { t } = useTranslation();
   const [flash, setFlash] = useState(false);
@@ -54,7 +55,7 @@ export function FlipPauseIndicator ({ paused, face, presses, toggle, pick }: Fli
             }}
             role="radio"
             tabIndex={paused ? 0 : -1}
-            title={t(option.labelKey)}
+            title={`${t(option.labelKey)} (${FACE_KEYS[option.face]})`}
             type="button"
           >
             {option.icon

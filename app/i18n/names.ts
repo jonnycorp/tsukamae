@@ -20,6 +20,17 @@ const JA_ORIGIN_GAMES: Record<string, string> = {
   alpha_sapphire: 'アルファサファイア',
   x: 'X',
   y: 'Y',
+  black_2: 'ブラック2',
+  white_2: 'ホワイト2',
+  black: 'ブラック',
+  white: 'ホワイト',
+  heartgold: 'ハートゴールド',
+  soulsilver: 'ソウルシルバー',
+  platinum: 'プラチナ',
+  diamond: 'ダイヤモンド',
+  pearl: 'パール',
+  firered: 'ファイアレッド',
+  leafgreen: 'リーフグリーン',
   go: 'Pokémon GO',
   trade: 'フレンド交換',
   mystery_gift: 'ふしぎなおくりもの',
@@ -118,13 +129,46 @@ const JA_BALLS: Record<string, string> = {
   cherish_ball: 'プレシャスボール',
   park_ball: 'パークボール',
   strange_ball: 'ストレンジボール',
+  // Legends: Arceus's own makes of the four it shares with the other games, told apart as its Pokémon forms are
+  hisuian_poke_ball: 'ヒスイのモンスターボール',
+  hisuian_great_ball: 'ヒスイのスーパーボール',
+  hisuian_ultra_ball: 'ヒスイのハイパーボール',
   feather_ball: 'フェザーボール',
   wing_ball: 'ウイングボール',
   jet_ball: 'ジェットボール',
+  hisuian_heavy_ball: 'ヒスイのヘビーボール',
   leaden_ball: 'メガトンボール',
   gigaton_ball: 'ギガトンボール',
   origin_ball: 'オリジンボール',
   unknown: '不明',
+};
+
+const JA_NATURES: Record<string, string> = {
+  hardy: 'がんばりや',
+  lonely: 'さみしがり',
+  brave: 'ゆうかん',
+  adamant: 'いじっぱり',
+  naughty: 'やんちゃ',
+  bold: 'ずぶとい',
+  docile: 'すなお',
+  relaxed: 'のんき',
+  impish: 'わんぱく',
+  lax: 'のうてんき',
+  timid: 'おくびょう',
+  hasty: 'せっかち',
+  serious: 'まじめ',
+  jolly: 'ようき',
+  naive: 'むじゃき',
+  modest: 'ひかえめ',
+  mild: 'おっとり',
+  quiet: 'れいせい',
+  bashful: 'てれや',
+  rash: 'うっかりや',
+  calm: 'おだやか',
+  gentle: 'おとなしい',
+  sassy: 'なまいき',
+  careful: 'しんちょう',
+  quirky: 'きまぐれ',
 };
 
 // the dataset's box names and reset-box prefixes (the expansions), as the Japanese games name them
@@ -167,6 +211,10 @@ export function localizeCaptureLanguage (locale: Locale, id: string, fallback: s
 
 export function localizeBall (locale: Locale, id: string, fallback: string): string {
   return localized(JA_BALLS, locale, id, fallback);
+}
+
+export function localizeNature (locale: Locale, id: string, fallback: string): string {
+  return localized(JA_NATURES, locale, id, fallback);
 }
 
 export function localizeBoxName (locale: Locale, name: string): string {

@@ -111,11 +111,11 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
       onSelect={(key) => {
         const save = saves.find((entry) => entry.id === key);
         setDraft(save
-          ? { origin_game: save.game, language: save.language, ot: save.ot }
-          : key === NOT_MINE ? { origin_game: null, language: null, ot: null } : {});
+          ? { origin_game: save.game, language: save.language, ot: save.ot, tid: save.tid ?? null }
+          : key === NOT_MINE ? { origin_game: null, language: null, ot: null, tid: null } : {});
       }}
-      options={[...saves.map((save) => ({ value: save.id, label: saveLabel(save, locale) })), { value: NOT_MINE, label: t('saves.notMine') }]}
-      value={draft.origin_game === null ? NOT_MINE : findSave(saves, draft.origin_game ?? null, draft.language ?? null)?.id ?? ''}
+      options={[...saves.map((save) => ({ value: save.id, label: saveLabel(save, locale, saves) })), { value: NOT_MINE, label: t('saves.notMine') }]}
+      value={draft.origin_game === null ? NOT_MINE : findSave(saves, draft.origin_game ?? null, draft.language ?? null, draft.tid ?? null)?.id ?? ''}
     />
   );
   const control = field === 'location'

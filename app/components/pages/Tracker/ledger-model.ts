@@ -1,6 +1,6 @@
 import { BALLS, BALL_NAMES, LANGUAGES, LANGUAGE_ABBRS, ORIGIN_GAMES, ORIGIN_GAME_NAMES } from '../../../utils/capture-fields';
 import { TYPE_ORDER } from './filters';
-import { localizeBall, localizeOriginGame } from '../../../i18n/names';
+import { localizeBall, localizeNature, localizeOriginGame } from '../../../i18n/names';
 import { placeFromKey, placeKey, placeLabel, shownPlace } from '../../../utils/location-moves';
 import { translate } from '../../../i18n/translations';
 
@@ -14,7 +14,7 @@ export type DexLayout = 'boxes' | 'ledger';
 
 export type LedgerColumnId = 'number' | 'name' | 'types' | 'status' | 'location' | 'origin' | 'ball' | 'language' | 'ot' | 'nickname' | 'date' | 'level';
 
-export type LedgerGroupId = 'none' | 'box' | 'generation' | 'type' | 'status' | 'origin' | 'ball' | 'location' | 'language' | 'ot' | 'year';
+export type LedgerGroupId = 'none' | 'box' | 'generation' | 'type' | 'status' | 'origin' | 'ball' | 'nature' | 'location' | 'language' | 'ot' | 'year';
 
 export interface LedgerSort {
   column: LedgerColumnId;
@@ -158,6 +158,11 @@ const GROUPS: Record<Exclude<LedgerGroupId, 'none'>, GroupDef> = {
     key: (capture) => capture.ball ?? '',
     label: (key, ctx) => localizeBall(ctx.locale, key, BALL_NAMES.get(key) ?? key),
     rank: ballRank,
+  },
+  // the biggest first, as the Nature filter lists them
+  nature: {
+    key: (capture) => capture.nature ?? '',
+    label: (key, ctx) => localizeNature(ctx.locale, key, key.charAt(0).toUpperCase() + key.slice(1)),
   },
   // each of your games apart, after HOME and Champions
   location: {

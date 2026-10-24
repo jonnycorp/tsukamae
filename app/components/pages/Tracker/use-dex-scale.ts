@@ -18,6 +18,8 @@ const GUTTERS = 24;
 const HEADER_GUESS = 160;
 // unscaled px: a box's title with its margin, and its tiles
 const BOX_HEIGHT = 44 + (BOX_SIZE / BOX_COLUMNS) * TILE_SIZE + 2;
+// unscaled px between two rows of boxes; keep in sync with .box-grid's gap in styles/tracker.scss
+const BOX_ROW_GAP = 60;
 // scaled px above the first row of boxes, whatever the window's height, and the room the fit leaves below it
 const TOP_GAP = 30;
 const MAX_FIT = 2;
@@ -54,6 +56,11 @@ function fitScale (width: number, height: number, header = HEADER_GUESS): number
 // as many boxes across as the scaled width holds
 function columnsAt (width: number, scale: number): number {
   return Math.max(1, Math.floor(((width - GUTTERS) / scale + BOX_GAP) / (BOX_WIDTH + BOX_GAP)));
+}
+
+// screen px the boxes span at a fit: the header's width (headerWidth)
+function spanAt (width: number, fit: number): number {
+  return (columnsAt(width, fit) * (BOX_WIDTH + BOX_GAP) - BOX_GAP) * fit;
 }
 
 // each flipping line's face height in scaled px, the band, and the types' glyph and gap, rounded to whole screen pixels
@@ -107,6 +114,8 @@ function stepFrom (zoom: number, direction: number, steps: number[]): number {
 interface DexScale {
   scale: number;
   columns: number;
+  // rows of boxes the area shows at the scale, a partly shown one included: the screenful the dex opens on
+  rows: number;
   // false for the first render, before the area has been measured
   measured: boolean;
   // screen px the boxes span at 100%: the header (its meter end to end) lines up with them there, and never moves as
@@ -121,6 +130,9 @@ interface DexScale {
 // ref is the unscaled area below the nav; Ctrl+wheel, Ctrl+=/− and Ctrl+0 set the zoom (Cmd on macOS), Z resets it
 export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
   const [area, setArea] = useState({ width: 0, height: 0, header: HEADER_GUESS });
+  // as it's laid out now, for the observer, which runs between renders
+  const areaRef = useRef(area);
+  areaRef.current = area;
   const [zoom, setZoom] = useLocalStorage('dexZoom', 1);
   const [nudges, setNudges] = useState(0);
   // the face heights are whole screen pixels, so a change of display scaling (another monitor) re-renders them
@@ -156,19 +168,78 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
   useHotkey('z', () => applyZoom(1));
 
   // the area, and the header above the boxes in it, which grows with the window's width and the dex's name (a long one
-  // takes the tags onto a line of their own)
+  // takes the tags onto a line of their own). The two go round: the header's height sets the fit where the height
+  // stops it, the fit sets the header's width, and its width how it wraps, so its height. So it's settled where they
+  // agree, each height the header's had kept by the width it had it at (for this area and what the header holds now):
+  // a fit that would swap between two every frame, the header wrapping at the one and not at the other (two boxes
+  // across and three), is seen coming round, and rests on the smaller of them, the taller header's
   useLayoutEffect(() => {
     const el = ref.current!;
     const header = el.querySelector<HTMLElement>('.dex-search-bar');
-    const measure = () => setArea({ width: el.clientWidth, height: el.clientHeight, header: header?.getBoundingClientRect().height ?? HEADER_GUESS });
-    measure();
-    // synchronous, so a resized window never paints a frame at the old scale
-    const observer = new ResizeObserver(() => flushSync(measure));
+    let heights = new Map<number, number>();
+    let size = '';
+    // the header's height to fit the area to: as it's measured, unless the width that fits it is one it's been laid out
+    // at already, whose height is followed on from there till the fit stays put or comes back round
+    const headerFor = (width: number, height: number): number => {
+      const shown = areaRef.current;
+      const at = spanAt(shown.width, fitScale(shown.width, shown.height, shown.header));
+      const measured = header?.getBoundingClientRect().height ?? HEADER_GUESS;
+      if (`${width}x${height}` !== size) {
+        size = `${width}x${height}`;
+        heights = new Map();
+      } else if (heights.has(at) && heights.get(at) !== measured) {
+        // changed at a width it's had before (a name, a filter, its own zoom): what was measured no longer holds
+        heights = new Map();
+      }
+      heights.set(at, measured);
+      let assumed = measured;
+      const path = [at];
+      for (;;) {
+        const next = spanAt(width, fitScale(width, height, assumed));
+        const known = heights.get(next);
+        if (next === path[path.length - 1] || known === undefined) {
+          return assumed;
+        }
+        if (path.includes(next)) {
+          return Math.max(...path.slice(path.indexOf(next)).map((span) => heights.get(span)!));
+        }
+        path.push(next);
+        assumed = known;
+      }
+    };
+    // a few renders in a row at most, the header taking each new width before it's measured again
+    const settle = () => {
+      for (let pass = 0; pass < 3; pass++) {
+        const next = { width: el.clientWidth, height: el.clientHeight, header: headerFor(el.clientWidth, el.clientHeight) };
+        const shown = areaRef.current;
+        if (next.width === shown.width && next.height === shown.height && next.header === shown.header) {
+          return;
+        }
+        flushSync(() => setArea(next));
+      }
+    };
+    setArea({ width: el.clientWidth, height: el.clientHeight, header: header?.getBoundingClientRect().height ?? HEADER_GUESS });
+    let frame = 0;
+    const observer = new ResizeObserver((entries) => {
+      cancelAnimationFrame(frame);
+      if (entries.some((entry) => entry.target === el)) {
+        // the area: at once, so a resized window never paints a frame at the old scale. The header this re-wraps is
+        // reported again after, being inside it
+        settle();
+      } else {
+        // the header alone, which mustn't change size again inside the round that reported it (the browser drops the
+        // report, an error): the next frame
+        frame = requestAnimationFrame(settle);
+      }
+    });
     observer.observe(el);
     if (header) {
       observer.observe(header);
     }
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [ref]);
 
   useEffect(() => {
@@ -222,8 +293,9 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
   return {
     scale,
     columns: columnsAt(area.width, scale),
+    rows: Math.max(1, Math.ceil((area.height - area.header) / ((BOX_HEIGHT + BOX_ROW_GAP) * scale))),
     measured: area.width > 0,
-    headerWidth: (columnsAt(area.width, fit) * (BOX_WIDTH + BOX_GAP) - BOX_GAP) * fit,
+    headerWidth: spanAt(area.width, fit),
     flipLines: flipLinesAt(scale),
     zoom: steppedZoom,
     nudges,

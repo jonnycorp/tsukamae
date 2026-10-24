@@ -18,6 +18,25 @@ html {
   outline: 0;
 }
 
+// what the theme's tokens are mixed into: a tile stack's hard edges and seams (block-slab), its own paper darkened; the
+// stack's drop, a see-through ink over whatever it falls on (black on dark paper, where ink is light); the dots on a
+// tile's grip; and the lightness and chroma a game's colour is drawn at (utils/game-colors), lifted for dark paper
+:root {
+  --block-edge: color-mix(in oklch, var(--paper-raised) 60%, var(--ink));
+  --block-drop: color-mix(in oklch, var(--ink) 30%, transparent);
+  --grip-dot: rgb(255 255 255 / 80%);
+  --game-l: .62;
+  --game-c: .15;
+}
+
+:root[data-mode='dark'] {
+  --block-edge: color-mix(in oklch, var(--paper-raised) 55%, black);
+  --block-drop: rgb(0 0 0 / 45%);
+  --grip-dot: rgb(0 0 0 / 40%);
+  --game-l: .72;
+  --game-c: .13;
+}
+
 // every colour token is written onto :root at runtime by applyTheme, per theme and mode
 body {
   margin: 0;
@@ -923,7 +942,12 @@ form {
 // list and add-row share one width so the table can't resize with its contents
 $saves-table-width: 640px;
 
+// your games as tiles stacked flush into one raised block, each in its game's colour down its grip, picked up by it and
+// dragged into their order; the column heads over them, lined up with what the tiles hold (a tile's padding plus its
+// side edge)
 .saves-list {
+  display: flex;
+  flex-direction: column;
   width: min($saves-table-width, 100%);
   margin: 0 0 $space-field;
   padding: 0;
@@ -932,17 +956,17 @@ $saves-table-width: 640px;
   .saves-list-header,
   .saves-list-item {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    // the game, its OT, its ID No.
+    grid-template-columns: 1.5fr 1fr .8fr;
     align-items: center;
     gap: 10px;
     text-align: center;
   }
 
   .saves-list-header {
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--line-soft);
+    padding: 0 20px 8px 42px;
     font-family: $font-secondary;
-    @include small-text(11px);
+    @include small-text(12px);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -951,31 +975,35 @@ $saves-table-width: 640px;
   }
 
   .saves-list-item {
-    position: relative;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--line-soft);
+    @include block-slab;
+
+    padding: 14px 18px 14px 40px;
 
     .saves-list-key {
-      font-size: 14px;
+      font-size: 16px;
       color: var(--ink);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
+    .saves-list-tid {
+      font-variant-numeric: tabular-nums;
+    }
+
     .saves-list-controls {
       display: flex;
       position: absolute;
-      right: 0;
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
 
       button {
-        padding: 6px 4px;
+        padding: 6px 5px;
         border: 0;
         background: none;
         color: var(--ink-muted);
-        @include small-text(12px);
+        font-size: 14px;
         opacity: .6;
         cursor: pointer;
         transition: opacity .1s ease-out;
@@ -997,6 +1025,16 @@ $saves-table-width: 640px;
         opacity: .75;
       }
     }
+  }
+
+  // each row's buttons sit at its right end while editing: the columns keep clear of them, the heads by a tile's side
+  // edge more
+  &.editing .saves-list-item {
+    padding-right: 76px;
+  }
+
+  &.editing .saves-list-header {
+    padding-right: 78px;
   }
 }
 
@@ -1025,6 +1063,11 @@ button.btn.btn-edit-list {
   .form-group {
     flex: 1 1 0;
     min-width: 0;
+  }
+
+  // six digits want less room than a game's name
+  .saves-tid {
+    flex-grow: .7;
   }
 }
 

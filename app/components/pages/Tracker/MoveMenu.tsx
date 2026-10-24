@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { faCheck, faHouse } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { OriginMark } from './seal-faces';
+import { OriginMark, hasOriginMark } from './seal-faces';
 import { destinations, placeKey, placeLabel, placeOf, samePlace } from '../../../utils/location-moves';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerActions, useTrackerState } from './use-tracker';
@@ -23,7 +23,8 @@ function PlaceIcon ({ place, saves }: { place: Place; saves: GameSave[] }) {
     return <img alt="" className="move-menu-mark" src="/marks/champions.png" />;
   }
   const save = saves.find((entry) => entry.id === place.location_save);
-  return save ? <OriginMark game={save.game} /> : <span className="move-menu-icon" />;
+  // a game without a mark keeps the mark's room, so its name lines up with the rest
+  return save && hasOriginMark(save.game) ? <OriginMark game={save.game} /> : <span className="move-menu-icon" />;
 }
 
 // where a sealed mon can be moved, in a menu beside its tile (L over it): HOME, each of your games, and Champions in a

@@ -76,6 +76,50 @@
     "name": "Y"
   },
   {
+    "id": "black_2",
+    "name": "Black 2"
+  },
+  {
+    "id": "white_2",
+    "name": "White 2"
+  },
+  {
+    "id": "black",
+    "name": "Black"
+  },
+  {
+    "id": "white",
+    "name": "White"
+  },
+  {
+    "id": "heartgold",
+    "name": "HeartGold"
+  },
+  {
+    "id": "soulsilver",
+    "name": "SoulSilver"
+  },
+  {
+    "id": "platinum",
+    "name": "Platinum"
+  },
+  {
+    "id": "diamond",
+    "name": "Diamond"
+  },
+  {
+    "id": "pearl",
+    "name": "Pearl"
+  },
+  {
+    "id": "firered",
+    "name": "FireRed"
+  },
+  {
+    "id": "leafgreen",
+    "name": "LeafGreen"
+  },
+  {
     "id": "go",
     "name": "Pokémon GO"
   },

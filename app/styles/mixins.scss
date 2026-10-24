@@ -230,3 +230,104 @@
     font-size: 11px;
   }
 }
+
+// a list's items as flat tiles stacked flush into one raised block (the dexes, My Games), no gap between them and no
+// blur anywhere: a hard edge round the stack, a seam across between two tiles, and under it all the stack's drop, a
+// tight hard shadow down its right side and along its foot. Every line is an inset shadow or a side border, so the
+// tiles stay one height as they're carried and slide (use-drag-reorder); each tile casts its own stretch of the drop,
+// and the tile after it covers what falls under it. A tile is picked up by its grip alone (block-grip); pressed
+// anywhere else it darkens, as a button does. Carried (data-dragging), it's edged all round and its drop deepens while
+// the others slide aside. A list that clips (a scroller) leaves $block-drop-room for the drop. Still mode: nothing
+// slides
+$block-seam: inset 0 2px 0 var(--block-edge);
+$block-base: inset 0 -2px 0 var(--block-edge);
+$block-drop: 4px 4px 0 var(--block-drop);
+$block-lift: 6px 6px 0 var(--block-drop);
+$block-drop-room: 6px;
+
+@mixin block-slab {
+  position: relative;
+  border-right: 2px solid var(--block-edge);
+  border-left: 2px solid var(--block-edge);
+  background-color: var(--paper-raised);
+  color: var(--ink);
+  box-shadow: $block-seam, $block-drop;
+  user-select: none;
+  transition: transform .18s cubic-bezier(.2, .9, .3, 1), background-color .1s ease-out;
+
+  &:last-child {
+    box-shadow: $block-seam, $block-base, $block-drop;
+  }
+
+  &:hover {
+    background-image: linear-gradient(var(--hover-wash), var(--hover-wash));
+  }
+
+  // pressed, a wash deeper, unless it's the grip that's held
+  &:active:not(:has(.block-grip:active)) {
+    background-image: linear-gradient(var(--hover-wash), var(--hover-wash)), linear-gradient(var(--hover-wash), var(--hover-wash));
+  }
+
+  // inside the tile, clear of its edges, so it needs no layer of its own (one would lift its drop over the next tile)
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -6px;
+  }
+
+  &[data-dragging] {
+    z-index: 2;
+    box-shadow: $block-seam, $block-base, $block-lift;
+    transition: none;
+  }
+
+  :root[data-still] & {
+    transition: none;
+  }
+
+  // its grip, down its left: a cell in its game's colour (--spine), seamed off the face, a grid of square dots in its
+  // middle; under the seam above it, over the stack's edge below the last. The one place the hand shows, and the one
+  // place the tile is picked up
+  > .block-grip {
+    position: absolute;
+    top: 2px;
+    bottom: 0;
+    left: 0;
+    width: 20px;
+    background-color: var(--spine, var(--accent));
+    box-shadow: inset -2px 0 0 var(--block-edge);
+    cursor: grab;
+    transition: filter .1s ease-out;
+
+    // two columns of four 3px dots on a 5px pitch: one dot and its seven copies, the 8 × 18px grid centred in the
+    // colour (the cell's 18px left of its seam)
+    &::after {
+      position: absolute;
+      top: 50%;
+      left: 5px;
+      width: 3px;
+      height: 3px;
+      margin-top: -9px;
+      background-color: var(--grip-dot);
+      box-shadow:
+        5px 0 var(--grip-dot), 0 5px var(--grip-dot), 5px 5px var(--grip-dot), 0 10px var(--grip-dot),
+        5px 10px var(--grip-dot), 0 15px var(--grip-dot), 5px 15px var(--grip-dot);
+      content: '';
+    }
+
+    &:hover {
+      filter: brightness(1.1);
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &:last-child > .block-grip {
+    bottom: 2px;
+  }
+
+  &[data-dragging] > .block-grip {
+    cursor: grabbing;
+  }
+}

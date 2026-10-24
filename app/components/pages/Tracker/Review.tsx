@@ -269,6 +269,12 @@ export function Review ({ queue, start, onClose }: Props) {
     setNarrowList(false);
     mainRef.current?.focus({ preventScroll: true });
   }, []);
+  // a mon picked in the list: the list isn't scrolled to it (it's where it was pressed)
+  const pickedRef = useRef(false);
+  const pickFromList = useCallback((to: number) => {
+    pickedRef.current = to !== indexRef.current;
+    jump(to);
+  }, [jump]);
 
   const toggleList = useCallback(() => {
     if (narrow) {
@@ -462,9 +468,21 @@ export function Review ({ queue, start, onClose }: Props) {
     mainRef.current?.focus({ preventScroll: true });
   }, []);
 
-  // the list keeps the mon it's on in sight
+  // the list keeps the mon it's on near its top, the two before it in view and the rest of the run below it (the run's
+  // mostly worked down); one picked in the list itself is in view where it was pressed, and the list stays put. Scrolled
+  // on the list alone, which a scrollIntoView wouldn't keep to
   useEffect(() => {
-    runRef.current?.querySelector('.review-run-row.current')?.scrollIntoView({ block: 'nearest' });
+    // spent here even where there's no list to keep still: a pick in the narrow overlay closes it, and the flag mustn't
+    // outlast it to leave the list unscrolled when it's opened again
+    const picked = pickedRef.current;
+    pickedRef.current = false;
+    const run = runRef.current;
+    const item = run?.querySelector('.review-run-row.current')?.parentElement;
+    if (!run || !item || picked) {
+      return;
+    }
+    const anchor = item.previousElementSibling?.previousElementSibling ?? item.parentElement!.firstElementChild ?? item;
+    run.scrollTop += anchor.getBoundingClientRect().top - run.getBoundingClientRect().top;
   }, [index, list]);
 
   const state = capture ? stateOf(capture, false) : 'unmarked';
@@ -519,7 +537,13 @@ export function Review ({ queue, start, onClose }: Props) {
                 value={here ? placeKey(here) : ''}
               />
             )
-            : <p className="review-plate-value">{formatFieldValue(field, capture, locale, saves)}</p>}
+            : (
+              <p className="review-plate-value">
+                {/* the ball's sprite before its name, as its menu shows it while the record is open */}
+                {field.id === 'ball' && capture.ball && capture.ball !== 'unknown' && <img alt="" className="review-ball" src={`/balls/${capture.ball}.png`} />}
+                {formatFieldValue(field, capture, locale, saves)}
+              </p>
+            )}
         </>
       );
     } else {
@@ -569,7 +593,7 @@ export function Review ({ queue, start, onClose }: Props) {
             <ol style={{ zoom: scale }}>
               {queue.map((id, i) => {
                 const entry = byId.get(id);
-                return entry ? <RunRow capture={entry} current={i === index} dex={dex} index={i} key={id} onPick={jump} /> : null;
+                return entry ? <RunRow capture={entry} current={i === index} dex={dex} index={i} key={id} onPick={pickFromList} /> : null;
               })}
             </ol>
           </aside>

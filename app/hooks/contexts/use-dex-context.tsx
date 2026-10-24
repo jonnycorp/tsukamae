@@ -142,9 +142,24 @@ export const DexContextProvider = ({ children }: Props) => {
       createSave: (input) => apply((state) => {
         state.saves = [...(state.saves ?? []), { id: newId('save'), ...input }];
       }),
-      // in place, keeping the id every "in a game" location points at; records keep the OT they were stamped with
+      // in place, keeping the id every "in a game" location points at; records keep the OT and ID No. they were stamped
+      // with. A dex's defaults name the game by its ID No. too (which of two files sharing a game and language), so a new
+      // ID No. carries over to the defaults that named the file: settings only, never a record. Those named it by its
+      // old ID No., or, its first one given, by its game and language alone (a file without one is the only one of its
+      // game and language, My Games' rule), which would otherwise follow whichever file came first once a second one
+      // joined it. A game or language changed with it makes another game, which the defaults don't follow
       updateSave: (id, changes) => apply((state) => {
+        const before = (state.saves ?? []).find((save) => save.id === id);
         state.saves = (state.saves ?? []).map((save) => (save.id === id ? { ...save, ...changes } : save));
+        if (!before || (changes.tid || null) === (before.tid || null) || changes.game !== before.game || changes.language !== before.language) {
+          return;
+        }
+        state.dexes = state.dexes.map((dex) => {
+          const defaults = dex.captureDefaults;
+          const named = defaults?.origin_game === before.game && defaults.language === before.language &&
+            (before.tid ? defaults.tid === before.tid : !defaults.tid);
+          return named ? { ...dex, captureDefaults: { ...defaults, tid: changes.tid || null } } : dex;
+        });
       }),
       moveSave: (id, delta) => apply((state) => {
         const saves = state.saves ?? [];

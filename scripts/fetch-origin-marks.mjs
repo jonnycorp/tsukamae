@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const POKESPRITE_HOST = 'https://raw.githubusercontent.com/msikma/pokesprite/master/misc/origin-marks/home';
 const BULBAGARDEN_HOST = 'https://archives.bulbagarden.net/media/upload';
 
-// pokesprite stops at gen 8; Paldea, Z-A and Champions come from Bulbagarden archives
+// pokesprite stops at gen 8; Paldea, Z-A, the Switch FireRed/LeafGreen and Champions come from Bulbagarden archives
 const MARKS = {
   pentagon: `${POKESPRITE_HOST}/pentagon.png`,
   clover: `${POKESPRITE_HOST}/clover.png`,
@@ -21,6 +21,8 @@ const MARKS = {
   // gen-9 summary-screen variants — the HOME ones are white-on-transparent, invisible on light tiles
   paldea: `${BULBAGARDEN_HOST}/8/89/Paldea_icon.png`,
   za: `${BULBAGARDEN_HOST}/a/a7/Z-A_icon.png`,
+  // the HOME mobile version, already drawn to match pokesprite's 64px marks
+  gba: `${BULBAGARDEN_HOST}/8/8b/GBA_icon.png`,
   // upstream has a baked white background; the committed copy was hand-cleared, so it's only fetched when missing
   champions: 'https://archives.bulbagarden.net/wiki/Special:FilePath/HOME_Champions_icon.png',
 };

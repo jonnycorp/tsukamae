@@ -79,5 +79,5 @@ export function placeLabel (place: Place, saves: GameSave[], locale: Locale): st
     return translate(locale, `location.${place.location}`);
   }
   const save = saves.find((entry) => entry.id === place.location_save);
-  return save ? saveLabel(save, locale) : translate(locale, 'location.game');
+  return save ? saveLabel(save, locale, saves) : translate(locale, 'location.game');
 }

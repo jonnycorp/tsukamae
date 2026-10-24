@@ -1,14 +1,18 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faChevronDown, faChevronUp, faPencilAlt, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faPencilAlt, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 import { Dropdown } from './Dropdown';
 import { ModalShell } from './ModalShell';
-import { LANGUAGES, ORIGIN_GAMES, nameMaxLength, saveLabel } from '../../utils/capture-fields';
+import { LANGUAGES, ORIGIN_GAMES, idDigits, nameMaxLength, saveLabel } from '../../utils/capture-fields';
+import { gameColor } from '../../utils/game-colors';
 import { localizeCaptureLanguage, localizeOriginGame } from '../../i18n/names';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../hooks/use-dismissable';
+import { useDragReorder } from '../../hooks/use-drag-reorder';
 import { useTranslation } from '../../hooks/use-translation';
+
+import type { CSSProperties } from 'react';
 
 interface Props {
   onRequestClose: () => void;
@@ -27,12 +31,21 @@ export function SavesModal ({ onRequestClose }: Props) {
   const [draftGame, setDraftGame] = useState('');
   const [draftLanguage, setDraftLanguage] = useState('');
   const [draftOT, setDraftOT] = useState('');
+  const [draftTID, setDraftTID] = useState('');
 
   const otMax = nameMaxLength(draftLanguage);
 
-  // the game/language pair is the mapping key, so it must stay unique
+  // each game a block in its colour, dragged into its place (or moved a place by Alt+↑/↓)
+  const { itemProps } = useDragReorder(saves.length, (from, to) => moveSave(saves[from].id, to - from));
+
+  // what's typed is folded to digits as it goes, except mid-composition (an IME's text can't change under it)
+  const tid = idDigits(draftTID);
+
+  // the game/language pair is the mapping key, so it must stay unique, unless every game sharing it has its own ID No.
+  // (two files of one game), which tells them apart
   const duplicate = Boolean(draftGame && draftLanguage &&
-    saves.some((save) => save.id !== editId && save.game === draftGame && save.language === draftLanguage));
+    saves.some((save) => save.id !== editId && save.game === draftGame && save.language === draftLanguage &&
+      (!tid || !save.tid || save.tid === tid)));
   const canAdd = Boolean(draftGame && draftLanguage && draftOT.trim()) && !duplicate;
 
   const handleLanguageChange = (next: string) => {
@@ -44,7 +57,8 @@ export function SavesModal ({ onRequestClose }: Props) {
     if (!canAdd) {
       return;
     }
-    const input = { game: draftGame, language: draftLanguage, ot: draftOT.trim() };
+    // the ID No. is optional: a game added before it was asked for has none, and can be given one by Edit
+    const input = { game: draftGame, language: draftLanguage, ot: draftOT.trim(), tid: tid || undefined };
     if (editId) {
       updateSave(editId, input);
     } else {
@@ -53,6 +67,7 @@ export function SavesModal ({ onRequestClose }: Props) {
     setDraftGame('');
     setDraftLanguage('');
     setDraftOT('');
+    setDraftTID('');
     setEditId(null);
     setAdding(false);
   };
@@ -66,6 +81,7 @@ export function SavesModal ({ onRequestClose }: Props) {
     setDraftGame(save.game);
     setDraftLanguage(save.language);
     setDraftOT(save.ot);
+    setDraftTID(save.tid ?? '');
     setEditId(id);
     setAdding(true);
   };
@@ -89,15 +105,25 @@ export function SavesModal ({ onRequestClose }: Props) {
         <h1>{t('saves.title')}</h1>
 
         {saves.length > 0 &&
-          <ul className="saves-list">
+          <ul className={editing ? 'saves-list editing' : 'saves-list'}>
             <li className="saves-list-header">
               <span>{t('saves.game')}</span>
               <span>{t('saves.ot')}</span>
+              <span>{t('saves.tid')}</span>
             </li>
             {saves.map((save, index) => (
-              <li className="saves-list-item" key={save.id}>
+              <li
+                {...itemProps(index)}
+                aria-roledescription={t('landing.dragHint')}
+                className="saves-list-item"
+                key={save.id}
+                style={{ '--spine': gameColor(save.game) } as CSSProperties}
+                tabIndex={0}
+              >
+                <span aria-hidden="true" className="block-grip" data-drag-handle="" title={t('landing.dragHint')} />
                 <div className="saves-list-key">{saveLabel(save, locale)}</div>
                 <div className="saves-list-key">{save.ot}</div>
+                <div className="saves-list-key saves-list-tid">{save.tid || '—'}</div>
                 {editing &&
                   <div className="saves-list-controls">
                     <button
@@ -110,27 +136,9 @@ export function SavesModal ({ onRequestClose }: Props) {
                       <FontAwesomeIcon icon={faPencilAlt} />
                     </button>
                     <button
-                      aria-label={t('landing.moveUp')}
-                      disabled={index === 0}
-                      onClick={() => moveSave(save.id, -1)}
-                      title={t('landing.moveUp')}
-                      type="button"
-                    >
-                      <FontAwesomeIcon icon={faChevronUp} />
-                    </button>
-                    <button
-                      aria-label={t('landing.moveDown')}
-                      disabled={index === saves.length - 1}
-                      onClick={() => moveSave(save.id, 1)}
-                      title={t('landing.moveDown')}
-                      type="button"
-                    >
-                      <FontAwesomeIcon icon={faChevronDown} />
-                    </button>
-                    <button
                       aria-label={t('saves.delete')}
                       className="saves-delete"
-                      onClick={() => handleDelete(save.id, saveLabel(save, locale))}
+                      onClick={() => handleDelete(save.id, saveLabel(save, locale, saves))}
                       title={t('saves.delete')}
                       type="button"
                     >
@@ -175,6 +183,20 @@ export function SavesModal ({ onRequestClose }: Props) {
                   onChange={(e) => setDraftOT(e.target.value)}
                   type="text"
                   value={draftOT}
+                />
+              </div>
+              <div className="form-group saves-tid">
+                <label htmlFor="save_tid">{t('saves.tid')}</label>
+                <input
+                  autoComplete="off"
+                  className="form-control"
+                  id="save_tid"
+                  inputMode="numeric"
+                  onChange={(e) => setDraftTID((e.nativeEvent as InputEvent).isComposing ? e.target.value : idDigits(e.target.value))}
+                  onCompositionEnd={(e) => setDraftTID(idDigits(e.currentTarget.value))}
+                  placeholder={t('saves.tidPlaceholder')}
+                  type="text"
+                  value={draftTID}
                 />
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { EMPTY_METADATA, freshMetadata, lookupOT, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
+import { EMPTY_METADATA, freshMetadata, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerActions } from './use-tracker';
 
@@ -16,9 +16,10 @@ interface PatchEnv {
 }
 
 // what a change to a marked record comes to, as storage keeps it (writeCapture): switching to unobtainable wipes the
-// record, and leaving it starts over like a new mark; otherwise each field's invariants follow it, and a game or
-// language moved by hand onto another of your games takes that game's OT, as picking it would (a typed OT, or one
-// moving onto a game that isn't yours, stays); sealing is only ever from Caught
+// record, and leaving it starts over like a new mark; otherwise each field's invariants follow it. What My Game fills
+// in (the game, the language, the OT and the ID No.) is filled in only by a pick there: one of them changed by hand
+// changes alone, so a HOME gift keeps HOME's OT and ID No. under the origin mark of the game it came from. Sealing is
+// only ever from Caught
 export function resolvePatch (capture: Capture, changes: RecordPatch, env: PatchEnv): RecordPatch {
   const reviving = capture.status === 'unobtainable' && changes.status !== undefined && changes.status !== 'unobtainable';
   let resolved: RecordPatch;
@@ -29,17 +30,6 @@ export function resolvePatch (capture: Capture, changes: RecordPatch, env: Patch
     resolved = { ...fresh, ...changes, sealed: false };
   } else {
     resolved = { ...changes, ...withFieldInvariants(capture, changes) };
-    if (!('ot' in changes) && ('origin_game' in resolved || 'language' in resolved)) {
-      const stamped = lookupOT(env.saves, capture.origin_game, capture.language);
-      const restamped = lookupOT(
-        env.saves,
-        'origin_game' in resolved ? resolved.origin_game ?? null : capture.origin_game,
-        'language' in resolved ? resolved.language ?? null : capture.language,
-      );
-      if (stamped !== null && restamped !== null && capture.ot === stamped) {
-        resolved.ot = restamped;
-      }
-    }
   }
   if (capture.sealed && resolved.status !== undefined && resolved.status !== 'caught') {
     resolved = { ...resolved, sealed: false };

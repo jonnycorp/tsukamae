@@ -171,6 +171,13 @@ $tl-spine-at: 1s;
   }
 }
 
+// the ground's months, faded in together as the spine draws: one layer for the compositor, not one a month
+.tl-axis {
+  position: absolute;
+  inset: 0;
+  animation: fade-in .4s ease-out $tl-spine-at + .2s both;
+}
+
 // a month's ground under the spine: a tick where it starts, its name, and on a year's first month the year's banner
 .tl-month {
   position: absolute;
@@ -179,7 +186,6 @@ $tl-spine-at: 1s;
   width: calc(var(--w) * var(--z) * 1px);
   height: $tl-spine-bottom - 6px;
   border-left: 1px solid color-mix(in srgb, #{$tl-ink} 20%, transparent);
-  animation: fade-in .4s ease-out $tl-spine-at + .2s both;
 
   &.empty {
     border-left-style: dashed;
@@ -294,7 +300,8 @@ $tl-spine-at: 1s;
   zoom: var(--z);
 }
 
-// a mon, standing in its slot on the spine or its pile; it drops in on its turn and squashes as it lands
+// a mon, standing in its slot on the spine or its pile; it drops in on its turn (.dropping, from the entrance) and
+// squashes as it lands
 .tl-mon {
   display: flex;
   position: absolute;
@@ -304,8 +311,11 @@ $tl-spine-at: 1s;
   height: $tl-slot-h;
   opacity: 0;
   transform-origin: 50% 100%;
-  animation: tl-plop .52s cubic-bezier(.25, .8, .35, 1) both;
   cursor: pointer;
+
+  &.dropping {
+    animation: tl-plop .52s cubic-bezier(.25, .8, .35, 1) both;
+  }
 
   // icon pixels at a whole multiple, so the art stays crisp
   .pkicon {
@@ -336,7 +346,7 @@ $tl-spine-at: 1s;
 }
 
 // settled, by the clock or a skip: the scenery is all there at once, without the rest of its entrance
-.tl-stage.settled :is(.tl-spine, .tl-month, .tl-year, .tl-skip) {
+.tl-stage.settled :is(.tl-spine, .tl-axis, .tl-year, .tl-skip) {
   animation: none;
 }
 

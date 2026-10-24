@@ -2,7 +2,7 @@ import ballsJson from '../../data/balls.json';
 import languagesJson from '../../data/languages.json';
 import originGamesJson from '../../data/games.json';
 
-import { localizeBall, localizeCaptureLanguage, localizeOriginGame } from '../i18n/names';
+import { localizeBall, localizeCaptureLanguage, localizeNature, localizeOriginGame } from '../i18n/names';
 import { translate } from '../i18n/translations';
 
 import type { CaptureMetadata, CaptureStatus, FavoriteState, GameSave, GenderLock, GenderState } from '../types';
@@ -44,6 +44,25 @@ interface Ball {
 export const BALLS = ballsJson as Ball[];
 export const BALL_NAMES = new Map(BALLS.map((ball) => [ball.id, ball.name]));
 
+// the twenty-five, in the games' own order: each row of five raises Attack, Defense, Speed, Sp. Atk, Sp. Def in turn,
+// and within a row they lower the same five in turn, the neutral one where the two meet
+export const NATURES = [
+  'hardy', 'lonely', 'brave', 'adamant', 'naughty',
+  'bold', 'docile', 'relaxed', 'impish', 'lax',
+  'timid', 'hasty', 'serious', 'jolly', 'naive',
+  'modest', 'mild', 'quiet', 'bashful', 'rash',
+  'calm', 'gentle', 'sassy', 'careful', 'quirky',
+];
+const natureName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
+
+// picked from a menu by name, so listed as a dictionary lists them: A to Z, or in kana order
+function natureOptions (locale: Locale): CaptureFieldOption[] {
+  const collator = new Intl.Collator(locale === 'ja' ? 'ja-JP' : 'en-US');
+  return NATURES
+  .map((id) => ({ value: id, label: localizeNature(locale, id, natureName(id)) }))
+  .sort((a, b) => collator.compare(a.label, b.label));
+}
+
 export const MYSTERY_GIFT = 'mystery_gift';
 const CHERISH_BALL = 'cherish_ball';
 
@@ -57,22 +76,50 @@ export function nameMaxLength (language: string | null | undefined): number {
   return LANGUAGES.find((entry) => entry.id === language)?.name_max ?? NAME_MAX_FALLBACK;
 }
 
-export function saveLabel (save: GameSave, locale: Locale): string {
+// a game and its language, as My Games lists them; given your games, its ID No. too where another of them shares both
+// (two files of one game, a 2015 and a 2017 Omega Ruby), so the two can be told apart wherever one is picked or shown
+export function saveLabel (save: GameSave, locale: Locale, saves?: GameSave[]): string {
   const game = localizeOriginGame(locale, save.game, ORIGIN_GAME_NAMES.get(save.game) ?? save.game);
   const abbr = LANGUAGE_ABBRS.get(save.language);
-  return abbr ? translate(locale, 'saves.label', { game, language: abbr }) : game;
+  if (!abbr) {
+    return game;
+  }
+  const twin = Boolean(save.tid) && Boolean(saves?.some((other) => other.id !== save.id && other.game === save.game && other.language === save.language));
+  return translate(locale, twin ? 'saves.labelWithId' : 'saves.label', { game, language: abbr, tid: save.tid ?? '' });
 }
 
-// saves are keyed by game/language pair, never by id
-export function findSave (saves: GameSave[], game: string | null, language: string | null): GameSave | undefined {
+// saves are keyed by game and language, never by their own id; where two files of one game share both, by the ID No.
+// a record took from the one picked for it. A record without one (marked before IDs, or moved onto the game by hand)
+// goes by its OT, then by the first
+export function findSave (saves: GameSave[], game: string | null, language: string | null, tid: string | null = null, ot: string | null = null): GameSave | undefined {
   if (!game || !language) {
     return undefined;
   }
-  return saves.find((save) => save.game === game && save.language === language);
+  const matches = saves.filter((save) => save.game === game && save.language === language);
+  if (matches.length <= 1) {
+    return matches[0];
+  }
+  return (tid && matches.find((save) => save.tid === tid)) || (ot && matches.find((save) => save.ot === ot)) || matches[0];
 }
 
-export function lookupOT (saves: GameSave[], game: string | null, language: string | null): string | null {
-  return findSave(saves, game, language)?.ot || null;
+// the one of your games a record is, as My Game shows it: the game, language, OT and ID No. a pick there filled in, all
+// still as it filled them. One changed by hand since (a HOME gift given its own origin mark) makes it none of yours,
+// never another game that matches what's left. A record without an ID No. (marked before they were asked for) goes by
+// the other three
+export function stampedSave (saves: GameSave[], meta: Partial<CaptureMetadata>): GameSave | undefined {
+  if (!meta.origin_game || !meta.language || !meta.ot) {
+    return undefined;
+  }
+  return saves.find((save) => save.game === meta.origin_game && save.language === meta.language && save.ot === meta.ot &&
+    (!meta.tid || save.tid === meta.tid));
+}
+
+// an ID No. as a trainer card shows it, at most six digits; typed with an IME it comes full-width, so it's folded first
+export const ID_MAX = 6;
+export const idDigits = (raw: string) => raw.normalize('NFKC').replace(/\D/g, '').slice(0, ID_MAX);
+
+export function lookupOT (saves: GameSave[], game: string | null, language: string | null, tid: string | null = null): string | null {
+  return findSave(saves, game, language, tid)?.ot || null;
 }
 
 type CaptureFieldId =
@@ -84,8 +131,10 @@ type CaptureFieldId =
   | 'ball'
   | 'catch_date'
   | 'gender'
+  | 'nature'
   | 'nickname'
   | 'ot'
+  | 'tid'
   | 'level'
   | 'trained'
   | 'favorite';
@@ -109,6 +158,9 @@ export interface CaptureField {
   options?: (locale: Locale) => CaptureFieldOption[];
   // text cap, resolved from the record — OT and nickname follow the mon's language
   maxLength?: (meta: Partial<CaptureMetadata>) => number;
+  // a text field of digits: the keypad offered, and what's typed folded to what's kept (an ID No.'s digits)
+  numeric?: boolean;
+  normalize?: (raw: string) => string;
   min?: number;
   max?: number;
   // stored on every marked record, for a field whose options cover every state; such a field offers no blank
@@ -126,7 +178,9 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     id: 'save',
     kind: 'save',
     labelKey: 'info.myGame',
-    keys: [],
+    // what a dex's defaults keep for it: the picked game, its language and its ID No. (the game and language fields aren't
+    // defaults of their own, My Games having every game; a record's OT comes from the save as it's marked)
+    keys: ['origin_game', 'language', 'tid'],
     gatesSeal: false,
     defaultable: true,
     isAnswered: () => true,
@@ -137,7 +191,8 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     labelKey: 'info.originGame',
     keys: ['origin_game'],
     gatesSeal: true,
-    defaultable: true,
+    // a dex's default game comes with its My Game, as its language does
+    defaultable: false,
     options: (locale) => ORIGIN_GAMES.map((game) => ({ value: game.id, label: localizeOriginGame(locale, game.id, game.name) })),
     isAnswered: (meta) => filled(meta.origin_game),
   },
@@ -147,7 +202,7 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     labelKey: 'info.language',
     keys: ['language'],
     gatesSeal: true,
-    defaultable: true,
+    defaultable: false,
     options: (locale) => LANGUAGES.map((language) => ({ value: language.id, label: localizeCaptureLanguage(locale, language.id, language.name) })),
     isAnswered: (meta) => filled(meta.language),
   },
@@ -161,6 +216,19 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     defaultable: false,
     maxLength: (meta) => nameMaxLength(meta.language),
     isAnswered: (meta) => filled(meta.ot),
+  },
+  {
+    // the OT's ID No., read off the summary beside it: picking one of My Games fills both, a traded mon's is typed
+    id: 'tid',
+    kind: 'text',
+    labelKey: 'info.tid',
+    keys: ['tid'],
+    gatesSeal: true,
+    defaultable: false,
+    numeric: true,
+    maxLength: () => ID_MAX,
+    normalize: idDigits,
+    isAnswered: (meta) => filled(meta.tid),
   },
   {
     id: 'been_to_champions',
@@ -224,6 +292,17 @@ export const CAPTURE_FIELDS: CaptureField[] = [
       { value: 'female', label: translate(locale, 'gender.female') },
     ],
     isAnswered: (meta) => filled(meta.gender),
+  },
+  {
+    // read off the summary beside the gender; a record sealed before it was asked for wears the stale pin till it's in
+    id: 'nature',
+    kind: 'select',
+    labelKey: 'info.nature',
+    keys: ['nature'],
+    gatesSeal: true,
+    defaultable: false,
+    options: natureOptions,
+    isAnswered: (meta) => filled(meta.nature),
   },
   {
     id: 'nickname',
@@ -307,7 +386,9 @@ export const EMPTY_METADATA: CaptureMetadata = {
   has_nickname: null,
   nickname: null,
   ot: null,
+  tid: null,
   gender: null,
+  nature: null,
   level: null,
   trained: null,
   favorite: null,
@@ -323,7 +404,7 @@ interface FreshMetadataOptions {
 
 // a record as it's first marked, or marked again after unobtainable wiped it: the baselines, then the dex's defaults
 // under the cross-field rules (so a Mystery Gift default floors the favourite), where it lives, a species-locked
-// gender and the OT of the save the defaults point at. A checklist keeps no defaults. writeCapture and the tiles'
+// gender and the OT and ID No. of the save the defaults point at. A checklist keeps no defaults. writeCapture and the tiles'
 // optimistic copies all build from this, so they agree. The ball's pick rule isn't run again: the defaults already went
 // through it when picked, and an origin chosen after the Cherish Ball must stand
 export function freshMetadata ({ defaults, checklist, homeDex, genderLock, saves }: FreshMetadataOptions): CaptureMetadata {
@@ -334,7 +415,9 @@ export function freshMetadata ({ defaults, checklist, homeDex, genderLock, saves
   const base = { ...EMPTY_METADATA, ...BASELINE_METADATA };
   const { ball, ...preset } = metadataFromDefaults(defaults);
   const meta: CaptureMetadata = { ...base, ...preset, ...withFieldInvariants(base, preset), ball: ball ?? null, ...placed };
-  meta.ot = lookupOT(saves, meta.origin_game, meta.language);
+  const save = findSave(saves, meta.origin_game, meta.language, meta.tid);
+  meta.ot = save?.ot || null;
+  meta.tid = save?.tid ?? null;
   return meta;
 }
 
@@ -374,7 +457,7 @@ export function formatFieldValue (field: CaptureField, meta: Partial<CaptureMeta
       }
       if (meta.location === 'game' && meta.location_save) {
         const save = saves.find((entry) => entry.id === meta.location_save);
-        return save ? saveLabel(save, locale) : blank;
+        return save ? saveLabel(save, locale, saves) : blank;
       }
       return blank;
     }

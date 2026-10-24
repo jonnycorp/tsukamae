@@ -88,6 +88,7 @@ const GROUP_OPTIONS: { id: LedgerGroupId; labelKey: TranslationKey; record?: boo
   { id: 'status', labelKey: 'info.status' },
   { id: 'origin', labelKey: 'info.originGame', record: true },
   { id: 'ball', labelKey: 'info.ball', record: true },
+  { id: 'nature', labelKey: 'info.nature', record: true },
   { id: 'location', labelKey: 'info.location', record: true },
   { id: 'language', labelKey: 'info.language', record: true },
   { id: 'ot', labelKey: 'info.ot', record: true },

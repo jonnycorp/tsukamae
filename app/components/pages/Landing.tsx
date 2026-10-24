@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faChevronUp, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 import { DexIndicator } from '../library/DexIndicator';
@@ -8,10 +8,12 @@ import { DexModal } from '../library/DexModal';
 import { PokeballLogo } from '../library/PokeballLogo';
 import { Progress } from '../library/Progress';
 import { dexCounts, toDexView } from '../../utils/local-data';
+import { gameColor } from '../../utils/game-colors';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
+import { useDragReorder } from '../../hooks/use-drag-reorder';
 import { useTranslation } from '../../hooks/use-translation';
 
-import type { MouseEvent } from 'react';
+import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 
 export function Landing () {
   const { dexes, setActiveDex, moveDex, deleteDex } = useDexContext();
@@ -22,10 +24,15 @@ export function Landing () {
 
   const hasDexes = (dexes?.length ?? 0) > 0;
 
-  // the row itself opens the dex
-  const handleMoveClick = (e: MouseEvent<HTMLButtonElement>, id: string, delta: number) => {
-    e.stopPropagation();
-    moveDex(id, delta);
+  // each dex a block, dragged into its place (or moved a place by Alt+↑/↓), wearing its game's colour down its spine
+  const { itemProps } = useDragReorder(dexes?.length ?? 0, (from, to) => moveDex(dexes![from].id, to - from));
+
+  // a block opens its dex, by the keyboard too (Enter or Space), outside editing
+  const handleOpenKey = (e: KeyboardEvent<HTMLLIElement>, id: string) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && !editing) {
+      e.preventDefault();
+      setActiveDex(id);
+    }
   };
 
   const handleDeleteClick = (e: MouseEvent<HTMLButtonElement>, id: string, title: string) => {
@@ -48,31 +55,28 @@ export function Landing () {
             <ul className={classNames('dex-list', { editing })}>
               {dexes!.map((dex, index) => {
                 const counts = dexCounts(dex);
+                const view = toDexView(dex);
+                const { onKeyDown: handleMoveKey, ...drag } = itemProps(index);
                 return (
-                  <li className="dex-list-item" key={dex.id} onClick={() => (editing ? undefined : setActiveDex(dex.id))}>
+                  <li
+                    {...drag}
+                    aria-roledescription={t('landing.dragHint')}
+                    className="dex-list-item"
+                    key={dex.id}
+                    onClick={() => (editing ? undefined : setActiveDex(dex.id))}
+                    onKeyDown={(e) => {
+                      handleMoveKey(e);
+                      handleOpenKey(e, dex.id);
+                    }}
+                    style={{ '--spine': gameColor(view.game.id) } as CSSProperties}
+                    tabIndex={0}
+                  >
+                    <span aria-hidden="true" className="block-grip" data-drag-handle="" title={t('landing.dragHint')} />
                     <div className="dex-list-item-title">
                       <h3>{dex.title}</h3>
-                      <DexIndicator dex={toDexView(dex)} />
+                      <DexIndicator dex={view} />
                       {editing &&
                         <div className="dex-reorder">
-                          <button
-                            aria-label={t('landing.moveUp')}
-                            disabled={index === 0}
-                            onClick={(e) => handleMoveClick(e, dex.id, -1)}
-                            title={t('landing.moveUp')}
-                            type="button"
-                          >
-                            <FontAwesomeIcon icon={faChevronUp} />
-                          </button>
-                          <button
-                            aria-label={t('landing.moveDown')}
-                            disabled={index === dexes!.length - 1}
-                            onClick={(e) => handleMoveClick(e, dex.id, 1)}
-                            title={t('landing.moveDown')}
-                            type="button"
-                          >
-                            <FontAwesomeIcon icon={faChevronDown} />
-                          </button>
                           <button
                             aria-label={t('landing.delete')}
                             className="dex-delete"

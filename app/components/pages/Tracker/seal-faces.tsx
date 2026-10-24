@@ -16,7 +16,8 @@ const ORIGIN_MARK_ICONS: Record<string, IconDefinition> = {
   [MYSTERY_GIFT]: faGift,
 };
 
-// sprites come from yarn sprites:marks; trade and mystery gift fall back to glyphs
+// sprites come from yarn sprites:marks; trade and mystery gift fall back to glyphs, and the Generation IV and V games,
+// from before the marks, have none
 const ORIGIN_MARK_SPRITES: Record<string, string> = {
   x: 'pentagon',
   y: 'pentagon',
@@ -36,6 +37,9 @@ const ORIGIN_MARK_SPRITES: Record<string, string> = {
   scarlet: 'paldea',
   violet: 'paldea',
   legends_za: 'za',
+  // the Switch releases', given in HOME since their link: a Game Boy Advance
+  firered: 'gba',
+  leafgreen: 'gba',
   go: 'go',
 };
 
@@ -53,6 +57,12 @@ export function flippingLines (capture: Capture) {
 
 interface Props {
   capture: Capture;
+}
+
+// whether a game has a mark to show, so a list can keep a mark's room for one that hasn't (HOME, Other, the Generation
+// IV and V games)
+export function hasOriginMark (game: string): boolean {
+  return Boolean(ORIGIN_MARK_SPRITES[game] || ORIGIN_MARK_ICONS[game]);
 }
 
 // a game's origin mark: its sprite, or a glyph for a trade or a gift (GO has a sprite of its own)

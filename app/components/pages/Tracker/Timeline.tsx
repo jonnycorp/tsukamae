@@ -87,40 +87,44 @@ const Axis = memo(function Axis ({ count, layout, monthName, t }: AxisProps) {
   return (
     <>
       <div className="tl-spine" />
-      {layout.segments.map((segment) => {
-        if (segment.kind === 'skip') {
+      <div className="tl-axis">
+        {layout.segments.map((segment) => {
+          if (segment.kind === 'skip') {
+            return null;
+          }
+          if (segment.kind === 'undated') {
+            return (
+              <div className="tl-month tl-undated" key="undated" style={{ '--x': segment.x, '--w': segment.width } as CSSProperties}>
+                <span className="tl-month-label">{t('timeline.unknown')}</span>
+              </div>
+            );
+          }
           return (
-            // inset, so its slant keeps clear of the stacks either side
             <div
-              className="tl-skip"
-              key={`skip-${segment.firstOrder}`}
-              style={{ '--x': segment.x + SKIP_INSET, '--w': segment.width - 2 * SKIP_INSET, animationDelay: `${dropDelay(segment.firstOrder, count)}ms` } as CSSProperties}
+              className={classNames('tl-month', { empty: segment.count === 0 })}
+              key={`${segment.year}-${segment.month}`}
+              style={{ '--x': segment.x, '--w': segment.width } as CSSProperties}
             >
-              <span>{laterLabel(segment.months, t)}</span>
+              {segment.days.map((day) => <span className="tl-day" key={day.dx} style={{ '--dx': day.dx } as CSSProperties}>{day.day}</span>)}
+              {segment.count > 0 && <span className="tl-month-label">{monthName(segment.year, segment.month)}</span>}
+              {segment.opensYear &&
+                <span className="tl-year" style={{ animationDelay: `${dropDelay(segment.firstOrder, count)}ms` }}><span>{segment.year}</span></span>
+              }
             </div>
           );
-        }
-        if (segment.kind === 'undated') {
-          return (
-            <div className="tl-month tl-undated" key="undated" style={{ '--x': segment.x, '--w': segment.width } as CSSProperties}>
-              <span className="tl-month-label">{t('timeline.unknown')}</span>
-            </div>
-          );
-        }
-        return (
-          <div
-            className={classNames('tl-month', { empty: segment.count === 0 })}
-            key={`${segment.year}-${segment.month}`}
-            style={{ '--x': segment.x, '--w': segment.width } as CSSProperties}
-          >
-            {segment.days.map((day) => <span className="tl-day" key={day.dx} style={{ '--dx': day.dx } as CSSProperties}>{day.day}</span>)}
-            {segment.count > 0 && <span className="tl-month-label">{monthName(segment.year, segment.month)}</span>}
-            {segment.opensYear &&
-              <span className="tl-year" style={{ animationDelay: `${dropDelay(segment.firstOrder, count)}ms` }}><span>{segment.year}</span></span>
-            }
-          </div>
-        );
-      })}
+        })}
+      </div>
+      {/* the lulls' cards outside it, each popping up on its own turn in the cascade, never dimmed by the months' fade */}
+      {layout.segments.map((segment) => segment.kind === 'skip' &&
+        // inset, so its slant keeps clear of the stacks either side
+        <div
+          className="tl-skip"
+          key={`skip-${segment.firstOrder}`}
+          style={{ '--x': segment.x + SKIP_INSET, '--w': segment.width - 2 * SKIP_INSET, animationDelay: `${dropDelay(segment.firstOrder, count)}ms` } as CSSProperties}
+        >
+          <span>{laterLabel(segment.months, t)}</span>
+        </div>,
+      )}
     </>
   );
 });
@@ -132,10 +136,8 @@ interface MonsProps {
 }
 
 // every mon, at the unscaled size and place the zoomed scene around them scales; so a hover re-renders the card, and a
-// zoom the scene's zoom, rather than every mon
+// zoom the scene's zoom, rather than every mon. Each drops in on its turn, when the entrance gives it .dropping
 const Mons = memo(function Mons ({ dex, layout, locale }: MonsProps) {
-  const count = layout.sprites.length;
-
   return (
     <>
       {layout.sprites.map(({ capture, x, row, order, dated }) => (
@@ -144,7 +146,7 @@ const Mons = memo(function Mons ({ dex, layout, locale }: MonsProps) {
           data-copy-name={displayName(capture.pokemon.name, capture.pokemon.name_ja, locale)}
           data-order={order}
           key={capture.pokemon.id}
-          style={{ left: x, bottom: row * SLOT_H, animationDelay: `${dropDelay(order, count)}ms` }}
+          style={{ left: x, bottom: row * SLOT_H }}
         >
           <i className={iconClass(capture.pokemon, dex)} />
         </div>
@@ -164,7 +166,7 @@ function CardOrigin ({ capture }: { capture: Capture }) {
   }
   const game = localizeOriginGame(locale, capture.origin_game, ORIGIN_GAME_NAMES.get(capture.origin_game) ?? capture.origin_game);
   const abbr = capture.language ? LANGUAGE_ABBRS.get(capture.language) : undefined;
-  const yours = Boolean(capture.ot && findSave(saves, capture.origin_game, capture.language)?.ot === capture.ot);
+  const yours = Boolean(capture.ot && findSave(saves, capture.origin_game, capture.language, capture.tid, capture.ot)?.ot === capture.ot);
 
   return (
     <span className="tl-card-origin">
@@ -352,14 +354,19 @@ export function Timeline ({ onClose, onLocate }: Props) {
     }
   }, [run, measured]);
 
-  // the entrance, per run: counts the mons in as they land and pans the stage along with the front of the cascade,
-  // until it's scrolled or dragged by hand; settles once the last one is down. Its clock starts with the stage calm
+  // the entrance, per run: drops the mons in turn and counts them in as they land, and pans the stage along with the
+  // front of the cascade, until it's scrolled or dragged by hand; settles once the last one is down. Its clock starts
+  // with the stage calm. A mon starts falling as its turn comes (.dropping), not waiting out a delay from the start:
+  // only those in the air are animating, rather than every mon at once, each a layer for the compositor to carry
   useEffect(() => {
     if (!calm) {
       return undefined;
     }
     const stage = stageRef.current!;
     const counter = counterRef.current;
+    // in the cascade's order, as Mons renders them
+    const mons = stage.querySelectorAll<HTMLElement>('.tl-mon');
+    let dropped = 0;
     const total = layoutRef.current.sprites.length;
     const end = INTRO_MS + cascadeMs(total) + DROP_MS;
     const start = performance.now();
@@ -376,6 +383,9 @@ export function Timeline ({ onClose, onLocate }: Props) {
       const sprites = layoutRef.current.sprites;
       if (elapsed >= 0 && sprites.length > 0) {
         const landed = Math.min(sprites.length, Math.floor(1 + (elapsed / cascadeMs(sprites.length)) * (sprites.length - 1)));
+        for (; dropped < landed; dropped++) {
+          mons[dropped]?.classList.add('dropping');
+        }
         if (counter) {
           counter.textContent = String(landed);
         }
