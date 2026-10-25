@@ -43,16 +43,11 @@ const ORIGIN_MARK_SPRITES: Record<string, string> = {
   go: 'go',
 };
 
-// a sealed tile's lines that alternate: the name with its nickname; the number and the badges with the OT and the
-// catch date, then together give way to the types' block. FlipStrips slides these, and the tile leaves their space
-// empty
-export function flippingLines (capture: Capture) {
-  const typed = (capture.pokemon.types?.length ?? 0) > 0;
-  return {
-    name: Boolean(capture.has_nickname && capture.nickname),
-    badges: Boolean(capture.catch_date) || typed,
-    number: Boolean(capture.ot) || typed,
-  };
+// a sealed tile's name gives way to its nickname, flipping to it for Hexagon's trainer's page and shown in its place in
+// Orbit, as its number line and badges show the display mode's pages (face-pages) on every sealed tile; FlipStrips draws
+// them, and the tile leaves their space empty
+export function flipsName (capture: Capture): boolean {
+  return Boolean(capture.has_nickname && capture.nickname);
 }
 
 interface Props {
@@ -146,18 +141,6 @@ export function SlotsLine ({ capture, number }: Props & { number: string }) {
       <span>#{number}</span>
       <span className="slot-level">{typeof capture.level === 'number' && `Lv.${capture.level}`}</span>
     </p>
-  );
-}
-
-// the third face, over the number line and badges together: a glyph per type, Scarlet and Violet's symbols redrawn
-// (public/types) in each type's colour as solved for the theme
-export function TypesBlock ({ capture }: Props) {
-  return (
-    <div className="types-block">
-      {(capture.pokemon.types ?? []).map((type) => (
-        <span className="type-glyph" key={type} style={{ backgroundColor: `var(--type-${type})`, maskImage: `url(/types/${type}.svg)` }} />
-      ))}
-    </div>
   );
 }
 

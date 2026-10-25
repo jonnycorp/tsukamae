@@ -1,8 +1,7 @@
-// Types on Tiles (the palette menu; applyDisplay sets data-tile-types on the root): the type glyphs in their colours
-// at the foot's right, beside the number, the first over the second, from the tile's --type-a/-b colours and
-// --glyph-a/-b masks (Pokemon.tsx), so switching it renders no tile. A sealed tile turns to its types in its flips,
-// so it's left alone; a checklist's checked one has no flips, so it keeps them
-:root[data-tile-types] .pokemon:not(.empty):is(:not(.sealed), .checklist)::after {
+// an unsealed tile's types: their glyphs in their colours at the foot's right, beside the number, the first over the
+// second, from the tile's --type-a/-b colours and --glyph-a/-b masks (Pokemon.tsx). A sealed tile shows its types on
+// its species' page in its flips, so it's left alone; a checklist's checked one has no flips, so it keeps them
+.pokemon:not(.empty):is(:not(.sealed), .checklist)::after {
   content: '';
   position: absolute;
   right: 7px;

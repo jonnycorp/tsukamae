@@ -1,13 +1,16 @@
+import { DISPLAY_MODES } from '../utils/display-modes';
 import { FADE_MS } from '../hooks/use-dismissable';
 import { DEFAULT_THEME, findTheme, themePalette, themeSlug } from './themes';
 
+import type { DisplayMode } from '../utils/display-modes';
+
 export const THEME_STORAGE_KEY = 'theme';
 export const SOFT_DARK_STORAGE_KEY = 'nightMode';
-// the palette menu's display switches: the first two on by default, types on the tiles off
+// the palette menu's display switches: location tints on by default, still mode off, and the sealed tiles' display
+// mode (utils/display-modes), Hexagon by default
 export const LOCATION_TINTS_STORAGE_KEY = 'locationTints';
-export const FLIP_TYPES_STORAGE_KEY = 'flipTypes';
-export const TILE_TYPES_STORAGE_KEY = 'tileTypes';
 export const STILL_STORAGE_KEY = 'stillMode';
+export const DISPLAY_STORAGE_KEY = 'tileDisplay';
 
 // the modal backdrop's black, rgba(0, 0, 0, .35) in styles/main.scss
 const MODAL_SHADE = 0.35;
@@ -79,17 +82,15 @@ export function applyTheme (name: string, softDark: boolean) {
   requestAnimationFrame(() => setTimeout(sendTitleBar));
 }
 
-// attributes on the root for styles/tracker.scss and useFlipClock to read, so switching any of them restyles the dex
-// without rendering a tile: with location tints off every sealed tile takes a game's wash; with types out of the flips
-// the cycle swings between the record's face and the trainer's; with types on the tiles each unsealed tile shows its
-// types' glyphs at its foot (styles/tile-types.scss); in still mode nothing moves (the boxes' shine, the meter's water;
-// useFlipClock holds the flips), the sealed look staying as it is
-export function applyDisplay (locationTints: boolean, flipTypes: boolean, tileTypes = false, still = false) {
+// attributes on the root for the styles to read, so switching any of them restyles the dex without rendering a tile:
+// with location tints off every sealed tile takes a game's wash; in still mode nothing moves (the boxes' shine, the
+// meter's water; useFlipClock holds the flips), the sealed look staying as it is. The display mode picks the flips'
+// cycle for its pages (styles/tile-faces.scss), the pages FlipStrips draws
+export function applyDisplay (locationTints: boolean, still: boolean, display: DisplayMode) {
   const root = document.documentElement;
   root.toggleAttribute('data-plain-seals', !locationTints);
-  root.toggleAttribute('data-flip-no-types', !flipTypes);
-  root.toggleAttribute('data-tile-types', tileTypes);
   root.toggleAttribute('data-still', still);
+  root.dataset.display = display;
 }
 
 function readJson<T> (key: string, fallback: T): T {
@@ -105,6 +106,7 @@ function readJson<T> (key: string, fallback: T): T {
 // paint, so the buttons take their colours straight away
 export function bootstrapTheme () {
   setTokens(readJson(THEME_STORAGE_KEY, DEFAULT_THEME), readJson(SOFT_DARK_STORAGE_KEY, false));
-  applyDisplay(readJson(LOCATION_TINTS_STORAGE_KEY, true), readJson(FLIP_TYPES_STORAGE_KEY, true), readJson(TILE_TYPES_STORAGE_KEY, false), readJson(STILL_STORAGE_KEY, false));
+  const display = readJson<DisplayMode>(DISPLAY_STORAGE_KEY, 'hexagon');
+  applyDisplay(readJson(LOCATION_TINTS_STORAGE_KEY, true), readJson(STILL_STORAGE_KEY, false), DISPLAY_MODES.includes(display) ? display : 'hexagon');
   sendTitleBar();
 }

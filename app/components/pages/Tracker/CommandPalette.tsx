@@ -1,11 +1,13 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faBookOpen, faBookmark, faCirclePause, faEye, faFilter, faLanguage, faListCheck, faMoon, faPalette, faRotateLeft, faRotateRight, faSearch, faShapes, faTableCells, faTableList, faTimeline } from '@fortawesome/free-solid-svg-icons';
+import { faBarcode, faBookOpen, faBookmark, faCirclePause, faEye, faFilter, faLanguage, faListCheck, faMoon, faPalette, faPen, faRotateLeft, faRotateRight, faRoute, faSearch, faTableCells, faTableList, faTimeline } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, facetOptions, hasQuery, queryMatcher, searchFold } from './filters';
 import { OriginMark } from './seal-faces';
+import { DISPLAY_ICONS } from '../../library/Nav';
+import { DISPLAY_MODES } from '../../../utils/display-modes';
 import { PokemonName } from '../../library/PokemonName';
 import { THEMES } from '../../../palette/themes';
 import { dimTitleBar } from '../../../palette/apply-theme';
@@ -13,13 +15,14 @@ import { dexNumber, iconClass } from '../../../utils/pokemon';
 import { translate } from '../../../i18n/translations';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
-import { useLocalStorageContext, useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
+import { useDisplayContext, useLocalStorageContext, useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture } from '../../../types';
 import type { Dispatch, KeyboardEvent as ReactKeyboardEvent, ReactNode, SetStateAction } from 'react';
 import type { DexLayout } from './ledger-model';
+import type { LabScene } from './Scene';
 import type { TrackerFilters } from './filters';
 import type { TranslationKey } from '../../../i18n/translations';
 
@@ -65,6 +68,8 @@ interface Props {
   onOpenAlmanac: () => void;
   // unset in a checklist, which keeps no records to review
   onOpenReview?: () => void;
+  // the scenes on the shared shell (Scene.tsx)
+  onOpenScene: (scene: LabScene) => void;
   onHistory: (direction: 'undo' | 'redo') => void;
   // a mon picked: its tile (or row), with whatever hides it cleared first
   onLocate: (pokemon: number) => void;
@@ -78,10 +83,11 @@ const glyph = (type: string) => <span className="type-glyph" style={{ background
 // Ctrl+K: one box that reaches everything, typed into: a mon by name (either language), number or nickname; a view, any
 // filter's value (added to what's set), the layouts and scenes, the display toggles, another dex, a theme. Arrows move,
 // Enter runs, Esc (or a click outside) closes
-export function CommandPalette ({ onClose, filters, setFilters, setQuery, layout, setLayout, onOpenTimeline, onOpenAlmanac, onOpenReview, onHistory, onLocate }: Props) {
+export function CommandPalette ({ onClose, filters, setFilters, setQuery, layout, setLayout, onOpenTimeline, onOpenAlmanac, onOpenReview, onOpenScene, onHistory, onLocate }: Props) {
   const { captures } = useTrackerState();
   const { dexes, activeDex, activeDexView, setActiveDex } = useDexContext();
-  const { theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes, tileTypes, setTileTypes, still, setStill } = useThemeContext();
+  const { theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, still, setStill } = useThemeContext();
+  const { display, setDisplay } = useDisplayContext();
   const { setLocale } = useLocalStorageContext();
   const { t, locale } = useTranslation();
   const [search, setSearch] = useState('');
@@ -127,6 +133,12 @@ export function CommandPalette ({ onClose, filters, setFilters, setQuery, layout
     if (onOpenReview) {
       add('actions', t('review.open'), onOpenReview, { hint: 'W', icon: <FontAwesomeIcon icon={faListCheck} />, words: [en('review.open'), ja('review.open'), 'review', 'fill'] });
     }
+    // journeys and the red pen read records, which a checklist keeps none of
+    if (!checklist) {
+      add('actions', t('journeys.open'), () => onOpenScene('journeys'), { hint: 'J', icon: <FontAwesomeIcon icon={faRoute} />, words: [en('journeys.open'), ja('journeys.open'), 'route', 'flow', 'origin', 'generation', 'sankey'] });
+      add('actions', t('redpen.open'), () => onOpenScene('redpen'), { hint: 'P', icon: <FontAwesomeIcon icon={faPen} />, words: [en('redpen.open'), ja('redpen.open'), 'check', 'mistake', 'proofread', 'audit', 'akapen'] });
+    }
+    add('actions', t('atlas.open'), () => onOpenScene('atlas'), { hint: 'G', icon: <FontAwesomeIcon icon={faBarcode} />, words: [en('atlas.open'), ja('atlas.open'), 'compare', 'dexes', 'overlap', 'national'] });
     add('actions', t('history.undo'), () => onHistory('undo'), { hint: 'Ctrl+Z', icon: <FontAwesomeIcon icon={faRotateLeft} />, words: [en('history.undo'), ja('history.undo')] });
     add('actions', t('history.redo'), () => onHistory('redo'), { hint: 'Ctrl+Shift+Z', icon: <FontAwesomeIcon icon={faRotateRight} />, words: [en('history.redo'), ja('history.redo')] });
     const other = layout === 'boxes' ? 'ledger' : 'boxes';
@@ -142,9 +154,14 @@ export function CommandPalette ({ onClose, filters, setFilters, setQuery, layout
       }, { hint: 'R', icon: <FontAwesomeIcon icon={faRotateLeft} />, words: [en('palette.clearFilters'), ja('palette.clearFilters'), 'reset'] });
     }
     add('actions', t('nav.softDark'), () => setIsSoftDark(!isSoftDark), { hint: on(isSoftDark), icon: <FontAwesomeIcon icon={faMoon} />, words: [en('nav.softDark'), ja('nav.softDark'), 'dark', 'night'] });
+    for (const mode of DISPLAY_MODES) {
+      add('actions', t(`nav.display.${mode}`), () => setDisplay(mode), {
+        hint: on(display === mode),
+        icon: <FontAwesomeIcon icon={DISPLAY_ICONS[mode]} />,
+        words: [en(`nav.display.${mode}`), ja(`nav.display.${mode}`), 'display', 'tiles', 'faces', 'pages', '表示'],
+      });
+    }
     add('actions', t('nav.locationTints'), () => setLocationTints(!locationTints), { hint: on(locationTints), icon: <FontAwesomeIcon icon={faEye} />, words: [en('nav.locationTints'), ja('nav.locationTints')] });
-    add('actions', t('nav.flipTypes'), () => setFlipTypes(!flipTypes), { hint: on(flipTypes), icon: <FontAwesomeIcon icon={faEye} />, words: [en('nav.flipTypes'), ja('nav.flipTypes')] });
-    add('actions', t('nav.tileTypes'), () => setTileTypes(!tileTypes), { hint: on(tileTypes), icon: <FontAwesomeIcon icon={faShapes} />, words: [en('nav.tileTypes'), ja('nav.tileTypes'), 'types'] });
     add('actions', t('nav.still'), () => setStill(!still), { hint: on(still), icon: <FontAwesomeIcon icon={faCirclePause} />, words: [en('nav.still'), ja('nav.still'), 'still', 'calm', 'motion', 'animation', 'distraction'] });
     add('actions', t('palette.switchLanguage'), () => setLocale(locale === 'en' ? 'ja' : 'en'), { icon: <FontAwesomeIcon icon={faLanguage} />, words: ['language', 'english', 'japanese', '日本語', '言語'] });
 
@@ -191,7 +208,7 @@ export function CommandPalette ({ onClose, filters, setFilters, setQuery, layout
       add('themes', t('palette.theme', { name: seed.name }), () => setTheme(seed.name), { hint: on(theme === seed.name), icon: <FontAwesomeIcon icon={faPalette} />, words: ['theme', 'テーマ', 'colour', 'color'] });
     }
     return list;
-  }, [t, locale, captures, regional, checklist, filters, layout, dexes, activeDex, theme, isSoftDark, locationTints, flipTypes, tileTypes, still, onOpenTimeline, onOpenAlmanac, onOpenReview, onHistory, setFilters, setQuery, setLayout, setIsSoftDark, setLocationTints, setFlipTypes, setTileTypes, setStill, setLocale, setActiveDex, setTheme]);
+  }, [t, locale, captures, regional, checklist, filters, layout, dexes, activeDex, theme, isSoftDark, locationTints, display, still, onOpenTimeline, onOpenAlmanac, onOpenReview, onOpenScene, onHistory, setFilters, setQuery, setLayout, setIsSoftDark, setLocationTints, setDisplay, setStill, setLocale, setActiveDex, setTheme]);
 
   // the mons for what's typed, best first: a name (either language) that starts with it, then what the search bar also
   // finds (a number, a nickname), then a name with it anywhere in it; the dex's order within each

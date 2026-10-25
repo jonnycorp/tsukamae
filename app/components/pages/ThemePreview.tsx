@@ -123,7 +123,7 @@ function SampleTile ({ sample }: { sample: Sample }) {
         </div>
       }
       {sample.face === 2 &&
-        <div className="types-block theme-preview-types">{sample.types?.map((type) => <span className="type-glyph" key={type} style={glyphStyle(type)} />)}</div>
+        <div className="theme-preview-types">{sample.types?.map((type) => <span className="type-glyph" key={type} style={glyphStyle(type)} />)}</div>
       }
       {sample.hovered &&
         <div className="set-status">

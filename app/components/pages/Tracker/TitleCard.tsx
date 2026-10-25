@@ -76,13 +76,13 @@ export function TitleCard ({ title, sub, hint }: Props) {
 // a scene opening on its title card (the review, the almanac): its motion held (gate) till its first frames have
 // gone by (useCalmStart), what's under its bar out of sight with its entrance held (intro) till the card's about to
 // clear, then faded in as it does; the card gone once it has (titleCard). A key (Escape aside, which still closes the
-// scene) or a click skips to the end, the key claimed so it does nothing else. Still mode: no card, the scene there
-// at once
-export function useTitleCard (): { titleCard: boolean; intro: boolean; gate: boolean } {
+// scene) or a click skips to the end, the key claimed so it does nothing else. Still mode, or a scene come back to
+// (quiet): no card, the scene there at once
+export function useTitleCard (quiet = false): { titleCard: boolean; intro: boolean; gate: boolean } {
   const { still } = useThemeContext();
   const calm = useCalmStart();
-  const [card, setCard] = useState(!still);
-  const [intro, setIntro] = useState(!still);
+  const [card, setCard] = useState(!still && !quiet);
+  const [intro, setIntro] = useState(!still && !quiet);
 
   useEffect(() => {
     if (!card || !calm) {

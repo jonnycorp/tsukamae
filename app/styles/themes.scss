@@ -69,6 +69,30 @@
       border-bottom-right-radius: 11px;
     }
   }
+
+  // search results a row of boxes wide (tracker.scss): their corners at that width's ends, not a box's; the rules for
+  // where one chunk meets the next, below, come after and win
+  @for $boxes from 2 through 8 {
+    $n: $boxes * $box-columns;
+
+    :is([data-theme='pokedex'], [data-theme='home']) .results-chunk > .tile-grid[data-columns='#{$n}'] > .pokemon {
+      &:nth-child(#{$box-columns}) {
+        border-top-right-radius: 0;
+      }
+
+      &:nth-child(#{$box-columns}n + 1):nth-last-child(-n + #{$box-columns}) {
+        border-bottom-left-radius: 0;
+      }
+
+      &:nth-child(#{$n}) {
+        border-top-right-radius: 11px;
+      }
+
+      &:nth-child(#{$n}n + 1):nth-last-child(-n + #{$n}) {
+        border-bottom-left-radius: 11px;
+      }
+    }
+  }
 }
 
 // a narrow window's list: its first row and its last shown (the empty slots after it are hidden)

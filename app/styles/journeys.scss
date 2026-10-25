@@ -1,0 +1,472 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// journeys (components/pages/Tracker/Journeys.tsx): the master set as strands from the games mons were caught in to
+// their generations (or to where they are now), each in its game's colour (utils/game-colors, fixed for every theme
+// and lifted for dark paper), turning into its place's in the place split; a gold top edge is the share that has been
+// to Champions. The strands draw across left to right as the scene opens, and move from one split to the other when
+// it's switched; still mode shows them drawn, and switches at once
+$jr-ease: cubic-bezier(.2, .9, .3, 1);
+// keep in sync with MOVE_MS in Journeys.tsx
+$jr-move: .9s cubic-bezier(.65, 0, .35, 1);
+$jr-row: 22px;
+// a tooltip's sprite cell (Scene.tsx's SceneMon), and the room between them
+$jr-mon: 34px;
+$jr-mon-gap: 3px;
+
+@keyframes jr-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.journeys {
+  --jr-gold: oklch(.76 .15 85);
+}
+
+:root[data-mode='dark'] .journeys {
+  --jr-gold: oklch(.84 .14 88);
+}
+
+// the chart beside its busiest strands; one column in a narrow window
+.jr-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 18px;
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.jr-card,
+.jr-routes-card {
+  min-width: 0;
+}
+
+.jr-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: -6px 0 12px;
+  color: var(--ink-muted);
+
+  @include small-text(12px);
+}
+
+.jr-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jr-legend-gold {
+  width: 18px;
+  height: 5px;
+  background-color: var(--jr-gold);
+}
+
+// the columns' heads: the games' on the left, and on the right the switch between the two splits
+.jr-columns {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: var(--ink-muted);
+
+  > span:first-child {
+    @include caps-label(10px);
+  }
+}
+
+.jr-split {
+  display: inline-flex;
+
+  button {
+    @include caps-label(10px);
+
+    height: 26px;
+    padding: 0 12px;
+    border: 2px solid var(--field-edge);
+    background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: background-color .1s ease-out, color .1s ease-out;
+
+    &:hover:not(.on) {
+      background-color: var(--hover-wash);
+    }
+
+    + button {
+      border-left: 0;
+    }
+
+    &.on {
+      border-color: var(--accent);
+      background-color: var(--accent);
+      color: var(--on-accent);
+      cursor: default;
+    }
+  }
+}
+
+.jr-chart {
+  position: relative;
+}
+
+.jr-empty {
+  margin: 8px 0 0;
+  color: var(--ink-muted);
+}
+
+.jr-svg {
+  display: block;
+  overflow: visible;
+}
+
+// the strands' window, opening from the left edge
+.jr-reveal {
+  transform-origin: 0 0;
+  animation: jr-draw 1.1s cubic-bezier(.45, 0, .2, 1) both;
+  animation-delay: 250ms;
+}
+
+.jr-piece {
+  opacity: .55;
+  pointer-events: none;
+  transition: opacity .15s ease-out;
+
+  &.dim {
+    opacity: .1;
+  }
+}
+
+.jr-chart[data-hot] .jr-piece:not(.dim) {
+  opacity: .85;
+}
+
+// switching splits: every piece moves to its place in the other (the same commands either side, so its shape tweens)
+// and its gradient's far end turns to its new colour
+.jr-chart[data-moving] {
+  .jr-piece {
+    transition: d $jr-move, opacity .15s ease-out;
+  }
+
+  .jr-stop-color {
+    transition: stop-color $jr-move;
+  }
+
+  // the gold drawn on the strands, and where a press lands, wait for them to settle
+  .jr-marks {
+    opacity: 0;
+    transition: none;
+  }
+
+  .jr-hits {
+    pointer-events: none;
+  }
+}
+
+.jr-marks {
+  pointer-events: none;
+  transition: opacity .25s ease-out;
+
+  > path {
+    transition: opacity .15s ease-out;
+  }
+
+  .dim {
+    opacity: .15;
+  }
+}
+
+.jr-gold {
+  fill: var(--jr-gold);
+}
+
+.jr-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.jr-bar {
+  transition: opacity .15s ease-out;
+
+  &.dim {
+    opacity: .3;
+  }
+}
+
+// a generation's bar: a quiet grey, as the strands coming into it carry the colours
+.jr-gen-bar {
+  fill: var(--ink-muted);
+  opacity: .55;
+}
+
+// the names, faded in as one as the scene opens, so each can still be hidden for the split it isn't
+.jr-labels {
+  animation: fade-in .4s ease-out both;
+  animation-delay: 200ms;
+}
+
+// the right side's two splits, one shown at a time, crossing as the strands move
+.jr-side {
+  transition: opacity .3s ease-out;
+
+  &.off {
+    opacity: 0;
+  }
+}
+
+// a stop's name, its count and (a game's) mark beside its bar: the games' against their bars' left, the right side's
+// after theirs
+.jr-stop {
+  display: flex;
+  position: absolute;
+  align-items: center;
+  gap: 6px;
+  height: $jr-row;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: opacity .3s ease-out;
+
+  &.from {
+    left: 0;
+    justify-content: flex-end;
+  }
+
+  &.dim {
+    opacity: .35;
+  }
+
+  &.off {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &:hover .jr-stop-name,
+  &:focus-visible .jr-stop-name {
+    text-decoration: underline;
+  }
+
+  strong {
+    flex: none;
+    font-family: $font-secondary;
+    font-size: 13px;
+    font-style: italic;
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+  }
+
+  .origin-mark {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    background-color: currentColor;
+  }
+}
+
+.jr-stop-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+}
+
+// a generation's region, after its number
+.jr-region {
+  flex: none;
+  color: var(--ink-muted);
+  font-weight: 700;
+
+  @include small-text(11px);
+}
+
+.jr-arrow {
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+// the busiest strands, the most first, each a bar in its colours against the busiest
+.jr-routes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 -8px;
+  padding: 0;
+  list-style: none;
+
+  li {
+    animation: scene-rise .45s $jr-ease both;
+    animation-delay: calc(260ms + var(--r) * 45ms);
+  }
+}
+
+.jr-route-row {
+  display: grid;
+  grid-template-areas:
+    'ends count'
+    'bar bar';
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--hover-wash);
+  }
+}
+
+.jr-route-ends {
+  display: flex;
+  grid-area: ends;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+
+  .origin-mark {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    background-color: currentColor;
+  }
+}
+
+.jr-route-from,
+.jr-route-to {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jr-route-bar {
+  grid-area: bar;
+  height: 6px;
+  background-color: var(--paper-sunken);
+
+  span {
+    display: block;
+    height: 100%;
+  }
+}
+
+.jr-route-count {
+  grid-area: count;
+  font-family: $font-secondary;
+  font-size: 15px;
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+}
+
+.jr-tip-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  pointer-events: none;
+}
+
+.jr-tip {
+  display: flex;
+  position: fixed;
+  flex-direction: column;
+  gap: 3px;
+  // as wide as its sprites' rows, its words wrapping to them
+  width: min-content;
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid var(--overlay-edge);
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  box-shadow: $menu-shadow;
+
+  @include small-text(12px);
+
+  strong {
+    font-family: $font-secondary;
+    font-size: 15px;
+    font-style: italic;
+    font-weight: 900;
+  }
+
+  em {
+    margin-top: 4px;
+    color: var(--on-overlay-muted);
+    font-style: normal;
+  }
+
+  .origin-mark {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    background-color: currentColor;
+  }
+
+  .jr-region {
+    color: var(--on-overlay-muted);
+  }
+}
+
+.jr-tip-route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+
+  .jr-arrow {
+    color: var(--on-overlay-muted);
+  }
+}
+
+// the mons a strand or a stop carries, eight to a row (--cols, fewer for fewer) on their feet, each column as wide as
+// its widest sprite and a big one (a Gigantamax form) making its row taller, so a row never breaks early
+.jr-tip-mons {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), auto);
+  align-items: end;
+  justify-items: center;
+  gap: $jr-mon-gap;
+  margin-top: 4px;
+
+  .scene-mon {
+    min-width: $jr-mon;
+    height: auto;
+    min-height: 32px;
+  }
+}
+
+// how many more than it shows, in a sprite's place
+.jr-tip-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $jr-mon;
+  height: 32px;
+  color: var(--on-overlay-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+@media (width < 1100px) {
+  .jr-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

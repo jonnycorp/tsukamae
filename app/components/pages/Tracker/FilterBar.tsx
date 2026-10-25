@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, appliedFacets, facetOptions, filterMatcher, hasQuery, holdsSealed, queryMatcher } from './filters';
@@ -68,14 +68,22 @@ function FacetPanel ({ facets, filters, onToggle, panelRef, query, regional }: P
   );
 }
 
+// a scene the filter came from (Journeys, index.tsx's layer): the dex shown as its page, not the dex's own, till the
+// filter's changed
+export interface FilterSource {
+  title: string;
+  onBack: () => void;
+}
+
 interface Props {
   filters: TrackerFilters;
   // the dex's settings, its defaults among them, in reach for marking a run of mons from one game
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
+  source?: FilterSource;
 }
 
-export function FilterBar ({ filters, query, setFilters }: Props) {
+export function FilterBar ({ filters, query, setFilters, source }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { captures } = useTrackerState();
   const { t, locale } = useTranslation();
@@ -172,6 +180,15 @@ export function FilterBar ({ filters, query, setFilters }: Props) {
         </button>
         {open && <FacetPanel facets={facets} filters={filters} onToggle={toggleValue} panelRef={panelRef} query={query} regional={regional} />}
       </div>
+
+      {/* where the chips after it came from, on a tab in the scenes' dress: pressed, or Escape, goes back there */}
+      {source &&
+        <button className="filter-source" onClick={source.onBack} title={t('filter.backTo', { name: source.title })} type="button">
+          <FontAwesomeIcon icon={faArrowLeft} />
+          <span className="filter-source-name">{source.title}</span>
+          <kbd>Esc</kbd>
+        </button>
+      }
 
       {appliedFacets(filters).map((facet) => {
         const labels = filters.facets[facet.id]!.map((value) => facet.label(value, locale));

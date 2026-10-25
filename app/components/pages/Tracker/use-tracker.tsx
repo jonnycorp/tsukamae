@@ -14,13 +14,14 @@ export function isDisplaySealed (capture: Capture, checklist: boolean): boolean 
   return checklist ? capture.status === 'caught' : capture.sealed;
 }
 
-// a box-sized grid's shine, one band clipped to its sealed slots — a per-tile shine layer exhausts GPU memory in a
-// checklist; null with nothing sealed. Boxes and search results chunks both draw it, so a seal shines in every view
-export function shineClip (captures: Capture[], checklist: boolean): string | null {
+// a grid's shine (a box's, or a chunk of search results `columns` across), one band clipped to its sealed slots — a
+// per-tile shine layer exhausts GPU memory in a checklist; null with nothing sealed. Boxes and search results chunks
+// both draw it, so a seal shines in every view
+export function shineClip (captures: Capture[], checklist: boolean, columns = BOX_COLUMNS): string | null {
   const holes = captures.reduce<string[]>((all, capture, index) => {
     if (isDisplaySealed(capture, checklist)) {
-      const x = (index % BOX_COLUMNS) * TILE_SIZE;
-      const y = Math.floor(index / BOX_COLUMNS) * TILE_SIZE;
+      const x = (index % columns) * TILE_SIZE;
+      const y = Math.floor(index / columns) * TILE_SIZE;
       all.push(`M${x} ${y}h${TILE_SIZE}v${TILE_SIZE}h-${TILE_SIZE}Z`);
     }
     return all;

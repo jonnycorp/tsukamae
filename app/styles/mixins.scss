@@ -331,3 +331,12 @@ $block-drop-room: 6px;
     cursor: grabbing;
   }
 }
+
+// sets a sealed tile's number line off from the enlarged sprite it can overlap: a screen pixel each way (--dex-px), so
+// a zoomed-in dex doesn't spread it into a rim round every stroke (tracker.scss, and tile-faces.scss's lower block)
+@mixin number-halo {
+  $px: var(--dex-px, 1px);
+  $out: calc(-1 * #{$px});
+
+  text-shadow: $out 0 $px var(--tile-caught), $px 0 $px var(--tile-caught), 0 $out $px var(--tile-caught), 0 $px $px var(--tile-caught);
+}

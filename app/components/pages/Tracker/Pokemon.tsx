@@ -5,7 +5,7 @@ import { faBan, faCheck, faCircleExclamation, faClock } from '@fortawesome/free-
 import { memo, useEffect, useRef, useState } from 'react';
 
 import { STATUSES, unansweredFields } from '../../../utils/capture-fields';
-import { BadgeRow, SlotsLine, flippingLines } from './seal-faces';
+import { SlotsLine, flipsName } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { defaultStatus } from '../../../utils/local-data';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
@@ -28,10 +28,9 @@ const STATUS_ICONS: Record<CaptureStatus, IconDefinition> = {
 
 // a sealed tile held this long unseals (the review's unseal is held as long)
 export const UNSEAL_HOLD = { delay: 250, duration: 1000 };
-const NO_FLIPS = { name: false, badges: false, number: false };
 
-// a tile's types for Types on Tiles (styles/tile-types.scss), read only while it's on: their colours, and their glyphs
-// as masks, the first over the second, a single type's where the second's would be
+// a tile's types at its foot (styles/tile-types.scss): their colours, and their glyphs as masks, the first over the
+// second, a single type's where the second's would be
 function typeVars (types: PokemonType[] | undefined): CSSProperties | undefined {
   if (!types?.length) {
     return undefined;
@@ -201,17 +200,15 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
     );
   }
 
-  // lines that flip are drawn by the grid's FlipStrips, which a checklist has none of; the tile keeps their space
-  const flips = displaySealed ? (checklist ? NO_FLIPS : flippingLines(capture)) : null;
+  // lines that flip are drawn by the grid's FlipStrips, which a checklist has none of: the tile keeps their space, and
+  // a checklist's checked tile draws its number line itself
+  const flips = displaySealed && !checklist;
 
-  const nameLine = flips?.name ? <div className="name-scroll" /> : <h4>{speciesName}</h4>;
-
-  const sealBadges = displaySealed && !checklist && !flips!.badges &&
-    <div className="seal-badges"><BadgeRow capture={capture} /></div>;
+  const nameLine = flips && flipsName(capture) ? <div className="name-scroll" /> : <h4>{speciesName}</h4>;
 
   let numberLine: ReactNode = <p>#{number}</p>;
-  if (flips) {
-    numberLine = <div className="number-scroll">{!flips.number && <SlotsLine capture={capture} number={number} />}</div>;
+  if (displaySealed) {
+    numberLine = <div className="number-scroll">{!flips && <SlotsLine capture={capture} number={number} />}</div>;
   }
 
   return (
@@ -222,7 +219,6 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
       onMouseEnter={statusButtons.length > 0 && !armed ? () => setArmed(true) : undefined}
       style={typeVars(capture.pokemon.types)}
     >
-      {sealBadges}
       {stalePin}
       {armed && statusButtons.length > 0 &&
         <div className="set-status">

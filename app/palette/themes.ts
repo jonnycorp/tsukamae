@@ -266,8 +266,8 @@ const FIXED: Record<Mode, Record<string, Lch>> = {
   },
 };
 
-// each type's colour in Scarlet and Violet, where its glyph starts (seal-faces TypesBlock); only its lightness moves, per
-// theme and mode, until it reads on a sealed tile, so no theme's colours bend for them
+// each type's colour in Scarlet and Violet, where its glyph starts (a sealed tile's species' page, face-pages); only its
+// lightness moves, per theme and mode, until it reads on a sealed tile, so no theme's colours bend for them
 export const TYPE_COLORS: Record<PokemonType, string> = {
   normal: '#9fa19f',
   fire: '#e62829',

@@ -8,7 +8,9 @@ import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
+import { canHold } from '../../../utils/game-reach';
 import { destinations, placeFromKey, placeKey, placeLabel, placeOf } from '../../../utils/location-moves';
+import { asksChampions, canVisitChampions, offersChampions } from '../../../utils/champions';
 import { serebiiLink } from '../../../utils/formatting';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../../hooks/use-dismissable';
@@ -16,6 +18,7 @@ import { usePatchRecords } from './use-patch';
 import { useTrackerActions, useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
+import type { CaptureField } from '../../../utils/capture-fields';
 import type { CaptureStatus } from '../../../types';
 import type { RecordPatch } from './use-patch';
 
@@ -224,9 +227,12 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   const dexView = activeDexView!;
   const fields = capture.status !== 'unobtainable';
   const stale = new Set(sealed ? missing.map((field) => field.id) : []);
-  // where a sealed mon is, and where it can be moved
+  // where a sealed mon is, and where it can be moved: the games that can hold it (canHold), and the one it's in
   const here = placeOf(capture);
-  const moveOptions = destinations(saves, activeDexView!.game.id === 'home').map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }));
+  // Been to Champions only for a mon that can go there (utils/champions)
+  const shown = (field: CaptureField) => field.id !== 'been_to_champions' || asksChampions(capture);
+  const moveOptions = destinations(saves, offersChampions(capture, activeDexView!.game.id === 'home'), (save) => save.id === capture.location_save || canHold(save, capture, saves))
+  .map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }));
 
   return (
     <div
@@ -278,7 +284,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
                       <dd>{t('seal.sealed')}</dd>
                     </div>
                   }
-                  {column.map((field) => (
+                  {column.filter(shown).map((field) => (
                     <div className={classNames('popover-record-row', { stale: stale.has(field.id) })} key={field.id}>
                       <dt>{t(field.labelKey)}</dt>
                       <dd>
@@ -323,8 +329,9 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
                       />
                     </div>
                   }
-                  {fields && column.map((field) => (
+                  {fields && column.filter(shown).map((field) => (
                     <CaptureFieldControl
+                      canVisitChampions={canVisitChampions(pokemon)}
                       field={field}
                       genderLock={pokemon.gender_lock}
                       idPrefix="capture"

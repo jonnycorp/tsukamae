@@ -17,6 +17,7 @@ import type { CSSProperties, ChangeEvent, Dispatch, SetStateAction } from 'react
 import type { DexLayout } from './ledger-model';
 import type { FlipPause } from './use-flip-clock';
 import type { PersonalDex } from '../../../utils/local-data';
+import type { FilterSource } from './FilterBar';
 import type { TrackerFilters } from './filters';
 
 // the header grows with a wide window as the scenes do, though less: its height comes out of the boxes' fit
@@ -34,11 +35,13 @@ interface Props {
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   setQuery: Dispatch<SetStateAction<string>>;
+  // a scene the filter came from, on a tab in the filters' row (FilterBar)
+  source?: FilterSource;
 }
 
 // the dex's header: its name (a menu of the scenes, the layouts and Edit Dex) and tags, the search in the middle with
 // the flips' pause after it; the meter, its centerpiece, across the whole width under them; the filters' row last
-export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac, onOpenReview, onOpenTimeline, query, setFilters, setQuery }: Props) {
+export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac, onOpenReview, onOpenTimeline, query, setFilters, setQuery, source }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { activeDex } = useDexContext();
   const { captures } = useTrackerState();
@@ -133,7 +136,7 @@ export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac
         </div>
         <DexMeter marked={counts.marked} total={captures.length} />
         <div className="dex-search-bar-filters">
-          <FilterBar filters={filters} query={query} setFilters={setFilters} />
+          <FilterBar filters={filters} query={query} setFilters={setFilters} source={source} />
           <MeterCounts caught={counts.caught} marked={counts.marked} temporary={counts.temporary} total={captures.length} />
         </div>
       </div>

@@ -8,6 +8,7 @@ import { CAPTURE_FIELDS, findSave, saveLabel, unansweredFields } from '../../../
 import { CaptureFieldControl, NOT_MINE } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { destinations, placeFromKey, placeKey, placeLabel } from '../../../utils/location-moves';
+import { offersChampions } from '../../../utils/champions';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useMark } from './use-mark';
 import { usePatchRecords } from './use-patch';
@@ -59,7 +60,9 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
   const settable = field === 'location' ? recorded : editable;
   const sealable = editable.filter((capture) => capture.status === 'caught' && unansweredFields(capture, capture.pokemon.gender_lock).length === 0);
   const releasable = targets.filter((capture) => capture.captured && !capture.sealed);
-  const ready = Object.keys(draft).length > 0 && settable.length > 0;
+  // Champions only while every one of them can go there (utils/champions)
+  const toChampions = homeDex && recorded.every((capture) => offersChampions(capture, homeDex));
+  const ready = Object.keys(draft).length > 0 && settable.length > 0 && (field !== 'location' || draft.location !== 'champions' || toChampions);
 
   const setStatus = (status: CaptureStatus) => {
     const changing = unsealed.filter((capture) => capture.status !== status);
@@ -124,7 +127,7 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
         blankLabel={t('common.unspecified')}
         id="batch-location"
         onSelect={(key) => setDraft(key ? placeFromKey(key) : {})}
-        options={destinations(saves, homeDex).map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }))}
+        options={destinations(saves, toChampions).map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }))}
         value={draft.location ? placeKey({ location: draft.location, location_save: draft.location_save ?? null }) : ''}
       />
     )

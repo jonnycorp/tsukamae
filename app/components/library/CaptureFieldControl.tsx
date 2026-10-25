@@ -18,10 +18,12 @@ interface Props {
   onChange: (patch: Partial<CaptureMetadata>) => void;
   defaultsMode?: boolean;
   genderLock?: GenderLock | null;
+  // whether the mon can go to Champions this season (utils/champions), for the location's options
+  canVisitChampions?: boolean;
   idPrefix: string;
 }
 
-export function CaptureFieldControl ({ field, value, onChange, defaultsMode = false, genderLock = null, idPrefix }: Props) {
+export function CaptureFieldControl ({ field, value, onChange, defaultsMode = false, genderLock = null, canVisitChampions = false, idPrefix }: Props) {
   const { t, locale } = useTranslation();
   const { saves, activeDexView } = useDexContext();
 
@@ -191,16 +193,17 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
             blankLabel={blankLabel}
             id={id}
             onSelect={(next) => onChange({ location: (next || null) as CaptureMetadata['location'] })}
-            options={locationOptions(locale, value, isHomeDex)}
+            options={locationOptions(locale, value, isHomeDex, canVisitChampions)}
             value={value.location || ''}
           />
           {value.location === 'game' &&
             <div className="form-subgroup">
               <label htmlFor={`${id}-game`}>{t('location.whichGame')}</label>
+              {/* your games, not your HOME entries, which are trainers rather than places (the one already set kept) */}
               {select(
                 `${id}-game`,
                 value.location_save || '',
-                saves.map((save) => ({ value: save.id, label: saveLabel(save, locale, saves) })),
+                saves.filter((save) => save.game !== 'home' || save.id === value.location_save).map((save) => ({ value: save.id, label: saveLabel(save, locale, saves) })),
                 (next) => onChange({ location_save: next || null }),
               )}
             </div>

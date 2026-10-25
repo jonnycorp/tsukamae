@@ -2,24 +2,9 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-// keep in sync with HOLD_MS and SLIDE_MS in components/pages/Tracker/use-flip-clock.ts
-$flip-hold: 5.5s;
-$flip-slide: .8s;
-// a face's hold and the slide off it; three a cycle: the record's face, the trainer's, the types'
-$flip-phase: $flip-hold + $flip-slide;
-$flip-cycle: 3 * $flip-phase;
 $box-stride: $box-width + $dex-grid-gap;
 // wide enough for the 105deg glint's slant across a 550px box
 $shine-band: 260px;
-
-// sets a sealed tile's number line off from the enlarged sprite it can overlap: a screen pixel each way (--dex-px), so
-// a zoomed-in dex doesn't spread it into a rim round every stroke
-@mixin number-halo {
-  $px: var(--dex-px, 1px);
-  $out: calc(-1 * #{$px});
-
-  text-shadow: $out 0 $px var(--tile-caught), $px 0 $px var(--tile-caught), 0 $out $px var(--tile-caught), 0 $px $px var(--tile-caught);
-}
 
 .tracker {
   display: flex;
@@ -632,6 +617,50 @@ $flip-face-width: $search-height;
     }
   }
 
+  // the scene the chips after it came from (FilterBar's source), on a tab in the scenes' dress: their banners' slant
+  // and lettering, so it reads as that scene's page and not the dex's own, the key that goes back beside its name
+  .filter-source {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: $filter-control;
+    padding: 0 26px 0 12px;
+    border: 0;
+    background-color: var(--accent);
+    color: var(--on-accent);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .1s ease-out;
+
+    &:hover,
+    &:focus-visible {
+      background-color: var(--accent-hover);
+    }
+
+    .svg-inline--fa {
+      font-size: 12px;
+    }
+
+    kbd {
+      @include key-cap(color-mix(in srgb, var(--on-accent) 45%, transparent), inherit);
+    }
+  }
+
+  .filter-source-name {
+    font-family: $font-secondary;
+    font-size: 15px;
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0 var(--accent-shadow);
+    text-transform: uppercase;
+
+    @include cjk {
+      font-size: 16px;
+    }
+  }
+
   .filter-count {
     @include filter-label($header: true);
 
@@ -952,6 +981,27 @@ $flip-face-width: $search-height;
   }
 }
 
+// and as wide as the row of boxes they stand for (SearchResults' columns, data-columns, up to its MAX_BOXES_ACROSS):
+// each width's own first column and first row take no line, as a box's six don't. The narrow list keeps one column
+@media (min-width: 751px) {
+  @for $boxes from 2 through 8 {
+    $n: $boxes * $box-columns;
+
+    .results-chunk > .tile-grid[data-columns='#{$n}'] {
+      grid-template-columns: repeat($n, $pokemon-box-size);
+      contain-intrinsic-size: auto #{$n * $pokemon-box-size} auto #{$box-rows * $pokemon-box-size};
+
+      > .pokemon:not(:nth-child(#{$n}n + 1)) {
+        border-left: 1px solid var(--line);
+      }
+
+      > .pokemon:nth-child(-n + #{$n}) {
+        border-top: 0;
+      }
+    }
+  }
+}
+
 // still mode (applyDisplay): no shine, the sealed boxes' wash left as it is
 :root[data-still] .box-shine {
   display: none;
@@ -1078,20 +1128,9 @@ $flip-face-width: $search-height;
     font-size: 11px;
     color: var(--tile-badge);
   }
-
-  // a sealed tile's badge row when it doesn't flip; flipping ones are drawn by FlipStrips
-  .seal-badges {
-    position: absolute;
-    right: 0;
-    bottom: 2px;
-    left: 0;
-    z-index: 2;
-    height: 20px;
-    overflow: hidden;
-  }
 }
 
-// a sealed tile's faces, drawn in the tile when they're static and in FlipStrips when they flip
+// a sealed tile's lines, drawn by FlipStrips as they flip (face-pages), or in a checklist's checked tile, which doesn't
 
 .badge-row {
   display: grid;
@@ -1195,7 +1234,7 @@ $flip-face-width: $search-height;
 }
 
 .trained-badge {
-  width: 10px;
+  width: 9px;
   height: 13px;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 
@@ -1228,21 +1267,6 @@ $flip-face-width: $search-height;
 
   &.gift {
     color: var(--gift);
-  }
-}
-
-// the third face (TypesBlock), across the number line and badges together: a glyph per type in its colour solved for
-// the theme (--type-*), centred in the block; the glyph and the gap between two are whole screen pixels at any zoom
-// (useDexScale), so every tile draws a glyph alike and a pair sits on whole pixels
-.types-block {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--type-gap, 6px);
-
-  .type-glyph {
-    width: var(--type-glyph, 16px);
-    height: var(--type-glyph, 16px);
   }
 }
 
@@ -1339,9 +1363,8 @@ $flip-face-width: $search-height;
   }
 }
 
-// no specificity of its own, so a line's class (the OT's bold) wins over it; the badges' strip carries the number line
-// through as the types' block leaves
-:where(.set-captured, .flip-numbers, .flip-badges) p {
+// no specificity of its own, so a line's class wins over it
+:where(.set-captured) p {
   margin: 0;
   font-family: $font-secondary;
   font-size: 11px;
@@ -1360,129 +1383,16 @@ $flip-face-width: $search-height;
   pointer-events: none;
 }
 
-// one clipped window per tile row and flipping line, whose faces slide together as a single composited strip; faces
-// are --flip-* tall, a whole number of screen pixels (useDexScale), so a strip only ever rests on whole pixels and
-// wrapping from its last face, a copy of its first, back to the first changes nothing on screen
+// one clipped window per tile row and flipping line, whose faces slide together as a single composited strip (their
+// cycle in styles/tile-faces.scss); faces are --flip-* tall, a whole number of screen pixels (useDexScale), so a strip
+// only ever rests on whole pixels and wrapping from its last face, a copy of its first, back to the first changes
+// nothing on screen
 .flip-window {
   position: absolute;
   right: 0;
   left: 0;
   overflow: hidden;
   color: var(--on-tile);
-}
-
-@function flip-at ($time) {
-  @return math.percentage(math.div($time, $flip-cycle));
-}
-
-// every strip runs one of these on the compositor, all from one start (useFlipClock). The number line and the badges
-// each slide their own line's height to the trainer's face, then a whole block (--flip-lower, the two lines' height)
-// into the types' face and on to their copies of the first, the two strips moving as one. A held line (.flip-hold),
-// whose trainer's face is its record's, swaps the two at the end of that slide instead: the same picture, so nothing
-// shows, where sliding it showed the line rolling over onto itself
-@mixin flip-cycle-block-frames ($swap-to-trainer: false) {
-  0% {
-    transform: translateY(0);
-  }
-
-  #{flip-at($flip-hold)} {
-    transform: translateY(0);
-
-    @if $swap-to-trainer {
-      animation-timing-function: step-end;
-    }
-  }
-
-  #{flip-at($flip-phase)},
-  #{flip-at($flip-phase + $flip-hold)} {
-    transform: translateY(calc(-1 * var(--flip-face)));
-  }
-
-  #{flip-at(2 * $flip-phase)},
-  #{flip-at(2 * $flip-phase + $flip-hold)} {
-    transform: translateY(calc(-1 * (var(--flip-face) + var(--flip-lower))));
-  }
-
-  100% {
-    transform: translateY(calc(-1 * (var(--flip-face) + 2 * var(--flip-lower))));
-  }
-}
-
-@keyframes flip-cycle-block {
-  @include flip-cycle-block-frames;
-}
-
-@keyframes flip-cycle-block-hold {
-  @include flip-cycle-block-frames($swap-to-trainer: true);
-}
-
-// a two-face line (the name and its nickname) in the same cycle: back on its first face, as its copy, for the types'
-// third, so nothing slides onto the picture already there
-@keyframes flip-cycle-pair {
-  0%,
-  #{flip-at($flip-hold)} {
-    transform: translateY(0);
-  }
-
-  #{flip-at($flip-phase)},
-  #{flip-at($flip-phase + $flip-hold)} {
-    transform: translateY(calc(-1 * var(--flip-face)));
-  }
-
-  #{flip-at(2 * $flip-phase)},
-  100% {
-    transform: translateY(calc(-2 * var(--flip-face)));
-  }
-}
-
-.flip-strip {
-  will-change: transform;
-  animation: flip-cycle-pair $flip-cycle ease-in-out infinite;
-}
-
-:is(.flip-numbers, .flip-badges) .flip-strip {
-  animation-name: flip-cycle-block;
-}
-
-:is(.flip-numbers, .flip-badges).flip-hold .flip-strip {
-  animation-name: flip-cycle-block-hold;
-}
-
-// Types in Flips off (the palette menu, applyDisplay): two phases, the record's face and the trainer's, each line
-// swinging up to its trainer's face and back down rather than on through the types, which stay a face to hold while
-// paused. Only the animation changes, so switching renders nothing
-$flip-cycle-two: 2 * $flip-phase;
-
-@function flip-two-at ($time) {
-  @return math.percentage(math.div($time, $flip-cycle-two));
-}
-
-@keyframes flip-cycle-swing {
-  0%,
-  #{flip-two-at($flip-hold)} {
-    transform: translateY(0);
-  }
-
-  #{flip-two-at($flip-phase)},
-  #{flip-two-at($flip-phase + $flip-hold)} {
-    transform: translateY(calc(-1 * var(--flip-face)));
-  }
-
-  100% {
-    transform: translateY(0);
-  }
-}
-
-:root[data-flip-no-types] .tracker-container:not([data-flip-paused]) {
-  .flip-strip {
-    animation-name: flip-cycle-swing;
-    animation-duration: $flip-cycle-two;
-  }
-
-  // a held line's record and trainer's faces are the same picture: nothing to swing between
-  .flip-hold .flip-strip {
-    animation: none;
-  }
 }
 
 // Location Tints off (the palette menu, applyDisplay): a mon away from where its dex keeps them is washed as one there
@@ -1528,84 +1438,14 @@ $flip-cycle-two: 2 * $flip-phase;
   text-align: center;
 }
 
-@each $line, $height in (names: 22px, badges: 20px, numbers: 16px) {
-  .flip-#{$line} {
-    --flip-face: var(--flip-#{$line}, #{$height});
+// the name's window, its faces a line apart (the lower block's are in styles/tile-faces.scss)
+.flip-names {
+  --flip-face: var(--flip-names, 22px);
 
+  height: var(--flip-face);
+
+  .flip-faces > * {
     height: var(--flip-face);
-
-    .flip-faces > * {
-      height: var(--flip-face);
-    }
-  }
-}
-
-.flip-numbers {
-  @include number-halo;
-}
-
-// the badges' window starts where the number line's ends, so the two never draw the same pixel, and its strip sits up
-// by the lines' overlap (the band is a little under the number line's height) to keep the badges in their place
-.flip-badges {
-  height: calc(var(--flip-lower, 34px) - var(--flip-numbers, 16px));
-
-  .flip-strip {
-    margin-top: calc(var(--flip-band, 14px) - var(--flip-numbers, 16px));
-  }
-
-  .number-line-slots {
-    @include number-halo;
-  }
-}
-
-// the block lines' faces sit where the block puts them rather than each under the last: the first two a line apart,
-// then the types and what passes through as the block moves (FlipStrips)
-:is(.flip-numbers, .flip-badges) .flip-faces > * {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-}
-
-.flip-numbers .flip-faces {
-  > :nth-child(2) {
-    top: var(--flip-face);
-  }
-
-  // the badges' trainer face, passing up through the number line as the block leaves for the types
-  > :nth-child(3) {
-    top: calc(var(--flip-face) + var(--flip-band, 14px));
-    height: var(--flip-badges, 20px);
-  }
-
-  > :nth-child(4) {
-    top: calc(var(--flip-face) + var(--flip-lower, 34px));
-    height: var(--flip-lower, 34px);
-  }
-
-  > :nth-child(5) {
-    top: calc(var(--flip-face) + 2 * var(--flip-lower, 34px));
-  }
-}
-
-.flip-badges .flip-faces {
-  > :nth-child(2) {
-    top: var(--flip-face);
-  }
-
-  > :nth-child(3) {
-    top: calc(2 * var(--flip-face));
-    height: var(--flip-lower, 34px);
-  }
-
-  // the number line's first face, passing up through the badges as the block comes back from the types
-  > :nth-child(4) {
-    top: calc(2 * var(--flip-face) + var(--flip-lower, 34px));
-    height: var(--flip-numbers, 16px);
-  }
-
-  > :nth-child(5) {
-    top: calc(var(--flip-face) + 2 * var(--flip-lower, 34px));
   }
 }
 
@@ -1616,20 +1456,6 @@ $flip-cycle-two: 2 * $flip-phase;
   display: flex;
   align-items: baseline;
   justify-content: center;
-}
-
-// paused with space (useFlipClock), holding the face on show, or the one picked since (which slides there); the name
-// holds its first for the types
-.tracker-container[data-flip-paused] .flip-strip {
-  animation: none;
-}
-
-.tracker-container[data-flip-paused='1'] .flip-strip {
-  transform: translateY(calc(-1 * var(--flip-face)));
-}
-
-.tracker-container[data-flip-paused='2'] :is(.flip-numbers, .flip-badges) .flip-strip {
-  transform: translateY(calc(-1 * (var(--flip-face) + var(--flip-lower))));
 }
 
 .set-status {
@@ -1681,7 +1507,7 @@ $flip-cycle-two: 2 * $flip-phase;
   }
 }
 
-// results keep the box's six columns; SearchResults pads the last row with empty slots
+// results run a row of boxes wide (SearchResults), centred; it pads the last row with empty slots
 .search-results {
   margin: 0 auto;
 

@@ -206,8 +206,14 @@ export function Dex ({
     <>
       {/* outside the zoom, so it's the same size at every scale */}
       <Scroll onClick={onScrollButtonClick} showScroll={showScrollButton} />
-      {/* --dex-px: a screen pixel in the dex's own px, for lines and halos that stay that fine at any zoom */}
-      <div className="dex" style={{ zoom: scale, '--dex-px': `${1 / (scale * window.devicePixelRatio)}px` } as CSSProperties}>
+      {/* --dex-px: a screen pixel in the dex's own px, for lines and halos that stay that fine at any zoom. Stale while
+          what's on screen is still the last view, the new filters or search rendering behind it (a page handing the
+          dex a view waits that out, Tracker's handOff) */}
+      <div
+        className="dex"
+        data-stale={(deferredFilters !== filters || deferredQuery !== query) || undefined}
+        style={{ zoom: scale, '--dex-px': `${1 / (scale * window.devicePixelRatio)}px` } as CSSProperties}
+      >
         <div className="wrapper">
           {layout === 'ledger' &&
             <Ledger
@@ -223,6 +229,7 @@ export function Dex ({
           {layout === 'boxes' && (hasQuery(deferredQuery) || anyFilterActive(deferredFilters)) &&
             <SearchResults
               captures={captures}
+              columns={columns}
               filters={deferredFilters}
               held={held}
               query={deferredQuery}

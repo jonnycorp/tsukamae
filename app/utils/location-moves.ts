@@ -46,12 +46,14 @@ export function locationTint (location: CaptureLocation | null, homeDex: boolean
   return location === 'home' ? 'home' : null;
 }
 
-// where a mon can be moved: HOME, each of your games, and Champions in a HOME dex
-export function destinations (saves: GameSave[], homeDex: boolean): Place[] {
+// where a mon can be moved: HOME, each of your games (those that can hold it, given `holds`), and Champions where
+// `champions` says it can go (utils/champions: a HOME dex's mon on the roster). A HOME entry in My Games is a trainer,
+// not a place (HOME itself is one), so it's never a game to move into
+export function destinations (saves: GameSave[], champions: boolean, holds?: (save: GameSave) => boolean): Place[] {
   return [
     { location: 'home', location_save: null },
-    ...saves.map((save): Place => ({ location: 'game', location_save: save.id })),
-    ...(homeDex ? [{ location: 'champions', location_save: null } as Place] : []),
+    ...saves.filter((save) => save.game !== 'home' && (!holds || holds(save))).map((save): Place => ({ location: 'game', location_save: save.id })),
+    ...(champions ? [{ location: 'champions', location_save: null } as Place] : []),
   ];
 }
 

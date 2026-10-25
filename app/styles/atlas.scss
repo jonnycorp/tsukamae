@@ -1,0 +1,403 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// the atlas (components/pages/Tracker/Atlas.tsx): every dex a strip along the national dex, read like a spectrum, its
+// columns in the status colours (caught a paler share of the sealed), the species a dex doesn't list left as its
+// track; the open dex's strip ringed in the accent. Each strip sweeps in from the left as the scene opens; still mode
+// shows them drawn
+$at-strip: 22px;
+$at-axis: 24px;
+
+@keyframes at-sweep {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+.at-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.at-card {
+  min-width: 0;
+}
+
+.at-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: -6px 0 14px;
+  color: var(--ink-muted);
+
+  @include small-text(12px);
+
+  > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.at-swatch {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+// a state's colour, for the strips' bars and the swatches alike
+.at-sealed {
+  background-color: var(--status-caught);
+  fill: var(--status-caught);
+}
+
+.at-caught {
+  background-color: color-mix(in oklch, var(--status-caught) 50%, var(--paper-raised));
+  fill: color-mix(in oklch, var(--status-caught) 50%, var(--paper-raised));
+}
+
+.at-temporary {
+  background-color: var(--status-temporary);
+  fill: var(--status-temporary);
+}
+
+.at-unobtainable {
+  background-color: var(--status-unobtainable);
+  fill: var(--status-unobtainable);
+}
+
+.at-missing {
+  background-color: var(--line);
+  fill: var(--line);
+}
+
+.at-absent {
+  background-color: var(--paper-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+
+// the strips, their names in a column at their left, the generations along their foot; the line the pointer runs
+.at-strips {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: $at-axis + 4px;
+  outline: none;
+  cursor: crosshair;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+}
+
+.at-row {
+  display: grid;
+  grid-template-columns: var(--names) minmax(0, 1fr);
+  align-items: center;
+  animation: scene-rise .45s ease-out both;
+  animation-delay: calc(160ms + var(--i) * 50ms);
+
+  &.here .at-track {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  &.here .at-title::before {
+    margin-right: 6px;
+    color: var(--accent);
+    content: '▶';
+    font-size: 9px;
+  }
+}
+
+.at-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-right: 12px;
+}
+
+.at-title {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-meta {
+  overflow: hidden;
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @include small-text(11px);
+}
+
+.at-track {
+  display: block;
+  height: $at-strip;
+  background-color: var(--paper-sunken);
+}
+
+.at-strip {
+  display: block;
+  animation: at-sweep .9s cubic-bezier(.45, 0, .2, 1) both;
+  animation-delay: calc(300ms + var(--i) * 50ms);
+}
+
+.at-axis {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: $at-axis;
+}
+
+.at-gen {
+  display: flex;
+  position: absolute;
+  top: 6px;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--ink-muted);
+  white-space: nowrap;
+
+  @include caps-label(10px);
+}
+
+.at-divider {
+  position: absolute;
+  top: 0;
+  bottom: $at-axis;
+  width: 1px;
+  background-color: color-mix(in oklch, var(--ink) 28%, transparent);
+  pointer-events: none;
+}
+
+.at-line {
+  position: absolute;
+  top: -4px;
+  bottom: $at-axis - 4px;
+  width: 2px;
+  margin-left: -1px;
+  background-color: var(--accent);
+  pointer-events: none;
+}
+
+.at-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
+.at-list {
+  min-width: 0;
+}
+
+.at-note {
+  margin: -6px 0 12px;
+  color: var(--ink-muted);
+
+  @include small-text(12px);
+}
+
+.at-empty {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.at-group {
+  margin-bottom: 14px;
+
+  h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 800;
+
+    b {
+      color: var(--ink-muted);
+      font-family: $font-secondary;
+      font-style: italic;
+      font-weight: 900;
+    }
+  }
+}
+
+.at-mons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.at-mon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background-color: var(--hover-wash);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: .55;
+  }
+}
+
+.at-more {
+  align-self: center;
+  margin-left: 6px;
+  color: var(--ink-muted);
+  font-weight: 700;
+
+  @include small-text(12px);
+}
+
+.at-wanted {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 40px minmax(90px, 150px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 10px;
+    padding: 2px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+}
+
+.at-wanted-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-wanted-dexes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.at-chip {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+
+  @include small-text(11px);
+
+  &.here {
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+}
+
+.at-wanted-count {
+  font-family: $font-secondary;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 900;
+}
+
+.at-tip-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  pointer-events: none;
+}
+
+// the loupe: the species, and how it stands in each dex, the open one in bold
+.at-tip {
+  display: flex;
+  position: fixed;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 230px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--overlay-edge);
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  box-shadow: $menu-shadow;
+
+  @include small-text(12px);
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+
+    &.here {
+      font-weight: 800;
+    }
+  }
+
+  em {
+    color: var(--on-overlay-muted);
+    font-style: normal;
+  }
+}
+
+.at-tip-mon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  strong {
+    display: block;
+    font-size: 15px;
+  }
+
+  small {
+    color: var(--on-overlay-muted);
+    font-family: $font-secondary;
+  }
+}
+
+.at-tip-dex {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-tip-state {
+  color: var(--on-overlay-muted);
+  white-space: nowrap;
+}
+
+@media (width < 1000px) {
+  .at-lists {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

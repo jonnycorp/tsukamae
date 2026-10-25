@@ -1,0 +1,536 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// the red pen (components/pages/Tracker/RedPen.tsx): a marked paper, ruled, with the margin's red line, and the
+// teacher's pen in the theme's red ink (--ink-danger, which the solver keeps legible on the paper): a ✗ or a △ drawn
+// stroke by stroke as each row comes in, a ring round what each is about, a note in the margin, the score underlined
+// at the top, and はなまる when nothing's wrong. Still mode shows it all drawn
+$rp-line: 34px;
+$rp-ease: cubic-bezier(.2, .9, .3, 1);
+
+@keyframes rp-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes rp-wipe {
+  from {
+    clip-path: inset(-20% 100% -20% 0);
+  }
+}
+
+@keyframes rp-ink {
+  from {
+    opacity: 0;
+  }
+}
+
+.redpen {
+  --rp-ink: var(--ink-danger);
+}
+
+.rp-page {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.rp-sheet {
+  position: relative;
+  padding: 26px 34px 40px 80px;
+  border: 1px solid var(--line);
+  background-color: var(--paper-raised);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 ($rp-line - 1px), var(--line-soft) ($rp-line - 1px) $rp-line);
+  background-position: 0 12px;
+  animation: scene-rise .5s $rp-ease both;
+
+  // the margin's rule
+  &::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 58px;
+    width: 2px;
+    background-color: color-mix(in oklch, var(--rp-ink) 40%, transparent);
+    content: '';
+  }
+}
+
+.rp-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.rp-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  h2 {
+    margin: 0;
+    font-family: $font-secondary;
+    font-size: 26px;
+    font-style: italic;
+    font-weight: 900;
+  }
+
+  > span:not(.rp-tally) {
+    color: var(--ink-muted);
+
+    @include small-text(13px);
+  }
+}
+
+.rp-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 4px;
+
+  > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--rp-ink);
+    font-weight: 700;
+  }
+
+  .rp-mark {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// the score, as a teacher writes it: big, slanted, twice underlined
+.rp-score {
+  display: flex;
+  position: relative;
+  flex: none;
+  align-items: baseline;
+  gap: 4px;
+  margin: 6px 10px 0 0;
+  padding: 0 8px 12px;
+  color: var(--rp-ink);
+  transform: rotate(-4deg);
+  animation: rp-ink .4s ease-out both;
+  animation-delay: 250ms;
+
+  strong {
+    position: relative;
+    font-family: $font-secondary;
+    font-size: 72px;
+    font-style: italic;
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+    line-height: .9;
+  }
+
+  > span {
+    position: relative;
+    font-size: 26px;
+    font-weight: 800;
+  }
+}
+
+.rp-underline {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  overflow: visible;
+  animation: rp-wipe .5s ease-out both;
+  animation-delay: 550ms;
+
+  path {
+    fill: none;
+    stroke: var(--rp-ink);
+    stroke-linecap: round;
+    stroke-width: 3;
+  }
+}
+
+.rp-hanamaru {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 176px;
+  height: 176px;
+  overflow: visible;
+  pointer-events: none;
+  transform: translate(-56%, -56%);
+
+  path {
+    animation: rp-draw 1.4s ease-in-out both;
+    animation-delay: 450ms;
+    fill: none;
+    opacity: .8;
+    stroke: var(--rp-ink);
+    stroke-dasharray: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+  }
+}
+
+.rp-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.rp-review-all {
+  @include filter-label;
+  @include outline-button;
+
+  .svg-inline--fa {
+    font-size: 11px;
+  }
+}
+
+// reading the unsealed drafts as well: a box ticked in the pen's ink
+.rp-drafts {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+
+  @include small-text(13px);
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+  }
+}
+
+.rp-drafts-box {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--field-edge);
+
+  .on & {
+    border-color: var(--rp-ink);
+
+    &::after {
+      width: 5px;
+      height: 9px;
+      margin-top: -2px;
+      border: solid var(--rp-ink);
+      border-width: 0 2px 2px 0;
+      content: '';
+      transform: rotate(45deg);
+    }
+  }
+}
+
+.rp-drafts-note {
+  color: var(--ink-muted);
+
+  @include small-text(12px);
+}
+
+.rp-section {
+  margin-top: 8px;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: $rp-line;
+    margin: 0;
+    color: var(--rp-ink);
+    font-family: $font-secondary;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+
+    @include small-text(14px);
+
+    .rp-mark {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+.rp-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 2 * $rp-line;
+  animation: rp-ink .4s ease-out both;
+  animation-delay: calc(200ms + var(--n) * 60ms);
+}
+
+.rp-row-main {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-areas:
+    'mark mon who chips'
+    'mark mon who notes';
+  grid-template-columns: 26px 40px minmax(110px, 170px) minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 12px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &:is(button):hover,
+  &:is(button):focus-visible {
+    background-color: var(--hover-wash);
+  }
+
+  > .rp-mark {
+    grid-area: mark;
+  }
+
+  > .scene-mon {
+    grid-area: mon;
+  }
+}
+
+// a pen's ✗ or △, each stroke drawn after the last
+.rp-mark {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  overflow: visible;
+
+  path {
+    animation: rp-draw .32s ease-out both;
+    animation-delay: calc(260ms + var(--n, 0) * 60ms);
+    fill: none;
+    stroke: var(--rp-ink);
+    stroke-dasharray: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.6;
+  }
+
+  .second {
+    animation-delay: calc(400ms + var(--n, 0) * 60ms);
+  }
+}
+
+.rp-who {
+  display: flex;
+  grid-area: who;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rp-name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-no {
+  color: var(--ink-muted);
+  font-family: $font-secondary;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rp-draft {
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-family: $font-primary;
+  font-weight: 700;
+
+  @include small-text(10px);
+}
+
+.rp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  grid-area: chips;
+  gap: 6px 18px;
+}
+
+// a field the note is about, ringed as the pen rings a word
+.rp-chip {
+  display: inline-flex;
+  position: relative;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.rp-chip-label {
+  @include caps-label(10px);
+
+  color: var(--ink-muted);
+}
+
+.rp-chip-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+
+  img {
+    @include ball-sprite;
+  }
+}
+
+.rp-loop {
+  position: absolute;
+  top: -5px;
+  left: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 10px);
+  overflow: visible;
+  pointer-events: none;
+  animation: rp-wipe .45s ease-in-out both;
+  animation-delay: calc(440ms + var(--n, 0) * 60ms);
+
+  path {
+    fill: none;
+    stroke: var(--rp-ink);
+    stroke-linecap: round;
+    stroke-width: 2;
+  }
+}
+
+.rp-notes {
+  display: flex;
+  grid-area: notes;
+  flex-direction: column;
+  gap: 2px;
+}
+
+// the margin note, in the pen's ink, a little slanted as a hand writes
+.rp-note {
+  color: var(--rp-ink);
+  font-style: italic;
+  font-weight: 600;
+
+  @include small-text(13px);
+}
+
+.rp-locate {
+  flex: none;
+  align-self: center;
+  margin-left: 8px;
+  padding: 4px 8px;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  text-decoration: underline;
+  white-space: nowrap;
+  cursor: pointer;
+
+  @include small-text(12px);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--ink);
+  }
+}
+
+.rp-variant .rp-row-main {
+  grid-template-areas:
+    'mark chips chips chips'
+    'mark notes notes notes';
+  cursor: default;
+}
+
+.rp-spellings {
+  display: flex;
+  flex-wrap: wrap;
+  grid-area: chips;
+  gap: 6px 16px;
+}
+
+// each spelling between brackets, so a stray space shows
+.rp-spelling {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+
+  q {
+    font-size: 15px;
+    font-weight: 800;
+    white-space: pre;
+    quotes: '「' '」';
+  }
+
+  b {
+    color: var(--ink-muted);
+    font-size: 12px;
+  }
+
+  &.usual q {
+    color: var(--ink-muted);
+  }
+}
+
+.rp-clear {
+  margin: 34px 0;
+  color: var(--ink-muted);
+  font-size: 16px;
+  text-align: center;
+}
+
+@media (width < 900px) {
+  .rp-sheet {
+    padding: 20px 14px 30px 46px;
+
+    &::before {
+      left: 32px;
+    }
+  }
+
+  .rp-sheet-head {
+    flex-wrap: wrap;
+  }
+
+  .rp-row-main {
+    grid-template-areas:
+      'mark mon who'
+      'mark chips chips'
+      'mark notes notes';
+    grid-template-columns: 22px 36px minmax(0, 1fr);
+  }
+
+  .rp-score strong {
+    font-size: 54px;
+  }
+
+  .rp-hanamaru {
+    width: 136px;
+    height: 136px;
+  }
+}

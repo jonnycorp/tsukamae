@@ -251,8 +251,10 @@ nav {
       font-size: 11px;
     }
 
-    // the next group (Soft Dark, then the display switches) sets off with a band of the bar's deeper shade
+    // the next group (Soft Dark, the display modes, then the display switches) sets off with a band of the bar's deeper
+    // shade
     &.theme-soft-dark,
+    &.theme-modes,
     &.theme-display {
       border-top: 4px solid var(--chrome-active);
     }

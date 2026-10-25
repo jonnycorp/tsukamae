@@ -10,7 +10,9 @@ import { Dropdown } from '../../library/Dropdown';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { TitleCard, useTitleCard } from './TitleCard';
 import { UNSEAL_HOLD } from './Pokemon';
+import { canHold } from '../../../utils/game-reach';
 import { destinations, locationTint, placeFromKey, placeKey, placeLabel, placeOf } from '../../../utils/location-moves';
+import { asksChampions, canVisitChampions, offersChampions } from '../../../utils/champions';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
 import { stateOf } from './ledger-model';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
@@ -511,7 +513,8 @@ export function Review ({ queue, start, onClose }: Props) {
   // a field's plate: its control while the record's open, its value once sealed (where it is, still movable), a blank
   // till the mon's marked; marked at its corner while sealing waits on it, ticked once one that gates the seal is in
   const plate = (field: CaptureField, k: number) => {
-    if (!capture || (capture.sealed && field.kind === 'save')) {
+    // Been to Champions only for a mon that can go there (utils/champions)
+    if (!capture || (capture.sealed && field.kind === 'save') || (field.id === 'been_to_champions' && !asksChampions(capture))) {
       return null;
     }
     const waiting = missingIds.has(field.id);
@@ -533,7 +536,8 @@ export function Review ({ queue, start, onClose }: Props) {
                 blankLabel={here ? undefined : formatFieldValue(field, capture, locale, saves)}
                 id="review-move"
                 onSelect={(key) => key && moveTo(capture.pokemon.id, placeFromKey(key))}
-                options={destinations(saves, homeDex).map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }))}
+                options={destinations(saves, offersChampions(capture, homeDex), (save) => save.id === capture.location_save || canHold(save, capture, saves))
+                .map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }))}
                 value={here ? placeKey(here) : ''}
               />
             )
@@ -547,7 +551,16 @@ export function Review ({ queue, start, onClose }: Props) {
         </>
       );
     } else {
-      body = <CaptureFieldControl field={field} genderLock={capture.pokemon.gender_lock} idPrefix="review" onChange={(changes) => change(field, changes)} value={capture} />;
+      body = (
+        <CaptureFieldControl
+          canVisitChampions={canVisitChampions(capture.pokemon)}
+          field={field}
+          genderLock={capture.pokemon.gender_lock}
+          idPrefix="review"
+          onChange={(changes) => change(field, changes)}
+          value={capture}
+        />
+      );
     }
     return (
       <div

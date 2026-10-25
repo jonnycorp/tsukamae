@@ -8,13 +8,14 @@ import { Tracker } from './Tracker';
 import { TESTING, useDevScaffolding, useProdPreviewHotkey } from '../../utils/testing';
 import { applyDisplay, applyTheme } from '../../palette/apply-theme';
 import { isSaveOk, subscribeSaveStatus } from '../../utils/local-data';
-import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
+import { useDisplayContext, useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
 import { useScrollbarFade } from '../../hooks/use-scrollbar-fade';
 import { useTranslation } from '../../hooks/use-translation';
 
 export function App () {
   const { locale } = useLocalStorageContext();
-  const { isSoftDark, theme, locationTints, flipTypes, tileTypes, still } = useThemeContext();
+  const { isSoftDark, theme, locationTints, still } = useThemeContext();
+  const { display } = useDisplayContext();
 
   useScrollbarFade();
   useProdPreviewHotkey();
@@ -29,8 +30,8 @@ export function App () {
   }, [theme, isSoftDark]);
 
   useEffect(() => {
-    applyDisplay(locationTints, flipTypes, tileTypes, still);
-  }, [locationTints, flipTypes, tileTypes, still]);
+    applyDisplay(locationTints, still, display);
+  }, [locationTints, still, display]);
 
   return (
     <div className="root">

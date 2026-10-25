@@ -21,8 +21,15 @@ const VIEW_EMPTY: Partial<Record<FilterView, TranslationKey>> = {
   incomplete: 'searchResults.noIncomplete',
 };
 
+// a chunk's rows, a box's; and the widest results run, in boxes' worth (keep in sync with the widths styles/tracker.scss
+// draws lines for)
+const CHUNK_ROWS = BOX_SIZE / BOX_COLUMNS;
+const MAX_BOXES_ACROSS = 8;
+
 interface ChunkProps {
   captures: Capture[];
+  // tiles across
+  columns: number;
   // empty slots that square off the last row, like a box's
   padding: number;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
@@ -30,23 +37,25 @@ interface ChunkProps {
 
 function sameChunk (prev: ChunkProps, next: ChunkProps): boolean {
   return prev.padding === next.padding &&
+    prev.columns === next.columns &&
     prev.setSelectedPokemon === next.setSelectedPokemon &&
     prev.captures.length === next.captures.length &&
     prev.captures.every((capture, i) => capture === next.captures[i]);
 }
 
-// a box's worth of results drawn as a box is, its title aside: its own shine and flips over its own grid, so a sealed
-// tile looks the same in every view, an offscreen chunk skips its work, and an edit re-renders one chunk, not the list
-const ResultsChunk = memo(function ResultsChunk ({ captures, padding, setSelectedPokemon }: ChunkProps) {
+// a box's rows of results drawn as a box is, its title aside, as wide as the row of boxes they stand for: its own shine
+// and flips over its own grid, so a sealed tile looks the same in every view, an offscreen chunk skips its work, and an
+// edit re-renders one chunk, not the list
+const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, setSelectedPokemon }: ChunkProps) {
   const { activeDex } = useDexContext();
   const { narrow } = useTrackerActions();
   const checklist = Boolean(activeDex!.checklist);
 
-  const clip = useMemo(() => (narrow ? null : shineClip(captures, checklist)), [captures, checklist, narrow]);
+  const clip = useMemo(() => (narrow ? null : shineClip(captures, checklist, columns)), [captures, checklist, narrow, columns]);
 
   return (
     <div className="results-chunk">
-      <div className="tile-grid">
+      <div className="tile-grid" data-columns={columns}>
         {captures.map((capture) => (
           <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />
         ))}
@@ -61,7 +70,7 @@ const ResultsChunk = memo(function ResultsChunk ({ captures, padding, setSelecte
           <div className="box-shine-band" />
         </div>
       }
-      {!narrow && <FlipStrips grids={[captures]} />}
+      {!narrow && <FlipStrips columns={columns} grids={[captures]} />}
     </div>
   );
 }, sameChunk);
@@ -101,6 +110,8 @@ export function NoResults ({ filters, query, setFilters, setQuery }: NoResultsPr
 
 interface Props {
   captures: Capture[];
+  // boxes across the grid the results stand in for
+  columns: number;
   filters: TrackerFilters;
   // shown though they no longer match: tiles the open popover has worked on (useHeldTiles in Dex)
   held: number[];
@@ -110,7 +121,7 @@ interface Props {
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
-export function SearchResults ({ captures, filters, held, query, setFilters, setQuery, setSelectedPokemon }: Props) {
+export function SearchResults ({ captures, columns, filters, held, query, setFilters, setQuery, setSelectedPokemon }: Props) {
   const { activeDexView } = useDexContext();
   const regional = Boolean(activeDexView?.regional);
 
@@ -120,13 +131,15 @@ export function SearchResults ({ captures, filters, held, query, setFilters, set
     return captures.filter((capture) => held.includes(capture.pokemon.id) || (matchesFilters(capture) && matchesQuery(capture)));
   }, [captures, filters, held, query, regional]);
 
+  // no boxes to keep to, so as wide as a row of them: the page filled, not a box's six columns down its middle
+  const across = Math.min(Math.max(1, columns), MAX_BOXES_ACROSS) * BOX_COLUMNS;
   const chunks = useMemo(() => {
     const all: Capture[][] = [];
-    for (let i = 0; i < results.length; i += BOX_SIZE) {
-      all.push(results.slice(i, i + BOX_SIZE));
+    for (let i = 0; i < results.length; i += across * CHUNK_ROWS) {
+      all.push(results.slice(i, i + across * CHUNK_ROWS));
     }
     return all;
-  }, [results]);
+  }, [results, across]);
 
   if (results.length === 0) {
     return <NoResults filters={filters} query={query} setFilters={setFilters} setQuery={setQuery} />;
@@ -138,8 +151,9 @@ export function SearchResults ({ captures, filters, held, query, setFilters, set
         <ResultsChunk
           captures={chunk}
           // by position: a chunk is a slice, not an identity
+          columns={across}
           key={c}
-          padding={c === chunks.length - 1 ? (BOX_COLUMNS - (chunk.length % BOX_COLUMNS)) % BOX_COLUMNS : 0}
+          padding={c === chunks.length - 1 ? (across - (chunk.length % across)) % across : 0}
           setSelectedPokemon={setSelectedPokemon}
         />
       ))}

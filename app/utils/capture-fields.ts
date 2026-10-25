@@ -247,7 +247,7 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     keys: ['location', 'location_save'],
     gatesSeal: true,
     defaultable: false,
-    // champions is filtered by locationOptions: HOME dexes, and only once the mon has been there
+    // champions is filtered by locationOptions: HOME dexes, only once the mon has been there, and only for one that can go
     options: (locale) => [
       { value: 'home', label: translate(locale, 'location.home') },
       { value: 'champions', label: translate(locale, 'location.champions') },
@@ -515,9 +515,11 @@ export function genderOptions (locale: Locale, lock: GenderLock | null | undefin
     : all.filter((option) => option.value !== 'none');
 }
 
-export function locationOptions (locale: Locale, meta: Partial<CaptureMetadata>, isHomeDex: boolean): CaptureFieldOption[] {
+// Champions in a HOME dex, once the mon has been there, for one that can go (utils/champions) or is there already
+export function locationOptions (locale: Locale, meta: Partial<CaptureMetadata>, isHomeDex: boolean, canVisitChampions: boolean): CaptureFieldOption[] {
   const all = CAPTURE_FIELDS.find((field) => field.id === 'location')!.options!(locale);
-  return all.filter((option) => option.value !== 'champions' || (isHomeDex && meta.been_to_champions === true));
+  const champions = isHomeDex && meta.been_to_champions === true && (canVisitChampions || meta.location === 'champions');
+  return all.filter((option) => option.value !== 'champions' || champions);
 }
 
 // cross-field rules, applied wherever metadata is written

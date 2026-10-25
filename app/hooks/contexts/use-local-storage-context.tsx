@@ -1,9 +1,11 @@
 import { createContext, useContext, useMemo } from 'react';
 
 import { DEFAULT_THEME, findTheme } from '../../palette/themes';
-import { FLIP_TYPES_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, SOFT_DARK_STORAGE_KEY, STILL_STORAGE_KEY, THEME_STORAGE_KEY, TILE_TYPES_STORAGE_KEY } from '../../palette/apply-theme';
+import { DISPLAY_MODES } from '../../utils/display-modes';
+import { DISPLAY_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, SOFT_DARK_STORAGE_KEY, STILL_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
 import { useLocalStorage } from '../use-local-storage';
 
+import type { DisplayMode } from '../../utils/display-modes';
 import type { Locale } from '../../i18n/translations';
 import type { ReactNode } from 'react';
 
@@ -22,13 +24,16 @@ interface ThemeState {
   setIsSoftDark: (softDark: boolean) => void;
   locationTints: boolean;
   setLocationTints: (on: boolean) => void;
-  flipTypes: boolean;
-  setFlipTypes: (on: boolean) => void;
-  tileTypes: boolean;
-  setTileTypes: (on: boolean) => void;
   // nothing on the page moves (applyDisplay): for long sessions, or the dex left up on another screen
   still: boolean;
   setStill: (on: boolean) => void;
+}
+
+// the sealed tiles' pages (utils/display-modes), which the flips' strips draw and their picker offers, so it's kept
+// apart from the theme's switches, which no tile reads
+interface DisplayState {
+  display: DisplayMode;
+  setDisplay: (display: DisplayMode) => void;
 }
 
 const PreferencesContext = createContext<PreferencesState>({
@@ -43,12 +48,13 @@ const ThemeContext = createContext<ThemeState>({
   setIsSoftDark: () => {},
   locationTints: true,
   setLocationTints: () => {},
-  flipTypes: true,
-  setFlipTypes: () => {},
-  tileTypes: false,
-  setTileTypes: () => {},
   still: false,
   setStill: () => {},
+});
+
+const DisplayContext = createContext<DisplayState>({
+  display: 'hexagon',
+  setDisplay: () => {},
 });
 
 interface Props {
@@ -62,21 +68,25 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const theme = findTheme(storedTheme).name;
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, false);
   const [locationTints, setLocationTints] = useLocalStorage(LOCATION_TINTS_STORAGE_KEY, true);
-  const [flipTypes, setFlipTypes] = useLocalStorage(FLIP_TYPES_STORAGE_KEY, true);
-  const [tileTypes, setTileTypes] = useLocalStorage(TILE_TYPES_STORAGE_KEY, false);
   const [still, setStill] = useLocalStorage(STILL_STORAGE_KEY, false);
+  const [storedDisplay, setDisplay] = useLocalStorage<DisplayMode>(DISPLAY_STORAGE_KEY, 'hexagon');
+  const display = DISPLAY_MODES.includes(storedDisplay) ? storedDisplay : 'hexagon';
 
   const preferences = useMemo<PreferencesState>(() => ({ locale, setLocale }), [locale, setLocale]);
 
   const themeState = useMemo<ThemeState>(
-    () => ({ theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes, tileTypes, setTileTypes, still, setStill }),
-    [theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, flipTypes, setFlipTypes, tileTypes, setTileTypes, still, setStill],
+    () => ({ theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, still, setStill }),
+    [theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, still, setStill],
   );
+
+  const displayState = useMemo<DisplayState>(() => ({ display, setDisplay }), [display, setDisplay]);
 
   return (
     <PreferencesContext.Provider value={preferences}>
       <ThemeContext.Provider value={themeState}>
-        {children}
+        <DisplayContext.Provider value={displayState}>
+          {children}
+        </DisplayContext.Provider>
       </ThemeContext.Provider>
     </PreferencesContext.Provider>
   );
@@ -85,3 +95,5 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
 export const useLocalStorageContext = () => useContext(PreferencesContext);
 
 export const useThemeContext = () => useContext(ThemeContext);
+
+export const useDisplayContext = () => useContext(DisplayContext);

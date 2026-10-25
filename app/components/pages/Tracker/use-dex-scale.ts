@@ -9,7 +9,7 @@ import { useLocalStorage } from '../../../hooks/use-local-storage';
 import type { RefObject } from 'react';
 
 // under a modal or the timeline, the dex behind keeps its zoom
-const COVERED = '.modal-overlay, .timeline, .almanac, .review, .command-palette';
+const COVERED = '.modal-overlay, .timeline, .almanac, .review, .scene, .command-palette';
 
 // screen px, not scaled px: scrollbars keep their size whatever the dex zoom, so room for a gutter either side
 const GUTTERS = 24;
@@ -26,10 +26,9 @@ const MAX_FIT = 2;
 // two boxes across below this read too small at 100%: the fit gives one box the width instead
 const MIN_TWO_FIT = 0.8;
 
-// a sealed tile's flipping lines, unscaled; keep in sync with styles/tracker.scss
-// band is the badges row's distance below the number line, where the two meet in the types' block; glyph is a type's
-// symbol on that block, and glyphGap the space between two
-const FLIP_LINES = { names: 22, badges: 20, numbers: 16, band: 14, glyph: 16, glyphGap: 6 };
+// a sealed tile's flipping lines, unscaled; keep in sync with styles/tracker.scss and styles/tile-faces.scss
+// band is the badges row's distance below the number line, where the two meet in the lower block's pages
+const FLIP_LINES = { names: 22, badges: 20, numbers: 16, band: 14 };
 
 // the user's own zoom, on top of the fit; 1 is the fit itself. Below 100% the steps also land exactly on 3 and on
 // MIN_COLUMNS boxes across, where zooming out stops; those zooms depend on the window (zoomSteps)
@@ -63,10 +62,9 @@ function spanAt (width: number, fit: number): number {
   return (columnsAt(width, fit) * (BOX_WIDTH + BOX_GAP) - BOX_GAP) * fit;
 }
 
-// each flipping line's face height in scaled px, the band, and the types' glyph and gap, rounded to whole screen pixels
-// so the strips rest on them, the types' block lines up across the two lines it spans, and every tile draws a glyph
-// the same size (Chromium snaps each box's edges to the pixel grid, so a fractional one comes out a pixel wider on some
-// tiles than on others)
+// each flipping line's face height in scaled px and the band, rounded to whole screen pixels so the strips rest on them
+// and a page's two zones meet where the number line's and the badges' do (Chromium snaps each box's edges to the pixel
+// grid, so a fractional one comes out a pixel wider on some tiles than on others)
 function flipLinesAt (scale: number): Record<keyof typeof FLIP_LINES, number> {
   const pixels = scale * window.devicePixelRatio;
   const round = (height: number) => Math.round(height * pixels) / pixels;
@@ -75,8 +73,6 @@ function flipLinesAt (scale: number): Record<keyof typeof FLIP_LINES, number> {
     badges: round(FLIP_LINES.badges),
     numbers: round(FLIP_LINES.numbers),
     band: round(FLIP_LINES.band),
-    glyph: round(FLIP_LINES.glyph),
-    glyphGap: round(FLIP_LINES.glyphGap),
   };
 }
 

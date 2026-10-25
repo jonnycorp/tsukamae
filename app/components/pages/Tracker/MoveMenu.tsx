@@ -5,7 +5,9 @@ import { faCheck, faHouse } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { OriginMark, hasOriginMark } from './seal-faces';
+import { canHold } from '../../../utils/game-reach';
 import { destinations, placeKey, placeLabel, placeOf, samePlace } from '../../../utils/location-moves';
+import { offersChampions } from '../../../utils/champions';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerActions, useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -50,7 +52,10 @@ export function MoveMenu () {
   const capture = target ? captures.find((cap) => cap.pokemon.id === target.pokemon) : undefined;
   const open = Boolean(target && capture?.sealed);
   const here = capture ? placeOf(capture) : null;
-  const places = useMemo(() => (open ? destinations(saves, activeDexView?.game.id === 'home') : []), [open, saves, activeDexView]);
+  // the games that can hold it (canHold), and the one it's in whatever it is, so where it is stays ticked
+  const places = useMemo(() => (open && capture
+    ? destinations(saves, offersChampions(capture, activeDexView?.game.id === 'home'), (save) => save.id === capture.location_save || canHold(save, capture, saves))
+    : []), [open, capture, saves, activeDexView]);
 
   const close = () => setTarget(null);
 

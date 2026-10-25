@@ -1,16 +1,19 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faCirclePause, faFileExport, faFileImport, faFlask, faGamepad, faGear, faLanguage, faLocationDot, faMoon, faPalette, faRotate, faShapes } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCirclePause, faFileExport, faFileImport, faFlask, faGamepad, faGear, faHexagonNodes, faLanguage, faLocationDot, faMoon, faPalette, faRing } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
+import { DISPLAY_MODES } from '../../utils/display-modes';
 import { SavesModal } from './SavesModal';
 import { THEMES, themePalette } from '../../palette/themes';
 import { exportAppState, importAppState, isAppState } from '../../utils/local-data';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
-import { useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
+import { useDisplayContext, useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { ChangeEvent, RefObject } from 'react';
+import type { DisplayMode } from '../../utils/display-modes';
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 // closes on a press outside, or on an Escape nothing else has claimed, as the Filters panel and the dropdowns do
 function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, close: () => void) {
@@ -43,9 +46,16 @@ interface Props {
 
 const THEME_DOTS = ['chrome', 'accent', 'status-unobtainable', 'status-temporary', 'status-caught'];
 
+// each display mode's sign, in the menu and in the palette
+export const DISPLAY_ICONS: Record<DisplayMode, IconDefinition> = {
+  hexagon: faHexagonNodes,
+  orbit: faRing,
+};
+
 export function Nav ({ onTogglePreview }: Props) {
   const { locale, setLocale } = useLocalStorageContext();
-  const { isSoftDark, setIsSoftDark, theme, setTheme, locationTints, setLocationTints, flipTypes, setFlipTypes, tileTypes, setTileTypes, still, setStill } = useThemeContext();
+  const { isSoftDark, setIsSoftDark, theme, setTheme, locationTints, setLocationTints, still, setStill } = useThemeContext();
+  const { display, setDisplay } = useDisplayContext();
   const { dexes, setActiveDex } = useDexContext();
   const { t } = useTranslation();
   // before the data loads, or when it can't be, there's nothing to export or edit, but Import can still restore an export
@@ -181,22 +191,25 @@ export function Nav ({ onTogglePreview }: Props) {
               {t('nav.softDark')}
               {isSoftDark && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
             </li>
-            {/* how the dex shows its tiles: sealed ones washed by where each mon is and turning to their types in the
-                flips, the rest with their types' glyphs at their feet */}
+            {/* how the sealed tiles show their pages (utils/display-modes, O to switch): Hexagon for day-to-day work,
+                Orbit for the pleasure of it */}
+            {DISPLAY_MODES.map((mode, i) => (
+              <li
+                className={classNames({ 'theme-modes': i === 0, 'theme-active': mode === display })}
+                key={mode}
+                onClick={() => setDisplay(mode)}
+                title={`${t(`nav.display.${mode}`)} (O)`}
+              >
+                <FontAwesomeIcon icon={DISPLAY_ICONS[mode]} />
+                {t(`nav.display.${mode}`)}
+                {mode === display && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+              </li>
+            ))}
+            {/* the sealed tiles washed by where each mon is */}
             <li className={`theme-display ${locationTints ? 'theme-active' : ''}`} onClick={() => setLocationTints(!locationTints)}>
               <FontAwesomeIcon icon={faLocationDot} />
               {t('nav.locationTints')}
               {locationTints && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
-            </li>
-            <li className={flipTypes ? 'theme-active' : ''} onClick={() => setFlipTypes(!flipTypes)}>
-              <FontAwesomeIcon icon={faRotate} />
-              {t('nav.flipTypes')}
-              {flipTypes && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
-            </li>
-            <li className={tileTypes ? 'theme-active' : ''} onClick={() => setTileTypes(!tileTypes)}>
-              <FontAwesomeIcon icon={faShapes} />
-              {t('nav.tileTypes')}
-              {tileTypes && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
             </li>
             {/* still mode (M): nothing on the page moves */}
             <li className={still ? 'theme-active' : ''} onClick={() => setStill(!still)} title={`${t('nav.still')} (M)`}>
