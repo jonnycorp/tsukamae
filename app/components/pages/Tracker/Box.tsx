@@ -6,7 +6,6 @@ import { Pokemon } from './Pokemon';
 import { shineClip as clipFor, useTrackerActions } from './use-tracker';
 import { localizeBoxName } from '../../../i18n/names';
 import { translate } from '../../../i18n/translations';
-import { useDeferredRender } from '../../../hooks/use-deferred-render';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -16,8 +15,6 @@ import type { Locale } from '../../../i18n/translations';
 
 interface Props {
   captures: Capture[];
-  // frames to wait before rendering, 0 for at once; only read as it mounts
-  deferFrames: number;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
@@ -41,20 +38,14 @@ function sameProps (prev: Props, next: Props): boolean {
     prev.captures.every((capture, i) => capture === next.captures[i]);
 }
 
-export const Box = memo(function Box ({ captures, deferFrames, setSelectedPokemon }: Props) {
+export const Box = memo(function Box ({ captures, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { narrow } = useTrackerActions();
   const { t, locale } = useTranslation();
-  const render = useDeferredRender(deferFrames === 0, deferFrames);
   const checklist = Boolean(activeDex!.checklist);
 
   // the clip is drawn for the 6-column grid, not the narrow list view
   const shineClip = useMemo(() => (narrow ? null : clipFor(captures, checklist)), [captures, checklist, narrow]);
-
-  // its place held till it renders, a box's size and nothing in it, so the grid is its full height from the start
-  if (!render) {
-    return narrow ? null : <div aria-hidden="true" className="box box-placeholder" />;
-  }
 
   const complete = captures.every((capture) => capture.status === 'caught' || capture.status === 'unobtainable');
   const sealed = captures.filter((capture) => capture.sealed).length;

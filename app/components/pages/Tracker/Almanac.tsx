@@ -15,6 +15,7 @@ import { locationTint, placeLabel as placeLabelOf, placeFromKey } from '../../..
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
 import { useSceneScale } from './use-scene-scale';
+import { useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -38,6 +39,8 @@ const WAVE_SPREAD = 450;
 const MONTH_SPREAD = 650;
 // the milestones' line draws across a stop at a time, each mon dropping onto it as the line reaches it
 const STOP_MS = 160;
+// keep in sync with almanac-plop in styles/almanac.scss: a ball's drop, which lands 60% of its .5s in
+const PLOP_LANDS_MS = 300;
 // the first month's year is marked under it unless it falls after this, too close to the next January's
 const FIRST_YEAR_BY = 9;
 // a list longer than this takes two of the records' columns, its rows in two columns of their own
@@ -55,8 +58,8 @@ const wave = (i: number, n: number, spread = WAVE_SPREAD) => Math.round(i * Math
 // one curve: a count's text (data-count, to data-decimals places) and a fill's --p (a ring's arc, a bar's length, a
 // month's height) alike. A count takes its fill's data-at, so the two land together. The text goes into React's own
 // node, and only what changed is written. While the scene's title card is up (intro) all of it waits at nothing, the
-// clock starting as the card's about to clear
-function useEntrance (sceneRef: RefObject<HTMLElement>, intro: boolean) {
+// clock starting as the card's about to clear; in still mode (M) all of it is in full from the first paint
+function useEntrance (sceneRef: RefObject<HTMLElement>, intro: boolean, still: boolean) {
   useLayoutEffect(() => {
     const items = [...sceneRef.current!.querySelectorAll<HTMLElement | SVGElement>('[data-at]')].map((el) => ({
       el,
@@ -65,7 +68,7 @@ function useEntrance (sceneRef: RefObject<HTMLElement>, intro: boolean) {
       decimals: Number(el.dataset.decimals ?? 0),
       shown: '',
     }));
-    const start = intro ? Infinity : performance.now();
+    const start = intro ? Infinity : still ? -Infinity : performance.now();
     let frame = 0;
     const paint = (now: number) => {
       let running = false;
@@ -89,7 +92,7 @@ function useEntrance (sceneRef: RefObject<HTMLElement>, intro: boolean) {
     };
     paint(performance.now());
     return () => cancelAnimationFrame(frame);
-  }, [sceneRef, intro]);
+  }, [sceneRef, intro, still]);
 }
 
 // the records' cards packed into the grid's columns as tightly as their heights allow: each spans as many of its 1px
@@ -292,7 +295,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
   const { captures } = useTrackerState();
   const { activeDex, activeDexView, saves } = useDexContext();
   const { t, locale } = useTranslation();
-  const data = useMemo(() => almanacData(captures), [captures]);
+  const data = useMemo(() => almanacData(captures, saves), [captures, saves]);
   const sceneRef = useRef<HTMLDivElement>(null);
   const recordsRef = useRef<HTMLDivElement>(null);
   const checklist = Boolean(activeDex?.checklist);
@@ -301,9 +304,10 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
   const scale = useSceneScale();
   // its title card as it opens, what's under the bar out of sight (intro) till the card's about to clear
   const { titleCard, intro, gate } = useTitleCard();
+  const { still } = useThemeContext();
 
   useInertPage();
-  useEntrance(sceneRef, intro);
+  useEntrance(sceneRef, intro, still);
   useMasonry(recordsRef);
 
   useEffect(() => {
@@ -356,7 +360,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
           <Stat at={heroAt} className="seg-missing" label={t('almanac.missing')} value={missing} />
           {!checklist && <Stat at={heroAt} className="almanac-stat-sealed" icon={faLock} label={t('almanac.sealed')} value={all.sealed} />}
           <Stat at={heroAt} className="seg-caught" label={t('status.caught')} value={all.caught} />
-          <Stat at={heroAt} className="seg-temporary" label={t('status.temporary')} value={all.temporary} />
+          <Stat at={heroAt} className="seg-temporary" label={t(checklist ? 'status.elsewhere' : 'status.temporary')} value={all.temporary} />
           <Stat at={heroAt} className="seg-unobtainable" label={t('status.unobtainable')} value={all.unobtainable} />
         </dl>
       </div>
@@ -444,7 +448,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
       </Card>,
     );
 
-    // balls, dropping in one after another, their counts counting up as they land
+    // balls, dropping in one after another, each count counting up as its ball lands
     const balls = card++;
     records.push(
       <Card index={balls} key="balls" title={t('almanac.balls')}>
@@ -454,7 +458,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
             return (
               <button key={entry.key} onClick={pick('ball', entry.key)} style={{ '--d': drop } as CSSProperties} title={localizeBall(locale, entry.key, BALL_NAMES.get(entry.key) ?? entry.key)} type="button">
                 <span className="almanac-ball">{entry.key === 'unknown' ? <span className="ball-unknown">?</span> : <img alt="" src={`/balls/${entry.key}.png`} />}</span>
-                <Count at={drop} value={entry.count} />
+                <Count at={drop + PLOP_LANDS_MS} value={entry.count} />
               </button>
             );
           })}
@@ -502,7 +506,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
               key={entry.key}
               label={placeLabel(entry.key)}
               max={max}
-              onPick={pick('location', entry.key.startsWith('game:') ? 'game' : entry.key)}
+              onPick={pick('location', placeFromKey(entry.key).location)}
             />
           );
         }, t('almanac.noneSealed'))}
@@ -622,7 +626,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
       <div className="almanac-body" data-intro={intro || undefined} tabIndex={-1}>
         <div className="almanac-grid" style={{ zoom: scale }}>{cards}</div>
       </div>
-      {titleCard && <TitleCard hint={t('scene.skip')} sub={activeDex!.title} title={t('almanac.title')} />}
+      {titleCard && <TitleCard title={t('almanac.title')} />}
     </div>,
     document.body,
   );

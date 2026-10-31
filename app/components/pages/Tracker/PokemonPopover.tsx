@@ -8,9 +8,9 @@ import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
-import { canHold } from '../../../utils/game-reach';
-import { destinations, placeFromKey, placeKey, placeLabel, placeOf } from '../../../utils/location-moves';
-import { asksChampions, canVisitChampions, offersChampions } from '../../../utils/champions';
+import { dexPlacesFor, placeFromKey, placeKey, placeLabel, placeOf, placesFor } from '../../../utils/location-moves';
+import { asksChampions, canVisitChampions } from '../../../utils/champions';
+import { asksGigantamax } from '../../../utils/gigantamax';
 import { serebiiLink } from '../../../utils/formatting';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../../hooks/use-dismissable';
@@ -56,7 +56,7 @@ interface Props {
 }
 
 export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
-  const { activeDexView, saves } = useDexContext();
+  const { activeDexView, activeDex, dexes, saves } = useDexContext();
   const { captures } = useTrackerState();
   const { releaseCaptures, moveTo } = useTrackerActions();
   const patchRecords = usePatchRecords();
@@ -167,6 +167,12 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
     return () => cancelAnimationFrame(frame);
   }, [place, scale]);
 
+  // a free-form dex's mon dragged to another slot or box (FreeBoxes) has its tile drawn there anew: beside that one
+  const order = capture ? captures.indexOf(capture) : -1;
+  useLayoutEffect(() => {
+    place(false);
+  }, [place, order, capture?.pokemon.box]);
+
   useEffect(() => {
     let frame = 0;
     const follow = (e: Event) => {
@@ -230,8 +236,9 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   // where a sealed mon is, and where it can be moved: the games that can hold it (canHold), and the one it's in
   const here = placeOf(capture);
   // Been to Champions only for a mon that can go there (utils/champions)
-  const shown = (field: CaptureField) => field.id !== 'been_to_champions' || asksChampions(capture);
-  const moveOptions = destinations(saves, offersChampions(capture, activeDexView!.game.id === 'home'), (save) => save.id === capture.location_save || canHold(save, capture, saves))
+  const shown = (field: CaptureField) => (field.id !== 'been_to_champions' || asksChampions(capture)) &&
+    (field.id !== 'gigantamax' || asksGigantamax(capture));
+  const moveOptions = placesFor(saves, capture, activeDexView!.game.id === 'home', dexPlacesFor(activeDex, dexes ?? []))
   .map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }));
 
   return (

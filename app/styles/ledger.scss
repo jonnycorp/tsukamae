@@ -261,6 +261,12 @@ $ledger-head: 40px;
     background-image: repeating-linear-gradient(45deg, transparent 0 3px, var(--tile-temporary-stripe) 3px 6px);
   }
 
+  // a checklist's Elsewhere: a check, in the checked-out rose
+  .ledger-row.elsewhere & {
+    background-color: var(--tile-caught);
+    background-image: linear-gradient(var(--wash-loan), var(--wash-loan));
+  }
+
   .state-unobtainable & {
     background-color: var(--tile-unobtainable);
   }
@@ -533,35 +539,19 @@ $ledger-head: 40px;
     }
 
   }
-
-  .form-subgroup {
-    margin-top: 6px;
-  }
 }
 
+// how many are selected, and beside it the way to select every row shown
 .batch-count {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 10px;
 
   strong {
     font-family: $font-secondary;
     font-size: 15px;
     font-weight: 700;
     white-space: nowrap;
-  }
-}
-
-.batch-link {
-  @include link-button;
-
-  color: var(--on-overlay-muted);
-  font-size: 13px;
-  font-weight: 400;
-  text-align: left;
-
-  &:hover {
-    color: var(--on-overlay);
   }
 }
 
@@ -591,10 +581,6 @@ $ledger-head: 40px;
   &:disabled {
     opacity: .4;
     cursor: default;
-  }
-
-  .svg-inline--fa {
-    font-size: 11px;
   }
 
   .dropdown-chevron {

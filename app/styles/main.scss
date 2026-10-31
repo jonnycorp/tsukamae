@@ -6,6 +6,9 @@ html {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   overscroll-behavior: none;
+  // what the browser draws itself (a date's calendar) light, or dark under Soft Dark (.soft-dark, on this element),
+  // which the whole page inherits
+  color-scheme: light;
 }
 
 *,
@@ -48,7 +51,6 @@ body {
   line-height: 1.35;
   background-color: var(--paper);
   color: var(--ink);
-  color-scheme: light;
   // nothing on the page selects, so a drag that strays off the scrollbar or across the tiles can't highlight half of
   // it; a Pokémon's name copies with a right-click instead (NameCopy)
   user-select: none;
@@ -91,19 +93,6 @@ textarea,
   }
 }
 
-a.link {
-  color: var(--ink);
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: underline;
-  transition: color .1s ease-out;
-
-  &:hover,
-  &:focus {
-    color: var(--ink-muted);
-  }
-}
-
 nav {
   display: flex;
   flex: 0 0 $nav-height;
@@ -137,8 +126,7 @@ nav {
       display: flex;
     }
 
-    &:hover,
-    &:focus {
+    &:hover {
       background-color: var(--chrome-hover);
       cursor: pointer;
     }
@@ -273,6 +261,7 @@ nav a.nav-icon {
   font-size: 13px;
 }
 
+// a menu open in the bar (the data's, the theme's) keeps every tooltip down, its own button's included
 nav.dropdown-open .tooltip-text {
   display: none;
 }
@@ -410,6 +399,35 @@ form {
   }
 }
 
+// Still mode (M): a menu or the filters' panel there at once, a chevron turned where it stands; the review's Enter flow
+// opens a menu for each field it comes to, mon after mon
+:root[data-still] {
+  :is(.dropdown-menu, .nav-menu-dropdown, .facet-panel) {
+    animation: none;
+  }
+
+  :is(.dropdown-chevron, .dex-menu-chevron, .ledger-chevron) {
+    transition: none;
+  }
+}
+
+// and with no exceptions: past the rules above and each sheet's own, whatever animation or transition is left plays out
+// in no time, so an entrance lands on its last frame at once (its animationend still firing) and a change of state shows
+// at once, a new animation included before it's ever given a rule. A transition's delay stays, being when something
+// happens rather than how. The one motion left is a hold's fill, which is the hold itself (--hold, set where it's drawn)
+:root[data-still] *,
+:root[data-still] *::before,
+:root[data-still] *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+}
+
+:root[data-still] .unseal-ring,
+:root[data-still] .review-unseal.holding::before {
+  animation-duration: var(--hold) !important;
+}
+
 // every dropdown's menu, and the move menu (L): in the popover's colours, edge and shadow, a little clear of its field
 // and as wide as its widest option (Dropdown keeps it at least the field's width), so no label is cut off. It unfurls
 // from the field, or up from it where it opens above (data-up); the row under the pointer or the arrow keys is the
@@ -515,6 +533,36 @@ form {
 }
 
 // a field, one size wherever it is ($field-height, $field-font); the search, a size up, sets its own
+// the review's recent dates under its catch date (DateInput's recent), each a field-edged button a press away
+.date-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--ink-muted);
+  font-size: 11px;
+
+  .date-recent-pick {
+    height: 24px;
+    padding: 0 8px;
+    border: 2px solid var(--field-edge);
+    background-color: var(--field);
+    color: var(--ink);
+    font-family: $font-primary;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--field-focus);
+      background-color: var(--hover-wash);
+      outline: none;
+    }
+  }
+}
+
 .form-control {
   width: 100%;
   height: $field-height;
@@ -564,11 +612,22 @@ form {
       cursor: pointer;
     }
 
+    // out of sight but still the keyboard's: Tab reaches it and Space ticks it, its focus ringing the box drawn for it
     input[type=checkbox] {
-      display: none;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      opacity: 0;
+      pointer-events: none;
 
       &:checked + .checkbox-custom span {
         opacity: 1;
+      }
+
+      &:focus-visible + .checkbox-custom {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
       }
     }
 
@@ -654,6 +713,11 @@ form {
   letter-spacing: 1px;
   color: var(--ink);
   animation: fade-in .3s ease-out .4s forwards;
+
+  // still mode: no fade, but the same wait, so a quick load still shows nothing
+  :root[data-still] & {
+    animation-delay: .4s !important;
+  }
 }
 
 // a sentence to read, not a label, and shown at once
@@ -879,36 +943,6 @@ form {
   }
 }
 
-.main-footer {
-  padding: 100px 20px;
-  text-align: center;
-  background-color: var(--paper-sunken);
-  font-family: $font-secondary;
-  @include small-text(10px);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: auto;
-
-  .link {
-    text-decoration: none;
-    font-weight: 700;
-  }
-
-  .svg-inline--fa {
-    vertical-align: middle;
-    font-size: 5px;
-    margin: 0 10px;
-    color: var(--ink-muted);
-  }
-}
-
-// the legacy narrow layout, alongside the list view below 750px
-@media (max-width: 750px) {
-  .main-footer {
-    padding: 50px 20px;
-  }
-}
-
 @media (max-width: 600px) {
   .form .form-row {
     display: block;
@@ -933,6 +967,84 @@ form {
 
 .modal-wide {
   width: min(760px, calc(100vw - 32px));
+}
+
+// the sheet of shortcuts: room for its two columns' labels on a line each
+.modal:has(> .hotkey-sheet) {
+  width: min(980px, calc(100vw - 32px));
+}
+
+// H's sheet of shortcuts (HotkeySheet): the dex's groups in two columns, each shortcut its keys as caps, the ways to
+// do it side by side, and what it does
+.hotkey-sheet {
+  align-items: stretch;
+  padding: 24px 32px 28px;
+
+  h1 {
+    text-align: center;
+  }
+
+  .hotkey-groups {
+    columns: 2 300px;
+    column-gap: 36px;
+  }
+
+  .hotkey-group {
+    break-inside: avoid;
+    margin-bottom: 22px;
+
+    h3 {
+      @include caps-label(12px);
+
+      margin: 0 0 6px;
+      color: var(--ink-muted);
+    }
+
+    // the group's rows as one grid, its keys' column as wide as its widest (up to a limit, past which they wrap)
+    dl {
+      display: grid;
+      grid-template-columns: fit-content(110px) minmax(0, 1fr);
+      margin: 0;
+    }
+  }
+
+  .hotkey-row {
+    display: contents;
+
+    dt,
+    dd {
+      padding: 6px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    dt {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 4px 8px;
+      padding-right: 16px;
+    }
+
+    dd {
+      margin: 0;
+
+      @include small-text(14px);
+    }
+  }
+
+  .hotkey-combo {
+    display: inline-flex;
+    gap: 3px;
+  }
+
+  // a cap never breaks inside itself; past the column's limit the ways to do it wrap whole
+  kbd {
+    @include key-cap(var(--field-edge), var(--ink));
+
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+  }
 }
 
 .saves-warning {
@@ -1011,14 +1123,9 @@ $saves-table-width: 640px;
         transition: opacity .1s ease-out;
 
         // the game the form below is changing
-        &:hover:not(:disabled),
+        &:hover,
         &[aria-pressed='true'] {
           opacity: 1;
-        }
-
-        &:disabled {
-          opacity: .15;
-          cursor: default;
         }
       }
 
@@ -1040,19 +1147,33 @@ $saves-table-width: 640px;
   }
 }
 
-// element + classes so it outranks .home-container .btn whatever the import order
+// a list's Edit List and Done (the dexes', My Games'), under the button that adds to it: as tall as a full-size button,
+// outlined in the fields' edge where that one's filled; as wide as its words on the landing, as the list in My Games.
+// Element + classes so it outranks .home-container .btn whatever the import order
 button.btn.btn-edit-list {
-  display: block;
   min-width: 0;
   margin-top: $space-sm;
-  padding: 0;
+  padding: 13px 15px;
+  border: 2px solid var(--field-edge);
   background: none;
-  color: inherit;
-  text-decoration: underline;
-  opacity: .7;
+  color: var(--ink);
 
-  &:hover {
-    opacity: 1;
+  &:hover,
+  &:focus-visible {
+    background-color: var(--hover-wash);
+  }
+}
+
+// the dexes' sits on the landing's chrome, so it takes the chrome's colours: ink there would be dark on dark in the
+// themes with a dark bar, and the fields' edge next to nothing; its edge half the chrome's text, as heavy as the
+// fields' edge is on paper
+.home-container button.btn.btn-edit-list {
+  border-color: color-mix(in srgb, var(--on-chrome) 50%, transparent);
+  color: var(--on-chrome);
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--chrome-hover);
   }
 }
 

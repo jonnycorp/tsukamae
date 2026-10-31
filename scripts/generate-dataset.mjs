@@ -17,7 +17,6 @@ const POKEAPI_ONLY = process.argv.includes('--pokeapi-only');
 // keys name the data/dexes/<key>/ folders and are stored in progress files — never rename one
 const DEX_MANIFEST = [
   { key: 'home-national', slug: 'home-national-living-dex', name: 'HOME National Dex' },
-  { key: 'home-national-gigantamax', slug: 'shinies', name: 'HOME National Dex + Gigantamax Forms' },
   { key: 'paldea-full', slug: 'scarlet-expansion-living-dex', name: 'Scarlet & Violet Full Paldea Dex (with DLC)' },
   { key: 'kitakami', slug: 'scarlet-kitakami-living-dex', name: 'Scarlet & Violet Kitakami Dex (The Teal Mask)' },
   { key: 'blueberry', slug: 'scarlet-blueberry-living-dex', name: 'Scarlet & Violet Blueberry Dex (The Indigo Disk)' },
@@ -69,16 +68,33 @@ const games = [...apiGames];
 games.splice(1, 0, ...SYNTHETIC_GAMES);
 
 // origin ids are stored in progress files — never rename one
+// the games before pokedextracker's oldest (X and Y) a mon can still come from, newest first after it: Generations
+// III to V's, which have no dex here
+const OLDER_ORIGINS = [
+  { id: 'black_2', name: 'Black 2' },
+  { id: 'white_2', name: 'White 2' },
+  { id: 'black', name: 'Black' },
+  { id: 'white', name: 'White' },
+  { id: 'heartgold', name: 'HeartGold' },
+  { id: 'soulsilver', name: 'SoulSilver' },
+  { id: 'platinum', name: 'Platinum' },
+  { id: 'diamond', name: 'Diamond' },
+  { id: 'pearl', name: 'Pearl' },
+  { id: 'firered', name: 'FireRed' },
+  { id: 'leafgreen', name: 'LeafGreen' },
+];
 const EXTRA_ORIGINS = [
   { id: 'go', name: 'Pokémon GO' },
   { id: 'trade', name: 'Friend Trade' },
   { id: 'mystery_gift', name: 'Mystery Gift' },
   { id: 'other', name: 'Other' },
 ];
+// one game upstream adds later stays where upstream puts it
 const origins = games
   .filter((game) => !game.id.endsWith('_expansion_pass'))
   .map((game) => ({ id: game.id, name: game.name }))
-  .concat(EXTRA_ORIGINS);
+  .concat(OLDER_ORIGINS, EXTRA_ORIGINS)
+  .filter((game, i, all) => all.findIndex((other) => other.id === game.id) === i);
 
 await mkdir(DATA_DIR, { recursive: true });
 if (!POKEAPI_ONLY) {
@@ -93,20 +109,23 @@ for (const { key, slug, name } of POKEAPI_ONLY ? [] : DEX_MANIFEST) {
   ]);
 
   // upstream nests its whole game family in every record, which was half the dataset; the app only reads the generation.
-  // A national dex numbers by national id, which upstream's dex_number gets wrong at least once (Sandaconda as 141)
+  // A national dex numbers by national id, which upstream's dex_number gets wrong at least once (Sandaconda as 141).
+  // Its Gigantamax slots are left out: Gigantamax is a trait of a mon, a field on its record (utils/gigantamax)
   const regional = dex.dex_type.tags.includes('regional');
-  const pokemon = captures.map(({ pokemon: { game_family: family, ...mon } }) => ({
-    ...mon,
-    dex_number: regional ? mon.dex_number : mon.national_id,
-    generation: family.generation,
-  }));
+  const pokemon = captures
+    .filter(({ pokemon: mon }) => mon.form !== 'gigantamax')
+    .map(({ pokemon: { game_family: family, ...mon } }) => ({
+      ...mon,
+      dex_number: regional ? mon.dex_number : mon.national_id,
+      generation: family.generation,
+    }));
 
   const meta = {
     key,
     name,
     game: dex.game,
     dex_type: dex.dex_type,
-    total: dex.total,
+    total: dex.total - (captures.length - pokemon.length),
   };
 
   const dir = join(DATA_DIR, 'dexes', key);

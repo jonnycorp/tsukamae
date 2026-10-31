@@ -53,14 +53,15 @@
 }
 
 // the dex column as the boxes and the list swap (index.tsx): faded out, then out of sight and unpainted while the new
-// one builds, then faded back in before the banner goes
-.dex-column {
-  transition: opacity .24s ease-out;
+// one builds, then faded back in before the banner goes. As deep as tracker.scss's rule for the column, whose
+// transition (its scrollbar's fade, kept here beside) would otherwise stand in for these
+.tracker .dex-wrapper .dex-column {
+  transition: opacity .24s ease-out, $scrollbar-fade;
 
   &[data-veil] {
     visibility: hidden;
     opacity: 0;
-    transition: opacity .14s ease-in, visibility 0s .14s;
+    transition: opacity .14s ease-in, visibility 0s .14s, $scrollbar-fade;
   }
 }
 
@@ -70,7 +71,7 @@
     animation: none;
   }
 
-  .dex-column {
+  .tracker .dex-wrapper .dex-column {
     transition: none;
   }
 }

@@ -51,7 +51,8 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
   let epoch = now();
   let paused = false;
   let landing = 0;
-  let landingOn = 0;
+  // the face a landing pauses on
+  let landingFace = 0;
   // the slides a pick plays, cancelled by the next pick or a resume
   let slides: Animation[] = [];
 
@@ -119,9 +120,14 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
         pauseOn(face);
         return { paused: true, face };
       }
-      // mid-slide: land on the next face first
+      // mid-slide: land on the next face first, at once in still mode, whose cycle stops where it stands (on the first
+      // page, there being no hold yet) rather than finishing the slide
       const next = (face + 1) % faces;
-      landingOn = next;
+      if (still()) {
+        pauseOn(next);
+        return { paused: true, face: next };
+      }
+      landingFace = next;
       landing = window.setTimeout(() => {
         landing = 0;
         pauseOn(next);
@@ -142,20 +148,29 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
       }
       return true;
     },
-    // the display mode switched from the pages given: held, the strips hold the same page where the new mode has it (the
-    // trainer's, the species'), or its first; the face now held, or null if they're running
-    refit (from: FacePage[]): number | null {
+    // the display mode switched: held (or about to be), the strips hold the new mode's first page, as the modes share
+    // none; the face now held, or null if they're running
+    refit (): number | null {
       stopSlides();
       if (landing) {
         window.clearTimeout(landing);
         landing = 0;
-        pauseOn(landingOn);
+        paused = true;
       }
       if (!paused) {
         return null;
       }
-      pauseOn(Math.max(0, pages().indexOf(from[held()])));
-      return held();
+      pauseOn(0);
+      return 0;
+    },
+    // still mode come on while they're held: a pick's slide stops where it was going, and a landing lands now
+    settle () {
+      stopSlides();
+      if (landing) {
+        window.clearTimeout(landing);
+        landing = 0;
+        pauseOn(landingFace);
+      }
     },
     stop () {
       window.clearTimeout(landing);
@@ -182,16 +197,15 @@ export interface FlipPause {
 // its Space, and with nothing flipping (no seals yet, a checklist, the list view, Orbit's lone page) it pages the dex as
 // usual. While they're held, 1 2 3 pick the face as the picker does, in its order. Still mode holds them: frozen as it
 // comes on, as Space would (the picker open on the face that shows), let go as it goes, and neither Space nor the pause
-// button lets them go in between
+// button lets them go in between. A dex opened in it is held from its first frame, on its first face, with no press for
+// the indicator to flash
 export function useFlipClock (ref: RefObject<HTMLElement>, still: boolean, display: DisplayMode): FlipPause {
-  const [state, setState] = useState({ paused: false, face: 0, presses: 0 });
+  const [state, setState] = useState({ paused: still, face: 0, presses: 0 });
   const clockRef = useRef<ReturnType<typeof createFlipClock> | null>(null);
   const stillRef = useRef(still);
   stillRef.current = still;
   const pagesRef = useRef(DISPLAY_PAGES[display]);
   pagesRef.current = DISPLAY_PAGES[display];
-  // the mode the strips were last drawn for, to hold the same page in the next
-  const shownRef = useRef(display);
   const pausedRef = useRef(state.paused);
   pausedRef.current = state.paused;
 
@@ -218,6 +232,9 @@ export function useFlipClock (ref: RefObject<HTMLElement>, still: boolean, displ
     const el = ref.current!;
     const clock = createFlipClock(el, () => stillRef.current, () => pagesRef.current);
     clockRef.current = clock;
+    if (pausedRef.current) {
+      clock.toggle();
+    }
 
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || e.metaKey || e.ctrlKey || e.altKey || document.querySelector(MENU_OR_MODAL)) {
@@ -256,15 +273,16 @@ export function useFlipClock (ref: RefObject<HTMLElement>, still: boolean, displ
   }, [toggle, pick]);
 
   useEffect(() => {
+    if (still) {
+      clockRef.current?.settle();
+    }
     if (clockRef.current && still !== pausedRef.current) {
       flip();
     }
   }, [still, flip]);
 
   useEffect(() => {
-    const from = DISPLAY_PAGES[shownRef.current];
-    shownRef.current = display;
-    const face = clockRef.current?.refit(from) ?? null;
+    const face = clockRef.current?.refit() ?? null;
     if (face !== null) {
       setState((prev) => ({ ...prev, face }));
     }

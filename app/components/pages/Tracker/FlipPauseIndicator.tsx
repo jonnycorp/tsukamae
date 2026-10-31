@@ -23,9 +23,10 @@ const PAGE_ICONS: Record<FacePage, IconDefinition | null> = {
   species: null,
 };
 
-// Space's answer, at the end of the filters' row: a pause button for as long as the flips are held, and beside it, from
-// the moment they're held, a picker for the page they hold (1 2 3 too, the display mode's pages in its order); each
-// press's words slide off to the side and go. A mode with nothing to flip (Orbit) shows none of it, its room kept
+// Space's answer, in the header's top row after the search: a pause button for as long as the flips are held, and
+// beside it, from the moment they're held, a picker for the page they hold (1 2 3 too, the display mode's pages in its
+// order); each press's words slide off to the side and go. A mode with nothing to flip (Orbit) shows none of it, its
+// room kept
 export function FlipPauseIndicator ({ paused: held, face, presses, toggle, pick }: FlipPause) {
   const { t } = useTranslation();
   const { display } = useDisplayContext();

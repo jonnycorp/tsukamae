@@ -13,7 +13,7 @@ import { boxTitle } from './Box';
 import { defaultStatus } from '../../../utils/local-data';
 import { dexNumber, groupBoxes, iconClass } from '../../../utils/pokemon';
 import { filterMatcher, queryMatcher } from './filters';
-import { groupCaptures, sortCaptures, stateOf } from './ledger-model';
+import { STATE_KEYS, groupCaptures, sortCaptures, stateOf } from './ledger-model';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
 import { MENU_OR_MODAL } from '../../../hooks/use-hotkey';
 import { locationTint, placeLabel, shownPlace } from '../../../utils/location-moves';
@@ -106,14 +106,6 @@ interface RowContext {
   t: ReturnType<typeof useTranslation>['t'];
 }
 
-const STATE_KEYS: Record<LedgerState, TranslationKey> = {
-  sealed: 'seal.sealed',
-  caught: 'status.caught',
-  temporary: 'status.temporary',
-  unobtainable: 'status.unobtainable',
-  unmarked: 'ledger.unmarked',
-};
-
 const blank = <span className="ledger-blank">—</span>;
 
 function ballCell (ball: string, ctx: RowContext) {
@@ -146,7 +138,7 @@ const CELLS: Record<LedgerColumnId, (capture: Capture, ctx: RowContext, state: L
       <>
         <span className="ledger-swatch" />
         {state === 'sealed' && <FontAwesomeIcon className="ledger-lock" icon={faLock} />}
-        <span className="ledger-state">{ctx.t(STATE_KEYS[state])}</span>
+        <span className="ledger-state">{ctx.t(ctx.checklist && state === 'temporary' ? 'status.elsewhere' : STATE_KEYS[state])}</span>
         {stale.length > 0 &&
           <FontAwesomeIcon
             className="ledger-stale"
@@ -158,7 +150,7 @@ const CELLS: Record<LedgerColumnId, (capture: Capture, ctx: RowContext, state: L
     );
   },
   location: (capture, ctx) => {
-    const place = shownPlace(capture);
+    const place = shownPlace(capture, ctx.saves);
     return place ? <span className="ledger-text">{placeLabel(place, ctx.saves, ctx.locale)}</span> : blank;
   },
   origin: (capture, ctx) => (capture.origin_game
@@ -179,9 +171,9 @@ interface RowProps {
   onPick: (capture: Capture, e: MouseEvent) => void;
 }
 
-// one mon across the columns; an edit (or a change to whether it's selected) re-renders its own row only. Pressed, it
-// does what its tile does: a marked mon's popover opens beside it, an unmarked one is marked. Its box (or Ctrl, or
-// Shift for the run from the last one) selects it instead, or lets it go
+// one mon across the columns; an edit (or a change to whether it's selected) re-renders its own row only. Pressed, an
+// unmarked mon is marked, as its tile's press marks it, and a marked one's popover opens beside it. Its box (or Ctrl,
+// or Shift for the run from the last one) selects it instead, or lets it go
 const LedgerRow = memo(function LedgerRow ({ capture, ctx, selected, onPick }: RowProps) {
   const state = stateOf(capture, ctx.checklist);
   const recorded = capture.captured && capture.status !== 'unobtainable';
@@ -190,7 +182,7 @@ const LedgerRow = memo(function LedgerRow ({ capture, ctx, selected, onPick }: R
   return (
     <div
       aria-selected={selected}
-      className={classNames('ledger-row', `state-${state}`, tint && `loc-${tint}`, { sealed: state === 'sealed', checklist: ctx.checklist, selected })}
+      className={classNames('ledger-row', `state-${state}`, tint && `loc-${tint}`, { sealed: state === 'sealed', checklist: ctx.checklist, elsewhere: ctx.checklist && state === 'temporary', selected })}
       data-copy-name={displayName(capture.pokemon.name, capture.pokemon.name_ja, ctx.locale)}
       data-pokemon-id={capture.pokemon.id}
       onClick={(e) => onPick(capture, e)}
@@ -247,10 +239,35 @@ function GroupHead ({ group, open, onToggle }: { group: LedgerGroup; open: boole
   );
 }
 
+// the rows the open popover has worked on, or a press marked (held), keep their places too, sorted and grouped by
+// their records as they were when it came to each, so an edit (a row marked in a list by status, a ball changed in one
+// by ball) doesn't carry the row off from under it. A press on an unmarked row marks it as it holds it, so that's the
+// record as last drawn. Once the popover closes, or the sort or the grouping changes, they go where they now belong
+function useHeldPlaces (captures: Capture[], held: number[], sort: LedgerSort | null, group: LedgerGroupId): Map<number, Capture> {
+  const drawnRef = useRef(captures);
+  useLayoutEffect(() => {
+    drawnRef.current = captures;
+  });
+  const [places, setPlaces] = useState({ held, sort, group, byId: new Map<number, Capture>() });
+  if (places.held !== held || places.sort !== sort || places.group !== group) {
+    const kept = places.sort === sort && places.group === group ? places.byId : new Map<number, Capture>();
+    const drawn = new Map((kept === places.byId ? drawnRef.current : captures).map((capture) => [capture.pokemon.id, capture]));
+    const byId = new Map<number, Capture>();
+    for (const id of held) {
+      const place = kept.get(id) ?? drawn.get(id);
+      if (place) {
+        byId.set(id, place);
+      }
+    }
+    setPlaces({ held, sort, group, byId });
+  }
+  return places.byId;
+}
+
 interface Props {
   captures: Capture[];
   filters: TrackerFilters;
-  // rows the open popover has worked on, kept though they no longer match (useHeldTiles in Dex)
+  // rows the open popover has worked on, or a press marked, kept though they no longer match (useHeldTiles in Dex)
   held: number[];
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
@@ -265,14 +282,16 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
   const { activeDex, activeDexView, saves } = useDexContext();
   const { t, locale } = useTranslation();
   const mark = useMark();
+  const { holdHost, revealHost } = useTrackerActions();
   const dex = activeDexView!;
   const checklist = Boolean(activeDex!.checklist);
-  const [sort, setSort] = useLocalStorage<LedgerSort | null>('ledgerSort', null);
+  const [storedSort, setSort] = useLocalStorage<LedgerSort | null>('ledgerSort', null);
   const [storedGroup, setGroup] = useLocalStorage<LedgerGroupId>('ledgerGroup', 'none');
-  // a checklist keeps no records to group by
+  // a checklist keeps no records to sort or group by
+  const sort = checklist && COLUMNS.find((column) => column.id === storedSort?.column)?.record ? null : storedSort;
   const group = checklist && GROUP_OPTIONS.find((option) => option.id === storedGroup)?.record ? 'none' : storedGroup;
   const [collapsed, setCollapsed] = useState<{ group: LedgerGroupId; keys: Set<string> }>({ group, keys: new Set() });
-  const closed = collapsed.group === group ? collapsed.keys : new Set<string>();
+  const closed = useMemo(() => (collapsed.group === group ? collapsed.keys : new Set<string>()), [collapsed, group]);
 
   const columns = useMemo(() => COLUMNS.filter((column) => !checklist || !column.record), [checklist]);
   const rowCtx = useMemo<RowContext>(
@@ -291,11 +310,16 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
       saves,
       order: new Map(captures.map((capture, i) => [capture.pokemon.id, i])),
       boxes: boxOf,
-      boxTitle: (box) => boxTitle(boxes[box], dex, locale),
+      // a free-form dex's box by its name, or its place among the dex's boxes, as FreeBoxes names it
+      boxTitle: (box) => {
+        const id = boxes[box][0].pokemon.box;
+        const at = activeDex!.free ? (activeDex!.boxes ?? []).findIndex((entry) => entry.id === id) : -1;
+        return at >= 0 ? (activeDex!.boxes![at].name || t('free.box', { n: at + 1 })) : boxTitle(boxes[box], dex, locale);
+      },
       name: (capture) => displayName(capture.pokemon.name, capture.pokemon.name_ja, locale),
       collator: new Intl.Collator(locale === 'ja' ? 'ja-JP' : 'en-US', { numeric: true, sensitivity: 'base' }),
     };
-  }, [captures, locale, checklist, saves, dex]);
+  }, [captures, locale, checklist, saves, dex, activeDex, t]);
 
   // the rows picked for the batch bar; they stay shown, as the popover's tile does, until let go (Esc, or the bar's
   // close), so an edit that takes them out of the view (marking the Missing) can be followed by another
@@ -308,7 +332,15 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
     return captures.filter((capture) => held.includes(capture.pokemon.id) || selection.has(capture.pokemon.id) || (matchesFilters(capture) && matchesQuery(capture)));
   }, [captures, filters, held, selection, query, dex.regional]);
 
-  const groups = useMemo(() => groupCaptures(sortCaptures(rows, sort, ctx), group, ctx), [rows, sort, group, ctx]);
+  const places = useHeldPlaces(captures, held, sort, group);
+  const groups = useMemo(() => {
+    if (places.size === 0) {
+      return groupCaptures(sortCaptures(rows, sort, ctx), group, ctx);
+    }
+    const live = new Map(rows.map((capture) => [capture.pokemon.id, capture]));
+    const placed = groupCaptures(sortCaptures(rows.map((capture) => places.get(capture.pokemon.id) ?? capture), sort, ctx), group, ctx);
+    return placed.map((entry) => ({ ...entry, captures: entry.captures.map((capture) => live.get(capture.pokemon.id)!) }));
+  }, [rows, sort, group, ctx, places]);
   // a new grouping or other rows shown start over from a screenful; an edit or a sort keeps every row mounted
   const budget = useRowBudget(rows.length, `${group}|${filters.view}|${JSON.stringify(filters.facets)}|${query}`);
   let mounted = 0;
@@ -319,9 +351,25 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
   useLayoutEffect(() => {
     orderRef.current = order;
   }, [order]);
+  // the selection keeps only rows in sight, so the batch bar never acts on one out of sight or counts one that's gone:
+  // a group folded away lets its rows go, as it folds or as a row moves into it (an edit regrouping it) or as a
+  // grouping's folds come back over rows selected meanwhile, and so do rows a free-form dex's release takes away
+  useLayoutEffect(() => {
+    const shown = new Set(order);
+    setSelection((prev) => ([...prev].some((id) => !shown.has(id)) ? new Set([...prev].filter((id) => shown.has(id))) : prev));
+  }, [order]);
 
+  // a row pressed, as a tile is (Pokemon.tsx): an unmarked mon marked and nothing more, held where it was drawn, so a
+  // second press opens what the first marked; a marked one opened. Alt opens it without marking. Shift, Ctrl or its box
+  // select it instead
   const handlePick = useCallback((capture: Capture, e: MouseEvent) => {
     const id = capture.pokemon.id;
+    if (e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey && !(e.target as Element).closest('.col-select')) {
+      if (!checklist) {
+        setSelectedPokemon(id);
+      }
+      return;
+    }
     if (e.shiftKey || e.ctrlKey || e.metaKey || (e.target as Element).closest('.col-select')) {
       const from = e.shiftKey && anchorRef.current !== null ? orderRef.current.indexOf(anchorRef.current) : -1;
       const to = orderRef.current.indexOf(id);
@@ -343,10 +391,8 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
       return;
     }
     mark(capture.pokemon.id, defaultStatus(activeDex!));
-    if (!checklist) {
-      setSelectedPokemon(capture.pokemon.id);
-    }
-  }, [activeDex, checklist, mark, setSelectedPokemon]);
+    holdHost.current?.(capture.pokemon.id);
+  }, [activeDex, checklist, holdHost, mark, setSelectedPokemon]);
 
   const cycleSort = (column: LedgerColumnId) => {
     if (sort?.column !== column) {
@@ -358,6 +404,7 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
     }
   };
 
+  const fold = (keys: Set<string>) => setCollapsed({ group, keys });
   const toggleGroup = (key: string) => {
     const keys = new Set(closed);
     if (keys.has(key)) {
@@ -365,10 +412,9 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
     } else {
       keys.add(key);
     }
-    setCollapsed({ group, keys });
+    fold(keys);
   };
-  // a locate (the palette, the timeline, the almanac, a review closed on it) unfolds the group its mon is in
-  const { revealHost } = useTrackerActions();
+  // a locate (the timeline, the almanac, a scene, a review closed on it) unfolds the group its mon is in
   useEffect(() => {
     revealHost.current = (pokemon) => {
       const entry = groups.find((candidate) => candidate.captures.some((capture) => capture.pokemon.id === pokemon));
@@ -383,7 +429,7 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
     };
   }, [revealHost, groups, closed, group]);
   const allClosed = groups.length > 0 && groups.every((entry) => closed.has(entry.key));
-  const toggleAll = () => setCollapsed({ group, keys: allClosed ? new Set() : new Set(groups.map((entry) => entry.key)) });
+  const toggleAll = () => fold(allClosed ? new Set() : new Set(groups.map((entry) => entry.key)));
 
   // Esc lets the selection go, Ctrl+A takes every row shown; quiet while typing, under a menu, a modal, the popover or
   // the Filters panel, whose own Esc closes it

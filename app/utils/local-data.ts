@@ -4,8 +4,6 @@ import bdspRegionalMeta from '../../data/dexes/bdsp-regional/meta.json';
 import bdspRegionalPokemon from '../../data/dexes/bdsp-regional/pokemon.json';
 import blueberryMeta from '../../data/dexes/blueberry/meta.json';
 import blueberryPokemon from '../../data/dexes/blueberry/pokemon.json';
-import homeNationalGigantamaxMeta from '../../data/dexes/home-national-gigantamax/meta.json';
-import homeNationalGigantamaxPokemon from '../../data/dexes/home-national-gigantamax/pokemon.json';
 import homeNationalMeta from '../../data/dexes/home-national/meta.json';
 import homeNationalPokemon from '../../data/dexes/home-national/pokemon.json';
 import kitakamiMeta from '../../data/dexes/kitakami/meta.json';
@@ -80,7 +78,6 @@ function catalogEntry (meta: unknown, pokemonList: unknown): CatalogDex {
 
 export const DEX_CATALOG: CatalogDex[] = [
   catalogEntry(homeNationalMeta, homeNationalPokemon),
-  catalogEntry(homeNationalGigantamaxMeta, homeNationalGigantamaxPokemon),
   catalogEntry(legendsZARegionalMeta, legendsZARegionalPokemon),
   catalogEntry(legendsZAMegaDimensionMeta, legendsZAMegaDimensionPokemon),
   catalogEntry(paldeaFullMeta, paldeaFullPokemon),
@@ -117,6 +114,27 @@ export type CaptureDefaults = Partial<CaptureMetadata> & {
   status?: CaptureStatus | null;
 };
 
+// a free-form dex holds mons of your choosing rather than a catalog's slots, as many of a species as you like,
+// each an entry in one of its boxes, its record kept in progress under the entry's id as any dex's is
+export interface FreeBox {
+  id: string;
+  // empty for its place's name ("Box 3")
+  name: string;
+  // its mons' order open to arrange and sort (utils/free-dex); locked when absent
+  open?: boolean;
+}
+
+export interface FreeEntry {
+  // its record's key, past every catalog's ids
+  id: number;
+  // the mon, by its id in HOME's national catalog (a form its own)
+  species: number;
+  box: string;
+  slot: number;
+}
+
+export const FREE_ID_BASE = 10_000_000;
+
 export interface PersonalDex {
   id: string;
   title: string;
@@ -126,6 +144,12 @@ export interface PersonalDex {
   checklist?: boolean;
   progress: Progress;
   captureDefaults?: CaptureDefaults;
+  // set at creation only, as a checklist is; its catalog is HOME's national one, for its mons' looks
+  free?: boolean;
+  boxes?: FreeBox[];
+  entries?: FreeEntry[];
+  // its boxes' order open to arrange (utils/free-dex); locked when absent
+  boxesOpen?: boolean;
 }
 
 export interface AppState {
@@ -168,8 +192,9 @@ export function isAppState (raw: unknown): raw is AppState {
 
 // the file on disk is ours, but can be hand-edited: a dex without a progress map gets an empty one, a record that isn't
 // one (or has a status this version doesn't know) is dropped, and so is a game that isn't one, rather than failing every
-// launch after. Load then keeps no more than Import accepts, so any export of it can be restored. `dropped` says whether
-// any of that happened, since the main process still holds the file as it was
+// launch after. Import asks more of a dex than this repairs (a title, a catalog and a default status it knows), so a hand
+// edit that breaks one of those still loads, but its export won't import. `dropped` says whether any of that happened,
+// since the main process still holds the file as it was
 function normalizeState (raw: unknown): { state: AppState; dropped: boolean } {
   if (!isObject(raw) || !Array.isArray(raw.dexes)) {
     return { state: { activeDexId: '', dexes: [] }, dropped: false };
@@ -376,8 +401,6 @@ export async function importAppState (raw: AppState): Promise<void> {
   }
   appState = next;
   importing = false;
-  // its steps were changes to records an import has replaced
-  histories.clear();
 }
 
 export function toDexView (dex: PersonalDex): Dex {
@@ -388,11 +411,35 @@ export function toDexView (dex: PersonalDex): Dex {
     game: catalog.game,
     dex_type: catalog.dex_type,
     regional: catalog.dex_type.tags.includes('regional'),
+    // what numbers pad to (utils/pokemon numberDigits): a free-form dex numbers as its catalog does, however few it holds
     total: catalog.total,
   };
 }
 
+// a free-form dex's mons, box by box and slot by slot, each a capture under its entry's id with its species' looks
+export function freeCaptures (dex: PersonalDex): Capture[] {
+  const species = new Map(getCatalogDex(DEFAULT_CATALOG_KEY).pokemonList.map((mon) => [mon.id, mon]));
+  const order = new Map((dex.boxes ?? []).map((box, i) => [box.id, i]));
+  return [...(dex.entries ?? [])]
+  .filter((entry) => species.has(entry.species) && order.has(entry.box))
+  .sort((a, b) => order.get(a.box)! - order.get(b.box)! || a.slot - b.slot)
+  .map((entry) => {
+    const record = dex.progress[entry.id];
+    return {
+      ...EMPTY_METADATA,
+      ...record,
+      pokemon: { ...species.get(entry.species)!, id: entry.id, box: entry.box },
+      captured: true,
+      status: record?.status ?? 'caught',
+      sealed: Boolean(record?.sealed),
+    };
+  });
+}
+
 export function progressToCaptures (dex: PersonalDex): Capture[] {
+  if (dex.free) {
+    return freeCaptures(dex);
+  }
   return getCatalogDex(dex.catalogKey).pokemonList.map((pokemon) => {
     const entry = dex.progress[pokemon.id];
     if (!entry) {
@@ -413,6 +460,11 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
 // over the catalog's slots, as the tracker counts: a record for an id the catalog doesn't have (an import from another
 // dataset, a hand edit) can't be shown or released, so it isn't counted either
 export function dexCounts (dex: PersonalDex): { marked: number; temporary: number; caught: number; total: number } {
+  // a free-form dex's own: how many of its mons are sealed, of all it holds
+  if (dex.free) {
+    const entries = dex.entries ?? [];
+    return { marked: entries.filter((entry) => dex.progress[entry.id]?.sealed).length, temporary: 0, caught: entries.length, total: entries.length };
+  }
   const catalog = getCatalogDex(dex.catalogKey);
   let marked = 0;
   let temporary = 0;
@@ -440,7 +492,7 @@ function findDex (state: AppState, dexId: string): PersonalDex {
   return dex;
 }
 
-// a new entry's prefills; Pokemon.applyStatus and the popover mirror this for the optimistic tile
+// a new entry's prefills; useMark (use-mark.ts) builds the same for the tile it marks at once
 function newEntryMetadata (dex: PersonalDex, saves: GameSave[], pokemonId: number): CaptureMetadata {
   const catalog = getCatalogDex(dex.catalogKey);
   return freshMetadata({
@@ -450,6 +502,11 @@ function newEntryMetadata (dex: PersonalDex, saves: GameSave[], pokemonId: numbe
     genderLock: catalog.pokemonList.find((mon) => mon.id === pokemonId)?.gender_lock,
     saves,
   });
+}
+
+// a free-form dex's new mon's record: a mark's, with the dex's defaults
+export function freshEntry (dex: PersonalDex, saves: GameSave[], species: number): ProgressEntry {
+  return withBaselines({ ...newEntryMetadata(dex, saves, species), status: 'caught', sealed: false });
 }
 
 // what a click marks; a checklist always checks as caught, and so does a default this version doesn't know
@@ -464,110 +521,6 @@ export interface UpdateCapturePayload extends Partial<CaptureMetadata> {
   sealed?: boolean;
 }
 
-// the undo history (Ctrl+Z, Ctrl+Shift+Z): each step what a change did to the records it touched, as they were and as
-// they became (null where there was none); the writes of one press are one step, a whole batch's records among them.
-// Per dex, in memory only, dropped by an import
-const HISTORY_LIMIT = 50;
-
-export interface HistoryStep {
-  dexId: string;
-  before: Record<string, ProgressEntry | null>;
-  after: Record<string, ProgressEntry | null>;
-}
-
-export type HistoryDirection = 'undo' | 'redo';
-type HistoryListener = (step: HistoryStep, direction: HistoryDirection) => void;
-
-const histories = new Map<string, { undo: HistoryStep[]; redo: HistoryStep[] }>();
-const historyListeners = new Set<HistoryListener>();
-let openStep: HistoryStep | null = null;
-// set while a step is put back, which is no new step of its own
-let restoring = false;
-
-function historyOf (dexId: string) {
-  if (!histories.has(dexId)) {
-    histories.set(dexId, { undo: [], redo: [] });
-  }
-  return histories.get(dexId)!;
-}
-
-// the records a change touched, into the step this task's writes share; it closes once the task's code has run
-function remember (dexId: string, before: Progress, dex: PersonalDex, changed: number[]) {
-  if (restoring) {
-    return;
-  }
-  if (!openStep || openStep.dexId !== dexId) {
-    const step: HistoryStep = { dexId, before: {}, after: {} };
-    openStep = step;
-    queueMicrotask(() => {
-      if (openStep === step) {
-        openStep = null;
-      }
-      const history = historyOf(dexId);
-      history.undo.push(step);
-      if (history.undo.length > HISTORY_LIMIT) {
-        history.undo.shift();
-      }
-      history.redo = [];
-    });
-  }
-  for (const id of changed) {
-    if (!(id in openStep.before)) {
-      openStep.before[id] = before[id] ?? null;
-    }
-    openStep.after[id] = dex.progress[id] ?? null;
-  }
-}
-
-// each record put back exactly as the step had it, sealed or not: past the rules a change goes through, as every one of
-// them was a state the tracker held
-function restore (step: HistoryStep, records: Record<string, ProgressEntry | null>, direction: HistoryDirection) {
-  restoring = true;
-  try {
-    commitRecords(step.dexId, (dex) => Object.entries(records).map(([id, entry]) => {
-      if (entry) {
-        dex.progress[id] = entry;
-      } else {
-        delete dex.progress[id];
-      }
-      return Number(id);
-    }));
-  } finally {
-    restoring = false;
-  }
-  historyListeners.forEach((listener) => listener(step, direction));
-}
-
-export function undoRecords (dexId: string): HistoryStep | null {
-  const history = historyOf(dexId);
-  const step = history.undo.pop();
-  if (!step) {
-    return null;
-  }
-  restore(step, step.before, 'undo');
-  history.redo.push(step);
-  return step;
-}
-
-export function redoRecords (dexId: string): HistoryStep | null {
-  const history = historyOf(dexId);
-  const step = history.redo.pop();
-  if (!step) {
-    return null;
-  }
-  restore(step, step.after, 'redo');
-  history.undo.push(step);
-  return step;
-}
-
-// a step undone or redone, so what shows it can show the records as they now are
-export function subscribeHistory (listener: HistoryListener): () => void {
-  historyListeners.add(listener);
-  return () => {
-    historyListeners.delete(listener);
-  };
-}
-
 // a tile's change, applied in memory at once; then only the records it changed go to the main process, which merges
 // them into the tracker it holds rather than taking the whole of it again every click. A browser saves everything, as
 // does a main process with no copy of the dex (a state it never saw)
@@ -575,11 +528,8 @@ function commitRecords (dexId: string, mutator: (dex: PersonalDex, state: AppSta
   const state = getAppState();
   let changed: number[];
   let dex: PersonalDex;
-  let before: Progress;
   try {
     dex = findDex(state, dexId);
-    // a change replaces a record rather than editing it, so this keeps each as it was
-    before = { ...dex.progress };
     changed = mutator(dex, state);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -589,7 +539,6 @@ function commitRecords (dexId: string, mutator: (dex: PersonalDex, state: AppSta
   if (changed.length === 0) {
     return;
   }
-  remember(dexId, before, dex, changed);
   if (!window.tracker || FRESH || importing) {
     save(state);
     return;
@@ -619,7 +568,7 @@ export function writeCapture (dexId: string, payload: UpdateCapturePayload): voi
     // unobtainable wiped the record, so leaving it starts over like a new mark
     const reviving = existing?.status === 'unobtainable' && changes.status !== undefined && changes.status !== 'unobtainable';
     const base: ProgressEntry = existing && !reviving ? existing : {
-      ...newEntryMetadata(dex, state.saves ?? [], pokemon),
+      ...newEntryMetadata(dex, state.saves ?? [], dex.free ? (dex.entries ?? []).find((entry) => entry.id === pokemon)?.species ?? 0 : pokemon),
       status: defaultStatus(dex),
       sealed: false,
     };

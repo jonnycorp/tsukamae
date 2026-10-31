@@ -297,8 +297,12 @@ $rp-ease: cubic-bezier(.2, .9, .3, 1);
   background: none;
   color: var(--ink);
   text-align: left;
-  cursor: pointer;
   transition: background-color .1s ease-out;
+
+  // a mon's row, pressed to fix it; a variant's or the bookkeeping's, a div, is pressed by nothing but its Show in Dex
+  &:is(button) {
+    cursor: pointer;
+  }
 
   &:is(button):hover,
   &:is(button):focus-visible {
@@ -440,31 +444,21 @@ $rp-ease: cubic-bezier(.2, .9, .3, 1);
   @include small-text(13px);
 }
 
+// a row's other way out (its tile, or the review of a name's odd spellings): outlined as the page's Review all is, a
+// row's height
 .rp-locate {
+  @include filter-label;
+  @include outline-button(30px);
+
   flex: none;
   align-self: center;
   margin-left: 8px;
-  padding: 4px 8px;
-  border: 0;
-  background: none;
-  color: var(--ink-muted);
-  text-decoration: underline;
-  white-space: nowrap;
-  cursor: pointer;
-
-  @include small-text(12px);
-
-  &:hover,
-  &:focus-visible {
-    color: var(--ink);
-  }
 }
 
 .rp-variant .rp-row-main {
   grid-template-areas:
     'mark chips chips chips'
     'mark notes notes notes';
-  cursor: default;
 }
 
 .rp-spellings {

@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBan, faCheck, faChevronDown, faClock, faGamepad, faGear, faGift, faHeart, faLock, faLongArrowAltRight, faMars, faPencilAlt, faStar, faTrash, faVenus, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faBan, faCheck, faChevronDown, faClock, faGamepad, faGear, faGift, faHeart, faLock, faLongArrowAltRight, faMars, faStar, faTrash, faVenus, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { BOX_COLUMNS, TILE_SIZE } from '../../utils/pokemon';
@@ -221,7 +221,6 @@ function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
               <button className="filter-view active" type="button">Missing</button>
               <button className="filter-view" type="button">Temporary</button>
             </div>
-            <button className="filter-edit-dex" type="button"><FontAwesomeIcon icon={faPencilAlt} />Edit Dex</button>
             <button className="filter-toggle" type="button">Filters <FontAwesomeIcon icon={faChevronDown} /></button>
             <button className="filter-chip" type="button"><span className="filter-chip-label">Generation</span>Gen 9 <FontAwesomeIcon icon={faXmark} /></button>
             <span className="filter-count">97 Pokémon</span>
@@ -278,7 +277,7 @@ function Panel ({ seed, mode }: { seed: ThemeSeed; mode: Mode }) {
           </div>
         </div>
         <div className="theme-preview-side">
-          <p>Body text <span className="theme-preview-muted">and muted text</span> <a className="link">with a link</a></p>
+          <p>Body text <span className="theme-preview-muted">and muted text</span></p>
           <button className="btn btn-blue btn-compact" type="button">Create</button>
           <button className="btn btn-delete btn-compact" type="button">Delete</button>
           <div className="form-group">
@@ -378,6 +377,11 @@ export function ThemePreview () {
   const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.id !== e.pointerId) {
+      return;
+    }
+    // its release went unheard, let go off the sheet before the press had travelled into a drag (and so been captured)
+    if (e.buttons === 0) {
+      dragRef.current = null;
       return;
     }
     const dx = e.clientX - drag.x;

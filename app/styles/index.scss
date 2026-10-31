@@ -1,7 +1,8 @@
 @use 'fonts';
 @use 'animations';
 @use 'pokesprite';
-@use 'pokesprite-fit';
+// pokesprite-fit, the tall sprites fitted to an unsealed tile, is off: every sprite is at its own size, at its tile's
+// zoom
 @use 'main';
 @use 'tracker';
 @use 'timeline';
@@ -9,7 +10,6 @@
 @use 'theme-preview';
 @use 'almanac';
 @use 'ledger';
-@use 'palette';
 @use 'review';
 @use 'tile-types';
 @use 'tile-faces';
@@ -20,4 +20,8 @@
 @use 'journeys';
 @use 'redpen';
 @use 'atlas';
+@use 'trainer-cards';
+@use 'orrery';
+@use 'free-dex';
+@use 'gigantamax';
 @use 'themes';

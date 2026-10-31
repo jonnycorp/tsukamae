@@ -1,10 +1,12 @@
 'use strict';
 
-// dev-only, rerun when app/styles/pokesprite.scss changes: an unsealed tile shows its sprite at 1.3x in 49px between
-// the name and the number, which the tallest sprites (a gigantamax, Sirfetch'd's leek) overrun, covering both. This
-// writes app/styles/pokesprite-fit.scss, zooming each of those down to the space instead
+// dev-only, rerun when app/styles/pokesprite.scss or the catalogs' forms change: an unsealed tile shows its sprite at
+// 1.3x in 49px between the name and the number, which the tallest sprites (Sirfetch'd's leek) overrun, covering both.
+// This writes app/styles/pokesprite-fit.scss, zooming each of those down to the space instead. Only the forms a tile
+// can wear (utils/pokemon iconClass, from the catalogs): the giant forms FlipStrips draws over sealed tiles never sit
+// in an unsealed one's icon
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,12 +15,25 @@ const SPACE = 49;
 const ZOOM = 1.3;
 
 const STYLES = join(dirname(fileURLToPath(import.meta.url)), '..', 'app', 'styles');
+const DEXES = join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'dexes');
+
+const forms = new Set();
+for (const entry of await readdir(DEXES, { withFileTypes: true })) {
+  if (entry.isDirectory()) {
+    for (const mon of JSON.parse(await readFile(join(DEXES, entry.name, 'pokemon.json'), 'utf8'))) {
+      if (mon.form) {
+        forms.add(mon.form);
+      }
+    }
+  }
+}
 
 const sheet = await readFile(join(STYLES, 'pokesprite.scss'), 'utf8');
 const byHeight = new Map();
 for (const [, selector, height] of sheet.matchAll(/^(\.pkicon[^{]+)\{ width: \d+px; height: (\d+)px;/gm)) {
   const h = Number(height);
-  if (h * ZOOM > SPACE) {
+  const form = /\.form-([a-z0-9-]+)/.exec(selector)?.[1];
+  if (h * ZOOM > SPACE && (!form || forms.has(form))) {
     byHeight.set(h, [...(byHeight.get(h) ?? []), selector.trim()]);
   }
 }

@@ -1,17 +1,19 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faBan, faCheck, faClock, faLock, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRightFromBracket, faBan, faCheck, faClock, faLink, faLock, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
-import { CAPTURE_FIELDS, findSave, saveLabel, unansweredFields } from '../../../utils/capture-fields';
+import { CAPTURE_FIELDS, EMPTY_METADATA, findSave, saveLabel, statusKey, unansweredFields } from '../../../utils/capture-fields';
 import { CaptureFieldControl, NOT_MINE } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
+import { canHold } from '../../../utils/game-reach';
 import { destinations, placeFromKey, placeKey, placeLabel } from '../../../utils/location-moves';
 import { offersChampions } from '../../../utils/champions';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useMark } from './use-mark';
 import { usePatchRecords } from './use-patch';
+import { moveToFree } from '../../../utils/free-dex';
 import { useTrackerActions } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -19,6 +21,9 @@ import type { Capture, CaptureStatus } from '../../../types';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { RecordPatch } from './use-patch';
 import type { TranslationKey } from '../../../i18n/translations';
+
+// a checklist's Temporary is Elsewhere, linked to the dex that represents it
+const ELSEWHERE_ICON = faLink;
 
 const STATUS_BUTTONS: { status: CaptureStatus; icon: IconDefinition }[] = [
   { status: 'caught', icon: faCheck },
@@ -43,8 +48,8 @@ interface Props {
 // the ledger's selection, acted on at once: a status for every unsealed one (marking the unmarked as a tile would), a
 // field set on every marked record (a sealed one only moved, as its popover would), sealing those ready, releasing
 export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
-  const { activeDex, activeDexView, saves } = useDexContext();
-  const { releaseCaptures, moveTo } = useTrackerActions();
+  const { activeDex, activeDexView, saves, dexes, editDexes } = useDexContext();
+  const { releaseCaptures, moveTo, setCaptures } = useTrackerActions();
   const { t, locale } = useTranslation();
   const mark = useMark();
   const patchRecords = usePatchRecords();
@@ -52,6 +57,14 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
   const homeDex = activeDexView!.game.id === 'home';
   const [field, setField] = useState<BatchField>('save');
   const [draft, setDraft] = useState<RecordPatch>({});
+  // a records dex's marked mons (sealed ones too) taken into a free-form dex, for mons that don't make its cut
+  const freeDexes = (dexes ?? []).filter((dex) => dex.free);
+  const [freeTarget, setFreeTarget] = useState('');
+  const target = freeDexes.find((dex) => dex.id === freeTarget) ?? freeDexes[0];
+  // the open box they go into first, or ('') new boxes at the end
+  const [freeBox, setFreeBox] = useState('');
+  const intoBoxes = (target?.boxes ?? []).map((box, i) => ({ box, i })).filter(({ box }) => box.open);
+  const into = intoBoxes.some(({ box }) => box.id === freeBox) ? freeBox : '';
 
   const unsealed = targets.filter((capture) => !capture.sealed);
   const recorded = targets.filter((capture) => capture.captured && capture.status !== 'unobtainable');
@@ -60,9 +73,13 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
   const settable = field === 'location' ? recorded : editable;
   const sealable = editable.filter((capture) => capture.status === 'caught' && unansweredFields(capture, capture.pokemon.gender_lock).length === 0);
   const releasable = targets.filter((capture) => capture.captured && !capture.sealed);
-  // Champions only while every one of them can go there (utils/champions)
+  // Champions only while every one of them can go there (utils/champions), and the games that can hold every one of
+  // them (canHold), as a single mon's own move offers
   const toChampions = homeDex && recorded.every((capture) => offersChampions(capture, homeDex));
-  const ready = Object.keys(draft).length > 0 && settable.length > 0 && (field !== 'location' || draft.location !== 'champions' || toChampions);
+  const places = destinations(saves, toChampions, (save) => recorded.every((capture) => capture.location_save === save.id || canHold(save, capture, saves)));
+  const placed = draft.location ? placeKey({ location: draft.location, location_save: draft.location_save ?? null }) : '';
+  // a place picked before the selection changed, which one of them now can't go to, is no longer there to apply
+  const ready = Object.keys(draft).length > 0 && settable.length > 0 && (field !== 'location' || places.some((place) => placeKey(place) === placed));
 
   const setStatus = (status: CaptureStatus) => {
     const changing = unsealed.filter((capture) => capture.status !== status);
@@ -95,6 +112,19 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
     }
   };
 
+  const moveOut = (movable: Capture[]) => {
+    if (!target || movable.length === 0 || !window.confirm(t('batch.moveConfirm', { n: movable.length, dex: target.title }))) {
+      return;
+    }
+    let moved: number[] = [];
+    editDexes((state) => {
+      moved = moveToFree(state, activeDex!.id, movable.map((capture) => capture.pokemon.id), target.id, into || null);
+    });
+    const gone = new Set(moved);
+    setCaptures((prev) => prev.map((cap) => (gone.has(cap.pokemon.id) ? { ...cap, ...EMPTY_METADATA, captured: false, status: null, sealed: false } : cap)));
+    onClear();
+  };
+
   const release = () => {
     if (releasable.length > 0 && window.confirm(t('batch.releaseConfirm', { n: releasable.length }))) {
       releaseCaptures(releasable.map((capture) => capture.pokemon.id));
@@ -103,7 +133,7 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
 
   const fieldOptions = BATCH_FIELDS.map((id) => ({
     value: id,
-    label: t(id === 'save' ? 'info.myGame' : CAPTURE_FIELDS.find((entry) => entry.id === id)!.labelKey as TranslationKey),
+    label: t(CAPTURE_FIELDS.find((entry) => entry.id === id)!.labelKey as TranslationKey),
   }));
   // My Game as a draft, not a record (CaptureFieldControl's): blank sets nothing, Not my game clears the game, the
   // language and the OT on each
@@ -127,8 +157,8 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
         blankLabel={t('common.unspecified')}
         id="batch-location"
         onSelect={(key) => setDraft(key ? placeFromKey(key) : {})}
-        options={destinations(saves, toChampions).map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }))}
-        value={draft.location ? placeKey({ location: draft.location, location_save: draft.location_save ?? null }) : ''}
+        options={places.map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }))}
+        value={placed}
       />
     )
     : field === 'save' ? saveControl : (
@@ -146,7 +176,7 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
     <div aria-label={t('batch.selected', { n: targets.length })} className="batch-bar" data-page-layer role="toolbar">
       <div className="batch-count">
         <strong>{t('batch.selected', { n: targets.length })}</strong>
-        {targets.length < shown && <button className="batch-link" onClick={onSelectAll} type="button">{t('batch.selectAllN', { n: shown })}</button>}
+        {targets.length < shown && <button className="batch-button" onClick={onSelectAll} type="button">{t('batch.selectAllN', { n: shown })}</button>}
       </div>
 
       <div className="batch-group batch-status" role="group">
@@ -156,10 +186,10 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
             disabled={unsealed.every((capture) => capture.status === status)}
             key={status}
             onClick={() => setStatus(status)}
-            title={t(`status.${status}`)}
+            title={t(statusKey(status, checklist))}
             type="button"
           >
-            <FontAwesomeIcon icon={icon} />{t(`status.${status}`)}
+            <FontAwesomeIcon icon={checklist && status === 'temporary' ? ELSEWHERE_ICON : icon} />{t(statusKey(status, checklist))}
           </button>
         ))}
       </div>
@@ -180,6 +210,31 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
           {/* pressable before a typed value is in: the press blurs the field, which commits it in time */}
           <button className={classNames('batch-button batch-apply', { ready })} disabled={settable.length === 0} onClick={apply} type="button">
             {t('batch.apply', { n: settable.length })}
+          </button>
+        </div>
+      }
+
+      {!checklist && !activeDex!.free && target &&
+        <div className="batch-group batch-move">
+          <Dropdown
+            id="batch-free-target"
+            onSelect={setFreeTarget}
+            options={freeDexes.map((dex) => ({ value: dex.id, label: dex.title }))}
+            triggerClassName="batch-field-pick"
+            value={target.id}
+          />
+          <Dropdown
+            id="batch-free-box"
+            onSelect={setFreeBox}
+            options={[
+              { value: '', label: t('free.newBox') },
+              ...intoBoxes.map(({ box, i }) => ({ value: box.id, label: box.name || t('free.box', { n: i + 1 }) })),
+            ]}
+            triggerClassName="batch-field-pick"
+            value={into}
+          />
+          <button className="batch-button" disabled={recorded.length === 0} onClick={() => moveOut(recorded)} type="button">
+            <FontAwesomeIcon icon={faArrowRightFromBracket} />{t('batch.moveTo', { n: recorded.length })}
           </button>
         </div>
       }

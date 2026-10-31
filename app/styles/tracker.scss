@@ -5,6 +5,13 @@
 $box-stride: $box-width + $dex-grid-gap;
 // wide enough for the 105deg glint's slant across a 550px box
 $shine-band: 260px;
+// the glint's lean off upright (its 105deg), and its cycle: a sweep in the first half, offscreen for the second
+$shine-lean: math.tan(15deg);
+$shine-cycle: 7s;
+// how far one band's middle stands below the one before, unscaled: a row of boxes' (BOX_HEIGHT and BOX_ROW_GAP in
+// use-dex-scale.ts), and a chunk of results', which shares a frame line with the one above
+$shine-box-rise: 656;
+$shine-chunk-rise: $box-rows * math.div($pokemon-box-size, 1px) + 1;
 
 .tracker {
   display: flex;
@@ -555,8 +562,7 @@ $flip-face-width: $search-height;
     }
   }
 
-  .filter-toggle,
-  .filter-edit-dex {
+  .filter-toggle {
     @include filter-label($header: true);
     @include outline-button;
   }
@@ -572,10 +578,6 @@ $flip-face-width: $search-height;
 
   .filter-anchor {
     position: relative;
-  }
-
-  .filter-edit-dex .svg-inline--fa {
-    font-size: 11px;
   }
 
   .filter-toggle {
@@ -668,19 +670,10 @@ $flip-face-width: $search-height;
     color: var(--ink-muted);
   }
 
+  // an outlined button as its row's others are (the filters' toggle beside it)
   .filter-clear {
     @include filter-label($header: true);
-
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--ink-muted);
-    text-decoration: underline;
-    cursor: pointer;
-
-    &:hover {
-      color: var(--ink);
-    }
+    @include outline-button;
   }
 }
 
@@ -797,8 +790,8 @@ $flip-face-width: $search-height;
 
 .dex {
   flex: 1 0 auto;
-  // the same gap above the first row of boxes at any window height (TOP_GAP in useDexScale)
-  padding: 30px 0 100px;
+  // the same gap above the first row of boxes at any window height (TOP_GAP in useDexScale), and as much under the last
+  padding: 30px 0;
 }
 
 // the scroll-to-top button: fixed, and outside the zoomed dex so it keeps its size
@@ -834,9 +827,15 @@ $flip-face-width: $search-height;
   }
 }
 
-// registered, so each box computes its own column; an unregistered one would inherit as text and resolve
-// sibling-index() on the shine band instead
+// registered, so each box computes its own column, and row for the shine (a box's or a results chunk's); an
+// unregistered one would inherit as text and resolve sibling-index() on the shine band instead
 @property --column {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --shine-row {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
@@ -867,6 +866,9 @@ $flip-face-width: $search-height;
 
   > .box {
     --column: mod(sibling-index() - 1, var(--dex-columns));
+    // its row, which its glint sweeps a little behind the row above's (.box-shine-band)
+    --shine-row: round(down, (sibling-index() - 1) / var(--dex-columns));
+    --shine-rise: #{$shine-box-rise};
   }
 
   // a row's flips, over the tiles of every box in it: the row's grid area, less the titles above the tiles
@@ -981,6 +983,12 @@ $flip-face-width: $search-height;
   }
 }
 
+// a chunk's glint sweeps a little behind the one above's, as a row of boxes' does (.box-shine-band)
+.search-results > .results-chunk {
+  --shine-row: calc(sibling-index() - 1);
+  --shine-rise: #{$shine-chunk-rise};
+}
+
 // and as wide as the row of boxes they stand for (SearchResults' columns, data-columns, up to its MAX_BOXES_ACROSS):
 // each width's own first column and first row take no line, as a box's six don't. The narrow list keeps one column
 @media (min-width: 751px) {
@@ -1016,17 +1024,24 @@ $flip-face-width: $search-height;
   pointer-events: none;
 }
 
-// one glint per row: each box's band starts a stride further back per column, so they line up as a single sweep; a
-// results chunk sweeps with the first column
+// one glint down the whole display: each box's band starts a stride further back per column, so a row's line up as a
+// single sweep (a results chunk sweeps with the first column), and each row runs behind the row above by as long as
+// the glint takes to cover what its lean shifts it over the rise between them, so the rows' glints join as one line.
+// Every band is a box tall, a short last chunk's too, so each is drawn about the same middle; and it sweeps at an even
+// speed, as an ease would open and close the joins as it sped up and slowed. The lag is taken as a delay of the same
+// phase less a cycle: a band starts at once (syncLoops pins it to the timeline as it does), where a band waiting out a
+// lag stayed dark, unsynced, when it scrolled in
 .box-shine-band {
   position: absolute;
   top: 0;
-  bottom: 0;
   left: calc(-1 * ((var(--column, 0) + 1) * #{$box-stride} + #{$shine-band * .5}));
   width: $shine-band;
+  height: $box-rows * $pokemon-box-size;
   background: linear-gradient(105deg, transparent calc(50% - 45px), var(--shine) 50%, transparent calc(50% + 45px));
   will-change: transform;
-  animation: seal-shine 7s ease-in-out infinite;
+  animation: seal-shine $shine-cycle linear infinite;
+  animation-delay: calc(mod(var(--shine-row, 0) * var(--shine-rise, 0) * #{$shine-cycle * .5 * $shine-lean} /
+    ((var(--dex-columns, 2) + 2) * #{math.div($box-stride, 1px)}), #{$shine-cycle}) - #{$shine-cycle});
 }
 
 // sized by its grid cell; the grid lines are its own left and top borders, which the fill stops at
@@ -1458,6 +1473,35 @@ $flip-face-width: $search-height;
   justify-content: center;
 }
 
+// the sprites FlipStrips draws over their tiles (liftsSprite in seal-faces), each where the tile's own would be and at a
+// sealed tile's zoom, in an overlay of their own between the names' and the lower block's: a sprite reaching up covers
+// its name, as one in the tile covers a name there, and the number line and badges stay over it. Nothing in it changes
+// with a display mode but a giant form, which crossfades (styles/gigantamax.scss), so it sits out the mode's fade
+:root[data-display-fade] .flip-overlay.sprite-overlay {
+  opacity: 1;
+}
+
+.flip-sprites {
+  height: 49px;
+  overflow: visible;
+
+  .flip-faces {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .pkicon {
+    zoom: 1.8;
+  }
+}
+
+// the tile's own sprite, under the overlay's
+.pokemon.sealed.lifted .set-captured .icon-wrapper > .pkicon {
+  visibility: hidden;
+}
+
 .set-status {
   display: flex;
   justify-content: center;
@@ -1511,11 +1555,30 @@ $flip-face-width: $search-height;
 .search-results {
   margin: 0 auto;
 
+  // what it says, and under it the ways out, outlined as the filters' row's buttons are
   &-empty {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     width: auto;
+
+    p {
+      margin: 0;
+    }
   }
+}
+
+.no-results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.no-results-action {
+  @include filter-label;
+  @include outline-button;
 }
 
 // too narrow for one box: the legacy list view; keep in sync with NARROW_QUERY in components/pages/Tracker/use-tracker.tsx
@@ -1629,12 +1692,11 @@ $flip-face-width: $search-height;
   }
 }
 
-// Space's pause (FlipPauseIndicator), at the end of the filters' row beside the Timeline button: each press says what
-// it did, and the words slide off to the side and go; for as long as the flips are held the pause button stays, the
-// picker open beside it from the moment they're paused. The picker's slot and the button keep their room in the row
-// whether shown or not, so pausing moves nothing and covers nothing; the indicator takes the row's spare width, and the
-// words, overlaying it, are clipped at its edge, so in a row with none to spare they pass under the picker rather than
-// over a filter
+// Space's pause (FlipPauseIndicator), in the header's top row after the search: each press says what it did, and the
+// words slide off to the side and go; for as long as the flips are held the pause button stays, the picker open beside
+// it from the moment they're paused. The picker's slot and the button keep their room in the row whether shown or not,
+// so pausing moves nothing and covers nothing; the indicator takes the row's spare width, and the words, overlaying it,
+// are clipped at its edge, so in a row with none to spare they pass under the picker rather than over the search
 .flip-indicator {
   display: flex;
   position: relative;
@@ -1768,6 +1830,17 @@ $flip-pushed: 3 * $flip-face-width + 2 * 2px + 6px;
   .flash:not(.paused) > & {
     animation: flip-label-away $flip-flash linear both, flip-label-fade-late $flip-flash linear both;
   }
+
+  // still mode: the words stand where they'd be pushed to (resuming, beside the button) for as long as the press shows,
+  // and go with it
+  :root[data-still] .flip-indicator.flash > & {
+    animation: none;
+    opacity: 1;
+  }
+
+  :root[data-still] .flip-indicator.flash.paused > & {
+    transform: translateX(-$flip-pushed);
+  }
 }
 
 // where the row leaves too little room beside the picker for the words to slide off whole (the longest, in Japanese,
@@ -1775,6 +1848,10 @@ $flip-pushed: 3 * $flip-face-width + 2 * 2px + 6px;
 @container flip-indicator (width < 380px) {
   .flip-indicator.flash > .flip-indicator-label {
     animation: none;
+  }
+
+  :root[data-still] .flip-indicator.flash > .flip-indicator-label {
+    opacity: 0;
   }
 }
 
@@ -1890,6 +1967,17 @@ $flip-pushed: 3 * $flip-face-width + 2 * 2px + 6px;
     animation-name: name-copied-under;
   }
 
+  // still mode: the tag stands where it would rise to, for as long as it shows (NameCopy's SHOWN_MS)
+  :root[data-still] & {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, -100%) translateY(-12px);
+
+    &.under {
+      transform: translate(-50%, 24px);
+    }
+  }
+
   .svg-inline--fa {
     font-size: 10px;
   }
@@ -1905,5 +1993,6 @@ $flip-pushed: 3 * $flip-face-width + 2 * 2px + 6px;
   pointer-events: none;
   background: conic-gradient(var(--status-caught) var(--unseal-angle), transparent 0deg);
   mask: radial-gradient(circle, transparent 13px, #000 14px);
-  animation: unseal-fill 1s linear forwards;
+  // --hold: the hold's length (UNSEAL_HOLD), which still mode keeps, the fill being the hold itself
+  animation: unseal-fill var(--hold, 1s) linear forwards;
 }

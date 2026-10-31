@@ -75,6 +75,7 @@ export function Landing () {
                     <div className="dex-list-item-title">
                       <h3>{dex.title}</h3>
                       <DexIndicator dex={view} />
+                      {dex.free && <span className="dex-free-tag">{t('atlas.free')}</span>}
                       {editing &&
                         <div className="dex-reorder">
                           <button
@@ -89,7 +90,7 @@ export function Landing () {
                         </div>
                       }
                     </div>
-                    <Progress caught={counts.caught} marked={counts.marked} temporary={counts.temporary} total={counts.total} />
+                    <Progress caught={counts.caught} checklist={Boolean(dex.checklist)} free={Boolean(dex.free)} marked={counts.marked} temporary={counts.temporary} total={counts.total} />
                   </li>
                 );
               })}

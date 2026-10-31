@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
+import { useTranslation } from '../../../hooks/use-translation';
 
 // in step with styles/title-card.scss: the card clears from 1050ms over 300ms. What's under it starts fading in just
 // before that, once the dex's name has landed (950ms) and nothing on the card moves: its first paint comes in a burst
@@ -14,20 +16,14 @@ const CALM_FRAMES = 3;
 const CALM_SPREAD = 0.35;
 const STALL_MS = 50;
 const MAX_GATE_MS = 600;
-// a modifier alone (an Alt+Tab begun) skips nothing
-const MODIFIERS = ['Shift', 'Control', 'Alt', 'Meta'];
-
-interface Props {
-  title: string;
-  // the dex's name, under the scene's
-  sub: string;
-  hint: string;
-}
+// a modifier alone (an Alt+Tab begun) skips nothing, here or on the timeline
+export const MODIFIERS = ['Shift', 'Control', 'Alt', 'Meta'];
 
 // true once a scene's first frames have gone by (CALM_FRAMES): till then it holds all its motion at its start
-// (data-gate, styles/title-card.scss), so its title card never starts in a stall and jumps
-export function useCalmStart (): boolean {
-  const [calm, setCalm] = useState(false);
+// (data-gate, styles/title-card.scss), so its title card never starts in a stall and jumps. A new run (the timeline's
+// replay, its stage built anew) waits out its own first frames
+export function useCalmStart (run = 0): boolean {
+  const [calmRun, setCalmRun] = useState<number | null>(null);
 
   useEffect(() => {
     const start = performance.now();
@@ -47,28 +43,31 @@ export function useCalmStart (): boolean {
       }
       last = now;
       if (steady() || now - start > MAX_GATE_MS) {
-        setCalm(true);
+        setCalmRun(run);
       } else {
         frame = requestAnimationFrame(tick);
       }
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [run]);
 
-  return calm;
+  return calmRun === run;
 }
 
 // a scene's title card (the timeline, the review, the almanac): its name slammed onto a slash of the accent with a
 // flash and a shake, the dex's name sliding in under it, then cleared
-export function TitleCard ({ title, sub, hint }: Props) {
+export function TitleCard ({ title }: { title: string }) {
+  const { activeDex } = useDexContext();
+  const { t } = useTranslation();
+
   return (
     <div aria-hidden="true" className="title-card">
       <div className="title-card-flash" />
       <div className="title-card-slash" />
       <div className="title-card-title"><span>{title}</span></div>
-      <div className="title-card-sub"><span>{sub}</span></div>
-      <div className="title-card-skip">{hint}</div>
+      <div className="title-card-sub"><span>{activeDex!.title}</span></div>
+      <div className="title-card-skip">{t('scene.skip')}</div>
     </div>
   );
 }
@@ -84,8 +83,10 @@ export function useTitleCard (quiet = false): { titleCard: boolean; intro: boole
   const [card, setCard] = useState(!still && !quiet);
   const [intro, setIntro] = useState(!still && !quiet);
 
+  // the card's keys and clicks from its first frame, its motion held or not, so none reaches the scene still hidden
+  // under it
   useEffect(() => {
-    if (!card || !calm) {
+    if (!card) {
       return undefined;
     }
     const skip = () => {
@@ -102,15 +103,24 @@ export function useTitleCard (quiet = false): { titleCard: boolean; intro: boole
         skip();
       }
     };
-    const reveal = window.setTimeout(() => setIntro(false), REVEAL_MS);
-    const done = window.setTimeout(() => setCard(false), CARD_MS);
     window.addEventListener('keydown', handleKeyDown, true);
     window.addEventListener('pointerdown', skip, true);
     return () => {
-      window.clearTimeout(reveal);
-      window.clearTimeout(done);
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('pointerdown', skip, true);
+    };
+  }, [card]);
+
+  // its clock from the calm
+  useEffect(() => {
+    if (!card || !calm) {
+      return undefined;
+    }
+    const reveal = window.setTimeout(() => setIntro(false), REVEAL_MS);
+    const done = window.setTimeout(() => setCard(false), CARD_MS);
+    return () => {
+      window.clearTimeout(reveal);
+      window.clearTimeout(done);
     };
   }, [card, calm]);
 

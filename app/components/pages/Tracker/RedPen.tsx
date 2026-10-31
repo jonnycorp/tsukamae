@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import { BALL_NAMES, LANGUAGES, LANGUAGE_ABBRS, ORIGIN_GAME_NAMES, saveLabel } from '../../../utils/capture-fields';
 import { Scene, SceneMon } from './Scene';
 import { GAME_FACTS } from '../../../utils/game-facts';
+import { bookkeeping } from '../../../utils/copies';
 import { dexNumber } from '../../../utils/pokemon';
 import { displayName } from '../../library/PokemonName';
 import { localizeBall, localizeCaptureLanguage, localizeOriginGame } from '../../../i18n/names';
@@ -68,7 +69,7 @@ const HANAMARU = (() => {
 // ✗ for what can't be right, △ for what's worth a look, in the pen's strokes
 function PenMark ({ kind }: { kind: 'wrong' | 'look' }) {
   return (
-    <svg aria-hidden="true" className={classNames('rp-mark', kind)} viewBox="0 0 24 24">
+    <svg aria-hidden="true" className="rp-mark" viewBox="0 0 24 24">
       {kind === 'wrong'
         ? (
           <>
@@ -98,12 +99,18 @@ interface Props {
 // flagged mon from it, as the place to put it right
 export function RedPen ({ onClose, onLocate, onReview }: Props) {
   const { captures } = useTrackerState();
-  const { saves, activeDexView } = useDexContext();
+  const { saves, activeDexView, activeDex, dexes } = useDexContext();
   const { t, locale } = useTranslation();
   const dex = activeDexView!;
+  // a checklist keeps no records to read over, only the bookkeeping
+  const checklist = Boolean(activeDex!.checklist);
   // unsealed drafts are placeholders, read only when asked for and never scored
   const [drafts, setDrafts] = useLocalStorage('redpenDrafts', false);
-  const data = useMemo(() => redPen(captures, saves, { drafts }), [captures, saves, drafts]);
+  const data = useMemo(() => redPen(checklist ? [] : captures, saves, { drafts }), [captures, saves, drafts, checklist]);
+  // across your dexes (utils/copies): a checklist's Elsewhere with no copy behind it, a free-form dex's mon in a
+  // checklist's boxes that the checklist doesn't hold for it
+  const books = useMemo(() => bookkeeping(dexes ?? [], activeDex!, captures), [dexes, activeDex, captures]);
+  const booked = books.unbacked.length + books.misplaced.length;
   const wrong = data.flagged.filter((entry) => entry.severity === 'wrong');
   const look = data.flagged.filter((entry) => entry.severity === 'look');
   // the review's run in the sheet's order: what can't be right, then what's worth a look
@@ -216,7 +223,7 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
     const { capture } = entry;
     const marks = [...new Set(entry.findings.flatMap((finding) => finding.marks))];
     return (
-      <li className={classNames('rp-row', entry.severity)} key={capture.pokemon.id} style={{ '--n': Math.min(i, STAGGER_MAX) } as CSSProperties}>
+      <li className="rp-row" key={capture.pokemon.id} style={{ '--n': Math.min(i, STAGGER_MAX) } as CSSProperties}>
         <button className="rp-row-main" onClick={() => onReview(queue, capture.pokemon.id)} title={t('redpen.fix')} type="button">
           <PenMark kind={entry.severity} />
           <SceneMon pokemon={capture.pokemon} />
@@ -232,7 +239,7 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
                   <span className="rp-chip-label">{label}</span>
                   <span className="rp-chip-value">{ball && ball !== 'unknown' && <img alt="" src={`/balls/${ball}.png`} />}{value}</span>
                   <svg aria-hidden="true" className="rp-loop" preserveAspectRatio="none" viewBox="0 0 100 40">
-                    <path d={LOOP} pathLength={1} vectorEffect="non-scaling-stroke" />
+                    <path d={LOOP} vectorEffect="non-scaling-stroke" />
                   </svg>
                 </span>
               );
@@ -247,10 +254,26 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
     );
   };
 
+  // a bookkeeping row: the mon, what's amiss, and the way to its tile
+  const bookRow = (capture: Capture, note: string, i: number) => (
+    <li className="rp-row" key={`book-${capture.pokemon.id}`} style={{ '--n': Math.min(i, STAGGER_MAX) } as CSSProperties}>
+      <div className="rp-row-main">
+        <PenMark kind="look" />
+        <SceneMon pokemon={capture.pokemon} />
+        <span className="rp-who">
+          <span className="rp-name">{monName(capture)}</span>
+          <span className="rp-no">#{dexNumber(capture.pokemon, dex)}</span>
+        </span>
+        <span className="rp-notes"><span className="rp-note">{note}</span></span>
+      </div>
+      <button className="rp-locate" onClick={() => onLocate(capture.pokemon.id)} type="button">{t('redpen.show')}</button>
+    </li>
+  );
+
   const variantRow = (variant: Variant, i: number) => {
     const odd = variant.spellings.slice(1).flatMap((spelling) => spelling.captures.map((capture) => capture.pokemon.id));
     return (
-      <li className="rp-row look rp-variant" key={`${variant.game ?? ''}:${variant.tid ?? ''}:${variant.spellings[0].ot}`} style={{ '--n': Math.min(i, STAGGER_MAX) } as CSSProperties}>
+      <li className="rp-row rp-variant" key={variant.key} style={{ '--n': Math.min(i, STAGGER_MAX) } as CSSProperties}>
         <div className="rp-row-main">
           <PenMark kind="look" />
           <span className="rp-spellings">
@@ -284,11 +307,11 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
                 <span>{drafts ? t('redpen.checkedDrafts', { n: data.sealed, d: data.drafts }) : t('redpen.checked', { n: data.sealed })}</span>
                 <span className="rp-tally">
                   <span><PenMark kind="wrong" />{t('redpen.wrongCount', { n: wrong.length })}</span>
-                  <span><PenMark kind="look" />{t('redpen.lookCount', { n: look.length + data.variants.length })}</span>
+                  <span><PenMark kind="look" />{t('redpen.lookCount', { n: look.length + data.variants.length + booked })}</span>
                 </span>
               </div>
               {score !== null && (
-                <div className={classNames('rp-score', { perfect })}>
+                <div className="rp-score">
                   {perfect && (
                     <svg aria-hidden="true" className="rp-hanamaru" viewBox="0 0 120 120">
                       <path d={HANAMARU} pathLength={1} />
@@ -297,7 +320,7 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
                   <strong>{score}</strong>
                   <span>{t('redpen.points')}</span>
                   <svg aria-hidden="true" className="rp-underline" preserveAspectRatio="none" viewBox="0 0 100 10">
-                    <path d="M2,4 Q50,1.5 98,3.6 M6,8 Q52,5.8 95,7.4" pathLength={1} vectorEffect="non-scaling-stroke" />
+                    <path d="M2,4 Q50,1.5 98,3.6 M6,8 Q52,5.8 95,7.4" vectorEffect="non-scaling-stroke" />
                   </svg>
                 </div>
               )}
@@ -308,10 +331,12 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
                   <FontAwesomeIcon icon={faListCheck} />{t('redpen.reviewAll', { n: queue.length })}
                 </button>
               }
-              <button aria-pressed={drafts} className={classNames('rp-drafts', { on: drafts })} onClick={() => setDrafts(!drafts)} type="button">
-                <span className="rp-drafts-box" />{t('redpen.drafts')}
-              </button>
-              <span className="rp-drafts-note">{t('redpen.draftsNote')}</span>
+              {!checklist && <>
+                <button aria-pressed={drafts} className={classNames('rp-drafts', { on: drafts })} onClick={() => setDrafts(!drafts)} type="button">
+                  <span className="rp-drafts-box" />{t('redpen.drafts')}
+                </button>
+                <span className="rp-drafts-note">{t('redpen.draftsNote')}</span>
+              </>}
             </div>
             {wrong.length > 0 &&
               <section className="rp-section">
@@ -331,8 +356,19 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
                 <ol className="rp-rows">{data.variants.map(variantRow)}</ol>
               </section>
             }
-            {data.flagged.length === 0 && data.variants.length === 0 &&
-              <p className="rp-clear">{data.sealed + data.drafts > 0 ? t('redpen.clear') : t('redpen.nothing')}</p>
+            {booked > 0 &&
+              <section className="rp-section">
+                <h3><PenMark kind="look" />{t('redpen.books')}</h3>
+                <ol className="rp-rows">
+                  {books.unbacked.map((capture, i) => bookRow(capture, t('redpen.books.unbacked'), i))}
+                  {books.misplaced.map(({ capture, dex: there, why }, i) => (
+                    bookRow(capture, t(`redpen.books.${why}` as TranslationKey, { dex: there?.title ?? '' }), books.unbacked.length + i)
+                  ))}
+                </ol>
+              </section>
+            }
+            {data.flagged.length === 0 && data.variants.length === 0 && booked === 0 &&
+              <p className="rp-clear">{data.sealed + data.drafts > 0 || checklist ? t('redpen.clear') : t('redpen.nothing')}</p>
             }
           </article>
         </div>

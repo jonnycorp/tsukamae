@@ -8,11 +8,12 @@ import { LANGUAGE_ABBRS, ORIGIN_GAME_NAMES, findSave, nameLang } from '../../../
 import { OriginMark } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { SLOT_H, SLOT_W, layoutTimeline } from './timeline-layout';
-import { TitleCard, useCalmStart } from './TitleCard';
+import { MODIFIERS, TitleCard, useCalmStart } from './TitleCard';
 import { iconClass } from '../../../utils/pokemon';
 import { localizeOriginGame } from '../../../i18n/names';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
+import { useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -21,9 +22,8 @@ import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as Reac
 import type { Locale, TranslationKey } from '../../../i18n/translations';
 import type { MonthSegment, TimelineLayout, TimelineSprite } from './timeline-layout';
 
-// keep in sync with styles/timeline.scss: the stage's colour (under the window buttons too), the spine's distance from
-// the stage's bottom, which holds the month and day labels and the year banners, and the room kept above the tallest
-// stack
+// keep in sync with styles/timeline.scss: the spine's distance from the stage's bottom, which holds the month and day
+// labels and the year banners, and the room kept above the tallest stack
 const SPINE_BOTTOM = 96;
 const HEADROOM = 56;
 // the stage's scrollbars' thickness: the fit always leaves the horizontal one its room, or a track just wider than the
@@ -46,9 +46,10 @@ const ZOOM_STEP = 1.25;
 const DRAG_PX = 5;
 
 // the entrance: the title card holds the stage until INTRO_MS, then every mon drops in date order across the cascade,
-// each landing over DROP_MS
+// each landing over DROP_MS: down at LAND_MS (60% of the way, styles/timeline.scss's tl-plop), then a bounce
 const INTRO_MS = 1250;
 const DROP_MS = 520;
+const LAND_MS = DROP_MS * 0.6;
 
 function cascadeMs (count: number): number {
   return Math.min(3400, Math.max(700, count * 5));
@@ -220,14 +221,18 @@ export function Timeline ({ onClose, onLocate }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const counterRef = useRef<HTMLElement>(null);
   // the view's size, and the height the fit has, whether or not the horizontal scrollbar is up
-  const [stageSize, setStageSize] = useState<{ width: number; height: number; fitHeight: number } | null>(null);
+  const [stageSize, setStageSize] = useState<{ height: number; fitHeight: number } | null>(null);
   // null fits the tallest stack, following the window as it resizes; a number is a zoom of your own
   const [zoom, setZoom] = useState<number | null>(null);
   // replay bumps it, remounting the track so every animation starts over
   const [run, setRun] = useState(0);
-  const [settled, setSettled] = useState(false);
-  // the whole entrance (card, spine, cascade) held till the stage's first paint has gone by (useCalmStart)
-  const calm = useCalmStart();
+  // still mode (M) opens it settled: no card, no cascade, every mon on its day and the count in full at once, and no
+  // replay to offer
+  const { still } = useThemeContext();
+  const [settled, setSettled] = useState(still);
+  // the whole entrance (card, spine, cascade) held till the stage's first paint has gone by (useCalmStart), a replay's
+  // too
+  const calm = useCalmStart(run);
   const [hovered, setHovered] = useState<TimelineSprite | null>(null);
   const [panning, setPanning] = useState(false);
 
@@ -295,7 +300,7 @@ export function Timeline ({ onClose, onLocate }: Props) {
     const stage = stageRef.current!;
     const measure = () => {
       holdAnchor(0, null);
-      setStageSize({ width: stage.clientWidth, height: stage.clientHeight, fitHeight: stage.offsetHeight - SCROLLBAR });
+      setStageSize({ height: stage.clientHeight, fitHeight: stage.offsetHeight - SCROLLBAR });
       setHovered(null);
     };
     measure();
@@ -356,10 +361,11 @@ export function Timeline ({ onClose, onLocate }: Props) {
 
   // the entrance, per run: drops the mons in turn and counts them in as they land, and pans the stage along with the
   // front of the cascade, until it's scrolled or dragged by hand; settles once the last one is down. Its clock starts
-  // with the stage calm. A mon starts falling as its turn comes (.dropping), not waiting out a delay from the start:
-  // only those in the air are animating, rather than every mon at once, each a layer for the compositor to carry
+  // with the stage calm, unless a skip has settled it already. A mon starts falling as its turn comes (.dropping), not
+  // waiting out a delay from the start: only those in the air are animating, rather than every mon at once, each a
+  // layer for the compositor to carry
   useEffect(() => {
-    if (!calm) {
+    if (!calm || settledRef.current) {
       return undefined;
     }
     const stage = stageRef.current!;
@@ -381,16 +387,18 @@ export function Timeline ({ onClose, onLocate }: Props) {
       }
       const elapsed = now - start - INTRO_MS;
       const sprites = layoutRef.current.sprites;
+      // how many have started falling by `ms` into the cascade
+      const fallen = (ms: number) => Math.min(sprites.length, Math.floor(1 + (ms / cascadeMs(sprites.length)) * (sprites.length - 1)));
       if (elapsed >= 0 && sprites.length > 0) {
-        const landed = Math.min(sprites.length, Math.floor(1 + (elapsed / cascadeMs(sprites.length)) * (sprites.length - 1)));
-        for (; dropped < landed; dropped++) {
+        const falling = fallen(elapsed);
+        for (; dropped < falling; dropped++) {
           mons[dropped]?.classList.add('dropping');
         }
-        if (counter) {
-          counter.textContent = String(landed);
+        if (counter && elapsed >= LAND_MS) {
+          counter.textContent = String(fallen(elapsed - LAND_MS));
         }
         if (following) {
-          const target = Math.max(0, sprites[landed - 1].x * zRef.current - stage.clientWidth * 0.62);
+          const target = Math.max(0, sprites[falling - 1].x * zRef.current - stage.clientWidth * 0.62);
           stage.scrollLeft += (target - stage.scrollLeft) * 0.14;
         }
       }
@@ -413,9 +421,10 @@ export function Timeline ({ onClose, onLocate }: Props) {
     };
   }, [run, calm]);
 
-  useEffect(() => {
-    if (settled && counterRef.current) {
-      counterRef.current.textContent = String(count);
+  // nought from the first frame, before the entrance (which waits for the calm) counts them in, and all of them settled
+  useLayoutEffect(() => {
+    if (counterRef.current) {
+      counterRef.current.textContent = settled ? String(count) : '0';
     }
   }, [settled, count]);
 
@@ -428,7 +437,7 @@ export function Timeline ({ onClose, onLocate }: Props) {
         e.preventDefault();
         onClose();
       } else if (!settled) {
-        if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) {
+        if (!MODIFIERS.includes(e.key)) {
           e.preventDefault();
           if (!e.repeat) {
             setSettled(true);
@@ -553,6 +562,10 @@ export function Timeline ({ onClose, onLocate }: Props) {
     setHovered(null);
     setZoom(null);
     setRun((n) => n + 1);
+    // the stage empties at once, though the new run waits for the calm to start counting
+    if (counterRef.current) {
+      counterRef.current.textContent = '0';
+    }
     stageRef.current?.focus({ preventScroll: true });
   };
 
@@ -611,9 +624,11 @@ export function Timeline ({ onClose, onLocate }: Props) {
             <FontAwesomeIcon icon={faPlus} />
           </button>
         </div>
-        <button aria-label={t('timeline.replay')} className="tl-button" onClick={handleReplay} title={t('timeline.replay')} type="button">
-          <FontAwesomeIcon icon={faRotateRight} />
-        </button>
+        {!still &&
+          <button aria-label={t('timeline.replay')} className="tl-button" onClick={handleReplay} title={t('timeline.replay')} type="button">
+            <FontAwesomeIcon icon={faRotateRight} />
+          </button>
+        }
         <button aria-label={t('popover.close')} className="tl-button" onClick={onClose} title={t('popover.close')} type="button">
           <FontAwesomeIcon icon={faXmark} />
         </button>
@@ -650,7 +665,7 @@ export function Timeline ({ onClose, onLocate }: Props) {
         {count === 0 && <p className="tl-empty">{t('timeline.empty')}</p>}
       </div>
 
-      {!settled && <TitleCard hint={t('scene.skip')} key={`intro-${run}`} sub={activeDex!.title} title={t('timeline.title')} />}
+      {!settled && <TitleCard key={`intro-${run}`} title={t('timeline.title')} />}
     </div>,
     document.body,
   );

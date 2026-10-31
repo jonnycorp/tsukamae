@@ -65,6 +65,47 @@ $jr-mon-gap: 3px;
   background-color: var(--jr-gold);
 }
 
+// how it's drawn: the arrangement, how the games are gathered, and Mystery Gift's mons in or out, each a row of
+// switches like the split's, under its name
+.jr-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin-bottom: 12px;
+}
+
+.jr-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  > span:first-child {
+    color: var(--ink-muted);
+
+    @include caps-label(10px);
+  }
+}
+
+// Mystery Gift: lit while its mons are in, and pressed either way
+.jr-gifts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  .jr-split &.on {
+    cursor: pointer;
+  }
+
+  &.on .gift-badge {
+    color: inherit;
+  }
+
+  .gift-badge {
+    font-size: 11px;
+  }
+}
+
 // the columns' heads: the games' on the left, and on the right the switch between the two splits
 .jr-columns {
   display: flex;
@@ -106,6 +147,12 @@ $jr-mon-gap: 3px;
       color: var(--on-accent);
       cursor: default;
     }
+
+    // the place split, which the wheel doesn't draw
+    &:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
   }
 }
 
@@ -121,6 +168,33 @@ $jr-mon-gap: 3px;
 .jr-svg {
   display: block;
   overflow: visible;
+}
+
+// the lanes behind the strands, every other one washed, so a game reads across to its own generation
+.jr-lane {
+  fill: transparent;
+
+  &.wash {
+    fill: color-mix(in srgb, var(--ink) 5%, transparent);
+  }
+}
+
+// another arrangement, grouping or Mystery Gift: the strands move to their new places while the bars, the lanes and
+// the names wait out of sight, then come back as the strands settle (the names with their opening fade)
+.jr-chart[data-reshaping] {
+  :is(.jr-bars, .jr-lanes) {
+    opacity: 0;
+    transition: none;
+  }
+
+  .jr-labels {
+    opacity: 0;
+    animation: none;
+  }
+}
+
+:is(.jr-bars, .jr-lanes) {
+  transition: opacity .3s ease-out;
 }
 
 // the strands' window, opening from the left edge
@@ -234,8 +308,8 @@ $jr-mon-gap: 3px;
   transform: translateY(-50%);
   transition: opacity .3s ease-out;
 
-  &.from {
-    left: 0;
+  // a name that ends at its point: a game's, against its bar's left, and the wheel's left half
+  &.end {
     justify-content: flex-end;
   }
 
@@ -422,6 +496,12 @@ $jr-mon-gap: 3px;
   .jr-region {
     color: var(--on-overlay-muted);
   }
+}
+
+// a stop that gathers games: each, with its count
+.jr-tip-games {
+  margin: 0;
+  color: var(--on-overlay-muted);
 }
 
 .jr-tip-route {

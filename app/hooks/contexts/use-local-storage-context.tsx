@@ -1,8 +1,8 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef } from 'react';
 
 import { DEFAULT_THEME, findTheme } from '../../palette/themes';
 import { DISPLAY_MODES } from '../../utils/display-modes';
-import { DISPLAY_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, SOFT_DARK_STORAGE_KEY, STILL_STORAGE_KEY, THEME_STORAGE_KEY } from '../../palette/apply-theme';
+import { DISPLAY_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, SOFT_DARK_STORAGE_KEY, STILL_STORAGE_KEY, THEME_STORAGE_KEY, fadeDisplay } from '../../palette/apply-theme';
 import { useLocalStorage } from '../use-local-storage';
 
 import type { DisplayMode } from '../../utils/display-modes';
@@ -33,7 +33,8 @@ interface ThemeState {
 // apart from the theme's switches, which no tile reads
 interface DisplayState {
   display: DisplayMode;
-  setDisplay: (display: DisplayMode) => void;
+  // a mode, or one worked out from the last asked for (O's next), which a switch still fading out hasn't shown yet
+  setDisplay: (display: DisplayMode | ((current: DisplayMode) => DisplayMode)) => void;
 }
 
 const PreferencesContext = createContext<PreferencesState>({
@@ -69,8 +70,18 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, false);
   const [locationTints, setLocationTints] = useLocalStorage(LOCATION_TINTS_STORAGE_KEY, true);
   const [still, setStill] = useLocalStorage(STILL_STORAGE_KEY, false);
-  const [storedDisplay, setDisplay] = useLocalStorage<DisplayMode>(DISPLAY_STORAGE_KEY, 'hexagon');
+  const [storedDisplay, storeDisplay] = useLocalStorage<DisplayMode>(DISPLAY_STORAGE_KEY, 'hexagon');
   const display = DISPLAY_MODES.includes(storedDisplay) ? storedDisplay : 'hexagon';
+  // switched out of sight, the dex's flips faded out and back in around it (fadeDisplay); the mode already asked for
+  // is no switch at all
+  const requested = useRef(display);
+  const setDisplay = useCallback((next: DisplayMode | ((current: DisplayMode) => DisplayMode)) => {
+    const target = typeof next === 'function' ? next(requested.current) : next;
+    if (target !== requested.current) {
+      requested.current = target;
+      fadeDisplay(() => storeDisplay(target));
+    }
+  }, [storeDisplay]);
 
   const preferences = useMemo<PreferencesState>(() => ({ locale, setLocale }), [locale, setLocale]);
 

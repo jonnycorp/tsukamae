@@ -7,9 +7,9 @@ export const FADE_MS = 150;
 
 interface Options {
   onDismissed: () => void;
-  // outside-click boundary (mousedown, so drag-selects ending outside don't close)
+  // outside-press boundary (the press, so drag-selects ending outside don't close)
   ref?: RefObject<HTMLElement>;
-  // mousedowns inside matches of this selector don't dismiss
+  // presses inside matches of this selector don't dismiss
   keepOpenOn?: string;
 }
 
@@ -62,7 +62,7 @@ export function useDismissable ({ onDismissed, ref, keepOpenOn }: Options) {
       return;
     }
 
-    const handleMouseDown = (e: MouseEvent) => {
+    const handlePointerDown = (e: PointerEvent) => {
       if (!ref.current || !(e.target instanceof Element) || ref.current.contains(e.target)) {
         return;
       }
@@ -72,8 +72,8 @@ export function useDismissable ({ onDismissed, ref, keepOpenOn }: Options) {
       dismiss();
     };
 
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [ref, keepOpenOn, dismiss]);
 
   return { closing, dismiss, revive };

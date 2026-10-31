@@ -66,8 +66,9 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
 
   // under the trigger, or over it where there's no room below; as wide as its widest option, so none is cut off, and
   // never narrower than the trigger, kept inside the window. Placed by where it lands: what holds a fixed element isn't
-  // always the window (an ancestor with a transform is: the batch bar, the review's stage), nor are its pixels always
-  // the screen's (a zoomed ancestor scales them: the dex, a scene), so it's measured at 0, 0, unfurl held, and moved
+  // always the window (an ancestor with a transform or a container's containment is: the batch bar, the review's
+  // stage), nor are its pixels always the screen's (a zoomed ancestor scales them: the dex, a scene), so it's measured
+  // at 0, 0, unfurl held, and moved
   useLayoutEffect(() => {
     if (!open) {
       return;
@@ -138,7 +139,7 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       return;
     }
     const close = () => setOpen(false);
-    const handleMousedown = (e: MouseEvent) => {
+    const handlePointerDown = (e: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node) &&
           menuRef.current && !menuRef.current.contains(e.target as Node)) {
         close();
@@ -158,12 +159,12 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       close();
     };
 
-    document.addEventListener('mousedown', handleMousedown);
+    document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeydown, true);
     document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
     window.addEventListener('resize', close);
     return () => {
-      document.removeEventListener('mousedown', handleMousedown);
+      document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeydown, true);
       document.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', close);

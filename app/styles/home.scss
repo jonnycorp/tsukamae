@@ -182,13 +182,8 @@
         cursor: pointer;
         transition: opacity .1s ease-out;
 
-        &:hover:not(:disabled) {
+        &:hover {
           opacity: 1;
-        }
-
-        &:disabled {
-          opacity: .15;
-          cursor: default;
         }
       }
 

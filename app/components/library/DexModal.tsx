@@ -8,6 +8,7 @@ import { ModalShell } from './ModalShell';
 import { DEFAULTABLE_BASELINES, DEFAULTABLE_FIELDS, STATUSES, statusOptions, withBaselines, withFieldInvariants } from '../../utils/capture-fields';
 import { DEFAULT_CATALOG_KEY, DEX_CATALOG, getCatalogDex } from '../../utils/local-data';
 import { localizeCatalogDexName, localizeCatalogGame, localizeDexType } from '../../i18n/names';
+import { nameNewBoxes } from '../../utils/free-dex';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../hooks/use-dismissable';
 import { useTranslation } from '../../hooks/use-translation';
@@ -55,6 +56,8 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const [shiny, setShiny] = useState(dex?.shiny || false);
   // chosen at creation only and immutable — an existing dex must never convert
   const [checklist, setChecklist] = useState(Boolean(dex?.checklist));
+  // a free-form dex, of boxes of your own; HOME's national catalog gives its mons their looks
+  const [free, setFree] = useState(Boolean(dex?.free));
   // a stored status this version doesn't write (a hand edit) shows, and saves, as the caught a click falls back to
   const [defaultStatus, setDefaultStatus] = useState<CaptureStatus>(() => {
     const stored = dex?.captureDefaults?.status;
@@ -85,7 +88,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const resolvedTitle = title.trim() || localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name);
+    const resolvedTitle = title.trim() || (free ? t('dexModal.freeTitle') : localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name));
 
     const captureDefaults = { ...defaults, status: defaultStatus };
 
@@ -93,7 +96,8 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     if (dex) {
       updateDex(dex.id, { title: resolvedTitle, shiny, captureDefaults: dex.checklist ? undefined : captureDefaults });
     } else {
-      pendingActionRef.current = () => createDex({ title: resolvedTitle, catalogKey, shiny, checklist, captureDefaults: checklist ? undefined : captureDefaults });
+      nameNewBoxes((n) => t('free.box', { n }));
+      pendingActionRef.current = () => createDex({ title: resolvedTitle, catalogKey, shiny, checklist, captureDefaults: checklist ? undefined : captureDefaults, free });
     }
     dismiss();
   };
@@ -113,12 +117,12 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                 maxLength={300}
                 name="dex_title"
                 onChange={handleTitleChange}
-                placeholder={localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name)}
+                placeholder={free ? t('dexModal.freeTitle') : localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name)}
                 type="text"
                 value={title}
               />
             </div>
-            {!dex &&
+            {!dex && !free &&
               <>
                 <div className="form-group">
                   <label htmlFor="dex_game">{t('dexModal.game')}</label>
@@ -135,9 +139,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                     id="dex_catalog"
                     onSelect={setCatalogKey}
                     options={dexesForGame.map((entry) => {
-                      const type = localizeDexType(locale, entry.dex_type.name);
-                      const base = entry.dex_type.base_dex_type && localizeDexType(locale, entry.dex_type.base_dex_type.name);
-                      const name = base ? t('dexModal.dexType', { base, type }) : type;
+                      const name = localizeDexType(locale, entry.dex_type.name);
                       return { value: entry.key, label: t('dexModal.dexOption', { name, total: entry.total }) };
                     })}
                     value={catalogKey}
@@ -167,10 +169,32 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                       checked={checklist}
                       id="checklist"
                       name="checklist"
-                      onChange={(e) => setChecklist(e.target.checked)}
+                      onChange={(e) => {
+                        setChecklist(e.target.checked);
+                        setFree(false);
+                      }}
                       type="checkbox"
                     />
                     <span className="checkbox-custom"><span /></span>{t('dexModal.checklist')}
+                  </label>
+                </div>
+              </div>
+            }
+            {!dex &&
+              <div className="form-group">
+                <div className="checkbox">
+                  <label>
+                    <input
+                      checked={free}
+                      id="free"
+                      name="free"
+                      onChange={(e) => {
+                        setFree(e.target.checked);
+                        setChecklist(false);
+                      }}
+                      type="checkbox"
+                    />
+                    <span className="checkbox-custom"><span /></span>{t('dexModal.free')}
                   </label>
                 </div>
               </div>

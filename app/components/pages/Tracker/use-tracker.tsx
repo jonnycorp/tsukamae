@@ -2,7 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { BOX_COLUMNS, TILE_SIZE } from '../../../utils/pokemon';
 import { EMPTY_METADATA } from '../../../utils/capture-fields';
-import { deleteCaptures, moveCapture, progressToCaptures, subscribeHistory, writeCapture } from '../../../utils/local-data';
+import { deleteCaptures, moveCapture, progressToCaptures, writeCapture } from '../../../utils/local-data';
+import { isDexPlaceId } from '../../../utils/dex-places';
+import { removeEntries } from '../../../utils/free-dex';
 import { movedRecord, placeOf, samePlace } from '../../../utils/location-moves';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 
@@ -10,8 +12,10 @@ import type { Capture, Place } from '../../../types';
 import type { Dispatch, MutableRefObject, ReactNode, SetStateAction } from 'react';
 import type { UpdateCapturePayload } from '../../../utils/local-data';
 
+// a checklist's check, and its Elsewhere (a mon you have that another dex represents, tinted as one checked out of
+// HOME is), wear the sealed look
 export function isDisplaySealed (capture: Capture, checklist: boolean): boolean {
-  return checklist ? capture.status === 'caught' : capture.sealed;
+  return checklist ? capture.status === 'caught' || capture.status === 'temporary' : capture.sealed;
 }
 
 // a grid's shine (a box's, or a chunk of search results `columns` across), one band clipped to its sealed slots — a
@@ -69,6 +73,8 @@ interface TrackerActions {
   moveMenuHost: MutableRefObject<((target: MoveTarget) => void) | null>;
   // a mon about to be brought into view (a locate): the ledger unfolds the group it's in, so there's a row to find
   revealHost: MutableRefObject<((pokemon: number) => void) | null>;
+  // a mon a press just marked: kept in a filtered view it no longer matches (useHeldTiles in Dex)
+  holdHost: MutableRefObject<((pokemon: number) => void) | null>;
   narrow: boolean;
 }
 
@@ -82,6 +88,7 @@ const TrackerActionsContext = createContext<TrackerActions>({
   openMoveMenu: () => {},
   moveMenuHost: { current: null },
   revealHost: { current: null },
+  holdHost: { current: null },
   narrow: false,
 });
 
@@ -89,14 +96,18 @@ interface Props {
   children: ReactNode;
 }
 
+// a checklist dex named as a place in HOME isn't a save
 function withoutDeletedSave (cap: Capture, saveIds: Set<string>): Capture {
-  return cap.location_save && !saveIds.has(cap.location_save) ? { ...cap, location_save: null } : cap;
+  return cap.location_save && !isDexPlaceId(cap.location_save) && !saveIds.has(cap.location_save) ? { ...cap, location_save: null } : cap;
 }
 
 export const TrackerContextProvider = ({ children }: Props) => {
-  const { activeDex, saves } = useDexContext();
+  const { activeDex, saves, editDexes } = useDexContext();
   const dexId = activeDex!.id;
+  const free = Boolean(activeDex!.free);
   const [captures, setCaptures] = useState(() => progressToCaptures(activeDex!));
+  const editRef = useRef(editDexes);
+  editRef.current = editDexes;
 
   // a record naming a game since deleted from My Games no longer says which game it's in, so it's shown and checked as
   // unanswered (sealing, a sealed record's stale pin, the Incomplete view); storage keeps the id, as nothing outside a
@@ -113,34 +124,26 @@ export const TrackerContextProvider = ({ children }: Props) => {
       return changed ? next : prev;
     });
   }, [saveIds]);
-  const narrow = useMediaQuery(NARROW_QUERY);
-
-  // a step undone or redone (Ctrl+Z) put records back in storage; the tiles take them as they now are, as a dex's
-  // captures are first read (progressToCaptures), a deleted game hidden as above
-  useEffect(() => subscribeHistory((step, direction) => {
-    if (step.dexId !== dexId) {
-      return;
+  // a free-form dex's mons are its entries, which its boxes change as well as its records: read again as they do
+  useEffect(() => {
+    if (free) {
+      setCaptures(progressToCaptures(activeDex!).map((cap) => withoutDeletedSave(cap, saveIds)));
     }
-    const records = direction === 'undo' ? step.before : step.after;
-    setCaptures((prev) => prev.map((cap) => {
-      const key = String(cap.pokemon.id);
-      if (!(key in records)) {
-        return cap;
-      }
-      const entry = records[key];
-      return entry
-        ? withoutDeletedSave({ ...EMPTY_METADATA, ...entry, pokemon: cap.pokemon, captured: true, status: entry.status, sealed: Boolean(entry.sealed) }, saveIds)
-        : { ...EMPTY_METADATA, pokemon: cap.pokemon, captured: false, status: null, sealed: false };
-    }));
-  }), [dexId, saveIds]);
+  }, [activeDex]);
+  const narrow = useMediaQuery(NARROW_QUERY);
 
   const updateCapture = useCallback((payload: UpdateCapturePayload) => writeCapture(dexId, payload), [dexId]);
   const releaseCaptures = useCallback((pokemon: number[]) => {
+    // a free-form dex's released mons leave its boxes too
+    if (free) {
+      editRef.current((state) => removeEntries(state, dexId, pokemon));
+      return;
+    }
     setCaptures((prev) => prev.map((cap) => (pokemon.includes(cap.pokemon.id) && cap.captured && !cap.sealed
       ? { ...cap, ...EMPTY_METADATA, captured: false, status: null, sealed: false }
       : cap)));
     deleteCaptures(dexId, pokemon);
-  }, [dexId]);
+  }, [dexId, free]);
   const moveTo = useCallback((pokemon: number, to: Place) => {
     setCaptures((prev) => prev.map((cap) => {
       const here = placeOf(cap);
@@ -154,10 +157,11 @@ export const TrackerContextProvider = ({ children }: Props) => {
   }, []);
 
   const revealHost = useRef<((pokemon: number) => void) | null>(null);
+  const holdHost = useRef<((pokemon: number) => void) | null>(null);
 
   const stateValue = useMemo<TrackerState>(() => ({ captures }), [captures]);
   const actionsValue = useMemo<TrackerActions>(
-    () => ({ setCaptures, updateCapture, releaseCaptures, moveTo, openMoveMenu, moveMenuHost, revealHost, narrow }),
+    () => ({ setCaptures, updateCapture, releaseCaptures, moveTo, openMoveMenu, moveMenuHost, revealHost, holdHost, narrow }),
     [updateCapture, releaseCaptures, moveTo, openMoveMenu, narrow],
   );
 

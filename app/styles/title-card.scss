@@ -187,10 +187,14 @@ $card-clear-at: 1.05s;
 
 // what's under a scene's title card as it opens (data-intro: the review's, the almanac's): out of sight, its entrance
 // held at its start, till the card's about to clear, then faded in as it does. Important, the one place: an animation
-// shorthand sets the play state too, and the scenes' own run as deep as their selectors do
-.review-body,
-.almanac-body {
+// shorthand sets the play state too, and the scenes' own run as deep as their selectors do. The almanac's body is its
+// scroller too, so its scrollbar's fade stays beside
+.review-body {
   transition: opacity .24s ease-out;
+}
+
+.almanac-body {
+  transition: opacity .24s ease-out, $scrollbar-fade;
 }
 
 [data-intro] {

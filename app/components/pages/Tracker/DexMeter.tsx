@@ -5,6 +5,8 @@ import { useThemeContext } from '../../../hooks/contexts/use-local-storage-conte
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { AnimationEvent, CSSProperties } from 'react';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
+
 import type { TranslationKey } from '../../../i18n/translations';
 
 interface Props {
@@ -16,6 +18,29 @@ interface Props {
 
 // the figure's count, as long as the bar's draw-in as the dex opens and its spring to a new value (styles/meter.scss)
 export const COUNT_MS = 700;
+
+// a CSS cubic-bezier's progress at time t (0-1): the curve's x solved for t by halving, then its y there
+function cubicBezier (x1: number, y1: number, x2: number, y2: number): (t: number) => number {
+  const at = (a: number, b: number, s: number) => 3 * a * s * (1 - s) ** 2 + 3 * b * s ** 2 * (1 - s) + s ** 3;
+  return (t) => {
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 24; i++) {
+      const mid = (lo + hi) / 2;
+      if (at(x1, x2, mid) < t) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return at(y1, y2, (lo + hi) / 2);
+  };
+}
+
+// the bar's curves, so the figure keeps step with its edge: its draw-in as the dex opens, an ease-out cubic
+// ($meter-draw), and its spring to each new value after, overshooting a little before it settles ($meter-spring)
+const DRAW = (t: number) => 1 - (1 - t) ** 3;
+const SPRING = cubicBezier(0.2, 1.3, 0.4, 1);
 
 interface Pop {
   id: number;
@@ -36,9 +61,10 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
   const percent = total > 0 ? (100 * marked) / total : 0;
 
   // the figure, written straight to its text node as it counts, so nothing renders per frame: from nothing as the dex
-  // opens, from wherever it had got to after that
+  // opens, from wherever it had got to after that, on the curve the bar moves on
   const figureRef = useRef<HTMLSpanElement>(null);
   const shownRef = useRef(0);
+  const openedRef = useRef(false);
   useLayoutEffect(() => {
     const el = figureRef.current;
     if (!el) {
@@ -48,6 +74,8 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
       shownRef.current = n;
       el.textContent = `${n.toFixed(1)}%`;
     };
+    const curve = openedRef.current ? SPRING : DRAW;
+    openedRef.current = true;
     if (still) {
       show(percent);
       return undefined;
@@ -58,7 +86,7 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
     // a frame's time can be a moment before the start, which would count below where it set out (a "-0.0%")
     const step = (now: number) => {
       const progress = Math.min(1, Math.max(0, (now - start) / COUNT_MS));
-      show(from + (percent - from) * (1 - (1 - progress) ** 3));
+      show(from + (percent - from) * curve(progress));
       if (progress < 1) {
         frame = requestAnimationFrame(step);
       }
@@ -68,18 +96,21 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
     return () => cancelAnimationFrame(frame);
   }, [percent, still]);
 
-  // each change after the dex opened (its tracker mounts afresh per dex, so never a switch): the difference, or a
-  // tenth crossed upward
+  // each change after the dex opened (its tracker mounts afresh per dex, so never a switch): a shine, and the
+  // difference, or a tenth crossed upward
   const lastRef = useRef(marked);
   const [pops, setPops] = useState<Pop[]>([]);
   const [milestone, setMilestone] = useState<{ id: number; tenth: number } | null>(null);
+  const [shine, setShine] = useState<number | null>(null);
   useEffect(() => {
     const before = lastRef.current;
     lastRef.current = marked;
     if (marked === before || total === 0 || still) {
       return;
     }
+    // one id for all a change sets off, each kind keying its own by it (they're siblings in the track)
     const id = performance.now();
+    setShine(id);
     const tenth = (n: number) => Math.floor((10 * n) / total);
     if (tenth(marked) > tenth(before)) {
       setMilestone({ id, tenth: tenth(marked) });
@@ -92,9 +123,9 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
     if (still) {
       setPops([]);
       setMilestone(null);
+      setShine(null);
     }
   }, [still]);
-  const latest = pops[pops.length - 1];
 
   const endMilestone = (e: AnimationEvent) => {
     if (e.animationName === 'meter-fade') {
@@ -111,13 +142,20 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
             <div className="dex-meter-fill" style={{ width: `${percent}%` }} />
             <div className="dex-meter-water" style={{ width: `${percent}%` }} />
           </div>
-          {latest && <span className="dex-meter-shine" key={latest.id} style={{ width: `${percent}%` }} />}
+          {shine !== null &&
+            <span
+              className="dex-meter-shine"
+              key={`shine-${shine}`}
+              onAnimationEnd={() => setShine((current) => (current === shine ? null : current))}
+              style={{ width: `${percent}%` }}
+            />
+          }
           <span className="dex-meter-edge" style={{ left: `${percent}%`, '--meter-at': percent } as CSSProperties} />
-          {milestone && <i className="dex-meter-flare" key={milestone.id} style={{ left: `${milestone.tenth * 10}%` }} />}
+          {milestone && <i className="dex-meter-flare" key={`flare-${milestone.id}`} style={{ left: `${milestone.tenth * 10}%` }} />}
           {pops.map((pop) => (
             <span
               className={classNames('dex-meter-pop', { down: pop.delta < 0 })}
-              key={pop.id}
+              key={`pop-${pop.id}`}
               onAnimationEnd={() => setPops((prev) => prev.filter((entry) => entry.id !== pop.id))}
               style={{ '--at': `${pop.at}%` } as CSSProperties}
             >
@@ -125,7 +163,7 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
             </span>
           ))}
           {milestone &&
-            <span className="dex-meter-milestone" key={milestone.id} onAnimationEnd={endMilestone} style={{ '--at': `${milestone.tenth * 10}%` } as CSSProperties}>
+            <span className="dex-meter-milestone" key={`milestone-${milestone.id}`} onAnimationEnd={endMilestone} style={{ '--at': `${milestone.tenth * 10}%` } as CSSProperties}>
               {milestone.tenth * 10}%
             </span>
           }
@@ -138,6 +176,8 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
 // the meter's counts, under its right end at the filters' row's end: marked, to go, temporary, caught
 export function MeterCounts ({ caught, marked, temporary, total }: Props) {
   const { t } = useTranslation();
+  // a checklist's Temporary is Elsewhere, and a free-form dex counts what's sealed
+  const { activeDex } = useDexContext();
   // a template's {n} drawn bold, wherever the language puts it: "476 marked", 記録済み476
   const count = (key: TranslationKey, n: number, className?: string) => {
     const [before, after] = t(key).split('{n}');
@@ -145,8 +185,8 @@ export function MeterCounts ({ caught, marked, temporary, total }: Props) {
   };
   return (
     <span className="dex-meter-counts">
-      {count('progress.marked', marked)}{t('common.listSeparator')}{count('progress.toGo', total - marked)}
-      {temporary > 0 && <>{t('common.listSeparator')}{count('progress.temporary', temporary, 'temporary-count')}</>}
+      {count(activeDex?.free ? 'progress.sealedOnly' : 'progress.marked', marked)}{t('common.listSeparator')}{count('progress.toGo', total - marked)}
+      {temporary > 0 && <>{t('common.listSeparator')}{count(activeDex?.checklist ? 'progress.elsewhere' : 'progress.temporary', temporary, 'temporary-count')}</>}
       {caught > 0 && <>{t('common.listSeparator')}{count('progress.caught', caught, 'caught-count')}</>}
     </span>
   );

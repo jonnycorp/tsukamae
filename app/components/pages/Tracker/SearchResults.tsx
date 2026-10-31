@@ -1,4 +1,4 @@
-import { Fragment, memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { BOX_COLUMNS, BOX_SIZE } from '../../../utils/pokemon';
 import { EMPTY_FILTERS, appliedFacets, filterMatcher, hasQuery, queryMatcher } from './filters';
@@ -84,26 +84,34 @@ interface NoResultsProps {
 
 // what an emptied view or search says, with the way back out of it; the ledger says it too
 export function NoResults ({ filters, query, setFilters, setQuery }: NoResultsProps) {
-  const { t, locale } = useTranslation();
+  const { activeDex } = useDexContext();
+  const { t } = useTranslation();
   const searching = hasQuery(query);
   const viewOnly = !searching && appliedFacets(filters).length === 0;
-  const viewEmpty = VIEW_EMPTY[filters.view];
-  const clearFilters = <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.clearFilters')}</a>;
-  const clearSearch = <a className="link" onClick={() => setQuery('')}>{t('searchResults.clearSearch')}</a>;
-  const showAll = <a className="link" onClick={() => setFilters(EMPTY_FILTERS)}>{t('searchResults.showAll')}</a>;
+  // a checklist's Temporary is Elsewhere, as its view's button says
+  const viewEmpty = activeDex!.checklist && filters.view === 'temporary' ? 'searchResults.noElsewhere' : VIEW_EMPTY[filters.view];
+  const action = (label: TranslationKey, run: () => void) => (
+    <button className="no-results-action" key={label} onClick={run} type="button">{t(label)}</button>
+  );
+  const clearFilters = action('searchResults.clearFilters', () => setFilters(EMPTY_FILTERS));
+  const clearSearch = action('searchResults.clearSearch', () => setQuery(''));
+  const showAll = action('searchResults.showAll', () => setFilters(EMPTY_FILTERS));
 
-  let parts: ReactNode[] = [t('searchResults.noneMatching'), searching && clearSearch, clearFilters];
+  let message = t('searchResults.noneMatching');
+  let actions: ReactNode[] = [searching && clearSearch, clearFilters];
   if (viewOnly && viewEmpty) {
-    parts = [t(viewEmpty), showAll];
+    message = t(viewEmpty);
+    actions = [showAll];
   } else if (filters.view === 'all' && appliedFacets(filters).length === 0) {
-    parts = [t('searchResults.none'), clearSearch];
+    // with no search either, it's the dex that holds nothing (a free-form dex starts out empty)
+    message = t(searching ? 'searchResults.none' : 'searchResults.empty');
+    actions = searching ? [clearSearch] : [];
   }
-  // English spaces its sentences apart; Japanese runs on straight after the 。
-  const gap = locale === 'ja' ? '' : ' ';
 
   return (
     <div className="search-results search-results-empty">
-      <p>{parts.filter(Boolean).map((part, i) => <Fragment key={i}>{i > 0 && gap}{part}</Fragment>)}</p>
+      <p>{message}</p>
+      <div className="no-results-actions">{actions.filter(Boolean)}</div>
     </div>
   );
 }
@@ -113,7 +121,7 @@ interface Props {
   // boxes across the grid the results stand in for
   columns: number;
   filters: TrackerFilters;
-  // shown though they no longer match: tiles the open popover has worked on (useHeldTiles in Dex)
+  // shown though they no longer match: tiles the open popover has worked on, or a press marked (useHeldTiles in Dex)
   held: number[];
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;

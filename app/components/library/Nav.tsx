@@ -7,6 +7,7 @@ import { DISPLAY_MODES } from '../../utils/display-modes';
 import { SavesModal } from './SavesModal';
 import { THEMES, themePalette } from '../../palette/themes';
 import { exportAppState, importAppState, isAppState } from '../../utils/local-data';
+import { today } from '../../utils/date-entry';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useDisplayContext, useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../hooks/use-translation';
@@ -21,7 +22,7 @@ function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, cl
     if (!open) {
       return;
     }
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideClick = (e: PointerEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         close();
       }
@@ -31,10 +32,10 @@ function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, cl
         close();
       }
     };
-    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('pointerdown', handleOutsideClick);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('pointerdown', handleOutsideClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open]);
@@ -46,8 +47,8 @@ interface Props {
 
 const THEME_DOTS = ['chrome', 'accent', 'status-unobtainable', 'status-temporary', 'status-caught'];
 
-// each display mode's sign, in the menu and in the palette
-export const DISPLAY_ICONS: Record<DisplayMode, IconDefinition> = {
+// each display mode's sign in the menu
+const DISPLAY_ICONS: Record<DisplayMode, IconDefinition> = {
   hexagon: faHexagonNodes,
   orbit: faRing,
 };
@@ -82,10 +83,7 @@ export function Nav ({ onTogglePreview }: Props) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    // today where the user is: toISOString's UTC date is tomorrow's by evening in the Americas
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    link.download = `tsukamae-progress-${today}.json`;
+    link.download = `tsukamae-progress-${today()}.json`;
     link.click();
     URL.revokeObjectURL(url);
     setShowDataMenu(false);
@@ -136,7 +134,7 @@ export function Nav ({ onTogglePreview }: Props) {
       <div className="nav-menu" ref={dataMenuRef}>
         <a className="nav-icon tooltip" onClick={() => setShowDataMenu((open) => !open)}>
           <FontAwesomeIcon icon={faGear} />
-          {!showDataMenu && <span className="tooltip-text">{t('nav.data')}</span>}
+          <span className="tooltip-text">{t('nav.data')}</span>
         </a>
         {showDataMenu &&
           <ul className="nav-menu-dropdown">
@@ -171,7 +169,7 @@ export function Nav ({ onTogglePreview }: Props) {
       <div className="nav-menu" ref={themeMenuRef}>
         <a className="nav-icon tooltip" onClick={() => setShowThemeMenu((open) => !open)}>
           <FontAwesomeIcon icon={faPalette} />
-          {!showThemeMenu && <span className="tooltip-text">{t('nav.theme')}</span>}
+          <span className="tooltip-text">{t('nav.theme')}</span>
         </a>
         {showThemeMenu &&
           <ul className="nav-menu-dropdown theme-popover">

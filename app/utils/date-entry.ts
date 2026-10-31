@@ -180,7 +180,7 @@ function pastedDate (raw: string): string | null {
   return null;
 }
 
-// a whole date typed without its last zero (2026/08/5) is that date, once the box is left; anything else as it is
+// a whole date typed with a one-digit month or day (2026/8/5) is that date once the box is left; anything else as it is
 export function padDate (text: string): string {
   const match = /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(text);
   return match ? `${match[1]}/${match[2].padStart(2, '0')}/${match[3].padStart(2, '0')}` : text;
@@ -267,4 +267,10 @@ export function dateIso (text: string): string | null {
     return null;
   }
   return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+// today where the user is, as a catch date writes it: toISOString's UTC date is tomorrow's by evening in the Americas
+export function today (): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }

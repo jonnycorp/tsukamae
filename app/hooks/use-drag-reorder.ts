@@ -8,6 +8,13 @@ const THRESHOLD = 6;
 // the items the list holds now (refs of removed ones linger past its end)
 const placedOf = (items: (HTMLElement | null)[], count: number) => items.slice(0, count);
 
+// where the top of the list's content is on screen: its box's top, less what it has scrolled itself (the landing's
+// list is its own scroller, where My Games' scrolls with its modal)
+const contentTop = (item: HTMLElement | null | undefined) => {
+  const list = item?.parentElement;
+  return list ? list.getBoundingClientRect().top - list.scrollTop : null;
+};
+
 interface Press {
   index: number;
   pointerId: number;
@@ -75,7 +82,7 @@ export function useDragReorder (count: number, onMove: (from: number, to: number
       const { rects, index } = current;
       const own = rects[index];
       const zoom = items.current[index]?.currentCSSZoom ?? 1;
-      const listTop = items.current[index]?.parentElement?.getBoundingClientRect().top ?? current.listTop;
+      const listTop = contentTop(items.current[index]) ?? current.listTop;
       const dy = current.y - (listTop - current.listTop) - current.startY;
       // kept inside the list
       const offset = Math.max(rects[0].top - own.top, Math.min(rects[rects.length - 1].bottom - own.bottom, dy));
@@ -159,7 +166,7 @@ export function useDragReorder (count: number, onMove: (from: number, to: number
         }
         current.dragging = true;
         current.rects = placedOf(items.current, countRef.current).map((el) => el!.getBoundingClientRect());
-        current.listTop = items.current[current.index]?.parentElement?.getBoundingClientRect().top ?? 0;
+        current.listTop = contentTop(items.current[current.index]) ?? 0;
         setDragging(current.index);
       }
       e.preventDefault();

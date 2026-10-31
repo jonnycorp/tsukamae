@@ -68,8 +68,8 @@ function FacetPanel ({ facets, filters, onToggle, panelRef, query, regional }: P
   );
 }
 
-// a scene the filter came from (Journeys, index.tsx's layer): the dex shown as its page, not the dex's own, till the
-// filter's changed
+// a scene the filter came from (Journeys, the trainer cards, the ball orrery: index.tsx's layer): the dex shown as its
+// page, not the dex's own, till the filter's changed
 export interface FilterSource {
   title: string;
   onBack: () => void;
@@ -77,7 +77,7 @@ export interface FilterSource {
 
 interface Props {
   filters: TrackerFilters;
-  // the dex's settings, its defaults among them, in reach for marking a run of mons from one game
+  // the search, under which the shown count and each option's count are taken
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   source?: FilterSource;
@@ -97,7 +97,7 @@ export function FilterBar ({ filters, query, setFilters, source }: Props) {
 
   const checklist = Boolean(activeDex?.checklist);
   const views = FILTER_VIEWS.filter((view) => !checklist || !view.records);
-  const facets = FACETS.filter((facet) => !checklist || facet.species);
+  const facets = FACETS.filter((facet) => !facet.pressOnly && (!checklist || facet.species));
   const active = anyFilterActive(filters);
 
   const count = useMemo(() => {
@@ -113,7 +113,7 @@ export function FilterBar ({ filters, query, setFilters, source }: Props) {
     if (!open) {
       return;
     }
-    const handleMouseDown = (e: MouseEvent) => {
+    const handlePointerDown = (e: PointerEvent) => {
       if (e.target instanceof Node && !anchorRef.current?.contains(e.target)) {
         setOpen(false);
       }
@@ -126,11 +126,11 @@ export function FilterBar ({ filters, query, setFilters, source }: Props) {
     };
     // a resize lays the header out again, leaving the panel where the toggle was: it closes, as a dropdown's menu does
     const close = () => setOpen(false);
-    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('resize', close);
     return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', close);
     };
@@ -164,11 +164,12 @@ export function FilterBar ({ filters, query, setFilters, source }: Props) {
             aria-checked={filters.view === view.id}
             className={classNames('filter-view', { active: filters.view === view.id })}
             key={view.id}
-            onClick={() => setFilters((prev) => ({ ...prev, view: view.id }))}
+            // the view already on leaves the filters as they are, so a page's layer over them stands (Tracker's layerStands)
+            onClick={() => setFilters((prev) => (prev.view === view.id ? prev : { ...prev, view: view.id }))}
             role="radio"
             type="button"
           >
-            {t(view.labelKey)}
+            {t(checklist && view.id === 'temporary' ? 'filter.elsewhere' : view.labelKey)}
           </button>
         ))}
       </div>

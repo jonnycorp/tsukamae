@@ -60,6 +60,12 @@ $at-axis: 24px;
   fill: color-mix(in oklch, var(--status-caught) 50%, var(--paper-raised));
 }
 
+// a checklist's Elsewhere, in the rose of a mon checked out of HOME
+.at-elsewhere {
+  background-color: var(--wash-loan);
+  fill: var(--wash-loan);
+}
+
 .at-temporary {
   background-color: var(--status-temporary);
   fill: var(--status-temporary);

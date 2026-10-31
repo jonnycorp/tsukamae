@@ -7,14 +7,15 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CAPTURE_FIELDS, formatFieldValue, unansweredFields } from '../../../utils/capture-fields';
 import { CaptureFieldControl } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
-import { PokemonName, displayName } from '../../library/PokemonName';
+import { PokemonName } from '../../library/PokemonName';
 import { TitleCard, useTitleCard } from './TitleCard';
 import { UNSEAL_HOLD } from './Pokemon';
-import { canHold } from '../../../utils/game-reach';
-import { destinations, locationTint, placeFromKey, placeKey, placeLabel, placeOf } from '../../../utils/location-moves';
-import { asksChampions, canVisitChampions, offersChampions } from '../../../utils/champions';
+import { dexPlacesFor, locationTint, placeFromKey, placeKey, placeLabel, placeOf, placesFor } from '../../../utils/location-moves';
+import { asksChampions, canVisitChampions } from '../../../utils/champions';
+import { asksGigantamax } from '../../../utils/gigantamax';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
 import { stateOf } from './ledger-model';
+import { today } from '../../../utils/date-entry';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
 import { useLocalStorage } from '../../../hooks/use-local-storage';
@@ -34,11 +35,11 @@ import type { RecordPatch } from './use-patch';
 // the plates either side of the mon: where it came from and where it is, then what it is
 const SPLIT = CAPTURE_FIELDS.findIndex((field) => field.id === 'ball');
 const SIDES = [CAPTURE_FIELDS.slice(0, SPLIT), CAPTURE_FIELDS.slice(SPLIT)];
-// what sealing waits on, a pip each under the mon
+// what sealing waits on, a pip each under the mon (with one for any other field holding a value the app no longer
+// writes, as a legacy favorite does, which stands in its way too till it's answered again)
 const GATES = CAPTURE_FIELDS.filter((field) => field.gatesSeal);
 // a field answered from a menu goes on to the next still to fill; one typed into goes on with Enter
 const MENU_KINDS = new Set(['select', 'yesno', 'save', 'location']);
-const UNDO_MS = 6000;
 const LIST_STORAGE_KEY = 'reviewList';
 // too narrow for the list beside the mon: it lies over it instead, and only while it's wanted
 const NARROW_QUERY = '(width < 1000px)';
@@ -61,8 +62,7 @@ function toFill (capture: Capture): number {
 }
 
 // the control a field still waits on, if it waits: a game's own pick under In a game, the name under a ticked
-// nickname box (the box itself on a record from before it had one); My Game while the game or language it fills in
-// is still to answer
+// nickname box; My Game while the game or language it fills in is still to answer
 function waitingControl (capture: Capture, field: CaptureField, missing: Set<string>, hasSaves: boolean): string | null {
   if (field.id === 'save') {
     return hasSaves && (missing.has('origin_game') || missing.has('language')) ? 'review-save' : null;
@@ -74,7 +74,7 @@ function waitingControl (capture: Capture, field: CaptureField, missing: Set<str
     return 'review-location-game';
   }
   if (field.id === 'nickname') {
-    return capture.has_nickname === true ? 'review-nickname-text' : 'review-nickname';
+    return 'review-nickname-text';
   }
   return `review-${field.id}`;
 }
@@ -98,6 +98,9 @@ function nextToFill (capture: Capture, after: string | null, from: string | null
   }
   return null;
 }
+
+// how many recent dates the date plate offers
+const RECENT_DATES = 3;
 
 interface RowProps {
   capture: Capture;
@@ -202,7 +205,7 @@ interface Props {
 // looked over, and again goes on to the next
 export function Review ({ queue, start, onClose }: Props) {
   const { captures } = useTrackerState();
-  const { activeDex, activeDexView, saves } = useDexContext();
+  const { activeDex, activeDexView, dexes, saves } = useDexContext();
   const { moveTo, releaseCaptures } = useTrackerActions();
   const { t, locale } = useTranslation();
   const mark = useMark();
@@ -218,7 +221,6 @@ export function Review ({ queue, start, onClose }: Props) {
   indexRef.current = index;
   // which way the last move went, so the next mon comes in from that side
   const [dir, setDir] = useState(1);
-  const [undo, setUndo] = useState<{ pokemon: number; name: string } | null>(null);
   // Ctrl+Enter presses, each sealing (or moving on) once the record has taken a field's last edit
   const [advance, setAdvance] = useState(0);
   // the next field to fill, once the record has the answer just given at `from` in the field `after` (nextToFill); a
@@ -258,16 +260,24 @@ export function Review ({ queue, start, onClose }: Props) {
   const sealable = Boolean(capture?.captured && capture.status === 'caught' && !capture.sealed && missing.length === 0);
   const last = index >= queue.length - 1;
 
+  // a move that goes nowhere (back from the first, on from the last, the mon's own row in the list) leaves the mon as it
+  // stands: a new way in would play its entrance again
   const go = useCallback((delta: number) => {
+    const to = Math.max(0, Math.min(queue.length - 1, indexRef.current + delta));
+    if (to === indexRef.current) {
+      return;
+    }
     setStamping(null);
     setDir(delta < 0 ? -1 : 1);
-    setIndex((current) => Math.max(0, Math.min(queue.length - 1, current + delta)));
+    setIndex(to);
   }, [queue.length]);
 
   const jump = useCallback((to: number) => {
-    setStamping(null);
-    setDir(to < indexRef.current ? -1 : 1);
-    setIndex(to);
+    if (to !== indexRef.current) {
+      setStamping(null);
+      setDir(to < indexRef.current ? -1 : 1);
+      setIndex(to);
+    }
     setNarrowList(false);
     mainRef.current?.focus({ preventScroll: true });
   }, []);
@@ -292,9 +302,8 @@ export function Review ({ queue, start, onClose }: Props) {
       return;
     }
     patchRecords([capture], { sealed: true });
-    setUndo({ pokemon: capture.pokemon.id, name: displayName(capture.pokemon.name, capture.pokemon.name_ja, locale) });
     setStamping(capture.pokemon.id);
-  }, [capture, sealable, patchRecords, locale]);
+  }, [capture, sealable, patchRecords]);
 
   const close = useCallback(() => onClose(queue[index] ?? null), [onClose, queue, index]);
 
@@ -312,24 +321,6 @@ export function Review ({ queue, start, onClose }: Props) {
       document.removeEventListener('keydown', keyed, true);
     };
   }, []);
-
-  // the seal's undo stays a moment, then goes
-  useEffect(() => {
-    if (!undo) {
-      return undefined;
-    }
-    const timer = window.setTimeout(() => setUndo(null), UNDO_MS);
-    return () => window.clearTimeout(timer);
-  }, [undo]);
-
-  const handleUndo = () => {
-    const sealed = captures.find((entry) => entry.pokemon.id === undo?.pokemon);
-    if (sealed?.sealed) {
-      patchRecords([sealed], { sealed: false });
-      jump(queue.indexOf(sealed.pokemon.id));
-    }
-    setUndo(null);
-  };
 
   const patch = useCallback((changes: RecordPatch) => {
     if (capture) {
@@ -457,12 +448,40 @@ export function Review ({ queue, start, onClose }: Props) {
   }, [flow]);
 
   // an answer picked by the keyboard from a menu to a field still to fill goes on: to the field's next control (In a
-  // game, on to which game) or the next field
+  // game, on to which game, though the place was answered before it) or the next field
   const change = (field: CaptureField, changes: RecordPatch) => {
     patch(changes);
-    const waited = missingIds.has(field.id) || (field.id === 'save' && (missingIds.has('origin_game') || missingIds.has('language')));
+    if (changes.catch_date) {
+      enteredRef.current = [changes.catch_date, ...enteredRef.current.filter((iso) => iso !== changes.catch_date)];
+    }
+    const waited = missingIds.has(field.id) || (field.id === 'save' && (missingIds.has('origin_game') || missingIds.has('language'))) ||
+      (changes.location === 'game' && !changes.location_save);
     if (MENU_KINDS.has(field.kind) && waited && !pointedRef.current) {
       setFlow({ after: field.id, from: 'location_save' in changes ? 'review-location-game' : `review-${field.id}` });
+    }
+  };
+
+  // the date plate's recent dates: those given here this run, newest first, then the latest the dex's records
+  // hold; never the one the mon has, nor one after today (a slip, which the red pen flags). One picked from the keys
+  // goes on, as a menu's answer does
+  const enteredRef = useRef<string[]>([]);
+  const recentDates = useMemo(() => {
+    const latest = captures.flatMap((cap) => (cap.catch_date ? [cap.catch_date] : [])).sort().reverse();
+    const now = today();
+    const picks: string[] = [];
+    for (const iso of [...enteredRef.current, ...latest]) {
+      if (picks.length === RECENT_DATES) {
+        break;
+      }
+      if (iso <= now && iso !== capture?.catch_date && !picks.includes(iso)) {
+        picks.push(iso);
+      }
+    }
+    return picks;
+  }, [captures, capture]);
+  const pickedDate = (keyboard: boolean) => {
+    if (keyboard && missingIds.has('catch_date')) {
+      setFlow({ after: 'catch_date', from: 'review-catch_date' });
     }
   };
 
@@ -490,7 +509,8 @@ export function Review ({ queue, start, onClose }: Props) {
   const state = capture ? stateOf(capture, false) : 'unmarked';
   const tint = capture?.sealed ? locationTint(capture.location, homeDex) : null;
   const here = capture ? placeOf(capture) : null;
-  const filled = GATES.filter((field) => !missingIds.has(field.id)).length;
+  const pipFields = [...GATES, ...missing.filter((field) => !field.gatesSeal)];
+  const filled = pipFields.filter((field) => !missingIds.has(field.id)).length;
 
   let note = null;
   if (capture && !capture.captured) {
@@ -513,8 +533,9 @@ export function Review ({ queue, start, onClose }: Props) {
   // a field's plate: its control while the record's open, its value once sealed (where it is, still movable), a blank
   // till the mon's marked; marked at its corner while sealing waits on it, ticked once one that gates the seal is in
   const plate = (field: CaptureField, k: number) => {
-    // Been to Champions only for a mon that can go there (utils/champions)
-    if (!capture || (capture.sealed && field.kind === 'save') || (field.id === 'been_to_champions' && !asksChampions(capture))) {
+    // Been to Champions only for a mon that can go there (utils/champions), Gigantamax for one with a giant form
+    if (!capture || (capture.sealed && field.kind === 'save') || (field.id === 'been_to_champions' && !asksChampions(capture)) ||
+      (field.id === 'gigantamax' && !asksGigantamax(capture))) {
       return null;
     }
     const waiting = missingIds.has(field.id);
@@ -536,7 +557,7 @@ export function Review ({ queue, start, onClose }: Props) {
                 blankLabel={here ? undefined : formatFieldValue(field, capture, locale, saves)}
                 id="review-move"
                 onSelect={(key) => key && moveTo(capture.pokemon.id, placeFromKey(key))}
-                options={destinations(saves, offersChampions(capture, homeDex), (save) => save.id === capture.location_save || canHold(save, capture, saves))
+                options={placesFor(saves, capture, homeDex, dexPlacesFor(activeDex, dexes ?? []))
                 .map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }))}
                 value={here ? placeKey(here) : ''}
               />
@@ -558,6 +579,8 @@ export function Review ({ queue, start, onClose }: Props) {
           genderLock={capture.pokemon.gender_lock}
           idPrefix="review"
           onChange={(changes) => change(field, changes)}
+          onRecentPicked={field.kind === 'date' ? pickedDate : undefined}
+          recentDates={field.kind === 'date' ? recentDates : undefined}
           value={capture}
         />
       );
@@ -615,7 +638,7 @@ export function Review ({ queue, start, onClose }: Props) {
           {capture
             ? (
               <div className="review-stage" style={{ zoom: scale }}>
-                <div className={classNames('review-grid', `state-${state}`)}>
+                <div className="review-grid">
                   <section className={classNames('review-bay', `state-${state}`, tint && `loc-${tint}`)} data-dir={dir} key={`bay-${capture.pokemon.id}`}>
                     <p aria-hidden="true" className="review-bay-number">{dexNumber(capture.pokemon, dex)}</p>
                     <div className="review-lens">
@@ -635,9 +658,9 @@ export function Review ({ queue, start, onClose }: Props) {
                       ))}
                     </p>
                     {capture.captured && capture.status !== 'unobtainable' &&
-                      <div className="review-pips" title={t('review.pips', { n: filled, total: GATES.length })}>
-                        {GATES.map((field) => <span className={classNames('review-pip', { on: !missingIds.has(field.id) })} key={field.id} title={t(field.labelKey)} />)}
-                        <span className="review-pips-count">{filled}/{GATES.length}</span>
+                      <div className="review-pips" title={t('review.pips', { n: filled, total: pipFields.length })}>
+                        {pipFields.map((field) => <span className={classNames('review-pip', { on: !missingIds.has(field.id) })} key={field.id} title={t(field.labelKey)} />)}
+                        <span className="review-pips-count">{filled}/{pipFields.length}</span>
                       </div>
                     }
                     {!capture.sealed &&
@@ -675,17 +698,11 @@ export function Review ({ queue, start, onClose }: Props) {
             : <p className="review-empty">{t('review.empty')}</p>}
         </div>
       </div>
-      {titleCard && <TitleCard hint={t('scene.skip')} sub={activeDex!.title} title={t('review.title')} />}
+      {titleCard && <TitleCard title={t('review.title')} />}
       <footer className="review-foot" style={{ zoom: scale }}>
         <button className="review-nav" disabled={index === 0} onClick={() => go(-1)} type="button">
           <FontAwesomeIcon icon={faArrowLeft} />{t('review.prev')}<kbd>Q</kbd>
         </button>
-        {undo &&
-          <p className="review-toast">
-            {t('review.sealedToast', { name: undo.name })}
-            <button onClick={handleUndo} type="button">{t('review.undo')}</button>
-          </p>
-        }
         <span className="review-spacer" />
         {sealable &&
           <button className="review-seal" onClick={seal} type="button">

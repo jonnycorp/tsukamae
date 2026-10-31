@@ -57,7 +57,6 @@ const JA_DEX_TYPES: Record<string, string> = {
   Regional: '地方図鑑',
   'Full National': '全国図鑑',
   'Game National': '全国図鑑',
-  'Gigantamax Forms': 'キョダイマックスのすがた',
   'Full Paldea': 'パルデア全図鑑',
   Kitakami: 'キタカミ図鑑',
   Blueberry: 'ブルーベリー図鑑',
@@ -67,7 +66,6 @@ const JA_DEX_TYPES: Record<string, string> = {
 
 const JA_CATALOG_DEX_NAMES: Record<string, string> = {
   'home-national': '全国図鑑',
-  'home-national-gigantamax': '全国図鑑＋キョダイマックスのすがた',
   'legends-z-a-regional': 'LEGENDS Z-A ミアレ図鑑',
   'legends-z-a-mega-dimension': 'LEGENDS Z-A メガディメンション図鑑（DLC）',
   'paldea-full': 'スカーレット・バイオレット パルデア全図鑑（DLC込み）',
@@ -177,7 +175,6 @@ const JA_BOX_NAMES: Record<string, string> = {
   'Galarian Forms': 'ガラルのすがた',
   'Hisuian Forms': 'ヒスイのすがた',
   'Paldean Forms': 'パルデアのすがた',
-  'Gigantamax Forms': 'キョダイマックスのすがた',
   'Extra Regional Forms': 'その他のリージョンフォーム',
   'The Isle of Armor': '鎧の孤島',
   'The Crown Tundra': '冠の雪原',
@@ -201,8 +198,8 @@ export function localizeCatalogDexName (locale: Locale, key: string, fallback: s
   return localized(JA_CATALOG_DEX_NAMES, locale, key, fallback);
 }
 
-export function localizeDexType (locale: Locale, name: string, fallback = name): string {
-  return localized(JA_DEX_TYPES, locale, name, fallback);
+export function localizeDexType (locale: Locale, name: string): string {
+  return localized(JA_DEX_TYPES, locale, name, name);
 }
 
 export function localizeCaptureLanguage (locale: Locale, id: string, fallback: string): string {

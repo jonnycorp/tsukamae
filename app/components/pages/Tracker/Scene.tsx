@@ -11,10 +11,46 @@ import { useSceneScale } from './use-scene-scale';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { CapturePokemon } from '../../../types';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
-// the scenes on this shell, one up at a time: journeys (J), the red pen (P) and the atlas (G)
-export type LabScene = 'journeys' | 'redpen' | 'atlas';
+// the scenes on this shell, one up at a time: journeys (J), the red pen (P), the atlas (G), the trainer cards (C) and
+// the ball orrery (B)
+export type LabScene = 'journeys' | 'redpen' | 'atlas' | 'trainers' | 'orrery';
+
+// how a scene that filters the dex was left, to be come back to as it was (index.tsx's layer): how far down it was, and
+// whatever else it keeps (Journeys' split, the orrery's orbits)
+export interface SceneView {
+  scroll: number;
+}
+
+// how far down the scene that `el` is in has been scrolled
+export function sceneScroll (el: Element | null): number {
+  return el?.closest('.scene-body')?.scrollTop ?? 0;
+}
+
+// a scene come back to from the dex: as far down as it was left, once what it draws has its height (`ready`)
+export function useScrollBack (ref: RefObject<Element>, back: SceneView | null, ready: boolean) {
+  const scrolled = useRef(false);
+  useLayoutEffect(() => {
+    const body = ref.current?.closest('.scene-body');
+    if (back && ready && body && !scrolled.current) {
+      scrolled.current = true;
+      body.scrollTop = back.scroll;
+    }
+  }, [ref, back, ready]);
+}
+
+// a scene's tooltip beside a point in the window: `gap` to its right, or flipped to its left where the window ends,
+// level with it, kept inside the window; set in the tip's own pixels, which the scene's zoom scales
+export function placeBeside (tip: HTMLElement, x: number, y: number, gap: number) {
+  const zoom = tip.currentCSSZoom;
+  const w = tip.offsetWidth * zoom;
+  const h = tip.offsetHeight * zoom;
+  const left = x + gap + w <= window.innerWidth ? x + gap : x - gap - w;
+  const top = Math.min(window.innerHeight - h - 8, Math.max(8, y - h / 2));
+  tip.style.left = `${Math.max(8, left) / zoom}px`;
+  tip.style.top = `${top / zoom}px`;
+}
 
 interface Props {
   // the scene's own class beside .scene, which every shortcut and the dex's zoom stand down under (use-hotkey)
@@ -22,11 +58,10 @@ interface Props {
   title: string;
   hint: string;
   onClose: () => void;
-  // come back to rather than opened (Journeys from the dex its press filtered): no title card, and no entrance
+  // come back to rather than opened (from the dex its press filtered): no title card, and no entrance
   quiet?: boolean;
-  // what the scene shows: laid out for 1400px and zoomed up to a wider window by `scale` (use-scene-scale), its
-  // entrance held while `intro` is set (the title card's still up)
-  children: (view: { scale: number; intro: boolean }) => ReactNode;
+  // what the scene shows: laid out for 1400px and zoomed up to a wider window by `scale` (use-scene-scale)
+  children: (view: { scale: number }) => ReactNode;
 }
 
 // a scene: over the window as the almanac is, under the same bar (its name in the accent, the dex's beside it, a hint
@@ -86,9 +121,9 @@ export function Scene ({ name, title, hint, onClose, quiet = false, children }: 
         </button>
       </header>
       <div className="scene-body" data-intro={intro || undefined} ref={bodyRef} tabIndex={-1}>
-        {children({ scale, intro })}
+        {children({ scale })}
       </div>
-      {titleCard && <TitleCard hint={t('scene.skip')} sub={activeDex!.title} title={title} />}
+      {titleCard && <TitleCard title={title} />}
     </div>,
     document.body,
   );

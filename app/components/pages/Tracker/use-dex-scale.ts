@@ -8,8 +8,10 @@ import { useLocalStorage } from '../../../hooks/use-local-storage';
 
 import type { RefObject } from 'react';
 
-// under a modal or the timeline, the dex behind keeps its zoom
-const COVERED = '.modal-overlay, .timeline, .almanac, .review, .scene, .command-palette';
+// under a modal or the timeline, the dex behind keeps its zoom, and under an open menu too, which is placed by what it
+// opened from and wouldn't follow it (the move menu by its tile, a field's by the popover, the species picker by its
+// slot)
+const COVERED = '.modal-overlay, .timeline, .almanac, .review, .scene, .dropdown-menu, .species-picker';
 
 // screen px, not scaled px: scrollbars keep their size whatever the dex zoom, so room for a gutter either side
 const GUTTERS = 24;
@@ -31,9 +33,13 @@ const MIN_TWO_FIT = 0.8;
 const FLIP_LINES = { names: 22, badges: 20, numbers: 16, band: 14 };
 
 // the user's own zoom, on top of the fit; 1 is the fit itself. Below 100% the steps also land exactly on 3 and on
-// MIN_COLUMNS boxes across, where zooming out stops; those zooms depend on the window (zoomSteps)
+// MIN_COLUMNS boxes across, where zooming out stops, with even steps between where two are further apart than
+// MAX_STEP_OUT; those zooms depend on the window (zoomSteps)
 const ZOOM_STEPS = [0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 const MIN_COLUMNS = 4;
+// the widest step out below 100%, as a ratio: a wider gap (three boxes across to four, which was a third) is split
+// evenly, so a filtered view can be brought down to just hold a run of results, a generation say
+const MAX_STEP_OUT = 1.15;
 // the list view has no columns to stop at
 const LIST_MIN_ZOOM = 0.5;
 // wheel deltaY per step: a mouse notch is about 100, a trackpad pinch sends many small ones
@@ -83,7 +89,8 @@ function zoomForColumns (width: number, fit: number, columns: number): number {
 
 // this window's steps: the zooms that fit each column count from one more than the fit shows to MIN_COLUMNS across (the
 // last one the floor, or 100% where the fit already shows that many), and the fixed ones above the floor that aren't
-// too close to one of them to feel like a step of their own; 100% always stays
+// too close to one of them to feel like a step of their own; 100% always stays. Below it, a gap wider than
+// MAX_STEP_OUT gets steps of its own, spaced by ratio, as zooming feels
 function zoomSteps (width: number, fit: number): number[] {
   if (width <= NARROW_WIDTH) {
     return [LIST_MIN_ZOOM, ...ZOOM_STEPS];
@@ -98,7 +105,15 @@ function zoomSteps (width: number, fit: number): number[] {
   }
   const nearColumnStep = (step: number) => columnSteps.some((zoom) => Math.abs(step / zoom - 1) < 0.08);
   const fixed = ZOOM_STEPS.filter((step) => step === 1 || (step > floor && !nearColumnStep(step)));
-  return [...new Set([...columnSteps, ...fixed])].sort((a, b) => a - b);
+  const steps = [...new Set([...columnSteps, ...fixed])].sort((a, b) => a - b);
+  return steps.flatMap((step, i) => {
+    const next = steps[i + 1];
+    if (next === undefined || next > 1) {
+      return [step];
+    }
+    const parts = Math.ceil(Math.log(next / step) / Math.log(MAX_STEP_OUT));
+    return Array.from({ length: parts }, (_, k) => step * (next / step) ** (k / parts));
+  });
 }
 
 function stepFrom (zoom: number, direction: number, steps: number[]): number {

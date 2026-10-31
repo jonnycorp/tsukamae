@@ -1,6 +1,7 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Box } from './Box';
+import { FreeBoxes } from './FreeBoxes';
 import { COUNT_MS } from './DexMeter';
 import { FlipStrips } from './FlipStrips';
 import { Ledger } from './Ledger';
@@ -9,6 +10,7 @@ import { SearchResults } from './SearchResults';
 import { anyFilterActive, hasQuery } from './filters';
 import { groupBoxes } from '../../../utils/pokemon';
 import { useHotkey } from '../../../hooks/use-hotkey';
+import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTrackerActions, useTrackerState } from './use-tracker';
 
@@ -119,7 +121,7 @@ function BoxGrid ({ boxes, columns, rows: rowsInView, entrance, setSelectedPokem
   return (
     <div className="box-grid" data-building={frame < plan.last || undefined} data-hidden={frame < plan.shown || undefined}>
       {boxes.map((box, i) => (frame >= plan.box(i)
-        ? <Box captures={box} deferFrames={0} key={box[0].pokemon.id} setSelectedPokemon={setSelectedPokemon} />
+        ? <Box captures={box} key={box[0].pokemon.id} setSelectedPokemon={setSelectedPokemon} />
         // its place held till then (the narrow list's rows have no fixed size to hold)
         : !narrow && <div aria-hidden="true" className="box box-placeholder" key={box[0].pokemon.id} />))}
       {/* keyed by position, so a change of columns regroups the strips without restarting them; a row's the frame
@@ -132,15 +134,17 @@ function BoxGrid ({ boxes, columns, rows: rowsInView, entrance, setSelectedPokem
 
 // the tiles the popover has worked on since it opened stay in a filtered view after an edit takes them out of it
 // (marked in Missing, finished in Incomplete), until it closes or the view itself changes; adjusted while rendering, so
-// a tile marked in Missing is still there when the popover first docks to it
-function useHeldTiles (selected: number, filters: TrackerFilters, query: string): number[] {
+// a tile marked in Missing is still there when the popover first docks to it. So do the tiles a press marked (keep),
+// no popover open, so the second press that opens one finds it where the first left it
+function useHeldTiles (selected: number, filters: TrackerFilters, query: string): [number[], (id: number) => void] {
   const [hold, setHold] = useState({ selected: 0, filters, query, ids: [] as number[] });
   if (hold.selected !== selected || hold.filters !== filters || hold.query !== query) {
     const kept = selected !== 0 && hold.filters === filters && hold.query === query ? hold.ids : [];
     const added = selected !== 0 && hold.selected !== selected && !kept.includes(selected);
     setHold({ selected, filters, query, ids: added ? [...kept, selected] : kept });
   }
-  return hold.ids;
+  const keep = useCallback((id: number) => setHold((prev) => (prev.ids.includes(id) ? prev : { ...prev, ids: [...prev.ids, id] })), []);
+  return [hold.ids, keep];
 }
 
 export function Dex ({
@@ -159,7 +163,8 @@ export function Dex ({
   showScrollButton,
 }: Props) {
   const { captures } = useTrackerState();
-  const { releaseCaptures, openMoveMenu } = useTrackerActions();
+  const { activeDex } = useDexContext();
+  const { releaseCaptures, openMoveMenu, holdHost } = useTrackerActions();
 
   const boxes = useMemo(() => groupBoxes(captures), [captures]);
 
@@ -174,6 +179,7 @@ export function Dex ({
     openMoveMenu(id, tile);
   });
 
+  // D over a marked mon that isn't sealed (a tile or a ledger row): released at a tap, its record erased
   useHotkey('d', () => {
     const tile = document.querySelector<HTMLElement>(':is(.pokemon, .ledger-row)[data-pokemon-id]:hover');
     const id = Number(tile?.dataset.pokemonId);
@@ -188,7 +194,13 @@ export function Dex ({
   const deferredQuery = useDeferredValue(query);
   const deferredFilters = useDeferredValue(filters);
   // against the view on screen, so switching views drops them only as the new one renders
-  const held = useHeldTiles(selectedPokemon, deferredFilters, deferredQuery);
+  const [held, keep] = useHeldTiles(selectedPokemon, deferredFilters, deferredQuery);
+  useEffect(() => {
+    holdHost.current = keep;
+    return () => {
+      holdHost.current = null;
+    };
+  }, [holdHost, keep]);
 
   // the boxes shown as the dex opens are its entrance, the header drawing in alongside (BoxGrid). Once it's open (on
   // the boxes or on the list) no showing is: a search cleared, the boxes switched to from the list. Nor is any in still
@@ -239,8 +251,12 @@ export function Dex ({
             />
           }
           {/* only once the area's measured, so the plan is the screenful that shows */}
-          {showsBoxes &&
+          {showsBoxes && !activeDex!.free &&
             <BoxGrid boxes={boxes} columns={columns} entrance={!opened.current && !still} rows={rows} setSelectedPokemon={setSelectedPokemon} />
+          }
+          {/* a free-form dex's boxes are its own */}
+          {showsBoxes && activeDex!.free &&
+            <FreeBoxes captures={captures} columns={columns} setSelectedPokemon={setSelectedPokemon} />
           }
         </div>
       </div>

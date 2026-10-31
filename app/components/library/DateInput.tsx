@@ -1,12 +1,12 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarDays } from '@fortawesome/free-solid-svg-icons';
+import { faCalendarDays, faClockRotateLeft } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { dateIso, editDate, padDate, readDate } from '../../utils/date-entry';
 import { useDebouncedCommit } from '../../hooks/use-debounced-commit';
 import { useTranslation } from '../../hooks/use-translation';
 
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react';
 
 const shown = (iso: string | null): string => (iso ? iso.replaceAll('-', '/') : '');
 
@@ -14,11 +14,15 @@ interface Props {
   id: string;
   value: string | null;
   onChange: (iso: string | null) => void;
+  // dates to offer under the field (the review's catch date: the latest you've given), each a press away; ↓ from the
+  // field goes to them. `keyboard` says whether a pick was made from the keys, which the review goes on from
+  recent?: string[];
+  onRecentPicked?: (keyboard: boolean) => void;
 }
 
 // YYYY/MM/DD typed as three fields (utils/date-entry.ts): each edit is made on the fields rather than by the box, so
 // the caret stays where it was and the digits beside an edit stay put
-export function DateInput ({ id, value, onChange }: Props) {
+export function DateInput ({ id, value, onChange, recent = [], onRecentPicked }: Props) {
   const { t } = useTranslation();
   const [text, setText] = useState(() => shown(value));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -103,8 +107,8 @@ export function DateInput ({ id, value, onChange }: Props) {
     edit(next, next.length);
   };
 
-  // a day typed as one digit is that day once the box is left (2026/08/5); anything else unfinished goes back to the
-  // stored date
+  // a month or a day typed as one digit is that one once the box is left (2026/8/5); anything else unfinished goes back
+  // to the stored date
   const handleBlur = () => {
     const padded = padDate(text);
     const iso = padded === text ? null : dateIso(padded);
@@ -133,6 +137,37 @@ export function DateInput ({ id, value, onChange }: Props) {
     }
   };
 
+  const recentRef = useRef<HTMLDivElement>(null);
+  const recentButtons = () => [...(recentRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])];
+  const handleFieldKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && recent.length > 0) {
+      e.preventDefault();
+      recentButtons()[0]?.focus();
+    }
+  };
+  // ← → along them, ↑ back to the field
+  const handleRecentKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const buttons = recentButtons();
+    const at = buttons.indexOf(e.currentTarget);
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      inputRef.current?.focus();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      buttons[(at + (e.key === 'ArrowLeft' ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+    }
+  };
+  const handleRecent = (iso: string, e: MouseEvent<HTMLButtonElement>) => {
+    handlePick(iso);
+    // a click from Enter or Space has no pointer behind it, and the keys stay in the field: the date picked leaves the
+    // list (a mon's own date isn't offered), and its button with it
+    const keyboard = e.detail === 0;
+    if (keyboard) {
+      inputRef.current?.focus();
+    }
+    onRecentPicked?.(keyboard);
+  };
+
   const openPicker = () => {
     const picker = pickerRef.current;
     if (!picker) {
@@ -143,31 +178,44 @@ export function DateInput ({ id, value, onChange }: Props) {
   };
 
   return (
-    <div className="date-input">
-      <input
-        autoComplete="off"
-        className="form-control"
-        id={id}
-        inputMode="numeric"
-        maxLength={10}
-        name={id}
-        onBlur={handleBlur}
-        onChange={handleChange}
-        placeholder={t('common.datePlaceholder')}
-        ref={inputRef}
-        type="text"
-        value={text}
-      />
-      <button aria-label={t('common.pickDate')} className="date-input-picker" onClick={openPicker} tabIndex={-1} title={t('common.pickDate')} type="button">
-        <FontAwesomeIcon icon={faCalendarDays} />
-      </button>
-      <input
-        className="date-input-native"
-        onChange={(e) => handlePick(e.target.value)}
-        ref={pickerRef}
-        tabIndex={-1}
-        type="date"
-      />
-    </div>
+    <>
+      <div className="date-input">
+        <input
+          autoComplete="off"
+          className="form-control"
+          id={id}
+          inputMode="numeric"
+          maxLength={10}
+          name={id}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          onKeyDown={handleFieldKeyDown}
+          placeholder={t('common.datePlaceholder')}
+          ref={inputRef}
+          type="text"
+          value={text}
+        />
+        <button aria-label={t('common.pickDate')} className="date-input-picker" onClick={openPicker} tabIndex={-1} title={t('common.pickDate')} type="button">
+          <FontAwesomeIcon icon={faCalendarDays} />
+        </button>
+        <input
+          className="date-input-native"
+          onChange={(e) => handlePick(e.target.value)}
+          ref={pickerRef}
+          tabIndex={-1}
+          type="date"
+        />
+      </div>
+      {recent.length > 0 &&
+      <div aria-label={t('common.recentDates')} className="date-recent" ref={recentRef} role="group">
+        <FontAwesomeIcon icon={faClockRotateLeft} title={t('common.recentDates')} />
+        {recent.map((iso) => (
+          <button className="date-recent-pick" key={iso} onClick={(e) => handleRecent(iso, e)} onKeyDown={handleRecentKeyDown} type="button">
+            {shown(iso)}
+          </button>
+        ))}
+      </div>
+      }
+    </>
   );
 }

@@ -483,15 +483,12 @@ body:has(> .timeline) > .name-copied {
   }
 }
 
+// up to the banner's own look, held there with the zoom's fade under 30% still its own, which a fixed end would cover
+// till the stage settles
 @keyframes tl-banner {
   from {
     opacity: 0;
     transform: translateX(-30px) scaleX(.4);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
   }
 }
 

@@ -48,6 +48,8 @@ export function useLongPress ({ delay, duration, onComplete, onRelease }: Option
     if (e.button !== 0 || timersRef.current.length > 0) {
       return;
     }
+    // which also keeps the press's mousedown from coming: a press outside a menu or a panel is listened for as a
+    // pointerdown, so one on a held tile closes it too
     e.preventDefault();
     pointRef.current = { x: e.clientX, y: e.clientY };
     timersRef.current = [

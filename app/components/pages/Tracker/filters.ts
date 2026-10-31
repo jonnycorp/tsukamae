@@ -2,6 +2,7 @@ import { BALLS, BALL_NAMES, CAPTURE_FIELDS, LANGUAGES, LANGUAGE_ABBRS, ORIGIN_GA
 import { getCatalogDex } from '../../../utils/local-data';
 import { localizeBall, localizeCatalogGame, localizeNature, localizeOriginGame } from '../../../i18n/names';
 import { padding } from '../../../utils/formatting';
+import { sameId } from '../../../utils/game-reach';
 import { translate } from '../../../i18n/translations';
 
 import type { Capture, CaptureLocation, FavoriteState, PokemonType, TrainedState } from '../../../types';
@@ -9,7 +10,7 @@ import type { Locale, TranslationKey } from '../../../i18n/translations';
 
 export type FilterView = 'all' | 'missing' | 'temporary' | 'unsealed' | 'incomplete';
 
-export type FacetId = 'generation' | 'class' | 'type' | 'game_dex' | 'origin_game' | 'language' | 'ot' | 'location' | 'ball' | 'nature' | 'trained' | 'favorite';
+export type FacetId = 'generation' | 'class' | 'type' | 'game_dex' | 'origin_game' | 'language' | 'ot' | 'tid' | 'location' | 'ball' | 'nature' | 'trained' | 'favorite';
 
 export interface TrackerFilters {
   view: FilterView;
@@ -47,6 +48,10 @@ export interface Facet {
   icon?: (value: string) => string | undefined;
   // a type's glyph beside the label, in the type's colour
   glyph?: (value: string) => PokemonType | undefined;
+  // a value that matches one selected though it's written otherwise (an ID No. with or without its leading zeros)
+  same?: (value: string, selected: string) => boolean;
+  // set by a press elsewhere alone (a trainer card's), shown as its chip but not offered in the panel
+  pressOnly?: boolean;
 }
 
 // what a record says of itself is a placeholder till it's sealed, so a record facet reads sealed mons alone; a
@@ -62,10 +67,14 @@ function valuesOf (facet: Facet, capture: Capture): readonly string[] {
 // the eighteen in the games' own order
 export const TYPE_ORDER: PokemonType[] = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'];
 
-const indexIn = (list: readonly string[]) => (value: string) => list.indexOf(value);
+// where an id falls in a list's order, one the list doesn't know after all of them
+export function rankIn (ids: readonly string[]): (id: string) => number {
+  const ranks = new Map(ids.map((id, i) => [id, i]));
+  return (id) => ranks.get(id) ?? ids.length;
+}
 
 // a record field's facet lists its values in the order the popover offers them
-const fieldOrder = (id: FacetId) => indexIn(CAPTURE_FIELDS.find((field) => field.id === id)!.options!('en').map((option) => option.value));
+const fieldOrder = (id: FacetId) => rankIn(CAPTURE_FIELDS.find((field) => field.id === id)!.options!('en').map((option) => option.value));
 
 // a game's own Pokédex, its DLC's included, as the catalogs list them (the national dexes that only list what a game can
 // hold are left out), newest first as the origin games are; ids are the catalogs' games, so names come from the same
@@ -121,7 +130,7 @@ export const FACETS: Facet[] = [
     species: true,
     value: (capture) => capture.pokemon.legendary_class ?? null,
     label: (value, locale) => translate(locale, value === 'mythical' ? 'filter.mythical' : 'filter.legendary'),
-    rank: indexIn(['legendary', 'mythical']),
+    rank: rankIn(['legendary', 'mythical']),
   },
   {
     // either of a mon's types, a regional form's own (Alolan Vulpix is ice)
@@ -130,7 +139,7 @@ export const FACETS: Facet[] = [
     species: true,
     value: (capture) => capture.pokemon.types ?? null,
     label: (value, locale) => translate(locale, `type.${value as PokemonType}`),
-    rank: indexIn(TYPE_ORDER),
+    rank: rankIn(TYPE_ORDER),
     glyph: (value) => value as PokemonType,
   },
   {
@@ -141,7 +150,7 @@ export const FACETS: Facet[] = [
     species: true,
     value: (capture) => gameDexesOf(capture.pokemon),
     label: (value, locale) => localizeCatalogGame(locale, value, GAME_DEXES.find((game) => game.id === value)?.name ?? value),
-    rank: indexIn(GAME_DEXES.map((game) => game.id)),
+    rank: rankIn(GAME_DEXES.map((game) => game.id)),
   },
   {
     id: 'origin_game',
@@ -149,7 +158,7 @@ export const FACETS: Facet[] = [
     species: false,
     value: (capture) => capture.origin_game,
     label: (value, locale) => localizeOriginGame(locale, value, ORIGIN_GAME_NAMES.get(value) ?? value),
-    rank: indexIn(ORIGIN_GAMES.map((game) => game.id)),
+    rank: rankIn(ORIGIN_GAMES.map((game) => game.id)),
   },
   {
     id: 'language',
@@ -157,7 +166,7 @@ export const FACETS: Facet[] = [
     species: false,
     value: (capture) => capture.language,
     label: (value) => LANGUAGE_ABBRS.get(value) ?? value,
-    rank: indexIn(LANGUAGES.map((language) => language.id)),
+    rank: rankIn(LANGUAGES.map((language) => language.id)),
   },
   {
     id: 'ot',
@@ -165,6 +174,17 @@ export const FACETS: Facet[] = [
     species: false,
     value: (capture) => capture.ot,
     label: (value) => value,
+  },
+  {
+    // a trainer card's, so its press shows its own file's mons alone (TrainerCards): read as a number, typed with or
+    // without its leading zeros (sameId), and a blank one ('') as a value of its own, which the card holding those names
+    id: 'tid',
+    labelKey: 'info.tid',
+    species: false,
+    value: (capture) => capture.tid || '',
+    label: (value, locale) => value || translate(locale, 'filter.noId'),
+    same: (value, selected) => value === selected || sameId(value, selected),
+    pressOnly: true,
   },
   {
     id: 'location',
@@ -180,7 +200,7 @@ export const FACETS: Facet[] = [
     species: false,
     value: (capture) => capture.ball,
     label: (value, locale) => localizeBall(locale, value, BALL_NAMES.get(value) ?? value),
-    rank: indexIn(BALLS.map((ball) => ball.id)),
+    rank: rankIn(BALLS.map((ball) => ball.id)),
     icon: (value) => (value === 'unknown' ? undefined : `balls/${value}.png`),
   },
   {
@@ -247,7 +267,7 @@ export function filterMatcher (filters: TrackerFilters, except?: FacetId): (capt
   return (capture) => matchesView(capture, filters.view) &&
     facets.every((facet) => {
       const values = valuesOf(facet, capture);
-      return filters.facets[facet.id]!.some((selected) => values.includes(selected));
+      return filters.facets[facet.id]!.some((selected) => values.some((value) => (facet.same ? facet.same(value, selected) : value === selected)));
     });
 }
 
@@ -262,15 +282,15 @@ function fold (value: string): string {
   return value.normalize('NFKC').toLowerCase();
 }
 
-// a word as any search compares it: folded, kana as katakana, Latin without its accents (the combining marks of Latin
-// alone, so a kana's dakuten stays: ガ never finds カ)
-export function searchFold (value: string): string {
-  return toKatakana(fold(value)).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
 // Latin only: stripping marks from kana would take the dakuten too, and ガ would find カ
 function unaccented (value: string): string {
   return value.normalize('NFD').replace(/\p{M}/gu, '');
+}
+
+// a nickname, in either script: only the marks Latin combines (U+0300-U+036F) go, so Émile is found by "emile", and
+// it's composed again after, so a kana keeps its dakuten whole and カ finds no ガ
+function unaccentedLatin (value: string): string {
+  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').normalize('NFC');
 }
 
 function normalizeQuery (query: string): string {
@@ -291,9 +311,10 @@ export function queryMatcher (query: string, regional: boolean): (capture: Captu
   const lower = normalizeQuery(query);
   const kana = toKatakana(lower);
   const plain = unaccented(lower);
+  const nickname = unaccentedLatin(kana);
   return (capture) => unaccented(fold(capture.pokemon.name)).startsWith(plain) ||
     fold(capture.pokemon.name_ja || '').startsWith(kana) ||
-    toKatakana(fold(capture.nickname || '')).startsWith(kana) ||
+    unaccentedLatin(toKatakana(fold(capture.nickname || ''))).startsWith(nickname) ||
     (regional && matchesNumber(capture.pokemon.dex_number, lower)) ||
     matchesNumber(capture.pokemon.national_id, lower);
 }

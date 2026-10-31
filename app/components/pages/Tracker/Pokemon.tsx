@@ -1,11 +1,12 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faBan, faCheck, faCircleExclamation, faClock } from '@fortawesome/free-solid-svg-icons';
+import { faBan, faCheck, faCircleExclamation, faGripVertical, faLink } from '@fortawesome/free-solid-svg-icons';
 import { memo, useEffect, useRef, useState } from 'react';
 
-import { STATUSES, unansweredFields } from '../../../utils/capture-fields';
-import { SlotsLine, flipsName } from './seal-faces';
+import { ENTRY_DRAG } from '../../../utils/free-dex';
+import { STATUSES, statusKey, unansweredFields } from '../../../utils/capture-fields';
+import { SlotsLine, flipsName, liftsSprite } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { defaultStatus } from '../../../utils/local-data';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
@@ -20,9 +21,10 @@ import type { Capture, CaptureStatus, PokemonType } from '../../../types';
 import type { CSSProperties, Dispatch, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from 'react';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
+// a checklist's status buttons, the only ones a tile has: its Temporary is Elsewhere, a copy held in another dex
 const STATUS_ICONS: Record<CaptureStatus, IconDefinition> = {
   caught: faCheck,
-  temporary: faClock,
+  temporary: faLink,
   unobtainable: faBan,
 };
 
@@ -67,7 +69,7 @@ function UnsealRing ({ at }: { at: Point }) {
     <div
       className="unseal-ring"
       ref={ref}
-      style={{ left: at.x, top: at.y, animationDuration: `${UNSEAL_HOLD.duration}ms` }}
+      style={{ left: at.x, top: at.y, '--hold': `${UNSEAL_HOLD.duration}ms` } as CSSProperties}
     />,
     document.body,
   );
@@ -76,11 +78,13 @@ function UnsealRing ({ at }: { at: Point }) {
 interface Props {
   capture: Capture;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
+  // in a free-form dex's box opened to arrange (FreeBoxes, which takes the drop): the mon's grip
+  arrange?: boolean;
 }
 
-export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: Props) {
+export const Pokemon = memo(function Pokemon ({ arrange = false, capture, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView } = useDexContext();
-  const { setCaptures, updateCapture, releaseCaptures, narrow } = useTrackerActions();
+  const { setCaptures, updateCapture, releaseCaptures, holdHost, narrow } = useTrackerActions();
   const mark = useMark();
   const { t, locale } = useTranslation();
 
@@ -110,18 +114,6 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
   const number = dexNumber(capture.pokemon, dex);
   const icon = iconClass(capture.pokemon, dex);
 
-  const applyStatus = (status: CaptureStatus) => {
-    if (displaySealed) {
-      return;
-    }
-
-    mark(capture.pokemon.id, status);
-
-    if (!checklist) {
-      setSelectedPokemon(capture.pokemon.id);
-    }
-  };
-
   // every press starts unsuppressed: a hold completed and released off the tile leaves no click to swallow, and the
   // tile, no longer holdable, would otherwise swallow the next real one
   const pressHandlers = (checklist ? capture.captured : displaySealed)
@@ -138,28 +130,41 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
       },
     };
 
-  const handleTileClick = () => {
+  // a press: an unmarked mon marked (as the dex's default) and nothing more, so a run of them goes one-handed; a marked
+  // one's popover opened, so a second press opens what the first marked (kept where it was in a view it no longer
+  // matches, Missing's, useHeldTiles in Dex). Shift never opens (a marked one it leaves be, so a run of Shift+clicks
+  // opens nothing); Alt opens it without marking (its links, a look at the mon), which a checklist, having no popover,
+  // leaves be
+  const handleTileClick = (e: MouseEvent<HTMLDivElement>) => {
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
     }
-    if (checklist && capture.captured) {
+    if (checklist && (capture.captured || e.altKey)) {
       return;
     }
-    if (capture.captured) {
+    if (!capture.captured && !e.altKey) {
+      mark(capture.pokemon.id, defaultStatus(activeDex!));
+      holdHost.current?.(capture.pokemon.id);
+    } else if (!e.shiftKey || e.altKey) {
       setSelectedPokemon(capture.pokemon.id);
-    } else {
-      applyStatus(defaultStatus(activeDex!));
     }
   };
 
   const handleStatusClick = (e: MouseEvent<HTMLButtonElement>, status: CaptureStatus) => {
     e.stopPropagation();
-    applyStatus(status);
+    mark(capture.pokemon.id, status);
+    holdHost.current?.(capture.pokemon.id);
   };
 
-  // a sealed mon away from where its dex keeps them is tinted for where it is (utils/location-moves)
-  const tint = displaySealed && !checklist ? locationTint(capture.location, activeDexView!.game.id === 'home') : null;
+  // a sealed mon away from where its dex keeps them is tinted for where it is (utils/location-moves), and a checklist's
+  // Elsewhere as a mon checked out of HOME is
+  let tint = displaySealed && !checklist ? locationTint(capture.location, activeDexView!.game.id === 'home') : null;
+  if (checklist && capture.status === 'temporary') {
+    tint = 'out';
+  }
+  // a sealed mon whose sprite FlipStrips draws over the tile (liftsSprite), the tile's own hidden under it
+  const lifted = displaySealed && !checklist && liftsSprite(capture);
   const classes = classNames('pokemon', tint && `loc-${tint}`, {
     captured: capture.captured,
     unobtainable: capture.status === 'unobtainable',
@@ -167,12 +172,14 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
     caught: capture.status === 'caught',
     sealed: displaySealed,
     checklist,
+    lifted,
   });
 
   const speciesName = <PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} />;
   // what a right-click anywhere on the tile copies (NameCopy), the flipping name drawn over it included
   const copyName = displayName(capture.pokemon.name, capture.pokemon.name_ja, locale);
-  const statusButtons = checklist && !narrow && capture.status !== 'caught' ? STATUSES.filter((status) => status !== capture.status) : [];
+  // a checklist's check and its Elsewhere are held to clear, as a seal is held to unseal
+  const statusButtons = checklist && !narrow && !displaySealed ? STATUSES.filter((status) => status !== capture.status) : [];
 
   const unsealRing = wheel && <UnsealRing at={wheel} />;
 
@@ -220,6 +227,25 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
       style={typeVars(capture.pokemon.types)}
     >
       {stalePin}
+      {/* a free-form dex's mon in a box opened to arrange is moved by its grip, to another slot or onto an open
+          box's name (FreeBoxes); a locked box's have none, nor a search's results, where nothing takes the drop */}
+      {arrange &&
+        <span
+          className="free-grip"
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData(ENTRY_DRAG, String(capture.pokemon.id));
+            e.dataTransfer.effectAllowed = 'move';
+            const tile = e.currentTarget.closest('.pokemon');
+            if (tile) {
+              e.dataTransfer.setDragImage(tile, 24, 24);
+            }
+          }}
+          title={t('free.drag')}
+        >
+          <FontAwesomeIcon icon={faGripVertical} />
+        </span>
+      }
       {armed && statusButtons.length > 0 &&
         <div className="set-status">
           {statusButtons.map((status) => (
@@ -227,7 +253,7 @@ export const Pokemon = memo(function Pokemon ({ capture, setSelectedPokemon }: P
               className={`status-btn status-btn-${status}`}
               key={status}
               onClick={(e) => handleStatusClick(e, status)}
-              title={t(`status.${status}`)}
+              title={t(statusKey(status, checklist))}
               type="button"
             >
               <FontAwesomeIcon icon={STATUS_ICONS[status]} />

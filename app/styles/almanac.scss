@@ -29,21 +29,6 @@ $tally-count: 15px;
   min-width: calc((var(--digits) * .7 + var(--point) * .31) * 1em);
 }
 
-@keyframes almanac-rise {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-}
-
-// a banner springing out from its left end, as the timeline's years and the meter's figure do
-@keyframes almanac-banner {
-  from {
-    opacity: 0;
-    transform: translateX(-24px) scaleX(.4);
-  }
-}
-
 // the collection's figure slammed down as the timeline's title is
 @keyframes almanac-slam {
   0% {
@@ -163,7 +148,7 @@ $tally-count: 15px;
   padding: 0 32px 0 18px;
   clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
   transform-origin: left center;
-  animation: almanac-banner .45s $almanac-spring both;
+  animation: scene-banner .45s $almanac-spring both;
 
   span {
     text-shadow: 2px 2px 0 var(--accent-shadow);
@@ -272,7 +257,7 @@ $tally-count: 15px;
   border: 1px solid var(--line);
   background-color: var(--paper-raised);
   container-type: inline-size;
-  animation: almanac-rise .5s $almanac-ease both;
+  animation: scene-rise .5s $almanac-ease both;
   animation-delay: $almanac-land;
 
   > h2 {
@@ -288,7 +273,7 @@ $tally-count: 15px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     transform-origin: left center;
-    animation: almanac-banner .45s $almanac-spring both;
+    animation: scene-banner .45s $almanac-spring both;
     animation-delay: calc(#{$almanac-land} + 90ms);
 
     @include small-text(13px);

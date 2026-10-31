@@ -1,11 +1,11 @@
 import { BALLS, BALL_NAMES, LANGUAGES, LANGUAGE_ABBRS, ORIGIN_GAMES, ORIGIN_GAME_NAMES } from '../../../utils/capture-fields';
-import { TYPE_ORDER } from './filters';
+import { TYPE_ORDER, rankIn } from './filters';
 import { localizeBall, localizeNature, localizeOriginGame } from '../../../i18n/names';
 import { placeFromKey, placeKey, placeLabel, shownPlace } from '../../../utils/location-moves';
 import { translate } from '../../../i18n/translations';
 
 import type { Capture, GameSave, PokemonType } from '../../../types';
-import type { Locale } from '../../../i18n/translations';
+import type { Locale, TranslationKey } from '../../../i18n/translations';
 
 // the ledger (Ledger.tsx): the dex as a table, sorted by any column and grouped by any field, all from the captures
 
@@ -25,6 +25,15 @@ export interface LedgerSort {
 export type LedgerState = 'sealed' | 'caught' | 'temporary' | 'unobtainable' | 'unmarked';
 
 const STATE_ORDER: LedgerState[] = ['sealed', 'caught', 'temporary', 'unobtainable', 'unmarked'];
+
+// each one's name, in its cell and over its group
+export const STATE_KEYS: Record<LedgerState, TranslationKey> = {
+  sealed: 'seal.sealed',
+  caught: 'status.caught',
+  temporary: 'status.temporary',
+  unobtainable: 'status.unobtainable',
+  unmarked: 'ledger.unmarked',
+};
 
 export function stateOf (capture: Capture, checklist: boolean): LedgerState {
   if (!capture.captured || !capture.status) {
@@ -49,17 +58,12 @@ export interface LedgerContext {
 
 type SortKey = number | string | null;
 
-function rankIn (ids: readonly string[]): (id: string) => number {
-  const ranks = new Map(ids.map((id, i) => [id, i]));
-  return (id) => ranks.get(id) ?? ids.length;
-}
-
 const originRank = rankIn(ORIGIN_GAMES.map((game) => game.id));
 const ballRank = rankIn(BALLS.map((ball) => ball.id));
 const languageRank = rankIn(LANGUAGES.map((language) => language.id));
 const typeRank = rankIn(TYPE_ORDER);
 
-const placeOfCapture = (capture: Capture) => (capture.captured ? shownPlace(capture) : null);
+const placeOfCapture = (capture: Capture, saves: GameSave[]) => (capture.captured ? shownPlace(capture, saves) : null);
 
 // a blank sorts last whichever way the column runs
 const SORT_KEYS: Record<LedgerColumnId, (capture: Capture, ctx: LedgerContext) => SortKey> = {
@@ -71,7 +75,7 @@ const SORT_KEYS: Record<LedgerColumnId, (capture: Capture, ctx: LedgerContext) =
   },
   status: (capture, ctx) => STATE_ORDER.indexOf(stateOf(capture, ctx.checklist)),
   location: (capture, ctx) => {
-    const place = placeOfCapture(capture);
+    const place = placeOfCapture(capture, ctx.saves);
     return place ? placeLabel(place, ctx.saves, ctx.locale) : null;
   },
   origin: (capture) => (capture.origin_game ? originRank(capture.origin_game) : null),
@@ -141,12 +145,7 @@ const GROUPS: Record<Exclude<LedgerGroupId, 'none'>, GroupDef> = {
   },
   status: {
     key: (capture, ctx) => stateOf(capture, ctx.checklist),
-    label: (key, ctx) => {
-      if (key === 'sealed') {
-        return translate(ctx.locale, 'seal.sealed');
-      }
-      return key === 'unmarked' ? translate(ctx.locale, 'ledger.unmarked') : translate(ctx.locale, `status.${key as 'caught'}`);
-    },
+    label: (key, ctx) => translate(ctx.locale, ctx.checklist && key === 'temporary' ? 'status.elsewhere' : STATE_KEYS[key as LedgerState]),
     rank: (key) => STATE_ORDER.indexOf(key as LedgerState),
   },
   origin: {
@@ -166,8 +165,8 @@ const GROUPS: Record<Exclude<LedgerGroupId, 'none'>, GroupDef> = {
   },
   // each of your games apart, after HOME and Champions
   location: {
-    key: (capture) => {
-      const place = placeOfCapture(capture);
+    key: (capture, ctx) => {
+      const place = placeOfCapture(capture, ctx.saves);
       return place ? placeKey(place) : '';
     },
     label: (key, ctx) => placeLabel(placeFromKey(key), ctx.saves, ctx.locale),

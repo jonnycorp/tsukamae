@@ -1,0 +1,181 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// the ball orrery (components/pages/Tracker/BallOrrery.tsx): the rings flat on a plane leaned back from
+// you in one 3D scene, so a ball passing behind the middle or another is hidden by it, and each ball (and the count in
+// the middle) turned back to face you. A ring's balls go round on arms, each ball counter-turning in step on the same
+// clock; only transforms move. One pointed at holds every orbit where it is; in still mode (the scene's own rule) none
+// moves at all, each standing at its angle. Come back to from the dex, the clock starts where it was left (--orb-at, a
+// delay set back by that much)
+$orb-tilt: 64deg;
+$orb-drop: 4px 4px 0 color-mix(in srgb, var(--ink) 14%, transparent);
+
+@keyframes orb-spin {
+  from {
+    transform: rotateZ(var(--angle));
+  }
+
+  to {
+    transform: rotateZ(calc(var(--angle) + 360deg));
+  }
+}
+
+@keyframes orb-face {
+  from {
+    transform: translateX(var(--r)) rotateZ(calc(var(--angle) * -1)) rotateX(-$orb-tilt);
+  }
+
+  to {
+    transform: translateX(var(--r)) rotateZ(calc(var(--angle) * -1 - 360deg)) rotateX(-$orb-tilt);
+  }
+}
+
+.orb-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.orb-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+.orb-world {
+  position: absolute;
+  inset: 0;
+  perspective: 1800px;
+  perspective-origin: 50% 41%;
+}
+
+.orb-plane {
+  position: absolute;
+  top: 41%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: rotateX($orb-tilt);
+  transform-style: preserve-3d;
+}
+
+.orb-ring {
+  position: absolute;
+  top: calc(var(--r) * -1);
+  left: calc(var(--r) * -1);
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  border: 2px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  border-radius: 50%;
+}
+
+// the middle: how many sealed mons the balls hold between them, in a thin number
+.orb-sun {
+  display: flex;
+  position: absolute;
+  top: -52px;
+  left: -52px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 104px;
+  height: 104px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background-color: var(--paper-raised);
+  box-shadow: $orb-drop;
+  transform: rotateX(-$orb-tilt);
+
+  b {
+    font-family: $font-secondary;
+    font-size: 30px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  small {
+    margin-top: 4px;
+    color: var(--ink-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+
+    @include small-text(10px);
+  }
+}
+
+.orb-arm {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: rotateZ(var(--angle));
+  transform-style: preserve-3d;
+  animation: orb-spin var(--period) linear var(--orb-at, 0s) infinite;
+}
+
+.orb-body {
+  position: absolute;
+  top: calc(var(--box) / -2);
+  left: calc(var(--box) / -2);
+  width: var(--box);
+  height: var(--box);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transform: translateX(var(--r)) rotateZ(calc(var(--angle) * -1)) rotateX(-$orb-tilt);
+  animation: orb-face var(--period) linear var(--orb-at, 0s) infinite;
+  transition: opacity .2s ease-out;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.orb-specks {
+  position: absolute;
+  inset: 0;
+}
+
+.orb-ball,
+.orb-tip-ball {
+  image-rendering: pixelated;
+}
+
+.orb-ball {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.orb-stage[data-hot] {
+  :is(.orb-arm, .orb-body) {
+    animation-play-state: paused;
+  }
+
+  .orb-body:not(.hot) {
+    opacity: .3;
+  }
+}
+
+.orb-note {
+  max-width: 760px;
+  margin: 12px auto 0;
+  color: var(--ink-muted);
+  text-align: center;
+
+  @include small-text(12px);
+}
+
+.orb-tip-mons {
+  display: grid;
+  grid-template-columns: repeat(8, auto);
+  justify-content: start;
+}
+
+.orb-tip-more {
+  align-self: center;
+  padding: 0 6px;
+  color: var(--on-overlay-muted);
+}

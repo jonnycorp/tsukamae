@@ -1,6 +1,7 @@
 import { DISPLAY_MODES } from '../utils/display-modes';
 import { FADE_MS } from '../hooks/use-dismissable';
 import { DEFAULT_THEME, findTheme, themePalette, themeSlug } from './themes';
+import { whenSettled } from '../utils/when-settled';
 
 import type { DisplayMode } from '../utils/display-modes';
 
@@ -16,8 +17,8 @@ export const DISPLAY_STORAGE_KEY = 'tileDisplay';
 const MODAL_SHADE = 0.35;
 
 let titleBar = { color: '', symbolColor: '' };
-// the backdrops up, each its own black; the buttons take the darkest
-const openShades: number[] = [];
+// the backdrops up; the buttons dim while any is
+let openBackdrops = 0;
 // how much of the backdrop's black is on the buttons: it fades in and out with the backdrop
 let shade = 0;
 let shadeFrame = 0;
@@ -39,17 +40,18 @@ function sendTitleBar () {
 }
 
 // frame by frame alongside the backdrop's fade (ease-out, as in the CSS), starting from wherever the last fade left it;
-// a backdrop lighter than a modal's (the palette's) gives its own
-export function dimTitleBar (dim: boolean, amount = MODAL_SHADE) {
-  if (dim) {
-    openShades.push(amount);
-  } else if (openShades.includes(amount)) {
-    openShades.splice(openShades.indexOf(amount), 1);
-  }
+// at once in still mode, as the backdrop is
+export function dimTitleBar (dim: boolean) {
+  openBackdrops = Math.max(0, openBackdrops + (dim ? 1 : -1));
   const from = shade;
-  const to = Math.max(0, ...openShades);
-  const start = performance.now();
+  const to = openBackdrops > 0 ? MODAL_SHADE : 0;
   cancelAnimationFrame(shadeFrame);
+  if (document.documentElement.hasAttribute('data-still')) {
+    shade = to;
+    sendTitleBar();
+    return;
+  }
+  const start = performance.now();
   const step = (now: number) => {
     const t = Math.min(1, Math.max(0, (now - start) / FADE_MS));
     shade = from + (to - from) * (1 - (1 - t) ** 2);
@@ -91,6 +93,43 @@ export function applyDisplay (locationTints: boolean, still: boolean, display: D
   root.toggleAttribute('data-plain-seals', !locationTints);
   root.toggleAttribute('data-still', still);
   root.dataset.display = display;
+}
+
+// keep in sync with styles/tile-faces.scss: the flips' fade out before a display mode's switch
+const DISPLAY_FADE_MS = 140;
+// the switch waiting out of sight, the latest asked for
+let displaySwitch: (() => void) | null = null;
+let displayFading = false;
+
+// a display mode's switch, faded (the theme menu, O): the dex's flips fade out (data-display-fade), the mode
+// changes out of sight, and they fade back in once the dex has redrawn them and stopped building, by when every strip's
+// cycle has caught up with the clock, so the page one restarts on never shows. At once in still mode, or with no flips
+// on the page (no dex open, the list view, a checklist); one asked for while another is under way follows it unseen
+export function fadeDisplay (apply: () => void) {
+  const root = document.documentElement;
+  const dex = document.querySelector('.dex-column');
+  if (!displayFading && (root.hasAttribute('data-still') || !dex?.querySelector('.flip-overlay'))) {
+    apply();
+    return;
+  }
+  displaySwitch = apply;
+  if (displayFading) {
+    return;
+  }
+  displayFading = true;
+  root.toggleAttribute('data-display-fade', true);
+  const next = () => {
+    const run = displaySwitch;
+    displaySwitch = null;
+    if (!run) {
+      root.removeAttribute('data-display-fade');
+      displayFading = false;
+      return;
+    }
+    run();
+    void whenSettled(dex!).then(next);
+  };
+  window.setTimeout(next, DISPLAY_FADE_MS);
 }
 
 function readJson<T> (key: string, fallback: T): T {

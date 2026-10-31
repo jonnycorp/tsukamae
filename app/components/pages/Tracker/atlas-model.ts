@@ -1,3 +1,4 @@
+import { copyKind } from '../../../utils/copies';
 import { getCatalogDex, progressToCaptures } from '../../../utils/local-data';
 
 import type { Capture, CapturePokemon } from '../../../types';
@@ -6,14 +7,18 @@ import type { PersonalDex } from '../../../utils/local-data';
 // the atlas (G): every one of your dexes laid along the national dex, species by species, so what one dex has and
 // another lacks lines up. A species' state in a dex is the best of its slots there (a form marked marks it)
 
-export type AtlasState = 'sealed' | 'caught' | 'temporary' | 'unobtainable' | 'missing';
+// a checklist's Temporary is Elsewhere: a mon you have that another dex represents
+export type AtlasState = 'sealed' | 'caught' | 'elsewhere' | 'temporary' | 'unobtainable' | 'missing';
 
-const RANK: Record<AtlasState, number> = { missing: 0, unobtainable: 1, temporary: 2, caught: 3, sealed: 4 };
+const RANK: Record<AtlasState, number> = { missing: 0, unobtainable: 1, temporary: 2, elsewhere: 3, caught: 4, sealed: 5 };
 
 export interface AtlasRow {
   dex: PersonalDex;
   // by national number; a species the dex doesn't list has none
   states: Map<number, AtlasState>;
+  // the species it holds a copy of its own of (utils/copies), which it could hand over: not a checklist's Elsewhere,
+  // nor a free-form dex's entry kept in a checklist's boxes, that checklist's to give
+  holds: Set<number>;
   marked: number;
   total: number;
 }
@@ -25,33 +30,42 @@ export interface AtlasData {
   max: number;
   // where each generation starts along it
   generations: { generation: number; from: number; to: number }[];
+  // how many copies of each species you hold, every dex together, a mon counted once however many mention it
+  // (utils/copies)
+  copies: Map<number, number>;
 }
 
-const stateOf = (capture: Capture): AtlasState => {
+const stateOf = (capture: Capture, checklist: boolean): AtlasState => {
   if (!capture.captured) {
     return 'missing';
+  }
+  if (checklist && capture.status === 'temporary') {
+    return 'elsewhere';
   }
   return capture.sealed ? 'sealed' : capture.status!;
 };
 
-// what a species counts as having been caught: marked, and not just to say it can't be
-export const isHeld = (state: AtlasState | undefined) => state === 'sealed' || state === 'caught' || state === 'temporary';
-
 export function atlas (dexes: PersonalDex[], activeId: string, activeCaptures: Capture[]): AtlasData {
+  const copies = new Map<number, number>();
   const rows = dexes.map((dex) => {
     const captures = dex.id === activeId ? activeCaptures : progressToCaptures(dex);
     const states = new Map<number, AtlasState>();
+    const holds = new Set<number>();
     let marked = 0;
     for (const capture of captures) {
       const national = capture.pokemon.national_id;
-      const state = stateOf(capture);
+      const state = stateOf(capture, Boolean(dex.checklist));
+      if (copyKind(capture, dex) === 'copy') {
+        copies.set(national, (copies.get(national) ?? 0) + 1);
+        holds.add(national);
+      }
       const before = states.get(national);
       if (before === undefined || RANK[state] > RANK[before]) {
         states.set(national, state);
       }
       marked += Number(capture.captured);
     }
-    return { dex, states, marked, total: captures.length };
+    return { dex, states, holds, marked, total: captures.length };
   });
 
   const species = new Map<number, CapturePokemon>();
@@ -71,7 +85,7 @@ export function atlas (dexes: PersonalDex[], activeId: string, activeCaptures: C
       last.to = national;
     }
   }
-  return { rows, species, max, generations };
+  return { rows, species, max, generations, copies };
 }
 
 // missing from the open dex, marked in another: for each other dex, what it could hand over
@@ -83,7 +97,7 @@ export function pickups (data: AtlasData, activeId: string): { row: AtlasRow; na
   const missing = [...active.states].filter(([, state]) => state === 'missing').map(([national]) => national).sort((a, b) => a - b);
   return data.rows
   .filter((row) => row !== active)
-  .map((row) => ({ row, nationals: missing.filter((national) => isHeld(row.states.get(national))) }))
+  .map((row) => ({ row, nationals: missing.filter((national) => row.holds.has(national)) }))
   .filter((entry) => entry.nationals.length > 0)
   .sort((a, b) => b.nationals.length - a.nationals.length);
 }

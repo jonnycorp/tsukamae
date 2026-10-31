@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-import { commitAppState, getAppState, loadAppState, newId, toDexView } from '../../utils/local-data';
+import { DEFAULT_CATALOG_KEY, commitAppState, getAppState, loadAppState, newId, toDexView } from '../../utils/local-data';
+import { nameDexPlaces } from '../../utils/location-moves';
+import { newBox } from '../../utils/free-dex';
 
 import type { AppState, CaptureDefaults, PersonalDex } from '../../utils/local-data';
 import type { Dex, GameSave } from '../../types';
@@ -12,6 +14,8 @@ interface CreateDexInput {
   shiny: boolean;
   checklist?: boolean;
   captureDefaults?: CaptureDefaults;
+  // a free-form dex, of boxes of your own
+  free?: boolean;
 }
 
 interface UpdateDexInput {
@@ -31,6 +35,8 @@ interface DexContextState {
   updateDex: (id: string, changes: UpdateDexInput) => void;
   deleteDex: (id: string) => void;
   moveDex: (id: string, delta: number) => void;
+  // any change to the state, saved whole (a free-form dex's boxes, a record moved into one)
+  editDexes: (mutator: (state: AppState) => void) => void;
   saves: GameSave[];
   createSave: (input: Omit<GameSave, 'id'>) => void;
   updateSave: (id: string, changes: Omit<GameSave, 'id'>) => void;
@@ -48,6 +54,7 @@ const DexContext = createContext<DexContextState>({
   updateDex: () => {},
   deleteDex: () => {},
   moveDex: () => {},
+  editDexes: () => {},
   saves: [],
   createSave: () => {},
   updateSave: () => {},
@@ -106,6 +113,7 @@ export const DexContextProvider = ({ children }: Props) => {
     };
 
     const activeDex = snapshot?.dexes.find((dex) => dex.id === snapshot.activeDexId) || null;
+    nameDexPlaces(snapshot?.dexes ?? []);
 
     return {
       dexes: snapshot?.dexes || null,
@@ -121,8 +129,10 @@ export const DexContextProvider = ({ children }: Props) => {
         getAppState().activeDexId = id;
         setSnapshot({ ...snapshot, activeDexId: id });
       },
-      createDex: ({ title, catalogKey, shiny, checklist, captureDefaults }) => apply((state) => {
-        const dex: PersonalDex = { id: newId('dex'), title, catalogKey, shiny, checklist, progress: {}, captureDefaults };
+      createDex: ({ title, catalogKey, shiny, checklist, captureDefaults, free }) => apply((state) => {
+        const dex: PersonalDex = free
+          ? { id: newId('dex'), title, catalogKey: DEFAULT_CATALOG_KEY, shiny, free, boxes: [newBox(1)], entries: [], progress: {}, captureDefaults }
+          : { id: newId('dex'), title, catalogKey, shiny, checklist, progress: {}, captureDefaults };
         state.dexes = [...state.dexes, dex];
         state.activeDexId = dex.id;
       }),
@@ -138,6 +148,7 @@ export const DexContextProvider = ({ children }: Props) => {
       moveDex: (id, delta) => apply((state) => {
         state.dexes = moved(state.dexes, state.dexes.findIndex((dex) => dex.id === id), delta);
       }),
+      editDexes: apply,
       saves: snapshot?.saves || [],
       createSave: (input) => apply((state) => {
         state.saves = [...(state.saves ?? []), { id: newId('save'), ...input }];

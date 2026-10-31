@@ -1,10 +1,11 @@
 import classNames from 'classnames';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { Scene, SceneMon } from './Scene';
+import { Scene, SceneMon, placeBeside } from './Scene';
 import { atlas, pickups, wanted } from './atlas-model';
 import { displayName } from '../../library/PokemonName';
 import { padding } from '../../../utils/formatting';
+import { useContentWidth } from '../../../hooks/use-content-width';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -27,13 +28,14 @@ const TIP_GAP = 16;
 const STATE_KEYS: Record<AtlasState | 'absent', TranslationKey> = {
   sealed: 'almanac.sealed',
   caught: 'status.caught',
+  elsewhere: 'status.elsewhere',
   temporary: 'status.temporary',
   unobtainable: 'status.unobtainable',
   missing: 'almanac.missing',
   absent: 'atlas.absent',
 };
 
-const LEGEND: (AtlasState | 'absent')[] = ['sealed', 'caught', 'temporary', 'unobtainable', 'missing', 'absent'];
+const LEGEND: (AtlasState | 'absent')[] = ['sealed', 'caught', 'elsewhere', 'temporary', 'unobtainable', 'missing', 'absent'];
 
 interface Props {
   onClose: () => void;
@@ -84,29 +86,9 @@ export function Atlas ({ onClose, onLocate }: Props) {
   const needed = useMemo(() => wanted(data), [data]);
   const stripsRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
+  const width = useContentWidth(stripsRef);
   const [hot, setHot] = useState<{ national: number; x: number; y: number } | null>(null);
   const narrow = width > 0 && width < 520;
-
-  useLayoutEffect(() => {
-    const strips = stripsRef.current;
-    if (!strips) {
-      return undefined;
-    }
-    setWidth(Math.floor(strips.clientWidth));
-    // drawn on the next frame, not inside the observer's delivery (see Journeys)
-    let frame = 0;
-    const observer = new ResizeObserver(([entry]) => {
-      const next = Math.floor(entry.contentRect.width);
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => setWidth(next));
-    });
-    observer.observe(strips);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, []);
 
   const names = narrow ? NAMES_W_NARROW : NAMES_W;
   const track = Math.max(0, width - names);
@@ -169,17 +151,9 @@ export function Atlas ({ onClose, onLocate }: Props) {
 
   // the loupe by the line, flipped to its left where the window ends
   useLayoutEffect(() => {
-    const tip = tipRef.current;
-    if (!tip || !hot) {
-      return;
+    if (tipRef.current && hot) {
+      placeBeside(tipRef.current, hot.x, hot.y, TIP_GAP);
     }
-    const zoom = tip.currentCSSZoom;
-    const w = tip.offsetWidth * zoom;
-    const h = tip.offsetHeight * zoom;
-    const left = hot.x + TIP_GAP + w <= window.innerWidth ? hot.x + TIP_GAP : hot.x - TIP_GAP - w;
-    const top = Math.min(window.innerHeight - h - 8, Math.max(8, hot.y - h / 2));
-    tip.style.left = `${Math.max(8, left) / zoom}px`;
-    tip.style.top = `${top / zoom}px`;
   }, [hot]);
 
   const loupe = () => {
@@ -193,7 +167,7 @@ export function Atlas ({ onClose, onLocate }: Props) {
           {mon && <SceneMon pokemon={mon} zoom={1.5} />}
           <span>
             <strong>{nameOf(hot.national)}</strong>
-            <small>#{padding(hot.national, 4)}</small>
+            <small>#{padding(hot.national, 4)} · {t('atlas.copies', { n: data.copies.get(hot.national) ?? 0 })}</small>
           </span>
         </div>
         <ul>
@@ -247,14 +221,18 @@ export function Atlas ({ onClose, onLocate }: Props) {
                 onPointerMove={handleMove}
                 ref={stripsRef}
                 role="group"
-                style={{ '--names': `${names}px`, '--step': `${step}px` } as CSSProperties}
+                style={{ '--names': `${names}px` } as CSSProperties}
                 tabIndex={0}
               >
                 {width > 0 && data.rows.map((row, i) => (
                   <div className={classNames('at-row', { here: row.dex.id === activeDex!.id })} key={row.dex.id} style={{ '--i': i } as CSSProperties}>
                     <span className="at-name">
                       <span className="at-title">{row.dex.title}</span>
-                      <span className="at-meta">{t(row.dex.checklist ? 'atlas.checklist' : 'atlas.living')} · {t('atlas.complete', { p: percent(row) })}</span>
+                      <span className="at-meta">
+                        {row.dex.free
+                          ? `${t('atlas.free')} · ${t('atlas.count', { n: row.total })}`
+                          : `${t(row.dex.checklist ? 'atlas.checklist' : 'atlas.living')} · ${t('atlas.complete', { p: percent(row) })}`}
+                      </span>
                     </span>
                     <span className="at-track">
                       <Strip max={data.max} row={row} width={track} />

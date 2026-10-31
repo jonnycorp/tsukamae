@@ -3,7 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faMars, faVenus } from '@fortawesome/free-solid-svg-icons';
 
 import { BALL_NAMES, LANGUAGE_ABBRS, ORIGIN_GAME_NAMES } from '../../../utils/capture-fields';
-import { BadgeRow, CatchDateLine, OTLine, OriginMark } from './seal-faces';
+import { BadgeRow, CatchDateLine, GigantamaxMark, OTLine, OriginMark, hasOriginMark } from './seal-faces';
+import { showsGigantamax } from '../../../utils/gigantamax';
 import { HEX_ORDER, natureStats } from '../../../utils/display-modes';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -148,16 +149,20 @@ function HubPage ({ capture }: Props) {
 // the ball's middle in the hub's block (its 108px stage centred, the ball 26px from 4px down)
 export const HUB_BALL_Y = 17;
 
-// the hub's moons, each in its own slot of the ring, a fifth of a turn apart: gender, heart, the game's mark, training
-// and the nature's hexagon. A slot holds one kind, so every tile's moon in it circles in step with the rest of its row;
-// keep the count in sync with $hub-slots in styles/tile-faces.scss
+// the hub's moons, each in its own slot of the ring, a fifth of a turn apart: gender, heart (the G-Max mark in its
+// place, as in the badge row), the game's mark, training and the nature's hexagon. A slot holds one kind, so every
+// tile's moon in it circles in step with the rest of its row; keep the count in sync with $hub-slots in
+// styles/tile-faces.scss. A game with no mark (HOME, Other, the Generation IV and V games) leaves its slot empty rather
+// than circling nothing
 export const HUB_SLOTS = 5;
 
 export function hubMoons (capture: Capture): (ReactNode | null)[] {
   return [
     capture.gender === 'male' || capture.gender === 'female' ? <Gender capture={capture} /> : null,
-    capture.favorite === 'favorite' || capture.favorite === 'partner' ? <Heart capture={capture} /> : null,
-    capture.origin_game ? <Mark capture={capture} /> : null,
+    showsGigantamax(capture)
+      ? <GigantamaxMark />
+      : capture.favorite === 'favorite' || capture.favorite === 'partner' ? <Heart capture={capture} /> : null,
+    capture.origin_game && hasOriginMark(capture.origin_game) ? <Mark capture={capture} /> : null,
     capture.trained === 'ivs' || capture.trained === 'ev' ? <Trained capture={capture} /> : null,
     natureStats(capture.nature) ? <NatureHex capture={capture} /> : null,
   ];

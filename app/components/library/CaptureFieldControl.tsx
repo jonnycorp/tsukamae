@@ -21,11 +21,14 @@ interface Props {
   // whether the mon can go to Champions this season (utils/champions), for the location's options
   canVisitChampions?: boolean;
   idPrefix: string;
+  // the date's recent dates (DateInput), and whether a pick of one came from the keys
+  recentDates?: string[];
+  onRecentPicked?: (keyboard: boolean) => void;
 }
 
-export function CaptureFieldControl ({ field, value, onChange, defaultsMode = false, genderLock = null, canVisitChampions = false, idPrefix }: Props) {
+export function CaptureFieldControl ({ field, value, onChange, defaultsMode = false, genderLock = null, canVisitChampions = false, idPrefix, recentDates, onRecentPicked }: Props) {
   const { t, locale } = useTranslation();
-  const { saves, activeDexView } = useDexContext();
+  const { saves, activeDexView, activeDex, dexes } = useDexContext();
 
   const id = `${idPrefix}-${field.id}`;
   const blankLabel = t('common.unspecified');
@@ -119,6 +122,8 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
         <DateInput
           id={id}
           onChange={(iso) => onChange({ catch_date: iso })}
+          onRecentPicked={onRecentPicked}
+          recent={recentDates}
           value={value.catch_date ?? null}
         />,
       );
@@ -164,9 +169,17 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
         // unspecified clears what a game fills in, as not-my-game does; re-picking either where it's already shown
         // leaves the record alone (a game's re-pick still restamps it)
         if (next === NOT_MINE || next === '') {
-          // from Unspecified there's no game-filled trio to clear, only a hand-typed OT that must stay
-          if (next === current || current === '') {
+          if (next === current) {
+            // Not my game kept is still an answer, which the review goes on from: the record restated as it is
+            if (next === NOT_MINE) {
+              onChange({ origin_game: value.origin_game ?? null, language: value.language ?? null });
+            }
             return;
+          }
+          // from Unspecified there's no game-filled trio to clear, only a hand-typed OT and ID No. that must stay; Not my
+          // game still answers the menu there (the review goes on to the game and the language, to be given by hand)
+          if (current === '') {
+            return onChange({ origin_game: null, language: null });
           }
           return onChange(defaultsMode
             ? { origin_game: null, language: null, tid: null }
@@ -196,6 +209,18 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
             options={locationOptions(locale, value, isHomeDex, canVisitChampions)}
             value={value.location || ''}
           />
+          {/* a free-form dex's mon in HOME can be in one of your checklist dexes' boxes there, as one mon of it */}
+          {value.location === 'home' && activeDex?.free &&
+            <div className="form-subgroup">
+              <label htmlFor={`${id}-dex`}>{t('location.whichDex')}</label>
+              {select(
+                `${id}-dex`,
+                value.location_save || '',
+                (dexes ?? []).filter((dex) => dex.checklist).map((dex) => ({ value: dex.id, label: dex.title })),
+                (next) => onChange({ location_save: next || null }),
+              )}
+            </div>
+          }
           {value.location === 'game' &&
             <div className="form-subgroup">
               <label htmlFor={`${id}-game`}>{t('location.whichGame')}</label>

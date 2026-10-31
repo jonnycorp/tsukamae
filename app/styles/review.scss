@@ -638,11 +638,6 @@ $wire: 30px;
     border-color: var(--mark);
     background-color: color-mix(in srgb, var(--mark) 20%, var(--paper-raised));
   }
-
-  &:disabled {
-    opacity: .45;
-    cursor: default;
-  }
 }
 
 // letting go of a mark, or holding a sealed one open again, quietly under the marks
@@ -899,24 +894,6 @@ $wire: 30px;
   }
 }
 
-// the seal just made, beside the foot's buttons and as tall: the overlays' colours and words, as the undo toast's
-.review-toast {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: $search-height;
-  margin: 0;
-  padding: 0 12px;
-  background-color: var(--overlay);
-  color: var(--on-overlay);
-  font-size: 14px;
-  animation: fade-in .15s ease-out;
-
-  button {
-    @include link-button;
-  }
-}
-
 // a narrow window: the run's list over the mon while it's wanted, the bar's keys left to the foot's buttons
 @media (width < 1000px) {
   .review-body.listed {
@@ -950,43 +927,12 @@ $wire: 30px;
 
 // Still mode (M): nothing of it moves; a held unseal still fills, as that's the hold answering
 :root[data-still] {
-  :is(.review, .review-bay, .review-brackets, .review-lens-glass .pkicon, .review-stamp, .review-plate, .review-plate-mark .svg-inline--fa, .review-toast),
+  :is(.review, .review-bay, .review-brackets, .review-lens-glass .pkicon, .review-stamp, .review-plate, .review-plate-mark .svg-inline--fa),
   .review-lens-glass::after {
     animation: none;
   }
 
   :is(.review-pip, .review-progress span) {
     transition: none;
-  }
-}
-
-// what Ctrl+Z just did (UndoToast.tsx), a moment at the window's foot in the overlays' colours
-.undo-toast {
-  display: flex;
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  z-index: 96;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  border: 2px solid var(--overlay-edge);
-  background-color: var(--overlay);
-  color: var(--on-overlay);
-  font-size: 14px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 28%);
-  transform: translateX(-50%);
-  animation: batch-rise .2s cubic-bezier(.2, .9, .3, 1) both;
-  // only its button takes a click: what's under it stays pressable
-  pointer-events: none;
-
-  > .svg-inline--fa {
-    color: var(--on-overlay-muted);
-  }
-
-  button {
-    @include link-button;
-
-    pointer-events: auto;
   }
 }

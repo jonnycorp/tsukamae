@@ -50,12 +50,14 @@ export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac
   // the dex Edit Dex opened for, so a save can only ever write to that one
   const [editing, setEditing] = useState<PersonalDex | null>(null);
 
+  // a free-form dex's mons are all marked, so its meter is of what's sealed
+  const free = Boolean(activeDex?.free);
   const counts = useMemo(() => {
     let marked = 0;
     let temporary = 0;
     let caught = 0;
     for (const capture of captures) {
-      if (capture.captured) {
+      if (free ? capture.sealed : capture.captured) {
         marked++;
       }
       if (capture.status === 'temporary') {
@@ -65,7 +67,7 @@ export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac
       }
     }
     return { marked, temporary, caught };
-  }, [captures]);
+  }, [captures, free]);
 
   // on keyup, so the slash itself never lands in the box; quiet like the other hotkeys while typing, under a modal or an
   // open menu and beside a modifier

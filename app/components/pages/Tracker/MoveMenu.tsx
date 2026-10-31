@@ -5,9 +5,7 @@ import { faCheck, faHouse } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { OriginMark, hasOriginMark } from './seal-faces';
-import { canHold } from '../../../utils/game-reach';
-import { destinations, placeKey, placeLabel, placeOf, samePlace } from '../../../utils/location-moves';
-import { offersChampions } from '../../../utils/champions';
+import { dexPlacesFor, placeKey, placeLabel, placeOf, placesFor, samePlace } from '../../../utils/location-moves';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerActions, useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -35,7 +33,7 @@ function PlaceIcon ({ place, saves }: { place: Place; saves: GameSave[] }) {
 export function MoveMenu () {
   const { captures } = useTrackerState();
   const { moveTo, moveMenuHost } = useTrackerActions();
-  const { saves, activeDexView } = useDexContext();
+  const { saves, activeDexView, activeDex, dexes } = useDexContext();
   const { t, locale } = useTranslation();
   const [target, setTarget] = useState<MoveTarget | null>(null);
   const [active, setActive] = useState(0);
@@ -54,7 +52,7 @@ export function MoveMenu () {
   const here = capture ? placeOf(capture) : null;
   // the games that can hold it (canHold), and the one it's in whatever it is, so where it is stays ticked
   const places = useMemo(() => (open && capture
-    ? destinations(saves, offersChampions(capture, activeDexView?.game.id === 'home'), (save) => save.id === capture.location_save || canHold(save, capture, saves))
+    ? placesFor(saves, capture, activeDexView?.game.id === 'home', dexPlacesFor(activeDex, dexes ?? []))
     : []), [open, capture, saves, activeDexView]);
 
   const close = () => setTarget(null);
@@ -112,7 +110,7 @@ export function MoveMenu () {
         }
       }
     };
-    const handleMousedown = (e: MouseEvent) => {
+    const handlePointerDown = (e: PointerEvent) => {
       if (!menuRef.current?.contains(e.target as Node)) {
         close();
       }
@@ -123,12 +121,12 @@ export function MoveMenu () {
       }
     };
     document.addEventListener('keydown', handleKeydown, true);
-    document.addEventListener('mousedown', handleMousedown, true);
+    document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
     window.addEventListener('resize', close);
     return () => {
       document.removeEventListener('keydown', handleKeydown, true);
-      document.removeEventListener('mousedown', handleMousedown, true);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', close);
     };

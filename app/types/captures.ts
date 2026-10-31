@@ -20,6 +20,8 @@ export interface CaptureMetadata {
   language: string | null;
   // permanent — a mon keeps its champions data after coming back
   been_to_champions: boolean | null;
+  // the Gigantamax factor (utils/gigantamax), which Max Soup in Sword and Shield gives, or takes back
+  gigantamax: boolean | null;
   location: CaptureLocation | null;
   // which save holds it, when location is 'game'
   location_save: string | null;

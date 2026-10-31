@@ -106,6 +106,17 @@ $display-modes: (
   }
 }
 
+// a display mode's switch (fadeDisplay in palette/apply-theme.ts): the flips fade out, the mode changes out of sight,
+// and they fade back in once redrawn and in step with the clock; keep the fade out in sync with DISPLAY_FADE_MS
+.flip-overlay {
+  transition: opacity .24s ease-out;
+}
+
+:root[data-display-fade] .flip-overlay {
+  opacity: 0;
+  transition: opacity .14s ease-in;
+}
+
 // ---- the lower block's window: over the number line and the badges together, its pages a block apart (Hexagon's three
 // and the copy of its first), its text haloed as the number line's is
 .flip-lower {
@@ -319,6 +330,7 @@ $hub-slots: 5;
 
 .hub-moons {
   position: absolute;
+  top: 0;
   right: 0;
   left: 0;
   height: var(--flip-face);
@@ -422,10 +434,15 @@ $hub-slots: 5;
   image-rendering: pixelated;
 }
 
-// still mode: nothing circles, the hub's moons standing on the ring's near side, spread evenly across it
+// still mode: nothing circles, the hub's moons standing on the ring's near side, spread evenly across it, and a switch
+// of display mode changes the flips where they stand
 :root[data-still] {
   .hub-moons {
     animation: none;
+  }
+
+  .flip-overlay {
+    transition: none;
   }
 
   .hub-moons.back {

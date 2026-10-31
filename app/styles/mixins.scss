@@ -1,10 +1,13 @@
 @use 'variables' as *;
 
-// the thumb fades with .is-scrolling (useScrollbarFade); never style ::-webkit-scrollbar, chromium caches it
+// the thumb fades with .is-scrolling (useScrollbarFade); never style ::-webkit-scrollbar, chromium caches it. A scroller
+// given a transition of its own lists $scrollbar-fade in it too, or the thumb no longer fades
+$scrollbar-fade: scrollbar-color .3s ease-out;
+
 @mixin scrollbar-fade {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
-  transition: scrollbar-color .3s ease-out;
+  transition: $scrollbar-fade;
 
   &.is-scrolling {
     scrollbar-color: var(--scroll-thumb) transparent;
@@ -125,18 +128,6 @@
     background-color: var(--status-#{$status});
     color: var(--on-status);
   }
-}
-
-// a button set in a line of words, a toast's Undo: its words, bold and underlined
-@mixin link-button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  font-weight: 700;
-  text-decoration: underline;
-  cursor: pointer;
 }
 
 // a scene's bar over the nav (the timeline, the almanac, the review): the nav's height and colours, so the window

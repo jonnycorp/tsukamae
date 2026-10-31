@@ -89,8 +89,8 @@ $scene-spring: cubic-bezier(.2, 1.4, .4, 1);
   padding: 26px 28px 60px;
   overflow: auto;
   outline: none;
-  // faded in as the title card clears (title-card.scss's data-intro)
-  transition: opacity .24s ease-out;
+  // faded in as the title card clears (title-card.scss's data-intro), the scrollbar's fade kept beside
+  transition: opacity .24s ease-out, $scrollbar-fade;
 }
 
 // a card flat on the paper, its banner over its top left corner, as the almanac's are

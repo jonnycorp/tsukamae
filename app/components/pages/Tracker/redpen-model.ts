@@ -1,6 +1,7 @@
 import { GAME_FACTS } from '../../../utils/game-facts';
 import { LETS_GO, cannotReach, closedGameHas, debutOf, gameDexes, homeFileOf, lineOf, sameId } from '../../../utils/game-reach';
 import { MYSTERY_GIFT, nameMaxLength } from '../../../utils/capture-fields';
+import { today } from '../../../utils/date-entry';
 
 import type { Capture, GameSave } from '../../../types';
 
@@ -62,6 +63,8 @@ export interface Flagged {
 // one trainer's name, written more than one way: the usual spelling first. Records of one file (a game and an ID No.)
 // carry its ID No.; records without one are grouped by the name as the eye reads it
 export interface Variant {
+  // the file or the name its records are grouped by, one per variant
+  key: string;
   spellings: { ot: string; captures: Capture[] }[];
   tid?: string;
   game?: string;
@@ -175,12 +178,6 @@ function dayBefore (date: string): string {
 const length = (text: string) => [...text].length;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-// today where the app is, as a catch date writes it
-export function today (): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
 
 function read (capture: Capture, saves: GameSave[], now: string): Finding[] {
   const found: Finding[] = [];
@@ -320,7 +317,8 @@ const foldName = (ot: string) => ot.normalize('NFKC').toLowerCase().replace(/\s+
 
 // sealed records alone, as anything built on what a record says: an unsealed one's fields are placeholders (the dex's
 // defaults stamped on a fresh mark among them). Drafts are read only when asked for, and never scored
-export function redPen (captures: Capture[], saves: GameSave[], { drafts = false, now = today() } = {}): RedPenData {
+export function redPen (captures: Capture[], saves: GameSave[], { drafts = false } = {}): RedPenData {
+  const now = today();
   const records = captures.filter((capture) => capture.captured && capture.status !== 'unobtainable' && (capture.sealed || drafts));
   const flagged: Flagged[] = [];
   // one trainer's records, by file (a game, its language and an ID No.) or, without an ID No., by the name as the eye
@@ -344,9 +342,10 @@ export function redPen (captures: Capture[], saves: GameSave[], { drafts = false
     group.spellings.set(ot, [...(group.spellings.get(ot) ?? []), capture]);
     groups.set(key, group);
   }
-  const variants = [...groups.values()]
-  .filter((group) => group.spellings.size > 1)
-  .map(({ tid, game, spellings }) => ({
+  const variants = [...groups]
+  .filter(([, group]) => group.spellings.size > 1)
+  .map(([key, { tid, game, spellings }]) => ({
+    key,
     tid,
     game,
     spellings: [...spellings].map(([ot, list]) => ({ ot, captures: list })).sort((a, b) => b.captures.length - a.captures.length),

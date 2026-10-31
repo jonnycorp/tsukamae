@@ -1,0 +1,139 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// the trainer cards (components/pages/Tracker/TrainerCards.tsx): a card per game of yours, flat on the
+// paper with a hard drop and edged down its left in its game's colour, the mons its trainer caught under its OT. They
+// flow down columns, each as tall as its mons make it; the trainers who aren't you under them, a row each
+$tc-drop: 4px 4px 0 color-mix(in srgb, var(--ink) 16%, transparent);
+
+.tc-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.tc-cards {
+  columns: 330px;
+  column-gap: 22px;
+}
+
+.tc-card,
+.tc-other {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  border: 2px solid var(--line);
+  background-color: var(--paper-raised);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  // as specific as the hover, so the other trainers' transparent rows (.tc-others) don't outrank the keyboard's wash
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    background-color: var(--hover-wash);
+    outline: none;
+  }
+}
+
+.tc-card {
+  break-inside: avoid;
+  margin-bottom: 22px;
+  padding: 14px 16px 16px;
+  border-left: 10px solid var(--game);
+  box-shadow: $tc-drop;
+  animation: scene-rise .45s ease-out both;
+  animation-delay: calc(120ms + var(--i, 0) * 50ms);
+
+  &.empty {
+    color: var(--ink-muted);
+    box-shadow: none;
+    cursor: default;
+  }
+}
+
+.tc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: $font-secondary;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+
+  @include small-text(11px);
+}
+
+.tc-lang {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+}
+
+.tc-trainer,
+.tc-other-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.tc-ot {
+  font-family: $font-secondary;
+  font-size: 20px;
+}
+
+.tc-id,
+.tc-other-games {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+
+  @include small-text(12px);
+}
+
+.tc-count {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+
+  @include small-text(12px);
+}
+
+.tc-mons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 0;
+}
+
+.tc-mon {
+  position: relative;
+
+  .heart-badge {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    font-size: 9px;
+  }
+}
+
+.tc-others {
+  margin-top: 4px;
+
+  .tc-other {
+    padding: 12px 4px 14px;
+    border-width: 0 0 1px;
+    background-color: transparent;
+
+    &:last-of-type {
+      border-bottom: 0;
+    }
+  }
+}
+
+.tc-note {
+  margin: 10px 4px 0;
+  color: var(--ink-muted);
+
+  @include small-text(12px);
+}

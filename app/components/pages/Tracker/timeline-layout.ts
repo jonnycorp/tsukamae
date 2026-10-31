@@ -64,8 +64,6 @@ export interface SkipSegment extends Segment {
 
 export interface UndatedSegment extends Segment {
   kind: 'undated';
-  count: number;
-  firstOrder: number;
 }
 
 export type TimelineSegment = MonthSegment | SkipSegment | UndatedSegment;
@@ -76,7 +74,6 @@ export interface TimelineLayout {
   width: number;
   // how tall the scene stands above the spine, unscaled: its tallest stack, or a skip card
   height: number;
-  dated: number;
   undated: number;
   // the busiest month, if any month has a mon
   peak: { year: number; month: number; count: number } | null;
@@ -204,7 +201,7 @@ export function layoutTimeline (captures: Capture[]): TimelineLayout {
     const columns = Math.ceil(undated.length / rows);
     // set apart from the dated ones
     x += dated.length > 0 ? GAP * 4 : 0;
-    segments.push({ kind: 'undated', count: undated.length, firstOrder: order, x, width: columns * SLOT_W });
+    segments.push({ kind: 'undated', x, width: columns * SLOT_W });
     undated.forEach((capture, j) => {
       sprites.push({ capture, x: x + (j % columns) * SLOT_W, row: Math.floor(j / columns), order: order++, dated: false });
     });
@@ -213,5 +210,5 @@ export function layoutTimeline (captures: Capture[]): TimelineLayout {
   }
 
   const height = Math.max(tallest * SLOT_H, skipped ? SKIP_TOP : 0);
-  return { segments, sprites, width: x - GAP + EDGE, height, dated: dated.length, undated: undated.length, peak };
+  return { segments, sprites, width: x - GAP + EDGE, height, undated: undated.length, peak };
 }

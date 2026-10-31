@@ -40,7 +40,7 @@ export function DexMenu ({ layout, onEditDex, onLayout, onOpenAlmanac, onOpenRev
     if (!open) {
       return;
     }
-    const handleMouseDown = (e: MouseEvent) => {
+    const handlePointerDown = (e: PointerEvent) => {
       if (e.target instanceof Node && !ref.current?.contains(e.target)) {
         setOpen(false);
       }
@@ -51,10 +51,10 @@ export function DexMenu ({ layout, onEditDex, onLayout, onOpenAlmanac, onOpenRev
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open]);

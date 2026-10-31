@@ -3,6 +3,7 @@ import languagesJson from '../../data/languages.json';
 import originGamesJson from '../../data/games.json';
 
 import { localizeBall, localizeCaptureLanguage, localizeNature, localizeOriginGame } from '../i18n/names';
+import { isDexPlaceId } from './dex-places';
 import { translate } from '../i18n/translations';
 
 import type { CaptureMetadata, CaptureStatus, FavoriteState, GameSave, GenderLock, GenderState } from '../types';
@@ -68,6 +69,9 @@ const CHERISH_BALL = 'cherish_ball';
 
 export const STATUSES: CaptureStatus[] = ['caught', 'temporary', 'unobtainable'];
 
+// a status's name: a checklist's Temporary is Elsewhere, a mon you have that another dex represents
+export const statusKey = (status: CaptureStatus, checklist: boolean): TranslationKey => (checklist && status === 'temporary' ? 'status.elsewhere' : `status.${status}`);
+
 export function statusOptions (locale: Locale): CaptureFieldOption[] {
   return STATUSES.map((status) => ({ value: status, label: translate(locale, `status.${status}`) }));
 }
@@ -118,15 +122,12 @@ export function stampedSave (saves: GameSave[], meta: Partial<CaptureMetadata>):
 export const ID_MAX = 6;
 export const idDigits = (raw: string) => raw.normalize('NFKC').replace(/\D/g, '').slice(0, ID_MAX);
 
-export function lookupOT (saves: GameSave[], game: string | null, language: string | null, tid: string | null = null): string | null {
-  return findSave(saves, game, language, tid)?.ot || null;
-}
-
 type CaptureFieldId =
   | 'save'
   | 'origin_game'
   | 'language'
   | 'been_to_champions'
+  | 'gigantamax'
   | 'location'
   | 'ball'
   | 'catch_date'
@@ -207,7 +208,7 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     isAnswered: (meta) => filled(meta.language),
   },
   {
-    // sits under origin game + language — the trio the save picker writes together
+    // sits under origin game + language, which the save picker writes with it (and the ID No.)
     id: 'ot',
     kind: 'text',
     labelKey: 'info.ot',
@@ -238,6 +239,18 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     gatesSeal: false,
     defaultable: false,
     baseline: { been_to_champions: false },
+    isAnswered: () => true,
+  },
+  {
+    // a trait rather than a dex, the factor Max Soup gives in Sword and Shield; asked only of a species with
+    // a giant form (utils/gigantamax), as Been to Champions is of Champions' roster, and no for every mon till it's yes
+    id: 'gigantamax',
+    kind: 'yesno',
+    labelKey: 'info.gigantamax',
+    keys: ['gigantamax'],
+    gatesSeal: false,
+    defaultable: false,
+    baseline: { gigantamax: false },
     isAnswered: () => true,
   },
   {
@@ -379,6 +392,7 @@ export const EMPTY_METADATA: CaptureMetadata = {
   origin_game: null,
   language: null,
   been_to_champions: null,
+  gigantamax: null,
   location: null,
   location_save: null,
   ball: null,
@@ -495,9 +509,13 @@ export function metadataFromDefaults (defaults: Partial<CaptureMetadata> | undef
   return meta;
 }
 
-// a floored record can't be 'no'; the control coerces its value into whatever this returns
+// a floored record can't be 'no', and one with the Gigantamax factor is a partner; the control coerces its value
+// into whatever this returns
 export function favoriteOptions (locale: Locale, meta: Partial<CaptureMetadata>): CaptureFieldOption[] {
   const all = CAPTURE_FIELDS.find((field) => field.id === 'favorite')!.options!(locale);
+  if (meta.gigantamax === true) {
+    return all.filter((option) => option.value === 'partner');
+  }
   const floored = meta.has_nickname === true || meta.origin_game === MYSTERY_GIFT;
   return floored ? all.filter((option) => option.value !== 'no') : all;
 }
@@ -543,12 +561,21 @@ export function withFieldInvariants (
     next.favorite = isFloored ? 'favorite' : 'no';
   }
 
+  // every mon with the Gigantamax factor is a partner, brought to Gen 8 and fed a DLC's soup; taking the factor
+  // away leaves the heart to change by hand
+  if (merged.gigantamax === true && merged.favorite !== 'partner') {
+    next.favorite = 'partner';
+  }
+
   if (merged.been_to_champions !== true && merged.location === 'champions') {
     next.location = null;
     next.location_save = null;
   }
-  // also on any move off 'game': the tracker hides a deleted game's id, so the record in storage may still carry one
-  if (merged.location !== 'game' && (merged.location_save || 'location' in patch)) {
+  // a game's save for In a game, a checklist's dex for HOME (a free-form dex's mon in its boxes), none for the rest: also
+  // on any move off 'game', as the tracker hides a deleted game's id, so the record in storage may still carry one, and
+  // on a move from a checklist's boxes onto 'game', whose dex is no game's
+  const keepsSave = merged.location === 'game' ? !isDexPlaceId(merged.location_save) : merged.location === 'home' && isDexPlaceId(merged.location_save);
+  if (!keepsSave && (merged.location_save || 'location' in patch)) {
     next.location_save = null;
   }
 

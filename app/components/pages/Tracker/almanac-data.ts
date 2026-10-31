@@ -1,9 +1,11 @@
+import { MYSTERY_GIFT } from '../../../utils/capture-fields';
 import { TYPE_ORDER } from './filters';
 import { placeKey, shownPlace } from '../../../utils/location-moves';
 
-import type { Capture, CaptureStatus, PokemonType } from '../../../types';
+import type { Capture, CaptureStatus, GameSave, PokemonType } from '../../../types';
 
-// what the Almanac shows: a dex's collection counted every way the records allow, from the captures alone
+// what the Almanac shows: a dex's collection counted every way the records allow, from the captures and, for where
+// each is, your games (shownPlace)
 
 export interface StatusCounts {
   total: number;
@@ -89,7 +91,7 @@ function tally (map: Map<string, number>, key: string | null | undefined) {
 
 const sorted = (map: Map<string, number>): Tally[] => [...map].map(([key, n]) => ({ key, count: n })).sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
 
-export function almanacData (captures: Capture[]): AlmanacData {
+export function almanacData (captures: Capture[], saves: GameSave[]): AlmanacData {
   const all = emptyCounts();
   const generations = new Map<number, StatusCounts>();
   const types = new Map<PokemonType, StatusCounts>(TYPE_ORDER.map((type) => [type, emptyCounts()]));
@@ -133,7 +135,7 @@ export function almanacData (captures: Capture[]): AlmanacData {
       tally(languages, capture.language);
       tally(balls, capture.ball);
       tally(ots, capture.ot);
-      const place = shownPlace(capture);
+      const place = shownPlace(capture, saves);
       tally(places, place && placeKey(place));
       if (capture.favorite === 'favorite') {
         favorites++;
@@ -143,7 +145,7 @@ export function almanacData (captures: Capture[]): AlmanacData {
       if (capture.has_nickname && capture.nickname) {
         nicknamed++;
       }
-      if (capture.origin_game === 'mystery_gift') {
+      if (capture.origin_game === MYSTERY_GIFT) {
         gifts++;
       }
       if (capture.trained === 'ivs' || capture.trained === 'ev') {

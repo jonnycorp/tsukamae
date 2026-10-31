@@ -4,6 +4,7 @@ import { faExchangeAlt, faGift, faHeart, faMars, faVenus } from '@fortawesome/fr
 
 import { BALL_NAMES, LANGUAGE_ABBRS, MYSTERY_GIFT, ORIGIN_GAME_NAMES, nameLang } from '../../../utils/capture-fields';
 import { PokemonName } from '../../library/PokemonName';
+import { showsGigantamax } from '../../../utils/gigantamax';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -50,6 +51,12 @@ export function flipsName (capture: Capture): boolean {
   return Boolean(capture.has_nickname && capture.nickname);
 }
 
+// a sealed tile's sprite that FlipStrips draws over the tile, the tile's own hidden under it, so a sprite reaching up
+// covers its name wherever the name is drawn: one under a name that flips, which the overlay draws, and a giant form's
+export function liftsSprite (capture: Capture): boolean {
+  return flipsName(capture) || showsGigantamax(capture);
+}
+
 interface Props {
   capture: Capture;
 }
@@ -59,6 +66,9 @@ interface Props {
 export function hasOriginMark (game: string): boolean {
   return Boolean(ORIGIN_MARK_SPRITES[game] || ORIGIN_MARK_ICONS[game]);
 }
+
+// which mark a game wears, so games that share one (sister versions) can show it once
+export const originMarkKey = (game: string) => ORIGIN_MARK_SPRITES[game] ?? game;
 
 // a game's origin mark: its sprite, or a glyph for a trade or a gift (GO has a sprite of its own)
 export function OriginMark ({ game, title }: { game: string; title?: string }) {
@@ -76,6 +86,13 @@ export function SpeciesLine ({ capture }: Props) {
 
 export function NicknameLine ({ capture }: Props) {
   return <h4 lang={nameLang(capture.nickname!, capture.language)}><span className="nickname">{capture.nickname}</span></h4>;
+}
+
+// the Gigantamax factor's mark (pokesprite's, yarn sprites:marks), worn in the heart's place: every mon with the
+// factor is a partner, so the mark says that too
+export function GigantamaxMark () {
+  const { t } = useTranslation();
+  return <img alt="" className="gmax-mark" src="/marks/gigantamax.png" title={t('info.gigantamax')} />;
 }
 
 export function BadgeRow ({ capture }: Props) {
@@ -96,12 +113,14 @@ export function BadgeRow ({ capture }: Props) {
         {capture.origin_game && <OriginMark game={capture.origin_game} title={originName} />}
       </span>
       <span className="badge-slot">
-        {(capture.favorite === 'favorite' || capture.favorite === 'partner') &&
-          <FontAwesomeIcon
-            className={classNames('heart-badge', { partner: capture.favorite === 'partner' })}
-            icon={faHeart}
-            title={t(`favorite.${capture.favorite}`)}
-          />
+        {showsGigantamax(capture)
+          ? <GigantamaxMark />
+          : (capture.favorite === 'favorite' || capture.favorite === 'partner') &&
+            <FontAwesomeIcon
+              className={classNames('heart-badge', { partner: capture.favorite === 'partner' })}
+              icon={faHeart}
+              title={t(`favorite.${capture.favorite}`)}
+            />
         }
       </span>
       <span className="badge-slot">

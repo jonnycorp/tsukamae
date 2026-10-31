@@ -53,6 +53,16 @@ export function SavesModal ({ onRequestClose }: Props) {
     setDraftOT((prev) => prev.slice(0, nameMaxLength(next)));
   };
 
+  // the form emptied and put away: after an add or an edit, or the delete of the game it was changing
+  const resetForm = () => {
+    setDraftGame('');
+    setDraftLanguage('');
+    setDraftOT('');
+    setDraftTID('');
+    setEditId(null);
+    setAdding(false);
+  };
+
   const handleAdd = () => {
     if (!canAdd) {
       return;
@@ -64,12 +74,7 @@ export function SavesModal ({ onRequestClose }: Props) {
     } else {
       createSave(input);
     }
-    setDraftGame('');
-    setDraftLanguage('');
-    setDraftOT('');
-    setDraftTID('');
-    setEditId(null);
-    setAdding(false);
+    resetForm();
   };
 
   // fixing a typo used to mean delete and add again, which left every mon placed in the game without a location
@@ -93,8 +98,7 @@ export function SavesModal ({ onRequestClose }: Props) {
     if (window.confirm(placed > 0 ? t('saves.deleteConfirmUsed', { label, count: placed }) : t('saves.deleteConfirm', { label }))) {
       deleteSave(id);
       if (editId === id) {
-        setEditId(null);
-        setAdding(false);
+        resetForm();
       }
     }
   };

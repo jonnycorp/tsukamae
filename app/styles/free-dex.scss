@@ -1,0 +1,329 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// a free-form dex (components/pages/Tracker/FreeBoxes.tsx): its toolbar over the boxes, a box's name and tools,
+// the empty slots that add a mon, the slot a dragged mon would land on, each mon's grip, and the picker that adds one
+
+.free-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 24px;
+  margin: 0 auto 28px;
+}
+
+.free-button {
+  @include filter-label;
+  @include outline-button;
+}
+
+// Arrange Boxes, lit while the boxes' order is open
+.free-button.on {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.free-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  // with no box open there's nothing to sort
+  &.idle {
+    opacity: .5;
+  }
+}
+
+// each open box on its own, or all of them together
+.free-reach {
+  display: inline-flex;
+
+  button {
+    @include caps-label(10px);
+
+    height: $filter-control;
+    padding: 0 10px;
+    border: 2px solid var(--field-edge);
+    background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+
+    + button {
+      border-left: 0;
+    }
+
+    &.on {
+      border-color: var(--accent);
+      background-color: var(--accent);
+      color: var(--on-accent);
+    }
+  }
+}
+
+.free-sort-label {
+  color: var(--ink-muted);
+
+  @include caps-label(10px);
+}
+
+// a box's count and tools, together at the header's end
+.free-box-header {
+  position: relative;
+
+  &.over {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .free-box-end {
+    display: inline-flex;
+    grid-column: 3;
+    justify-self: end;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.free-box-tools {
+  display: inline-flex;
+
+  button {
+    @include outline-button(26px);
+
+    width: 28px;
+    padding: 0;
+    font-size: 11px;
+
+    + button {
+      border-left: 0;
+    }
+
+    &:disabled {
+      opacity: .35;
+      cursor: default;
+    }
+  }
+
+  // a box's padlock, lit while its mons are open
+  .free-box-lock.on {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--on-accent);
+  }
+}
+
+// a box's grip while the boxes' order is open: the only thing that drags it
+.free-box-grip {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 30px;
+  border: 2px solid var(--field-edge);
+  background-color: var(--paper-raised);
+  color: var(--ink-muted);
+  font-size: 12px;
+  cursor: grab;
+  transform: translateY(-50%);
+}
+
+// arranging the boxes: each box a block to pick up, and the one a dragged box would take the place of lit
+.free-grid.arranging .free-box {
+  outline: 2px dashed var(--field-edge);
+  outline-offset: 8px;
+}
+
+.free-grid .free-box.box-over {
+  outline: 3px solid var(--accent);
+  outline-offset: 8px;
+}
+
+// a box with its mons open: its frame marches round it, as a home screen's icons shake, and its mons show their grips
+.free-box.open .box-container::after {
+  position: absolute;
+  inset: -6px;
+  z-index: 2;
+  background:
+    linear-gradient(90deg, var(--accent) 50%, transparent 0) repeat-x 0 0 / 14px 2px,
+    linear-gradient(90deg, var(--accent) 50%, transparent 0) repeat-x 0 100% / 14px 2px,
+    linear-gradient(0deg, var(--accent) 50%, transparent 0) repeat-y 0 0 / 2px 14px,
+    linear-gradient(0deg, var(--accent) 50%, transparent 0) repeat-y 100% 0 / 2px 14px;
+  content: '';
+  pointer-events: none;
+  animation: free-march 1.2s linear infinite;
+}
+
+@keyframes free-march {
+  to {
+    background-position: 14px 0, -14px 100%, 0 -14px, 100% 14px;
+  }
+}
+
+.free-box-name-input {
+  grid-column: 2;
+  width: 220px;
+  height: 36px;
+  padding: 0 10px;
+  border: 2px solid var(--accent);
+  background-color: var(--paper-raised);
+  color: var(--ink);
+  font-family: $font-secondary;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+
+// an empty slot: a press adds a mon there, its + showing as it's pointed at
+.pokemon.free-empty {
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-style: solid;
+  border-width: 0;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 18px;
+  cursor: pointer;
+
+  > svg {
+    opacity: 0;
+    transition: opacity .1s ease-out;
+  }
+
+  &:hover > svg,
+  &:focus-visible > svg {
+    opacity: 1;
+  }
+}
+
+// a tile-grid's own lines, which its direct children draw, for the empty slots as for the tiles
+.free-grid .tile-grid > .pokemon.free-empty:not(:nth-child(#{$box-columns}n + 1)) {
+  border-left-width: 1px;
+}
+
+.free-grid .tile-grid > .pokemon.free-empty:nth-child(n + #{$box-columns + 1}) {
+  border-top-width: 1px;
+}
+
+// where a dragged mon would land
+.free-over {
+  position: absolute;
+  z-index: 3;
+  box-shadow: inset 0 0 0 3px var(--accent);
+  pointer-events: none;
+}
+
+// a mon's grip, the only thing that drags it, at the middle of its left edge, clear of its name and its badges
+.pokemon .free-grip {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  z-index: 4;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 26px;
+  transform: translateY(-50%);
+  border: 1px solid var(--line);
+  background-color: var(--paper-raised);
+  color: var(--ink-muted);
+  font-size: 11px;
+  cursor: grab;
+}
+
+// a free-form dex on the landing
+.dex-free-tag {
+  @include caps-label(10px);
+
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+}
+
+// the picker that adds a mon: a name or number in, the matches under it with their sprites
+.species-picker {
+  position: fixed;
+  z-index: 120;
+  width: 300px;
+  border: 2px solid var(--overlay-edge);
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  box-shadow: $menu-shadow;
+}
+
+.species-picker-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid var(--overlay-line);
+  background: none;
+  color: inherit;
+  font-size: 15px;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.species-picker-list {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+}
+
+.species-picker-none {
+  padding: 8px 12px;
+  color: var(--on-overlay-muted);
+}
+
+.species-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &.hot {
+    background-color: var(--overlay-hover, rgb(255 255 255 / 8%));
+  }
+}
+
+.species-picker-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 32px;
+  overflow: hidden;
+}
+
+.species-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.species-picker-form,
+.species-picker-number {
+  flex: none;
+  color: var(--on-overlay-muted);
+
+  @include small-text(11px);
+}
