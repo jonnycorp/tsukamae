@@ -1,17 +1,20 @@
 // an unsealed tile's types: their glyphs in their colours at the foot's right, beside the number, the first over the
 // second, from the tile's --type-a/-b colours and --glyph-a/-b masks (Pokemon.tsx). A sealed tile shows its types on
-// its species' page in its flips, so it's left alone; a checklist's checked one has no flips, so it keeps them
-.pokemon:not(.empty):is(:not(.sealed), .checklist)::after {
-  content: '';
-  position: absolute;
-  right: 7px;
-  bottom: 7px;
-  width: 13px;
-  height: 30px;
-  background-image: linear-gradient(var(--type-a) 50%, var(--type-b) 50%);
-  mask-image: var(--glyph-a), var(--glyph-b);
-  mask-position: var(--glyph-a-at), center bottom;
-  mask-size: 13px 13px;
-  mask-repeat: no-repeat;
-  pointer-events: none;
+// its species' page in its flips, so it's left alone; a checklist's checked one has no flips, so it keeps them. The
+// narrow list's rows have none (the window under 751px, as use-tracker's narrow)
+@media (width > 750px) {
+  .pokemon:not(.empty):is(:not(.sealed), .checklist)::after {
+    content: '';
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    width: 13px;
+    height: 30px;
+    background-image: linear-gradient(var(--type-a) 50%, var(--type-b) 50%);
+    mask-image: var(--glyph-a), var(--glyph-b);
+    mask-position: var(--glyph-a-at), center bottom;
+    mask-size: 13px 13px;
+    mask-repeat: no-repeat;
+    pointer-events: none;
+  }
 }

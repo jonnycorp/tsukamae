@@ -463,7 +463,14 @@ export function dexCounts (dex: PersonalDex): { marked: number; temporary: numbe
   // a free-form dex's own: how many of its mons are sealed, of all it holds
   if (dex.free) {
     const entries = dex.entries ?? [];
-    return { marked: entries.filter((entry) => dex.progress[entry.id]?.sealed).length, temporary: 0, caught: entries.length, total: entries.length };
+    // each mon's status as freeCaptures reads it: caught, unless its record says otherwise
+    const statusOf = (id: number) => dex.progress[id]?.status ?? 'caught';
+    return {
+      marked: entries.filter((entry) => dex.progress[entry.id]?.sealed).length,
+      temporary: entries.filter((entry) => statusOf(entry.id) === 'temporary').length,
+      caught: entries.filter((entry) => statusOf(entry.id) === 'caught').length,
+      total: entries.length,
+    };
   }
   const catalog = getCatalogDex(dex.catalogKey);
   let marked = 0;

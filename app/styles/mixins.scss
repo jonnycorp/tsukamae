@@ -271,10 +271,6 @@ $block-drop-room: 6px;
     transition: none;
   }
 
-  :root[data-still] & {
-    transition: none;
-  }
-
   // its grip, down its left: a cell in its game's colour (--spine), seamed off the face, a grid of square dots in its
   // middle; under the seam above it, over the stack's edge below the last. The one place the hand shows, and the one
   // place the tile is picked up

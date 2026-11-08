@@ -8,7 +8,7 @@ import { CAPTURE_FIELDS, EMPTY_METADATA, findSave, saveLabel, statusKey, unanswe
 import { CaptureFieldControl, NOT_MINE } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { canHold } from '../../../utils/game-reach';
-import { destinations, placeFromKey, placeKey, placeLabel } from '../../../utils/location-moves';
+import { destinations, dexPlacesFor, placeFromKey, placeKey, placeLabel } from '../../../utils/location-moves';
 import { offersChampions } from '../../../utils/champions';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useMark } from './use-mark';
@@ -76,7 +76,9 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
   // Champions only while every one of them can go there (utils/champions), and the games that can hold every one of
   // them (canHold), as a single mon's own move offers
   const toChampions = homeDex && recorded.every((capture) => offersChampions(capture, homeDex));
-  const places = destinations(saves, toChampions, (save) => recorded.every((capture) => capture.location_save === save.id || canHold(save, capture, saves)));
+  const [home, ...games] = destinations(saves, toChampions, (save) => recorded.every((capture) => capture.location_save === save.id || canHold(save, capture, saves)));
+  // and a free-form dex's mons HOME in one of your checklists' boxes, after HOME as placesFor lists them
+  const places = [home, ...dexPlacesFor(activeDex, dexes ?? []), ...games];
   const placed = draft.location ? placeKey({ location: draft.location, location_save: draft.location_save ?? null }) : '';
   // a place picked before the selection changed, which one of them now can't go to, is no longer there to apply
   const ready = Object.keys(draft).length > 0 && settable.length > 0 && (field !== 'location' || places.some((place) => placeKey(place) === placed));

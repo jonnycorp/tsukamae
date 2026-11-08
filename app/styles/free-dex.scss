@@ -68,7 +68,7 @@
   @include caps-label(10px);
 }
 
-// a box's count and tools, together at the header's end
+// a box's tools, at the header's end
 .free-box-header {
   position: relative;
 
@@ -164,10 +164,11 @@
   }
 }
 
+// as tall as the name's line (.box-header h1), so its header, and the row of boxes, keep their height as it's renamed
 .free-box-name-input {
   grid-column: 2;
   width: 220px;
-  height: 36px;
+  height: calc(25px * 1.35);
   padding: 0 10px;
   border: 2px solid var(--accent);
   background-color: var(--paper-raised);
@@ -199,15 +200,6 @@
   &:focus-visible > svg {
     opacity: 1;
   }
-}
-
-// a tile-grid's own lines, which its direct children draw, for the empty slots as for the tiles
-.free-grid .tile-grid > .pokemon.free-empty:not(:nth-child(#{$box-columns}n + 1)) {
-  border-left-width: 1px;
-}
-
-.free-grid .tile-grid > .pokemon.free-empty:nth-child(n + #{$box-columns + 1}) {
-  border-top-width: 1px;
 }
 
 // where a dragged mon would land

@@ -167,11 +167,12 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
     return () => cancelAnimationFrame(frame);
   }, [place, scale]);
 
-  // a free-form dex's mon dragged to another slot or box (FreeBoxes) has its tile drawn there anew: beside that one
-  const order = capture ? captures.indexOf(capture) : -1;
+  // a record changed anywhere can move its tile: a free-form dex's mon dragged to another slot or box (FreeBoxes) is
+  // drawn there anew, and a mon before it released or moved out of a filtered view closes the tiles up, maybe into the
+  // results chunk before, where it's drawn anew too: beside it where it's come to, its ring put back
   useLayoutEffect(() => {
     place(false);
-  }, [place, order, capture?.pokemon.box]);
+  }, [place, captures]);
 
   useEffect(() => {
     let frame = 0;

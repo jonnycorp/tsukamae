@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
 import { faArrowLeft, faArrowRight, faBan, faCheck, faCircleExclamation, faClock, faList, faLock, faLockOpen, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { CAPTURE_FIELDS, formatFieldValue, unansweredFields } from '../../../utils/capture-fields';
 import { CaptureFieldControl } from '../../library/CaptureFieldControl';
@@ -192,6 +192,7 @@ function UnsealHold ({ onUnseal }: { onUnseal: () => void }) {
 
 interface Props {
   // the mons to go through, as the dex showed them when it opened; kept, so one sealed out of the view stays in the run
+  // (one released from a free-form dex leaves the dex, and the run, altogether)
   queue: number[];
   start: number;
   // closing: back to the dex, at the mon it ended on (none, from an empty run)
@@ -203,7 +204,7 @@ interface Props {
 // listed beside them to jump about in. Made to be filled in steadily from the keyboard: 1 2 3 mark, Enter goes from
 // field to field still to fill (a menu opening as it's reached), Ctrl+Enter stamps the seal, the mon staying up to be
 // looked over, and again goes on to the next
-export function Review ({ queue, start, onClose }: Props) {
+export function Review ({ queue: opened, start, onClose }: Props) {
   const { captures } = useTrackerState();
   const { activeDex, activeDexView, dexes, saves } = useDexContext();
   const { moveTo, releaseCaptures } = useTrackerActions();
@@ -216,7 +217,7 @@ export function Review ({ queue, start, onClose }: Props) {
   // over the mon in a narrow window: closed as the review opens, and again as a mon's picked from it
   const [narrowList, setNarrowList] = useState(false);
   const list = narrow ? narrowList : listShown;
-  const [index, setIndex] = useState(Math.max(0, Math.min(queue.length - 1, start)));
+  const [index, setIndex] = useState(Math.max(0, Math.min(opened.length - 1, start)));
   const indexRef = useRef(index);
   indexRef.current = index;
   // which way the last move went, so the next mon comes in from that side
@@ -240,6 +241,14 @@ export function Review ({ queue, start, onClose }: Props) {
   useInertPage();
 
   const byId = useMemo(() => new Map(captures.map((entry) => [entry.pokemon.id, entry])), [captures]);
+  // the run as it stands: a mon released from a free-form dex gone from it, the next coming up in its place, or at the
+  // run's end the one before, before it's ever drawn empty
+  const queue = useMemo(() => opened.filter((id) => byId.has(id)), [opened, byId]);
+  useLayoutEffect(() => {
+    if (queue.length > 0 && index > queue.length - 1) {
+      setIndex(queue.length - 1);
+    }
+  }, [index, queue.length]);
   const tally = useMemo(() => {
     let sealed = 0;
     let open = 0;
@@ -255,6 +264,14 @@ export function Review ({ queue, start, onClose }: Props) {
   }, [queue, byId]);
 
   const capture = byId.get(queue[index]);
+  // each mon from the top of the stage: the last one's scroll (the wheel's, or the Enter flow's to a plate below the
+  // fold) would keep the next one's number and lens out of sight as it comes in. Before the flow scrolls to its field
+  const shownId = capture?.pokemon.id;
+  useLayoutEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [shownId]);
   const missing = capture?.captured && capture.status !== 'unobtainable' ? unansweredFields(capture, capture.pokemon.gender_lock) : [];
   const missingIds = new Set(missing.map((field) => field.id));
   const sealable = Boolean(capture?.captured && capture.status === 'caught' && !capture.sealed && missing.length === 0);
@@ -352,8 +369,9 @@ export function Review ({ queue, start, onClose }: Props) {
         return;
       }
       const target = e.target instanceof Element ? e.target : null;
-      const typing = target?.closest('input, textarea, [contenteditable]') ?? null;
-      const field = typing ?? target?.closest('.dropdown-trigger') ?? null;
+      // a checkbox (the Nickname box) takes no text, so the keys stay the review's
+      const typing = target?.closest('input:not([type="checkbox"]), textarea, [contenteditable]') ?? null;
+      const field = typing ?? target?.closest('.dropdown-trigger, input[type="checkbox"]') ?? null;
       const bare = !e.ctrlKey && !e.metaKey && !e.altKey;
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
@@ -373,8 +391,10 @@ export function Review ({ queue, start, onClose }: Props) {
       }
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (field instanceof HTMLElement) {
-          field.blur();
+        // a recent date under the date's box is part of that field (DateInput), so Esc leaves the field from there too
+        const leaving = field ?? target?.closest('.date-recent-pick') ?? null;
+        if (leaving instanceof HTMLElement) {
+          leaving.blur();
           mainRef.current?.focus({ preventScroll: true });
         } else if (narrow && narrowList) {
           setNarrowList(false);
@@ -393,6 +413,10 @@ export function Review ({ queue, start, onClose }: Props) {
         }
       } else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && (!typing || e.ctrlKey || e.altKey)) {
         e.preventDefault();
+        // what's typed is committed as it's left (a date padded out), so it goes with this mon, not lost
+        if (field instanceof HTMLElement) {
+          field.blur();
+        }
         go(e.key === 'ArrowRight' ? 1 : -1);
       } else if (!typing && bare) {
         const letter = e.key.toLowerCase();

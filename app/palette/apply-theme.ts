@@ -1,16 +1,17 @@
 import { DISPLAY_MODES } from '../utils/display-modes';
 import { FADE_MS } from '../hooks/use-dismissable';
-import { DEFAULT_THEME, findTheme, themePalette, themeSlug } from './themes';
+import { DEFAULT_THEME, findTheme, themePalette, themeSide, themeSlug } from './themes';
 import { whenSettled } from '../utils/when-settled';
 
 import type { DisplayMode } from '../utils/display-modes';
 
 export const THEME_STORAGE_KEY = 'theme';
-export const SOFT_DARK_STORAGE_KEY = 'nightMode';
 // the palette menu's display switches: location tints on by default, still mode off, and the sealed tiles' display
 // mode (utils/display-modes), Hexagon by default
 export const LOCATION_TINTS_STORAGE_KEY = 'locationTints';
 export const STILL_STORAGE_KEY = 'stillMode';
+// the themes' own typefaces for headings and figures (styles/themes.scss), on by default
+export const TYPEFACES_STORAGE_KEY = 'themeTypefaces';
 export const DISPLAY_STORAGE_KEY = 'tileDisplay';
 
 // the modal backdrop's black, rgba(0, 0, 0, .35) in styles/main.scss
@@ -33,10 +34,22 @@ function shaded (color: string, alpha: number): string {
   return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 }
 
-// the desktop window buttons sit on the nav (or a scene's bar, in the nav's colours), drawn by the system, so they take
-// its colours, and its dimming under a modal
+// #rrggbb with no alpha, as rgba(); anything else is passed through
+function clear (color: string): string {
+  const match = /^#([0-9a-f]{6})$/i.exec(color);
+  if (!match) {
+    return color;
+  }
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(match[1].slice(i, i + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, 0)`;
+}
+
+// the desktop window buttons sit on the nav (or a scene's bar, in the nav's colours), drawn by the system. Their glyphs
+// take its colours, and its dimming under a modal; their ground is its colour with no alpha, so the bar itself shows
+// under them, whatever a theme draws on it (waves, a rope, a hinge, an edge), and the backdrop dims it there as it dims
+// the bar, while their hover and press still take a tint that suits the bar's colour
 function sendTitleBar () {
-  window.tracker?.setTitleBarColors({ color: shaded(titleBar.color, shade), symbolColor: shaded(titleBar.symbolColor, shade) });
+  window.tracker?.setTitleBarColors({ color: clear(shaded(titleBar.color, shade)), symbolColor: shaded(titleBar.symbolColor, shade) });
 }
 
 // frame by frame alongside the backdrop's fade (ease-out, as in the CSS), starting from wherever the last fade left it;
@@ -63,33 +76,34 @@ export function dimTitleBar (dim: boolean) {
   shadeFrame = requestAnimationFrame(step);
 }
 
-function setTokens (name: string, softDark: boolean) {
+function setTokens (name: string) {
   const root = document.documentElement;
   const seed = findTheme(name);
-  const palette = themePalette(seed, softDark ? 'dark' : 'light');
+  const side = themeSide(seed);
+  const palette = themePalette(seed, side);
   for (const [token, value] of Object.entries(palette)) {
     root.style.setProperty(`--${token}`, value);
   }
-  root.classList.toggle('soft-dark', softDark);
   // a theme's character beyond its colours keys on these (styles/themes.scss)
   root.dataset.theme = themeSlug(seed.name);
-  root.dataset.mode = softDark ? 'dark' : 'light';
+  root.dataset.mode = side;
   titleBar = { color: palette.chrome, symbolColor: palette['on-chrome'] };
 }
 
 // the browser repaints the buttons at once, while the page takes a frame or more to restyle for a new theme: sent with
 // the change, the buttons flipped that far ahead of the nav, so they're sent once the page has rendered it
-export function applyTheme (name: string, softDark: boolean) {
-  setTokens(name, softDark);
+export function applyTheme (name: string) {
+  setTokens(name);
   requestAnimationFrame(() => setTimeout(sendTitleBar));
 }
 
 // attributes on the root for the styles to read, so switching any of them restyles the dex without rendering a tile:
-// with location tints off every sealed tile takes a game's wash; in still mode nothing moves (the boxes' shine, the
-// meter's water; useFlipClock holds the flips), the sealed look staying as it is. The display mode picks the flips'
+// with location tints off every sealed tile takes a game's wash; in still mode nothing moves (the meter's water;
+// useFlipClock holds the flips), the sealed look staying as it is. The display mode picks the flips'
 // cycle for its pages (styles/tile-faces.scss), the pages FlipStrips draws
-export function applyDisplay (locationTints: boolean, still: boolean, display: DisplayMode) {
+export function applyDisplay (locationTints: boolean, still: boolean, display: DisplayMode, typefaces: boolean) {
   const root = document.documentElement;
+  root.toggleAttribute('data-typefaces', typefaces);
   root.toggleAttribute('data-plain-seals', !locationTints);
   root.toggleAttribute('data-still', still);
   root.dataset.display = display;
@@ -144,8 +158,8 @@ function readJson<T> (key: string, fallback: T): T {
 // runs before the first render so launch never paints without its tokens; the window stays hidden until that first
 // paint, so the buttons take their colours straight away
 export function bootstrapTheme () {
-  setTokens(readJson(THEME_STORAGE_KEY, DEFAULT_THEME), readJson(SOFT_DARK_STORAGE_KEY, false));
+  setTokens(readJson(THEME_STORAGE_KEY, DEFAULT_THEME));
   const display = readJson<DisplayMode>(DISPLAY_STORAGE_KEY, 'hexagon');
-  applyDisplay(readJson(LOCATION_TINTS_STORAGE_KEY, true), readJson(STILL_STORAGE_KEY, false), DISPLAY_MODES.includes(display) ? display : 'hexagon');
+  applyDisplay(readJson(LOCATION_TINTS_STORAGE_KEY, true), readJson(STILL_STORAGE_KEY, false), DISPLAY_MODES.includes(display) ? display : 'hexagon', readJson(TYPEFACES_STORAGE_KEY, true));
   sendTitleBar();
 }

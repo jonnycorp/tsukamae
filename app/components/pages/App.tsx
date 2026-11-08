@@ -1,11 +1,9 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 
 import { DexContextProvider, useDexContext } from '../../hooks/contexts/use-dex-context';
 import { Landing } from './Landing';
 import { Nav } from '../library/Nav';
-import { ThemePreview } from './ThemePreview';
 import { Tracker } from './Tracker';
-import { TESTING, useDevScaffolding, useProdPreviewHotkey } from '../../utils/testing';
 import { applyDisplay, applyTheme } from '../../palette/apply-theme';
 import { isSaveOk, subscribeSaveStatus } from '../../utils/local-data';
 import { useDisplayContext, useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
@@ -14,11 +12,10 @@ import { useTranslation } from '../../hooks/use-translation';
 
 export function App () {
   const { locale } = useLocalStorageContext();
-  const { isSoftDark, theme, locationTints, still } = useThemeContext();
+  const { theme, locationTints, still, typefaces } = useThemeContext();
   const { display } = useDisplayContext();
 
   useScrollbarFade();
-  useProdPreviewHotkey();
 
   // drives CJK font behavior
   useEffect(() => {
@@ -26,12 +23,12 @@ export function App () {
   }, [locale]);
 
   useEffect(() => {
-    applyTheme(theme, isSoftDark);
-  }, [theme, isSoftDark]);
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
-    applyDisplay(locationTints, still, display);
-  }, [locationTints, still, display]);
+    applyDisplay(locationTints, still, display, typefaces);
+  }, [locationTints, still, display, typefaces]);
 
   return (
     <div className="root">
@@ -46,19 +43,6 @@ function AppContent () {
   const { dexes, activeDex, loadFailed } = useDexContext();
   const { t } = useTranslation();
   const saveOk = useSyncExternalStore(subscribeSaveStatus, isSaveOk);
-  // Electron loads no query string, so the nav button is the way in there; the production preview (Ctrl+Shift+P) shows
-  // the app as a production build has it, the theme preview and its button gone
-  const [showPreview, setShowPreview] = useState(TESTING && window.location.search.includes('preview'));
-  const dev = useDevScaffolding();
-
-  if (showPreview && dev) {
-    return (
-      <>
-        <Nav onTogglePreview={() => setShowPreview(false)} />
-        <ThemePreview />
-      </>
-    );
-  }
 
   let page;
   if (loadFailed) {
@@ -73,7 +57,7 @@ function AppContent () {
   // failed save stays on screen under it until a save goes through
   return (
     <>
-      <Nav onTogglePreview={dev ? () => setShowPreview(true) : undefined} />
+      <Nav />
       {!saveOk && <p className="save-failed" role="alert">{t('app.saveFailed', { export: t('nav.export') })}</p>}
       {page}
     </>

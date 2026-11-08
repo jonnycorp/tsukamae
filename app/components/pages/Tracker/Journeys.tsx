@@ -442,6 +442,8 @@ export function Journeys ({ back, onClose, onFilter }: Props) {
   const [grouping, setGrouping] = useLocalStorage<Grouping>('journeysGrouping', 'pairs');
   const [gifts, setGifts] = useLocalStorage('journeysGifts', false);
   const data = useMemo(() => journeys(captures, saves, grouping, gifts), [captures, saves, grouping, gifts]);
+  // whether the Mystery Gift switch moves anything: with no gifts sealed, it only changes its own look
+  const anyGifts = useMemo(() => captures.some((capture) => capture.sealed && capture.origin_game === MYSTERY_GIFT), [captures]);
   const pageRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -456,6 +458,8 @@ export function Journeys ({ back, onClose, onFilter }: Props) {
   const [moving, setMoving] = useState(false);
   const [reshaping, setReshaping] = useState(false);
   const gradientId = useId();
+  // the strands' opening draw done: its clip, there for the draw alone, comes off
+  const [revealed, setRevealed] = useState(false);
 
   // the move's end counted from the last change, so changing back mid-move runs the whole way to the other side
   useEffect(() => {
@@ -680,7 +684,7 @@ export function Journeys ({ back, onClose, onFilter }: Props) {
                   </span>
                 </span>
                 <span className="jr-split">
-                  <button aria-pressed={gifts} className={classNames('jr-gifts', { on: gifts })} onClick={() => reshape(() => setGifts(!gifts))} type="button">
+                  <button aria-pressed={gifts} className={classNames('jr-gifts', { on: gifts })} onClick={() => (anyGifts ? reshape(() => setGifts(!gifts)) : setGifts(!gifts))} type="button">
                     <OriginMark game={MYSTERY_GIFT} />
                     {originName(MYSTERY_GIFT)}
                   </button>
@@ -727,7 +731,7 @@ export function Journeys ({ back, onClose, onFilter }: Props) {
                           );
                         })}
                         <clipPath id={`${gradientId}-reveal`}>
-                          <rect className="jr-reveal" height={layout.height} width={width} x={0} y={0} />
+                          <rect className="jr-reveal" height={layout.height} onAnimationEnd={() => setRevealed(true)} width={width} x={0} y={0} />
                         </clipPath>
                       </defs>
                       {/* the lanes, every other one washed, so a game reads across to its own generation */}
@@ -736,7 +740,7 @@ export function Journeys ({ back, onClose, onFilter }: Props) {
                           <rect className={classNames('jr-lane', { wash: i % 2 === 0 })} height={lane.h} key={i} width={width} x={0} y={lane.y} />
                         ))}
                       </g>
-                      <g clipPath={`url(#${gradientId}-reveal)`}>
+                      <g clipPath={revealed ? undefined : `url(#${gradientId}-reveal)`}>
                         {layout.pieces.map(({ piece, d }) => (
                           <path
                             className={classNames('jr-piece', { dim: !litPiece(piece) })}

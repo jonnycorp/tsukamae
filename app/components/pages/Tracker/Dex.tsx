@@ -67,7 +67,8 @@ function buildPlan (count: number, columns: number, rows: number, entrance: bool
   const shown = first(inView - 1) + 2;
   const perFrame = entrance ? LATER_PER_FRAME : BOXES_PER_FRAME;
   const box = (index: number) => (index < inView ? first(index) : shown + 1 + Math.floor((index - inView) / perFrame));
-  return { box, shown, last: box(Math.max(0, count - 1)) + 1 };
+  // the boxes shown at the latest, though every one of them fits the first screenful
+  return { box, shown, last: Math.max(shown, box(Math.max(0, count - 1)) + 1) };
 }
 
 interface GridProps {

@@ -21,8 +21,9 @@ const RINGS = [
   { r: 430, n: 8, period: 180 },
   { r: 560, n: Infinity, period: 240 },
 ];
-// the stage as laid out, and the room either side of the outer ring it keeps in a narrower one
-const STAGE_H = 620;
+// the stage as laid out, its plane 254px down it (styles/orrery.scss), with room under the outer ring's near side for a
+// ball passing there with its specks; and the room either side of the outer ring it keeps in a narrower one
+const STAGE_H = 660;
 const SIDE_ROOM = 70;
 // a ball's sprite drawn at whole multiples of its 32px, by how many mons it holds
 const SIZES: [number, number][] = [[30, 96], [8, 64], [0, 32]];
@@ -32,7 +33,8 @@ const SPECK_STEP = 6;
 const SPECK_PITCH = 6.5;
 const SPECK_R = 2.3;
 const TIP_GAP = 18;
-const TIP_MONS = 31;
+// the tip's grid, eight across and four down; one more than fits gives up the last cell to "+n"
+const TIP_MONS = 32;
 
 interface Body {
   ball: string;
@@ -216,8 +218,8 @@ export function BallOrrery ({ back, onClose, onFilter }: Props) {
                   </span>
                 </div>
                 <span className="orb-tip-mons">
-                  {hotBody.mons.slice(0, TIP_MONS).map((capture) => <SceneMon key={capture.pokemon.id} pokemon={capture.pokemon} />)}
-                  {hotBody.mons.length > TIP_MONS && <span className="orb-tip-more">+{hotBody.mons.length - TIP_MONS}</span>}
+                  {hotBody.mons.slice(0, hotBody.mons.length > TIP_MONS ? TIP_MONS - 1 : TIP_MONS).map((capture) => <SceneMon key={capture.pokemon.id} pokemon={capture.pokemon} />)}
+                  {hotBody.mons.length > TIP_MONS && <span className="orb-tip-more">+{hotBody.mons.length - TIP_MONS + 1}</span>}
                 </span>
                 <em>{t('orrery.press')}</em>
               </div>

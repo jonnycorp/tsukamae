@@ -53,15 +53,10 @@
   }
 }
 
-// the glint crosses every box of a row plus a stride either side, then dwells offscreen for the second half
-@keyframes seal-shine {
-  0% {
-    transform: none;
-  }
-
-  50%,
-  100% {
-    transform: translateX(calc((var(--dex-columns, 2) + 2) * #{$box-width + $dex-grid-gap}));
+// a seal material's flow moves its pattern a period, back to where it looks as it began (styles/tracker.scss)
+@keyframes seal-flow {
+  to {
+    transform: translate(var(--flow-x, 0), var(--flow-y, 0));
   }
 }
 

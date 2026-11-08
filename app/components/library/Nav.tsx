@@ -1,11 +1,11 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faCirclePause, faFileExport, faFileImport, faFlask, faGamepad, faGear, faHexagonNodes, faLanguage, faLocationDot, faMoon, faPalette, faRing } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCirclePause, faFileExport, faFileImport, faFont, faGamepad, faGear, faHexagonNodes, faLanguage, faLocationDot, faPalette, faRing } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { DISPLAY_MODES } from '../../utils/display-modes';
 import { SavesModal } from './SavesModal';
-import { THEMES, themePalette } from '../../palette/themes';
+import { THEMES, themePalette, themeSide, themeSlug } from '../../palette/themes';
 import { exportAppState, importAppState, isAppState } from '../../utils/local-data';
 import { today } from '../../utils/date-entry';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
@@ -41,10 +41,6 @@ function useOutsideClickClose (open: boolean, ref: RefObject<HTMLDivElement>, cl
   }, [open]);
 }
 
-interface Props {
-  onTogglePreview?: () => void;
-}
-
 const THEME_DOTS = ['chrome', 'accent', 'status-unobtainable', 'status-temporary', 'status-caught'];
 
 // each display mode's sign in the menu
@@ -53,9 +49,9 @@ const DISPLAY_ICONS: Record<DisplayMode, IconDefinition> = {
   orbit: faRing,
 };
 
-export function Nav ({ onTogglePreview }: Props) {
+export function Nav () {
   const { locale, setLocale } = useLocalStorageContext();
-  const { isSoftDark, setIsSoftDark, theme, setTheme, locationTints, setLocationTints, still, setStill } = useThemeContext();
+  const { theme, setTheme, locationTints, setLocationTints, still, setStill, typefaces, setTypefaces } = useThemeContext();
   const { display, setDisplay } = useDisplayContext();
   const { dexes, setActiveDex } = useDexContext();
   const { t } = useTranslation();
@@ -160,34 +156,31 @@ export function Nav ({ onTogglePreview }: Props) {
         <FontAwesomeIcon icon={faLanguage} />
         <span className="tooltip-text">{locale === 'en' ? '日本語' : 'English'}</span>
       </a>
-      {onTogglePreview &&
-        <a className="nav-icon tooltip" onClick={onTogglePreview}>
-          <FontAwesomeIcon icon={faFlask} />
-          <span className="tooltip-text">Theme Preview</span>
-        </a>
-      }
       <div className="nav-menu" ref={themeMenuRef}>
         <a className="nav-icon tooltip" onClick={() => setShowThemeMenu((open) => !open)}>
           <FontAwesomeIcon icon={faPalette} />
           <span className="tooltip-text">{t('nav.theme')}</span>
         </a>
+        {/* the menu keeps the app's own faces whatever the theme; with the typefaces switch on, each theme's name is
+            set in its own, a preview of it (styles/themes.scss) */}
         {showThemeMenu &&
           <ul className="nav-menu-dropdown theme-popover">
             {THEMES.map((seed) => (
               <li className={seed.name === theme ? 'theme-active' : ''} key={seed.name} onClick={() => setTheme(seed.name)}>
                 <span className="theme-dots">
                   {THEME_DOTS.map((token) => (
-                    <span className="theme-dot" key={token} style={{ backgroundColor: themePalette(seed, isSoftDark ? 'dark' : 'light')[token] }} />
+                    <span className="theme-dot" key={token} style={{ backgroundColor: themePalette(seed, themeSide(seed))[token] }} />
                   ))}
                 </span>
-                {seed.name}
+                <span data-face={themeSlug(seed.name)}>{seed.name}</span>
                 {seed.name === theme && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
               </li>
             ))}
-            <li className={`theme-soft-dark ${isSoftDark ? 'theme-active' : ''}`} onClick={() => setIsSoftDark(!isSoftDark)}>
-              <FontAwesomeIcon icon={faMoon} />
-              {t('nav.softDark')}
-              {isSoftDark && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
+            {/* a theme's own typefaces for its headings and figures, where it has them (styles/themes.scss) */}
+            <li className={`theme-typefaces ${typefaces ? 'theme-active' : ''}`} onClick={() => setTypefaces(!typefaces)}>
+              <FontAwesomeIcon icon={faFont} />
+              {t('nav.typefaces')}
+              {typefaces && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
             </li>
             {/* how the sealed tiles show their pages (utils/display-modes, O to switch): Hexagon for day-to-day work,
                 Orbit for the pleasure of it */}

@@ -5,11 +5,12 @@ import { EMPTY_METADATA } from '../../../utils/capture-fields';
 import { deleteCaptures, moveCapture, progressToCaptures, writeCapture } from '../../../utils/local-data';
 import { isDexPlaceId } from '../../../utils/dex-places';
 import { removeEntries } from '../../../utils/free-dex';
-import { movedRecord, placeOf, samePlace } from '../../../utils/location-moves';
+import { locationTint, movedRecord, placeOf, samePlace } from '../../../utils/location-moves';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 
 import type { Capture, Place } from '../../../types';
 import type { Dispatch, MutableRefObject, ReactNode, SetStateAction } from 'react';
+import type { LocationTint } from '../../../utils/location-moves';
 import type { UpdateCapturePayload } from '../../../utils/local-data';
 
 // a checklist's check, and its Elsewhere (a mon you have that another dex represents, tinted as one checked out of
@@ -18,12 +19,11 @@ export function isDisplaySealed (capture: Capture, checklist: boolean): boolean 
   return checklist ? capture.status === 'caught' || capture.status === 'temporary' : capture.sealed;
 }
 
-// a grid's shine (a box's, or a chunk of search results `columns` across), one band clipped to its sealed slots — a
-// per-tile shine layer exhausts GPU memory in a checklist; null with nothing sealed. Boxes and search results chunks
-// both draw it, so a seal shines in every view
-export function shineClip (captures: Capture[], checklist: boolean, columns = BOX_COLUMNS): string | null {
+// the slots of a grid (a box's, or a chunk of search results `columns` across) that `takes` picks, as one path: a seal
+// material's clip; null with none
+function slotsPath (captures: Capture[], columns: number, takes: (capture: Capture) => boolean): string | null {
   const holes = captures.reduce<string[]>((all, capture, index) => {
-    if (isDisplaySealed(capture, checklist)) {
+    if (takes(capture)) {
       const x = (index % columns) * TILE_SIZE;
       const y = Math.floor(index / columns) * TILE_SIZE;
       all.push(`M${x} ${y}h${TILE_SIZE}v${TILE_SIZE}h-${TILE_SIZE}Z`);
@@ -31,6 +31,32 @@ export function shineClip (captures: Capture[], checklist: boolean, columns = BO
     return all;
   }, []);
   return holes.length > 0 ? `path('${holes.join('')}')` : null;
+}
+
+// a grid's sealed slots as one path, the clip of its seal material (styles/tracker.scss) — a layer per tile exhausts
+// GPU memory in a checklist; null with nothing sealed. Boxes and search results chunks both draw it, so a seal looks the
+// same in every view
+export function sealClip (captures: Capture[], checklist: boolean, columns = BOX_COLUMNS): string | null {
+  return slotsPath(captures, columns, (capture) => isDisplaySealed(capture, checklist));
+}
+
+// a sealed tile's tint for where its mon is (utils/location-moves), when it's away from where its dex keeps them; a
+// checklist's Elsewhere is tinted as a mon checked out of HOME is
+export function tileTint (capture: Capture, checklist: boolean, homeDex: boolean): LocationTint | null {
+  if (checklist) {
+    return capture.status === 'temporary' ? 'out' : null;
+  }
+  return capture.sealed ? locationTint(capture.location, homeDex) : null;
+}
+
+// a grid's sealed tiles away from where its dex keeps them, a clip for each place they're in: a seal material each, laid
+// over the grid's own, for a theme that draws a place's material its own way (.seal-material[data-tint]); none shows
+// unless a theme does
+export function sealTintClips (captures: Capture[], checklist: boolean, homeDex: boolean, columns = BOX_COLUMNS): { tint: LocationTint; clip: string }[] {
+  return (['champions', 'out', 'home'] as const).flatMap((tint) => {
+    const clip = slotsPath(captures, columns, (capture) => isDisplaySealed(capture, checklist) && tileTint(capture, checklist, homeDex) === tint);
+    return clip ? [{ tint, clip }] : [];
+  });
 }
 
 // too narrow for one box: the legacy list view; keep in sync with the 750px media queries in styles/

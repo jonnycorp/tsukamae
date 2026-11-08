@@ -233,11 +233,13 @@ export function useDragReorder (count: number, onMove: (from: number, to: number
       }
     },
     onKeyDown: (e: ReactKeyboardEvent<HTMLElement>) => {
-      if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || e.target !== e.currentTarget) {
+      // Alt with ↑ ↓, or Q E from the left hand
+      const step = { ArrowUp: -1, ArrowDown: 1, q: -1, e: 1 }[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+      if (!e.altKey || !step || e.target !== e.currentTarget) {
         return;
       }
       e.preventDefault();
-      const to = index + (e.key === 'ArrowUp' ? -1 : 1);
+      const to = index + step;
       if (to >= 0 && to < countRef.current) {
         settle.current = { focus: to };
         moveRef.current(index, to);

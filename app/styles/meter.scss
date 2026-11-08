@@ -25,7 +25,8 @@ $wave-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewB
   margin-top: 12px;
 }
 
-// the percentage, held at the widest it gets (100.0%) so the bar never shifts as the figure counts
+// the percentage, held at the widest it gets (100.0%, its span's ::after, in whatever face it's set in) so the bar never
+// shifts as the figure counts
 .dex-meter-figure {
   display: flex;
   position: relative;
@@ -50,9 +51,19 @@ $wave-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewB
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     letter-spacing: 1px;
+    text-align: center;
     text-shadow: 2px 2px 0 var(--accent-shadow);
     white-space: nowrap;
     transform: skewX(-8deg);
+
+    // the widest figure, unseen and with no height: the span as wide as it, the figure centred in that
+    &::after {
+      content: '100.0%';
+      display: block;
+      height: 0;
+      overflow: hidden;
+      visibility: hidden;
+    }
   }
 }
 

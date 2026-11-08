@@ -65,13 +65,8 @@
   }
 }
 
-// Still mode (M): the tab there and gone without moving, the dex under it shown at once
-:root[data-still] {
-  .scene-banner-tab {
-    animation: none;
-  }
-
-  .tracker .dex-wrapper .dex-column {
-    transition: none;
-  }
+// Still mode (M): the dex under the tab shown at once; the tab there and gone without moving by main.scss's net, never
+// by `animation: none`, which lifted as still mode ends would glide it in again
+:root[data-still] .tracker .dex-wrapper .dex-column {
+  transition: none;
 }

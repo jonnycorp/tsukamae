@@ -26,7 +26,8 @@ export function showsGigantamax (capture: Pick<Capture, 'pokemon' | 'gigantamax'
   return capture.gigantamax === true && canGigantamax(capture.pokemon);
 }
 
-// the giant form's sprite, from the sprite sheet's own, at its own size as every sprite is (styles/gigantamax.scss)
+// the giant form's sprite, from the sprite sheet's own, at its own size as every sprite is (styles/gigantamax.scss): in
+// any dex's family, a Legends: Arceus dex's included, whose icons have no giant forms and would win over it
 export function gigantamaxIcon (pokemon: CapturePokemon, dex: Dex): string {
-  return iconClass({ ...pokemon, form: 'gigantamax' }, dex);
+  return iconClass({ ...pokemon, form: 'gigantamax' }, dex, null);
 }

@@ -88,7 +88,18 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
     const origin = menu.getBoundingClientRect();
     const left = Math.max(EDGE, Math.min(align === 'end' ? rect.right - origin.width : rect.left, window.innerWidth - origin.width - EDGE));
     menu.style.left = `${(left - origin.left) / zoom}px`;
-    const below = rect.bottom + MENU_MAX_HEIGHT * zoom <= window.innerHeight - EDGE;
+    // held by an ancestor (measured off the window's corner), it's clipped by the scroller round that: the room below is
+    // to that scroller's foot (the review's main, above its foot bar), else to the window's
+    let floor = window.innerHeight;
+    if (Math.abs(origin.top) > 0.5 || Math.abs(origin.left) > 0.5) {
+      for (let el = menu.parentElement; el; el = el.parentElement) {
+        if (/(auto|scroll)/.test(getComputedStyle(el).overflowY)) {
+          floor = Math.min(floor, el.getBoundingClientRect().bottom);
+          break;
+        }
+      }
+    }
+    const below = rect.bottom + MENU_MAX_HEIGHT * zoom <= floor - EDGE;
     // the way it unfurls, on the menu itself before the unfurl starts, so it never starts one way and turns
     menu.toggleAttribute('data-up', !below);
     if (below) {

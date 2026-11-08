@@ -151,14 +151,5 @@ $scene-spring: cubic-bezier(.2, 1.4, .4, 1);
   }
 }
 
-// Still mode (M): the scenes open with no card (TitleCard.tsx) and nothing in them moves, their entrances included
-:root[data-still] .scene {
-  animation: none;
-
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-}
+// Still mode (M): the scenes open with no card (TitleCard.tsx), and nothing in them moves by the net (main.scss), their
+// entrances landing at once with their animationend still fired

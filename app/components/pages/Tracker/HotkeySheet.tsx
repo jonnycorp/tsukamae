@@ -59,6 +59,7 @@ const GROUPS: Group[] = [
       { keys: [[{ press: 'help.press.rightClick' }]], label: 'help.copyName' },
       { keys: [[{ press: 'help.press.hold' }]], label: 'help.hold' },
       { keys: [['L']], label: 'help.move', records: true },
+      { keys: [['Q'], ['E'], ['↑'], ['↓']], label: 'help.movePick', records: true },
       { keys: [['D']], label: 'help.release' },
     ],
   },
@@ -94,9 +95,18 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    title: 'help.group.atlas',
+    shortcuts: [
+      { keys: [['Q'], ['E'], ['←'], ['→']], label: 'help.atlasWalk' },
+      { keys: [['Home'], ['End']], label: 'help.atlasEnds' },
+      { keys: [['Enter']], label: 'help.atlasGo' },
+    ],
+  },
+  {
     title: 'help.group.anywhere',
     shortcuts: [
       { keys: [['Esc']], label: 'help.escape' },
+      { keys: [['Alt', 'Q'], ['Alt', 'E'], ['Alt', '↑'], ['Alt', '↓']], label: 'help.reorder' },
     ],
   },
 ];

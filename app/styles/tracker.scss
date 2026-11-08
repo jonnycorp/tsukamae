@@ -3,15 +3,10 @@
 @use 'mixins' as *;
 
 $box-stride: $box-width + $dex-grid-gap;
-// wide enough for the 105deg glint's slant across a 550px box
-$shine-band: 260px;
-// the glint's lean off upright (its 105deg), and its cycle: a sweep in the first half, offscreen for the second
-$shine-lean: math.tan(15deg);
-$shine-cycle: 7s;
-// how far one band's middle stands below the one before, unscaled: a row of boxes' (BOX_HEIGHT and BOX_ROW_GAP in
-// use-dex-scale.ts), and a chunk of results', which shares a frame line with the one above
-$shine-box-rise: 656;
-$shine-chunk-rise: $box-rows * math.div($pokemon-box-size, 1px) + 1;
+// how far one seal material stands below the one before on the sheet, unscaled: a row of boxes' (BOX_HEIGHT and
+// BOX_ROW_GAP in use-dex-scale.ts), and a chunk of results', its five rows of tiles (they run on as one grid)
+$seal-box-rise: 656;
+$seal-chunk-rise: $box-rows * math.div($pokemon-box-size, 1px);
 
 .tracker {
   display: flex;
@@ -827,15 +822,15 @@ $flip-face-width: $search-height;
   }
 }
 
-// registered, so each box computes its own column, and row for the shine (a box's or a results chunk's); an
-// unregistered one would inherit as text and resolve sibling-index() on the shine band instead
+// registered, so each box computes its own column and row for its seal material (a box's or a results chunk's); an
+// unregistered one would inherit as text and resolve sibling-index() on the material instead
 @property --column {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }
 
-@property --shine-row {
+@property --seal-row {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
@@ -866,9 +861,9 @@ $flip-face-width: $search-height;
 
   > .box {
     --column: mod(sibling-index() - 1, var(--dex-columns));
-    // its row, which its glint sweeps a little behind the row above's (.box-shine-band)
-    --shine-row: round(down, (sibling-index() - 1) / var(--dex-columns));
-    --shine-rise: #{$shine-box-rise};
+    // its row, which stands its seal material on the one sheet down the display (.seal-material)
+    --seal-row: round(down, (sibling-index() - 1) / var(--dex-columns));
+    --seal-rise: #{$seal-box-rise};
   }
 
   // a row's flips, over the tiles of every box in it: the row's grid area, less the titles above the tiles
@@ -905,21 +900,6 @@ $flip-face-width: $search-height;
       font-size: 25px;
       font-weight: 700;
     }
-
-    .box-sealed-count {
-      grid-column: 3;
-      justify-self: end;
-      font-family: $font-secondary;
-      @include small-text(11px);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--ink-muted);
-
-      &.complete {
-        color: var(--ink-caught);
-      }
-    }
   }
 
   &.box-complete {
@@ -936,26 +916,28 @@ $flip-face-width: $search-height;
 }
 
 // a box as the games draw it: six locked columns, the frame drawn once by the grid and each inner line once by the
-// tile right of or below it, so no line is two borders side by side and every one rounds to the same width; isolated,
-// so what stacks inside a tile stays under the overlays
+// tile right of or below it, so no line is two borders side by side and every one rounds to the same width. The lines
+// are opaque (--line-solid, the line as it lies on the paper), so a seal material under the grid, cut to whole tiles,
+// never shows at their edges at a fractional zoom. Isolated, so what stacks inside a tile stays under the overlays
 .tile-grid {
   display: grid;
   grid-template-columns: repeat($box-columns, $pokemon-box-size);
   grid-auto-rows: $pokemon-box-size;
   width: max-content;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-solid);
   isolation: isolate;
 
   > .pokemon:not(:nth-child(#{$box-columns}n + 1)) {
-    border-left: 1px solid var(--line);
+    border-left: 1px solid var(--line-solid);
   }
 
   > .pokemon:nth-child(n + #{$box-columns + 1}) {
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--line-solid);
   }
 }
 
-// a grid and what's laid over it: the flips and the shine, a box's or a box-sized chunk of search results'
+// a grid and what's laid over and under it: the flips, and the seal material, a box's or a box-sized chunk of search
+// results'. Each a stacking context, so its material lies under its grid and over nothing outside it
 .box-container,
 .results-chunk,
 .search-results {
@@ -963,85 +945,132 @@ $flip-face-width: $search-height;
   width: max-content;
 }
 
-// the size it's given out of sight is its content's, inside the frame's lines, as a drawn one's is
+.box-container,
+.results-chunk {
+  isolation: isolate;
+}
+
+// the size it's given out of sight is its content's, inside the frame's lines, as a drawn one's is: a box's five rows,
+// or a results chunk's own (--chunk-rows, SearchResults), a short last one's fewer
 .box-container > .tile-grid,
 .results-chunk > .tile-grid {
   content-visibility: auto;
-  contain-intrinsic-size: auto #{$box-columns * $pokemon-box-size} auto #{$box-rows * $pokemon-box-size};
+  contain-intrinsic-size: auto #{$box-columns * $pokemon-box-size} auto calc(var(--chunk-rows, #{$box-rows}) * #{$pokemon-box-size});
 }
 
-// results run on as one grid: each chunk after the first takes the one above's bottom frame as its top line, and its
-// overlays start at its first row, as a box's do inside its frame
-.results-chunk + .results-chunk {
+// results run on as one grid, framed once around them all: a chunk with one below leaves its frame open there, and the
+// one below draws its first row's line as every row under a grid's first does (FlipStrips' `ruled`), so where two meet
+// is a tile's line, never a frame's edge, whatever a theme does with frames. A chunk's overlays run to the edges it
+// leaves open, as a box's run to its frame
+.results-chunk:not(:last-child) {
   > .tile-grid {
-    border-top: 0;
+    border-bottom: 0;
   }
 
   > .flip-overlay,
-  > .box-shine {
+  > .seal-material {
+    bottom: 0;
+  }
+}
+
+.results-chunk + .results-chunk {
+  > .tile-grid {
+    border-top: 0;
+
+    > .pokemon {
+      border-top: 1px solid var(--line-solid);
+    }
+  }
+
+  > .flip-overlay,
+  > .seal-material {
     top: 0;
   }
 }
 
-// a chunk's glint sweeps a little behind the one above's, as a row of boxes' does (.box-shine-band)
+// a chunk's material stands on the sheet a chunk below the one above's, as a row of boxes' does (.seal-material)
 .search-results > .results-chunk {
-  --shine-row: calc(sibling-index() - 1);
-  --shine-rise: #{$shine-chunk-rise};
+  --seal-row: calc(sibling-index() - 1);
+  --seal-rise: #{$seal-chunk-rise};
 }
 
 // and as wide as the row of boxes they stand for (SearchResults' columns, data-columns, up to its MAX_BOXES_ACROSS):
-// each width's own first column and first row take no line, as a box's six don't. The narrow list keeps one column
-@media (min-width: 751px) {
+// each width's own first column takes no line, nor the first chunk's first row, as a box's six don't. The narrow list
+// keeps one column
+@media (width > 750px) {
   @for $boxes from 2 through 8 {
     $n: $boxes * $box-columns;
 
     .results-chunk > .tile-grid[data-columns='#{$n}'] {
       grid-template-columns: repeat($n, $pokemon-box-size);
-      contain-intrinsic-size: auto #{$n * $pokemon-box-size} auto #{$box-rows * $pokemon-box-size};
+      contain-intrinsic-size: auto #{$n * $pokemon-box-size} auto calc(var(--chunk-rows, #{$box-rows}) * #{$pokemon-box-size});
 
       > .pokemon:not(:nth-child(#{$n}n + 1)) {
-        border-left: 1px solid var(--line);
+        border-left: 1px solid var(--line-solid);
       }
+    }
 
-      > .pokemon:nth-child(-n + #{$n}) {
-        border-top: 0;
-      }
+    .results-chunk:first-child > .tile-grid[data-columns='#{$n}'] > .pokemon:nth-child(-n + #{$n}) {
+      border-top: 0;
     }
   }
 }
 
-// still mode (applyDisplay): no shine, the sealed boxes' wash left as it is
-:root[data-still] .box-shine {
-  display: none;
+// what Tracker keeps drawn near the screen (data-near), so a fast fling never outruns it
+:is(.box-container > .tile-grid, .results-chunk > .tile-grid, .seal-material, .flip-overlay)[data-near] {
+  content-visibility: visible;
 }
 
-// skips rendering offscreen by itself, like .flip-overlay, and for the same reason
-.box-shine {
+// a sealed tile's material: one overlay per box or results chunk, under its grid (z-index -1 in the container), clipped
+// to its sealed slots (use-tracker's sealClip), where the tiles' own fill clears. Plain, it's the caught fill they had;
+// a theme gives it a colour of its own and a flow, a faint pattern drifting a period in a loop. It took the shine's
+// place, which the user took out on 2026-10-31, and its machinery. Every box's lies on one sheet down the whole display,
+// placed by its box's column and row (--column, --seal-row, --seal-rise), so a pattern runs on from box to box; and every
+// flow keeps in step, pinned to the timeline by syncLoops. It skips rendering offscreen by itself, like .flip-overlay;
+// the narrow list draws none, and its tiles keep their own fill
+.seal-material {
+  // where this box stands on the sheet, for a material's and a flow's backgrounds and masks to start from
+  --seal-x: calc(var(--column, 0) * #{-1 * $box-stride});
+  --seal-y: calc(var(--seal-row, 0) * var(--seal-rise, 0) * -1px);
+
   position: absolute;
   inset: 1px;
-  z-index: 2;
+  z-index: -1;
+  overflow: hidden;
+  background-color: var(--tile-caught);
   content-visibility: auto;
   pointer-events: none;
 }
 
-// one glint down the whole display: each box's band starts a stride further back per column, so a row's line up as a
-// single sweep (a results chunk sweeps with the first column), and each row runs behind the row above by as long as
-// the glint takes to cover what its lean shifts it over the rise between them, so the rows' glints join as one line.
-// Every band is a box tall, a short last chunk's too, so each is drawn about the same middle; and it sweeps at an even
-// speed, as an ease would open and close the joins as it sped up and slowed. The lag is taken as a delay of the same
-// phase less a cycle: a band starts at once (syncLoops pins it to the timeline as it does), where a band waiting out a
-// lag stayed dark, unsynced, when it scrolled in
-.box-shine-band {
+.box-container:has(> .seal-material),
+.results-chunk:has(> .seal-material) {
+  .pokemon.captured.sealed {
+    background-color: transparent;
+  }
+}
+
+// a seal material for one place, over the grid's own and clipped to its sealed tiles away from where the dex keeps them
+// (use-tracker's sealTintClips): drawn only by a theme that gives a place a material of its own
+.seal-material[data-tint] {
+  display: none;
+}
+
+// a theme's flow, shown by a theme that has one: its pattern a period larger than the material on the side it drifts
+// from, moved that period (--flow-x, --flow-y) in --flow-time by transform alone, at an even speed so the loop never
+// shows; still mode stops it, its pattern back where it starts, and lifted, the loops' one clock takes it up again
+.seal-flow {
+  display: none;
   position: absolute;
-  top: 0;
-  left: calc(-1 * ((var(--column, 0) + 1) * #{$box-stride} + #{$shine-band * .5}));
-  width: $shine-band;
-  height: $box-rows * $pokemon-box-size;
-  background: linear-gradient(105deg, transparent calc(50% - 45px), var(--shine) 50%, transparent calc(50% + 45px));
+  top: calc(-1 * max(0px, var(--flow-y, 0px)));
+  right: min(0px, var(--flow-x, 0px));
+  bottom: min(0px, var(--flow-y, 0px));
+  left: calc(-1 * max(0px, var(--flow-x, 0px)));
   will-change: transform;
-  animation: seal-shine $shine-cycle linear infinite;
-  animation-delay: calc(mod(var(--shine-row, 0) * var(--shine-rise, 0) * #{$shine-cycle * .5 * $shine-lean} /
-    ((var(--dex-columns, 2) + 2) * #{math.div($box-stride, 1px)}), #{$shine-cycle}) - #{$shine-cycle});
+  animation: seal-flow var(--flow-time, 30s) linear infinite;
+}
+
+:root[data-still] .seal-flow {
+  animation: none;
 }
 
 // sized by its grid cell; the grid lines are its own left and top borders, which the fill stops at
@@ -1495,6 +1524,11 @@ $flip-face-width: $search-height;
   .pkicon {
     zoom: 1.8;
   }
+
+  // a Legends: Arceus dex's icons on their disc, as in the tile
+  .game-family-legends_arceus {
+    background-color: var(--sprite-disc);
+  }
 }
 
 // the tile's own sprite, under the overlay's
@@ -1613,7 +1647,7 @@ $flip-face-width: $search-height;
     grid-auto-rows: 80px;
 
     > .pokemon:nth-child(n) {
-      border-top: 1px solid var(--line);
+      border-top: 1px solid var(--line-solid);
       border-left: 0;
     }
 
@@ -1622,9 +1656,10 @@ $flip-face-width: $search-height;
     }
   }
 
+  // a row a mon, the empty slots hidden: a box's thirty, or a results chunk's own (--chunk-tiles)
   .box-container > .tile-grid,
   .results-chunk > .tile-grid {
-    contain-intrinsic-height: auto #{$box-columns * $box-rows * 80px};
+    contain-intrinsic-height: auto calc(var(--chunk-tiles, #{$box-columns * $box-rows}) * 80px);
   }
 
   .pokemon.empty {

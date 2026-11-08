@@ -110,7 +110,7 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
             }
             onChange({ [key]: Math.min(field.max ?? Infinity, Math.max(field.min ?? -Infinity, parsed)) });
           }}
-          sanitize={(raw) => raw.replace(/\D/g, '').slice(0, String(field.max ?? 999).length)}
+          sanitize={(raw) => raw.normalize('NFKC').replace(/\D/g, '').slice(0, String(field.max ?? 999).length)}
           type="text"
           value={typeof committed === 'number' ? String(committed) : ''}
         />,

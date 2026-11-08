@@ -3,14 +3,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, appliedFacets, facetOptions, filterMatcher, hasQuery, holdsSealed, queryMatcher } from './filters';
+import { EMPTY_FILTERS, FACETS, FILTER_VIEWS, anyFilterActive, appliedFacets, facetOptions, filterMatcher, hasQuery, holdsSealed, queryMatcher, rankIn } from './filters';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useHotkey } from '../../../hooks/use-hotkey';
 import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import type { Facet, FacetId, TrackerFilters } from './filters';
+import type { Facet, FacetId, FacetOption, TrackerFilters } from './filters';
 
 // the gap the panel keeps from the window's edges, as its width does (tracker.scss)
 const PANEL_EDGE = 16;
@@ -24,14 +24,32 @@ interface PanelProps {
   regional: boolean;
 }
 
+// a list by count in the order it first came in while the panel's open, an option new since after the rest: its counts
+// follow every other filter, so it would reshuffle under the pointer as another list's option is pressed (a ranked
+// list's order is its own, and stays)
+function keptOrder (orders: Map<FacetId, string[]>, facet: Facet, options: FacetOption[]): FacetOption[] {
+  if (facet.rank) {
+    return options;
+  }
+  const first = orders.get(facet.id);
+  if (!first) {
+    orders.set(facet.id, options.map((option) => option.value));
+    return options;
+  }
+  const at = rankIn(first);
+  return [...options].sort((a, b) => at(a.value) - at(b.value));
+}
+
 function FacetPanel ({ facets, filters, onToggle, panelRef, query, regional }: PanelProps) {
   const { captures } = useTrackerState();
   const { t, locale } = useTranslation();
+  // each list's order as the panel opened (keptOrder)
+  const ordersRef = useRef(new Map<FacetId, string[]>());
 
   return (
     <div className="facet-panel" ref={panelRef}>
       {facets.map((facet) => {
-        const options = facetOptions(facet, captures, filters, query, regional, locale);
+        const options = keptOrder(ordersRef.current, facet, facetOptions(facet, captures, filters, query, regional, locale));
         if (options.length === 0) {
           return null;
         }
@@ -118,20 +136,21 @@ export function FilterBar ({ filters, query, setFilters, source }: Props) {
         setOpen(false);
       }
     };
-    // an Escape already claimed (by an open dropdown) is left alone, as the popover and modals leave it
+    // its Esc, first and claimed, so a popover or the sheet under it stays open; an open dropdown's menu closes first
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) {
+      if (e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('.dropdown-menu')) {
+        e.preventDefault();
         setOpen(false);
       }
     };
     // a resize lays the header out again, leaving the panel where the toggle was: it closes, as a dropdown's menu does
     const close = () => setOpen(false);
     document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true);
     window.addEventListener('resize', close);
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('resize', close);
     };
   }, [open]);

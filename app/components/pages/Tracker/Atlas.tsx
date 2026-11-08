@@ -124,12 +124,13 @@ export function Atlas ({ onClose, onLocate }: Props) {
     }
   };
 
-  // ← → walk the line along the dex (Shift for ten at a time), the first press setting it on #1; Home and End to its
-  // ends, Enter goes to the species it's on
+  // ← → or Q E walk the line along the dex (Shift for ten at a time), the first press setting it on #1; Home and End to
+  // its ends, Enter goes to the species it's on
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const from = hot?.national;
     let national = from ?? 1;
-    switch (e.key) {
+    const key = e.ctrlKey || e.metaKey || e.altKey ? '' : { q: 'ArrowLeft', e: 'ArrowRight' }[e.key.toLowerCase()] ?? e.key;
+    switch (key) {
       case 'ArrowLeft': national = from === undefined ? 1 : from - (e.shiftKey ? 10 : 1); break;
       case 'ArrowRight': national = from === undefined ? 1 : from + (e.shiftKey ? 10 : 1); break;
       case 'Home': national = 1; break;

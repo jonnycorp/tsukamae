@@ -20,7 +20,7 @@ const EDGE = 96;
 const UNDATED_ROWS = 8;
 
 // a real calendar date: a hand-edited 2017-13-05 would otherwise file itself under the next year, or not at all
-const DATE = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+export const DATE = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 export interface TimelineSprite {
   capture: Capture;

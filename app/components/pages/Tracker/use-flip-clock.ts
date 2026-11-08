@@ -96,10 +96,10 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
   return {
     toggle (): Held {
       if (landing) {
-        // pressed again before the slide landed
+        // pressed again before the slide landed: it goes on from the face it was landing on
         window.clearTimeout(landing);
         landing = 0;
-        return { paused: false, face: held() };
+        return { paused: false, face: landingFace };
       }
       if (paused) {
         // resume from the start of the held face's hold; a strip offscreen all along kept its old animation, and
@@ -130,12 +130,24 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
       landingFace = next;
       landing = window.setTimeout(() => {
         landing = 0;
-        pauseOn(next);
+        pauseOn(landingFace);
+        // a face picked while it landed, slid to from there
+        if (landingFace !== next && !still()) {
+          playSlides(next, landingFace);
+        }
       }, PHASE_MS - into);
       return { paused: true, face: next };
     },
     // while held, slides every strip to another face; false if there was nothing to move
     pick (face: number): boolean {
+      // the pause still landing: it lands on this one instead
+      if (landing) {
+        if (face === landingFace || face >= pages().length) {
+          return false;
+        }
+        landingFace = face;
+        return true;
+      }
       const from = held();
       if (!paused || landing || face === from || face >= pages().length) {
         return false;
@@ -240,7 +252,9 @@ export function useFlipClock (ref: RefObject<HTMLElement>, still: boolean, displ
       if (e.defaultPrevented || e.isComposing || e.metaKey || e.ctrlKey || e.altKey || document.querySelector(MENU_OR_MODAL)) {
         return;
       }
-      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')) {
+      // a checkbox takes no text, so 1 2 3 still pick a face over one; Space stays the box's own
+      const field = e.target instanceof Element ? e.target.closest('input, textarea, [contenteditable]') : null;
+      if (field && (e.key === ' ' || !(field instanceof HTMLInputElement && field.type === 'checkbox'))) {
         return;
       }
       const face = FACE_KEYS.indexOf(e.key);

@@ -2,12 +2,10 @@ import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faMars, faVenus } from '@fortawesome/free-solid-svg-icons';
 
-import { BALL_NAMES, LANGUAGE_ABBRS, ORIGIN_GAME_NAMES } from '../../../utils/capture-fields';
+import { LANGUAGE_ABBRS } from '../../../utils/capture-fields';
 import { BadgeRow, CatchDateLine, GigantamaxMark, OTLine, OriginMark, hasOriginMark } from './seal-faces';
 import { showsGigantamax } from '../../../utils/gigantamax';
 import { HEX_ORDER, natureStats } from '../../../utils/display-modes';
-import { localizeBall, localizeOriginGame } from '../../../i18n/names';
-import { useTranslation } from '../../../hooks/use-translation';
 
 import type { ReactNode } from 'react';
 import type { Capture } from '../../../types';
@@ -21,7 +19,7 @@ interface Props {
   capture: Capture;
 }
 
-// ---- the pieces the pages are built from
+// ---- the pieces the pages are built from, drawn on the flips' overlay, which takes no pointer: none has a tooltip
 
 function LangTag ({ capture }: Props) {
   const abbr = capture.language ? LANGUAGE_ABBRS.get(capture.language) : null;
@@ -33,47 +31,30 @@ function Level ({ capture }: Props) {
 }
 
 function Ball ({ capture, className }: Props & { className?: string }) {
-  const { locale } = useTranslation();
-  if (!capture.ball || capture.ball === 'unknown') {
-    return null;
-  }
-  return (
-    <img
-      alt=""
-      className={classNames('page-ball', className)}
-      src={`/balls/${capture.ball}.png`}
-      title={localizeBall(locale, capture.ball, BALL_NAMES.get(capture.ball) || capture.ball)}
-    />
-  );
+  return capture.ball && capture.ball !== 'unknown'
+    ? <img alt="" className={classNames('page-ball', className)} src={`/balls/${capture.ball}.png`} />
+    : null;
 }
 
 function Mark ({ capture }: Props) {
-  const { locale } = useTranslation();
-  if (!capture.origin_game) {
-    return null;
-  }
-  const name = localizeOriginGame(locale, capture.origin_game, ORIGIN_GAME_NAMES.get(capture.origin_game) || capture.origin_game);
-  return <OriginMark game={capture.origin_game} title={name} />;
+  return capture.origin_game ? <OriginMark game={capture.origin_game} /> : null;
 }
 
 function Gender ({ capture }: Props) {
-  const { t } = useTranslation();
   return capture.gender === 'male' || capture.gender === 'female'
-    ? <FontAwesomeIcon className={`gender-badge ${capture.gender}`} icon={capture.gender === 'male' ? faMars : faVenus} title={t(`gender.${capture.gender}`)} />
+    ? <FontAwesomeIcon className={`gender-badge ${capture.gender}`} icon={capture.gender === 'male' ? faMars : faVenus} />
     : null;
 }
 
 function Heart ({ capture }: Props) {
-  const { t } = useTranslation();
   return capture.favorite === 'favorite' || capture.favorite === 'partner'
-    ? <FontAwesomeIcon className={classNames('heart-badge', { partner: capture.favorite === 'partner' })} icon={faHeart} title={t(`favorite.${capture.favorite}`)} />
+    ? <FontAwesomeIcon className={classNames('heart-badge', { partner: capture.favorite === 'partner' })} icon={faHeart} />
     : null;
 }
 
 function Trained ({ capture }: Props) {
-  const { t } = useTranslation();
   return capture.trained === 'ivs' || capture.trained === 'ev'
-    ? <span className={`trained-badge ${capture.trained}`} title={t(`trained.${capture.trained}`)} />
+    ? <span className={`trained-badge ${capture.trained}`} />
     : null;
 }
 

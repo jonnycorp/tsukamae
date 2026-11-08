@@ -109,11 +109,18 @@ $tc-drop: 4px 4px 0 color-mix(in srgb, var(--ink) 16%, transparent);
 .tc-mon {
   position: relative;
 
-  .heart-badge {
+  :is(.heart-badge, .gmax-mark) {
     position: absolute;
     top: 1px;
     right: 1px;
+  }
+
+  .heart-badge {
     font-size: 9px;
+  }
+
+  .gmax-mark {
+    height: 9px;
   }
 }
 

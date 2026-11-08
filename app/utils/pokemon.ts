@@ -39,10 +39,11 @@ export function dexNumber (pokemon: CapturePokemon, dex: Dex): string {
   return pokemon.dex_number === -1 ? '---' : padding(pokemon.dex_number, numberDigits(dex));
 }
 
-export function iconClass ({ national_id: nationalId, form }: CapturePokemon, dex: Dex) {
+// `family`, the game family whose icons to draw (the dex's own), or none for the sheet's own
+export function iconClass ({ national_id: nationalId, form }: CapturePokemon, dex: Dex, family: string | null = dex.dex_type.game_family_id) {
   return classNames('pkicon', `pkicon-${padding(nationalId, 3)}`, {
     'color-shiny': dex.shiny,
     [`form-${form}`]: Boolean(form),
-    [`game-family-${dex.dex_type.game_family_id}`]: true,
+    [`game-family-${family}`]: Boolean(family),
   });
 }

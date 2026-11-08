@@ -44,12 +44,13 @@ $orb-drop: 4px 4px 0 color-mix(in srgb, var(--ink) 14%, transparent);
   position: absolute;
   inset: 0;
   perspective: 1800px;
-  perspective-origin: 50% 41%;
+  perspective-origin: 50% 254px;
 }
 
+// 254px down the stage (BallOrrery's STAGE_H), the room under it for the outer ring's near side
 .orb-plane {
   position: absolute;
-  top: 41%;
+  top: 254px;
   left: 50%;
   width: 0;
   height: 0;
@@ -57,6 +58,8 @@ $orb-drop: 4px 4px 0 color-mix(in srgb, var(--ink) 14%, transparent);
   transform-style: preserve-3d;
 }
 
+// an orbit's line to read by, never in the pointer's way: its disc lies on the tilted plane, which comes toward you
+// below a ball's middle, so it stood over the lower half of every ball on it and inside it
 .orb-ring {
   position: absolute;
   top: calc(var(--r) * -1);
@@ -65,6 +68,7 @@ $orb-drop: 4px 4px 0 color-mix(in srgb, var(--ink) 14%, transparent);
   height: calc(var(--r) * 2);
   border: 2px solid color-mix(in srgb, var(--ink) 14%, transparent);
   border-radius: 50%;
+  pointer-events: none;
 }
 
 // the middle: how many sealed mons the balls hold between them, in a thin number

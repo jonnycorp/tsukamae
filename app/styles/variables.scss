@@ -1,5 +1,18 @@
 $font-primary: 'Alegreya Sans', 'Helvetica', sans-serif;
 $font-secondary: 'Montserrat', 'Helvetica', sans-serif;
+// Game Boy's figures (styles/themes.scss): the digits and their marks alone, everything else falling through
+$font-pixel-digits: 'Pixel Digits';
+// the themes' own typefaces for headings and figures, behind the theme menu's switch (styles/fonts.scss)
+$font-theme-serif: 'Theme Mincho Digits', 'Theme Serif', 'Theme Mincho', serif;
+$font-theme-brush: 'Theme Brush', serif;
+$font-theme-pen: 'Theme Pen', 'Theme Brush', serif;
+$font-theme-dot: 'Pixel Digits', 'Theme Dot', monospace;
+$font-theme-wide: 'Theme Wide', 'Montserrat', 'Helvetica', sans-serif;
+// Midnight at night, every word: MS PGothic, the Japanese computer's face (a Windows face, so elsewhere the system's
+// gothic), its figures in Orbitron; its headings Orbitron, their Japanese the same gothic
+$font-theme-gothic: 'Theme Wide Digits', 'MS PGothic', 'MS Gothic', sans-serif;
+$font-theme-wide-gothic: 'Theme Wide', 'MS PGothic', 'MS Gothic', sans-serif;
+$font-theme-lcd: 'Theme LCD', 'Montserrat', 'Helvetica', sans-serif;
 
 // keep in sync with TILE_SIZE, BOX_COLUMNS and BOX_SIZE in utils/pokemon.ts
 $pokemon-box-size: 110px;

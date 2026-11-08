@@ -2,11 +2,9 @@ import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExchangeAlt, faGift, faHeart, faMars, faVenus } from '@fortawesome/free-solid-svg-icons';
 
-import { BALL_NAMES, LANGUAGE_ABBRS, MYSTERY_GIFT, ORIGIN_GAME_NAMES, nameLang } from '../../../utils/capture-fields';
+import { LANGUAGE_ABBRS, MYSTERY_GIFT, nameLang } from '../../../utils/capture-fields';
 import { PokemonName } from '../../library/PokemonName';
 import { showsGigantamax } from '../../../utils/gigantamax';
-import { localizeBall, localizeOriginGame } from '../../../i18n/names';
-import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture } from '../../../types';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -71,13 +69,13 @@ export function hasOriginMark (game: string): boolean {
 export const originMarkKey = (game: string) => ORIGIN_MARK_SPRITES[game] ?? game;
 
 // a game's origin mark: its sprite, or a glyph for a trade or a gift (GO has a sprite of its own)
-export function OriginMark ({ game, title }: { game: string; title?: string }) {
+export function OriginMark ({ game }: { game: string }) {
   const sprite = ORIGIN_MARK_SPRITES[game];
   if (sprite) {
-    return <span className="origin-mark" style={{ maskImage: `url(/marks/${sprite}.png)` }} title={title} />;
+    return <span className="origin-mark" style={{ maskImage: `url(/marks/${sprite}.png)` }} />;
   }
   const icon = ORIGIN_MARK_ICONS[game];
-  return icon ? <FontAwesomeIcon className={game === MYSTERY_GIFT ? 'gift-badge' : undefined} icon={icon} title={title} /> : null;
+  return icon ? <FontAwesomeIcon className={game === MYSTERY_GIFT ? 'gift-badge' : undefined} icon={icon} /> : null;
 }
 
 export function SpeciesLine ({ capture }: Props) {
@@ -91,52 +89,35 @@ export function NicknameLine ({ capture }: Props) {
 // the Gigantamax factor's mark (pokesprite's, yarn sprites:marks), worn in the heart's place: every mon with the
 // factor is a partner, so the mark says that too
 export function GigantamaxMark () {
-  const { t } = useTranslation();
-  return <img alt="" className="gmax-mark" src="/marks/gigantamax.png" title={t('info.gigantamax')} />;
+  return <img alt="" className="gmax-mark" src="/marks/gigantamax.png" />;
 }
 
+// a sealed tile's badges, on its last page; drawn on the flips' overlay, which takes no pointer, so none has a tooltip
 export function BadgeRow ({ capture }: Props) {
-  const { t, locale } = useTranslation();
-
-  const originName = capture.origin_game
-    ? localizeOriginGame(locale, capture.origin_game, ORIGIN_GAME_NAMES.get(capture.origin_game) || capture.origin_game)
-    : '';
-
   return (
     <span className="badge-row">
       <span className="badge-slot">
-        {capture.ball && capture.ball !== 'unknown' &&
-          <img alt="" className="ball-badge" src={`/balls/${capture.ball}.png`} title={localizeBall(locale, capture.ball, BALL_NAMES.get(capture.ball) || capture.ball)} />
-        }
+        {capture.ball && capture.ball !== 'unknown' && <img alt="" className="ball-badge" src={`/balls/${capture.ball}.png`} />}
       </span>
       <span className="badge-slot">
-        {capture.origin_game && <OriginMark game={capture.origin_game} title={originName} />}
+        {capture.origin_game && <OriginMark game={capture.origin_game} />}
       </span>
       <span className="badge-slot">
         {showsGigantamax(capture)
           ? <GigantamaxMark />
           : (capture.favorite === 'favorite' || capture.favorite === 'partner') &&
-            <FontAwesomeIcon
-              className={classNames('heart-badge', { partner: capture.favorite === 'partner' })}
-              icon={faHeart}
-              title={t(`favorite.${capture.favorite}`)}
-            />
+            <FontAwesomeIcon className={classNames('heart-badge', { partner: capture.favorite === 'partner' })} icon={faHeart} />
         }
       </span>
       <span className="badge-slot">
         {(capture.gender === 'male' || capture.gender === 'female') &&
-          <FontAwesomeIcon
-            className={`gender-badge ${capture.gender}`}
-            icon={capture.gender === 'male' ? faMars : faVenus}
-            title={t(`gender.${capture.gender}`)}
-          />
+          <FontAwesomeIcon className={`gender-badge ${capture.gender}`} icon={capture.gender === 'male' ? faMars : faVenus} />
         }
       </span>
       <span className="badge-slot">
         {capture.been_to_champions
-          ? <img alt="" src="/marks/champions.png" title={t('info.beenToChampions')} />
-          : (capture.trained === 'ivs' || capture.trained === 'ev') &&
-            <span className={`trained-badge ${capture.trained}`} title={t(`trained.${capture.trained}`)} />
+          ? <img alt="" src="/marks/champions.png" />
+          : (capture.trained === 'ivs' || capture.trained === 'ev') && <span className={`trained-badge ${capture.trained}`} />
         }
       </span>
     </span>

@@ -1,6 +1,8 @@
 // resolves once what's under `root` has stopped building itself (no node added or taken away for three frames running),
-// or after `max` ms whatever it's doing: a view mounting its boxes or rows a few a frame
-export function whenSettled (root: Element, max = 1600): Promise<void> {
+// or after MAX_MS whatever it's doing: a view mounting its boxes or rows a few a frame
+const MAX_MS = 1600;
+
+export function whenSettled (root: Element): Promise<void> {
   return new Promise((resolve) => {
     let quiet = 0;
     let frame = 0;
@@ -13,7 +15,7 @@ export function whenSettled (root: Element, max = 1600): Promise<void> {
       window.clearTimeout(timer);
       resolve();
     };
-    const timer = window.setTimeout(done, max);
+    const timer = window.setTimeout(done, MAX_MS);
     const tick = () => {
       quiet++;
       if (quiet >= 3) {

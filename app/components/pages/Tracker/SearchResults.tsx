@@ -5,11 +5,11 @@ import { EMPTY_FILTERS, appliedFacets, filterMatcher, hasQuery, queryMatcher } f
 import { FlipStrips } from './FlipStrips';
 import { Pokemon } from './Pokemon';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { shineClip, useTrackerActions } from './use-tracker';
+import { sealClip, sealTintClips, useTrackerActions } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture } from '../../../types';
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from 'react';
 import type { FilterView, TrackerFilters } from './filters';
 import type { TranslationKey } from '../../../i18n/translations';
 
@@ -32,29 +32,37 @@ interface ChunkProps {
   columns: number;
   // empty slots that square off the last row, like a box's
   padding: number;
+  // after the first: its first row draws the line between it and the chunk above (styles/tracker.scss)
+  ruled: boolean;
   setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
 function sameChunk (prev: ChunkProps, next: ChunkProps): boolean {
   return prev.padding === next.padding &&
+    prev.ruled === next.ruled &&
     prev.columns === next.columns &&
     prev.setSelectedPokemon === next.setSelectedPokemon &&
     prev.captures.length === next.captures.length &&
     prev.captures.every((capture, i) => capture === next.captures[i]);
 }
 
-// a box's rows of results drawn as a box is, its title aside, as wide as the row of boxes they stand for: its own shine
-// and flips over its own grid, so a sealed tile looks the same in every view, an offscreen chunk skips its work, and an
+// a box's rows of results drawn as a box is, its title aside, as wide as the row of boxes they stand for: its own seal
+// material under its own grid and flips over it, so a sealed tile looks the same in every view, an offscreen chunk skips its work, and an
 // edit re-renders one chunk, not the list
-const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, setSelectedPokemon }: ChunkProps) {
-  const { activeDex } = useDexContext();
+const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, ruled, setSelectedPokemon }: ChunkProps) {
+  const { activeDex, activeDexView } = useDexContext();
   const { narrow } = useTrackerActions();
   const checklist = Boolean(activeDex!.checklist);
+  const homeDex = activeDexView!.game.id === 'home';
 
-  const clip = useMemo(() => (narrow ? null : shineClip(captures, checklist, columns)), [captures, checklist, narrow, columns]);
+  const clip = useMemo(() => (narrow ? null : sealClip(captures, checklist, columns)), [captures, checklist, narrow, columns]);
+  const tintClips = useMemo(() => (narrow ? [] : sealTintClips(captures, checklist, homeDex, columns)), [captures, checklist, homeDex, narrow, columns]);
+
+  // its own size while it's out of sight (styles/tracker.scss): a short last chunk's rows, not a box's five
+  const size = { '--chunk-rows': Math.ceil(captures.length / columns), '--chunk-tiles': captures.length } as CSSProperties;
 
   return (
-    <div className="results-chunk">
+    <div className="results-chunk" style={size}>
       <div className="tile-grid" data-columns={columns}>
         {captures.map((capture) => (
           <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />
@@ -66,11 +74,16 @@ const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, s
         ))}
       </div>
       {clip &&
-        <div className="box-shine" style={{ clipPath: clip }}>
-          <div className="box-shine-band" />
+        <div className="seal-material" style={{ clipPath: clip }}>
+          <div className="seal-flow" />
         </div>
       }
-      {!narrow && <FlipStrips columns={columns} grids={[captures]} />}
+      {tintClips.map(({ tint, clip: tintClip }) => (
+        <div className="seal-material" data-tint={tint} key={tint} style={{ clipPath: tintClip }}>
+          <div className="seal-flow" />
+        </div>
+      ))}
+      {!narrow && <FlipStrips columns={columns} grids={[captures]} ruled={ruled} />}
     </div>
   );
 }, sameChunk);
@@ -162,6 +175,7 @@ export function SearchResults ({ captures, columns, filters, held, query, setFil
           columns={across}
           key={c}
           padding={c === chunks.length - 1 ? (across - (chunk.length % across)) % across : 0}
+          ruled={c > 0}
           setSelectedPokemon={setSelectedPokemon}
         />
       ))}

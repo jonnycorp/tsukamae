@@ -122,8 +122,18 @@ export function placeRank (key: string, saves: GameSave[]): number {
   if (key === 'champions') {
     return -1;
   }
+  // HOME, in one of your checklists' boxes (a free-form dex's mon): after Champions, the checklists by their keys
+  if (key.startsWith('home:')) {
+    return -0.5;
+  }
   const at = saves.findIndex((save) => `game:${save.id}` === key);
   return at === -1 ? saves.length : at;
+}
+
+// two places in that order, and by their keys where they rank alike (a checklist's boxes, a game whose save is unknown),
+// so each place's pieces lie together and a strand's band, drawn from its topmost piece, covers its own alone
+export function placeOrder (a: string, b: string, saves: GameSave[]): number {
+  return placeRank(a, saves) - placeRank(b, saves) || a.localeCompare(b);
 }
 
 // gifts: false leaves out Mystery Gift's mons, which reach every generation from the one stop
@@ -188,10 +198,10 @@ export function journeys (captures: Capture[], saves: GameSave[], grouping: Grou
   const groupRank = (key: string) => originRank(data.members[key][0].game);
   data.origins = [...origins.values()].sort((a, b) => groupRank(a.key) - groupRank(b.key));
   data.generations = [...generations.values()].sort((a, b) => generationOf(b.key) - generationOf(a.key));
-  data.places = [...places.values()].sort((a, b) => placeRank(a.key, saves) - placeRank(b.key, saves));
-  const rightRank = (split: Split, key: string) => (split === 'generation' ? -generationOf(key) : placeRank(key, saves));
+  data.places = [...places.values()].sort((a, b) => placeOrder(a.key, b.key, saves));
+  const rightOrder = (split: Split, a: string, b: string) => (split === 'generation' ? generationOf(b) - generationOf(a) : placeOrder(a, b, saves));
   for (const split of ['generation', 'place'] as Split[]) {
-    data.routes[split] = [...routes[split].values()].sort((a, b) => groupRank(a.from) - groupRank(b.from) || rightRank(split, a.to) - rightRank(split, b.to));
+    data.routes[split] = [...routes[split].values()].sort((a, b) => groupRank(a.from) - groupRank(b.from) || rightOrder(split, a.to, b.to));
   }
   data.pieces = [...pieces.values()];
   return data;
@@ -203,17 +213,17 @@ export function journeys (captures: Capture[], saves: GameSave[], grouping: Grou
 // at both ends (a pair's two games side by side in it, and a region's, whose games needn't stand together in the
 // games' order) and the strands cross no more than they must
 export function pieceOrder (split: Split, saves: GameSave[], groupRank: (group: string) => number): { left: (a: Piece, b: Piece) => number; right: (a: Piece, b: Piece) => number } {
-  const place = (piece: Piece) => placeRank(piece.place, saves);
+  const place = (a: Piece, b: Piece) => placeOrder(a.place, b.place, saves);
   const game = (a: Piece, b: Piece) => originRank(a.origin) - originRank(b.origin);
   const group = (a: Piece, b: Piece) => groupRank(a.group) - groupRank(b.group);
   if (split === 'generation') {
     return {
-      left: (a, b) => b.generation - a.generation || game(a, b) || place(a) - place(b),
-      right: (a, b) => group(a, b) || game(a, b) || place(a) - place(b),
+      left: (a, b) => b.generation - a.generation || game(a, b) || place(a, b),
+      right: (a, b) => group(a, b) || game(a, b) || place(a, b),
     };
   }
   return {
-    left: (a, b) => place(a) - place(b) || game(a, b) || b.generation - a.generation,
+    left: (a, b) => place(a, b) || game(a, b) || b.generation - a.generation,
     right: (a, b) => group(a, b) || game(a, b) || b.generation - a.generation,
   };
 }

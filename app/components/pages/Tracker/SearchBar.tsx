@@ -76,7 +76,7 @@ export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac
       if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) {
         return;
       }
-      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')) {
+      if (e.target instanceof Element && e.target.closest('input:not([type="checkbox"]), textarea, [contenteditable]')) {
         return;
       }
       if (document.querySelector(MENU_OR_MODAL)) {

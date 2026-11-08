@@ -299,7 +299,8 @@ $rp-ease: cubic-bezier(.2, .9, .3, 1);
   text-align: left;
   transition: background-color .1s ease-out;
 
-  // a mon's row, pressed to fix it; a variant's or the bookkeeping's, a div, is pressed by nothing but its Show in Dex
+  // a mon's row, pressed to fix it; a variant's or the bookkeeping's, a div, is pressed by nothing but the button beside
+  // it (Show in Dex, or a variant's Review)
   &:is(button) {
     cursor: pointer;
   }

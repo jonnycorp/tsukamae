@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useRef } from 'react';
 
 import { DEFAULT_THEME, findTheme } from '../../palette/themes';
 import { DISPLAY_MODES } from '../../utils/display-modes';
-import { DISPLAY_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, SOFT_DARK_STORAGE_KEY, STILL_STORAGE_KEY, THEME_STORAGE_KEY, fadeDisplay } from '../../palette/apply-theme';
+import { DISPLAY_STORAGE_KEY, LOCATION_TINTS_STORAGE_KEY, STILL_STORAGE_KEY, THEME_STORAGE_KEY, TYPEFACES_STORAGE_KEY, fadeDisplay } from '../../palette/apply-theme';
 import { useLocalStorage } from '../use-local-storage';
 
 import type { DisplayMode } from '../../utils/display-modes';
@@ -20,13 +20,14 @@ interface PreferencesState {
 interface ThemeState {
   theme: string;
   setTheme: (theme: string) => void;
-  isSoftDark: boolean;
-  setIsSoftDark: (softDark: boolean) => void;
   locationTints: boolean;
   setLocationTints: (on: boolean) => void;
   // nothing on the page moves (applyDisplay): for long sessions, or the dex left up on another screen
   still: boolean;
   setStill: (on: boolean) => void;
+  // the themes' own typefaces for headings and figures (applyDisplay), or the app's own everywhere
+  typefaces: boolean;
+  setTypefaces: (on: boolean) => void;
 }
 
 // the sealed tiles' pages (utils/display-modes), which the flips' strips draw and their picker offers, so it's kept
@@ -45,12 +46,12 @@ const PreferencesContext = createContext<PreferencesState>({
 const ThemeContext = createContext<ThemeState>({
   theme: DEFAULT_THEME,
   setTheme: () => {},
-  isSoftDark: false,
-  setIsSoftDark: () => {},
   locationTints: true,
   setLocationTints: () => {},
   still: false,
   setStill: () => {},
+  typefaces: true,
+  setTypefaces: () => {},
 });
 
 const DisplayContext = createContext<DisplayState>({
@@ -67,9 +68,9 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const [storedTheme, setTheme] = useLocalStorage(THEME_STORAGE_KEY, DEFAULT_THEME);
   // a name no theme has any more (1.2's Sakura, Peach Milk…) renders as the default, so the menu ticks that
   const theme = findTheme(storedTheme).name;
-  const [isSoftDark, setIsSoftDark] = useLocalStorage(SOFT_DARK_STORAGE_KEY, false);
   const [locationTints, setLocationTints] = useLocalStorage(LOCATION_TINTS_STORAGE_KEY, true);
   const [still, setStill] = useLocalStorage(STILL_STORAGE_KEY, false);
+  const [typefaces, setTypefaces] = useLocalStorage(TYPEFACES_STORAGE_KEY, true);
   const [storedDisplay, storeDisplay] = useLocalStorage<DisplayMode>(DISPLAY_STORAGE_KEY, 'hexagon');
   const display = DISPLAY_MODES.includes(storedDisplay) ? storedDisplay : 'hexagon';
   // switched out of sight, the dex's flips faded out and back in around it (fadeDisplay); the mode already asked for
@@ -86,8 +87,8 @@ export const LocalStorageContextProvider = ({ children }: Props) => {
   const preferences = useMemo<PreferencesState>(() => ({ locale, setLocale }), [locale, setLocale]);
 
   const themeState = useMemo<ThemeState>(
-    () => ({ theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, still, setStill }),
-    [theme, setTheme, isSoftDark, setIsSoftDark, locationTints, setLocationTints, still, setStill],
+    () => ({ theme, setTheme, locationTints, setLocationTints, still, setStill, typefaces, setTypefaces }),
+    [theme, setTheme, locationTints, setLocationTints, still, setStill, typefaces, setTypefaces],
   );
 
   const displayState = useMemo<DisplayState>(() => ({ display, setDisplay }), [display, setDisplay]);

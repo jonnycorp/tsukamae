@@ -97,7 +97,7 @@
   }
 
   // the tile opens its dex: the pointer's hand for that, the grab hand on its grip alone. Its words a size up from the
-  // dex page's own (DexIndicator, Progress), the list being the page
+  // dex page's own (DexIndicator, the meter's counts), the list being the page
   .dex-list-item {
     @include block-slab;
 

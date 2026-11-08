@@ -1,5 +1,5 @@
 // explicit .ts extensions: scripts/check-themes.mjs loads these modules in node
-import { GLYPH_CONTRAST, THEMES, TYPE_COLORS, themePalette } from './themes.ts';
+import { GLYPH_CONTRAST, THEMES, TYPE_COLORS, themePalette, themeSide } from './themes.ts';
 import { contrast, deltaE, over, parseCssColor } from './color.ts';
 
 import type { Rgb } from './color.ts';
@@ -36,7 +36,7 @@ const CONTRAST_RULES: ContrastRule[] = [
   { fg: 'accent', bg: ['paper', 'paper-raised', 'paper-sunken'], min: 3 },
   { fg: 'on-overlay', bg: ['overlay', 'overlay-deep', 'overlay-deeper'], min: 4.5 },
   { fg: 'on-overlay-muted', bg: ['overlay', 'overlay-deep'], min: 4.5 },
-  { fg: 'on-danger', bg: ['danger', 'danger-hover'], min: 4.5 },
+  { fg: 'on-danger', bg: ['danger'], min: 4.5 },
   { fg: 'ink-danger', bg: ['paper', 'paper-raised'], min: 4.5 },
   { fg: 'on-status', bg: ['status-unobtainable', 'status-temporary', 'status-caught'], min: 3 },
   { fg: 'on-tile', bg: ['tile-unobtainable', 'tile-temporary', 'tile-temporary-stripe', 'tile-caught'], min: 7 },
@@ -75,7 +75,7 @@ export interface AuditResult {
   pass: boolean;
 }
 
-export function auditTheme (seed: ThemeSeed, mode: Mode): AuditResult[] {
+function auditTheme (seed: ThemeSeed, mode: Mode): AuditResult[] {
   const palette = themePalette(seed, mode);
   const color = (name: string) => {
     if (!palette[name]) {
@@ -112,5 +112,6 @@ export function auditTheme (seed: ThemeSeed, mode: Mode): AuditResult[] {
 }
 
 export function auditAll (): AuditResult[] {
-  return THEMES.flatMap((seed) => (['light', 'dark'] as Mode[]).flatMap((mode) => auditTheme(seed, mode)));
+  // each on its own side alone: the other's tones are kept, but never drawn
+  return THEMES.flatMap((seed) => auditTheme(seed, themeSide(seed)));
 }

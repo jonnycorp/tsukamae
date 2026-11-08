@@ -24,11 +24,12 @@ const SPRITE = 49;
 const NUMBER = 16;
 const SEALED_PADDING = 18;
 
-// where a row's window for one line sits over the tiles; below the first row and right of the first column, a tile's
-// own grid line takes its first pixel
-function lineTop (line: Line, row: number): number {
-  const top = row * TILE_SIZE + (row > 0 ? 1 : 0);
-  const height = TILE_SIZE - (row > 0 ? 1 : 0);
+// where a row's window for one line sits over the tiles; below the first row (and in a ruled grid's first) and right
+// of the first column, a tile's own grid line takes its first pixel
+function lineTop (line: Line, row: number, ruled: boolean): number {
+  const lined = row > 0 || ruled;
+  const top = row * TILE_SIZE + (lined ? 1 : 0);
+  const height = TILE_SIZE - (lined ? 1 : 0);
   const stack = top + (height - SEALED_PADDING - (NAME + SPRITE + NUMBER)) / 2;
   if (line === 'sprites' || line === 'giants') {
     return stack + NAME;
@@ -43,10 +44,14 @@ interface Props {
   columns?: number;
   // the box grid's row these are, which the overlay spans (see .box-grid in styles/tracker.scss); unset for a lone grid
   row?: number;
+  // a grid whose first row draws the line over it too: a chunk of search results after the first, which runs on from
+  // the one above (.results-chunk in styles/tracker.scss)
+  ruled?: boolean;
 }
 
 function sameGrids (prev: Props, next: Props): boolean {
   return prev.row === next.row &&
+    prev.ruled === next.ruled &&
     prev.columns === next.columns &&
     prev.grids.length === next.grids.length &&
     prev.grids.every((captures, g) => captures.length === next.grids[g].length &&
@@ -56,7 +61,7 @@ function sameGrids (prev: Props, next: Props): boolean {
 // every sealed tile's flipping lines, lifted out of the tiles into an overlay: each tile row gets one clipped window
 // per line, spanning a whole row of boxes, whose faces slide as a single composited strip; the page's cost of a strip
 // grows with the number of them, so they're as few and as wide as the rows allow
-export const FlipStrips = memo(function FlipStrips ({ grids, columns = BOX_COLUMNS, row }: Props) {
+export const FlipStrips = memo(function FlipStrips ({ grids, columns = BOX_COLUMNS, row, ruled = false }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { display } = useDisplayContext();
 
@@ -146,7 +151,7 @@ export const FlipStrips = memo(function FlipStrips ({ grids, columns = BOX_COLUM
   const span = row === undefined ? undefined : { gridRow: `${row + 1} / span 1` };
   const of = (...lines: Line[]) => sorted.filter(([, { line }]) => lines.includes(line));
   const strips = (list: typeof sorted) => list.map(([key, { line, row: tileRow, faces }]) => (
-    <div className={`flip-window flip-${line}`} key={key} style={{ top: lineTop(line, tileRow) }}>
+    <div className={`flip-window flip-${line}`} key={key} style={{ top: lineTop(line, tileRow, ruled) }}>
       <div className="flip-strip">
         {line === 'lower' && moonGroups(tileRow, 'back')}
         {faces}
@@ -165,7 +170,7 @@ export const FlipStrips = memo(function FlipStrips ({ grids, columns = BOX_COLUM
       {sprites.length > 0 &&
         <div className="flip-overlay sprite-overlay" style={span}>
           {sprites.map(([key, { line, row: tileRow, faces, giant }]) => (
-            <div className="flip-window flip-sprites" key={key} style={{ top: lineTop(line, tileRow) }}>
+            <div className="flip-window flip-sprites" key={key} style={{ top: lineTop(line, tileRow, ruled) }}>
               {line === 'giants'
                 ? <>
                   <div className="gmax-pair">

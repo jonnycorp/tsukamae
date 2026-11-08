@@ -1,4 +1,5 @@
 import { GAME_FACTS } from './game-facts';
+import { REGIONAL_FORMS } from './champions';
 import { getCatalogDex } from './local-data';
 
 import type { Capture, GameSave } from '../types';
@@ -8,8 +9,6 @@ import type { Capture, GameSave } from '../types';
 
 export const LETS_GO = new Set(['lets_go_pikachu', 'lets_go_eevee']);
 const BDSP = new Set(['brilliant_diamond', 'shining_pearl']);
-// a regional form came with its region, so its own generation is its debut; any other form is read by its species
-const REGIONAL_FORMS = new Set(['alola', 'galar', 'hisui', 'paldea']);
 
 // a mon keeps the game it was caught in as it evolves, so an evolved species can come from a game older than itself,
 // caught there as what it evolves from (a Magnezone caught as a FireRed Magnemite). The evolutions that cross from

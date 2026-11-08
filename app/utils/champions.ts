@@ -8,7 +8,9 @@ interface RosterEntry {
   national: number;
   form?: string;
 }
-const REGIONAL_FORMS = new Set(['alola', 'galar', 'hisui', 'paldea']);
+// a regional form came with its region, so its own generation is its debut (utils/game-reach); any other form is
+// read by its species
+export const REGIONAL_FORMS = new Set(['alola', 'galar', 'hisui', 'paldea']);
 const slotKey = (national: number, form: string | null | undefined) => (form && REGIONAL_FORMS.has(form) ? `${national}:${form}` : String(national));
 const ROSTER = new Set((rosterJson.pokemon as RosterEntry[]).map((entry) => slotKey(entry.national, entry.form)));
 

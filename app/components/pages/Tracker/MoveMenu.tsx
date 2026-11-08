@@ -94,9 +94,11 @@ export function MoveMenu () {
           e.preventDefault();
         }
         close();
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key.toLowerCase() === 'q' || e.key.toLowerCase() === 'e') {
+        // ↑ ↓, or Q E from the left hand
         e.preventDefault();
-        setActive((index) => (index + (e.key === 'ArrowDown' ? 1 : -1) + places.length) % places.length);
+        const down = e.key === 'ArrowDown' || e.key.toLowerCase() === 'e';
+        setActive((index) => (index + (down ? 1 : -1) + places.length) % places.length);
       } else if (e.key === 'Home' || e.key === 'End') {
         e.preventDefault();
         setActive(e.key === 'Home' ? 0 : places.length - 1);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
@@ -18,6 +18,9 @@ const STALL_MS = 50;
 const MAX_GATE_MS = 600;
 // a modifier alone (an Alt+Tab begun) skips nothing, here or on the timeline
 export const MODIFIERS = ['Shift', 'Control', 'Alt', 'Meta'];
+// the most of the card's width a scene's name takes: a long one (Trainer Cards) set smaller in a narrow window, on its
+// one line, rather than broken onto two
+const NAME_SHARE = 0.92;
 
 // true once a scene's first frames have gone by (CALM_FRAMES): till then it holds all its motion at its start
 // (data-gate, styles/title-card.scss), so its title card never starts in a stall and jumps. A new run (the timeline's
@@ -60,9 +63,20 @@ export function useCalmStart (run = 0): boolean {
 export function TitleCard ({ title }: { title: string }) {
   const { activeDex } = useDexContext();
   const { t } = useTranslation();
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // the name's size (--fit, styles/title-card.scss) as it's laid out, before its first frame
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    const name = card?.querySelector<HTMLElement>('.title-card-title span');
+    if (card && name) {
+      card.style.removeProperty('--fit');
+      card.style.setProperty('--fit', String(Math.min(1, (card.clientWidth * NAME_SHARE) / name.offsetWidth)));
+    }
+  }, [title]);
 
   return (
-    <div aria-hidden="true" className="title-card">
+    <div aria-hidden="true" className="title-card" ref={cardRef}>
       <div className="title-card-flash" />
       <div className="title-card-slash" />
       <div className="title-card-title"><span>{title}</span></div>

@@ -30,3 +30,157 @@
   font-display: swap;
   src: url('/fonts/alegreya-sans-700-latin.woff2') format('woff2');
 }
+
+// Press Start 2P (SIL OFL 1.1, public/fonts/OFL-press-start-2p.txt) for the digits, the percent sign and the point
+// alone: a pocket screen's numerals, any weight drawn as its one
+@font-face {
+  font-family: 'Pixel Digits';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/press-start-2p.ttf') format('truetype');
+  unicode-range: U+0025, U+002C-002F, U+0030-0039;
+}
+
+// the themes' own typefaces for headings and figures (styles/themes.scss, behind the theme menu's switch), all SIL OFL
+// 1.1, their licences beside them in public/fonts. Each is one weight drawn for every weight asked, so none is faked
+// bold, but Wisteria's Mincho, whose regular draws the lighter weights and its bold the heavier. Whole fonts for now: a
+// port would subset the Japanese ones to the app's own text and the kana
+
+// Ink: a brush's own hand, its Japanese and its Latin alike (Yuji Boku)
+@font-face {
+  font-family: 'Theme Brush';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/yuji-boku.ttf') format('truetype');
+}
+
+// and every other word of Ink's in a brush pen's hand (Zen Kurenaido), its Japanese and its Latin each scaled to draw as
+// large as the app's own face for its script does at the same size (measured on their ink, as Wisteria's are)
+@font-face {
+  font-family: 'Theme Pen';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/zen-kurenaido.ttf') format('truetype');
+  size-adjust: 104%;
+  unicode-range: U+3000-30FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}
+
+@font-face {
+  font-family: 'Theme Pen';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/zen-kurenaido.ttf') format('truetype');
+  size-adjust: 97%;
+  unicode-range: U+0000-2FFF;
+}
+
+// its figures and their marks to the app's capitals' height: the app's own figures are old-style, the pen's lining, so
+// at the Latin's scale they stood a fifth taller than the words round them
+@font-face {
+  font-family: 'Theme Pen';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/zen-kurenaido.ttf') format('truetype');
+  size-adjust: 89%;
+  unicode-range: U+0023, U+0025, U+002B-002F, U+0030-003A;
+}
+
+// Wisteria: a printed serif (Alegreya) and its Japanese, a Mincho (Zen Old Mincho), each scaled to draw as large as the
+// app's own face for its script does at the same size, so the sizes the app sets for Japanese and English hold here
+// too: the serif, wider and darker than Alegreya Sans, to 93%; the Mincho, whose kana and kanji sit small in their
+// squares beside Noto Sans JP's, to 111% (its bold 112%); and its numerals (below) to 95%, as tall as the app's own.
+// Measured on their ink (the harness's probes/face-metrics.js); every line's height is fixed (main.scss), so the scale
+// moves no line
+@font-face {
+  font-family: 'Theme Serif';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/fonts/alegreya.ttf') format('truetype');
+  size-adjust: 93%;
+}
+
+@font-face {
+  font-family: 'Theme Mincho';
+  font-style: normal;
+  font-weight: 100 500;
+  font-display: swap;
+  src: url('/fonts/zen-old-mincho-regular.ttf') format('truetype');
+  size-adjust: 111%;
+}
+
+@font-face {
+  font-family: 'Theme Mincho';
+  font-style: normal;
+  font-weight: 600 900;
+  font-display: swap;
+  src: url('/fonts/zen-old-mincho-bold.ttf') format('truetype');
+  size-adjust: 112%;
+}
+
+// the same Mincho for the numerals and the marks between and after them alone (the digits, a range's dashes and 〜, the
+// point, the percent and the colon; it has no ～), first in the serif's stack: a title's wave dash, which the serif
+// lacks, then sits in the same face and weight as the numbers round it, where it fell through to the Mincho beside the
+// serif's old-style figures
+@font-face {
+  font-family: 'Theme Mincho Digits';
+  font-style: normal;
+  font-weight: 100 500;
+  font-display: swap;
+  src: url('/fonts/zen-old-mincho-regular.ttf') format('truetype');
+  unicode-range: U+0025, U+002B-002F, U+0030-003A, U+2013-2014, U+301C;
+  size-adjust: 95%;
+}
+
+@font-face {
+  font-family: 'Theme Mincho Digits';
+  font-style: normal;
+  font-weight: 600 900;
+  font-display: swap;
+  src: url('/fonts/zen-old-mincho-bold.ttf') format('truetype');
+  unicode-range: U+0025, U+002B-002F, U+0030-003A, U+2013-2014, U+301C;
+  size-adjust: 95%;
+}
+
+// Game Boy: a dot font with kana and kanji (DotGothic16)
+@font-face {
+  font-family: 'Theme Dot';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/dotgothic16.ttf') format('truetype');
+}
+
+// Midnight: a wide geometric display face (Orbitron), Latin alone
+@font-face {
+  font-family: 'Theme Wide';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/fonts/orbitron.ttf') format('truetype');
+}
+
+// and its figures alone, first in the stack its every word takes at night: the digits and their marks (# % + , - . / :)
+@font-face {
+  font-family: 'Theme Wide Digits';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/fonts/orbitron.ttf') format('truetype');
+  unicode-range: U+0023, U+0025, U+002B-002F, U+0030-003A;
+}
+
+// Pokédex: a device's seven-segment numerals (DSEG7 Classic), the digits and their marks alone
+@font-face {
+  font-family: 'Theme LCD';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/dseg7-classic-bold.woff2') format('woff2');
+  unicode-range: U+002C-002F, U+0030-0039, U+003A;
+}

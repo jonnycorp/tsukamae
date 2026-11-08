@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { Almanac } from './Almanac';
 import { Atlas } from './Atlas';
@@ -68,9 +68,9 @@ export function Tracker () {
 }
 
 // a CSS animation starts when its element is first styled, which content-visibility delays until scroll-in, and a
-// moon slot's group (FlipStrips) only once a mon fills it: the shine's sweep and the moons' turn all run from the
-// timeline's start, so every row keeps in step, and a row's slots their fifth of a turn apart (by their delays)
-const SYNCED = ['seal-shine', 'hub-far', 'hub-near'];
+// moon slot's group (FlipStrips) only once a mon fills it: the seal materials' flow and the moons' turn all run from the
+// timeline's start, so every box keeps in step, and a row's slots their fifth of a turn apart (by their delays)
+const SYNCED = ['seal-flow', 'hub-far', 'hub-near'];
 
 function syncLoops (e: AnimationEvent<HTMLDivElement>) {
   if (!SYNCED.includes(e.animationName)) {
@@ -109,14 +109,21 @@ function TrackerInner () {
   const { display, setDisplay } = useDisplayContext();
   const flipPause = useFlipClock(containerRef, still, display);
   // still mode (M): no moving part anywhere, the flips held on the face its picker shows (useFlipClock), the sealed
-  // boxes' shine gone and the meter at rest; kept through a restart
+  // boxes' seal flows stopped and the meter at rest; kept through a restart
   useHotkey('m', () => setStill(!still));
   // the sealed tiles' display mode (O): Hexagon's pages, or Orbit's hub alone, and back; kept through a restart
   useHotkey('o', () => setDisplay((mode) => DISPLAY_MODES[(DISPLAY_MODES.indexOf(mode) + 1) % DISPLAY_MODES.length]));
-  useHotkey('h', () => setShowHelp(true));
+  useHotkey('h', () => {
+    if (!document.querySelector('.facet-panel')) {
+      setSelectedPokemon(0);
+      setShowHelp(true);
+    }
+  });
   const { scale, columns, rows, measured, headerWidth, flipLines, zoom, nudges } = useDexScale(areaRef);
   // the ball badge draws a 20px sprite area at 15px (styles/tracker.scss): pixelated only once that's no longer a shrink
   const crispBalls = scale * window.devicePixelRatio >= 20 / 15;
+  // and Orbit's hub draws it at 26px (styles/tile-faces.scss), no longer a shrink from a lower zoom
+  const crispHub = scale * window.devicePixelRatio >= 20 / 26;
 
   useEffect(() => {
     document.title = `${activeDex!.title} | ${t('app.name')}`;
@@ -125,12 +132,48 @@ function TrackerInner () {
     };
   }, [activeDex!.title, t]);
 
-  // a new search, view or facet starts at the top, as a new list; re-clicking the view already shown keeps its place
-  useEffect(() => {
+  // a new search, view or facet starts at the top, as a new list; re-clicking the view already shown keeps its place.
+  // On the values the dex draws by (Dex.tsx defers them), so the jump lands with the view it brings, never on the old
+  const shownQuery = useDeferredValue(query);
+  const shownFilters = useDeferredValue(filters);
+  useLayoutEffect(() => {
     if (columnRef.current) {
       columnRef.current.scrollTop = 0;
     }
-  }, [query, filters.view, filters.facets, layout]);
+  }, [shownQuery, shownFilters.view, shownFilters.facets, layout]);
+
+  // a fast fling scrolls on ahead of what's been drawn, and content-visibility draws a box's tiles, its seal ground and
+  // its row's flips only once they're nearly in view, so they came in blank: those within a screen and a half either
+  // way are kept drawn (data-near, styles/tracker.scss). Watched as they're added and let go as they leave, the boxes
+  // going in a few a frame
+  useEffect(() => {
+    const root = columnRef.current;
+    if (!root) {
+      return undefined;
+    }
+    const NEAR = '.box-container > .tile-grid, .results-chunk > .tile-grid, .seal-material, .flip-overlay';
+    const near = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => entry.target.toggleAttribute('data-near', entry.isIntersecting));
+    }, { root, rootMargin: '150% 0px' });
+    const each = (node: Node, act: (el: Element) => void) => {
+      if (node instanceof Element) {
+        if (node.matches(NEAR)) {
+          act(node);
+        }
+        node.querySelectorAll(NEAR).forEach(act);
+      }
+    };
+    each(root, (el) => near.observe(el));
+    const added = new MutationObserver((records) => records.forEach((record) => {
+      record.addedNodes.forEach((node) => each(node, (el) => near.observe(el)));
+      record.removedNodes.forEach((node) => each(node, (el) => near.unobserve(el)));
+    }));
+    added.observe(root, { childList: true, subtree: true });
+    return () => {
+      added.disconnect();
+      near.disconnect();
+    };
+  }, []);
 
   // watches a sentinel rather than reading scrollTop per scroll event, which forced layout mid-scroll
   useEffect(() => {
@@ -173,7 +216,10 @@ function TrackerInner () {
     let frame = 0;
     const step = () => {
       const late = performance.now() - start > HAND_OFF_MS;
-      if (!late && document.querySelector('.dex[data-stale], .box-grid[data-hidden]')) {
+      // the boxes built afresh fade in (.box-grid, styles/tracker.scss): waited out too, so the page never leaves
+      // onto paper
+      const fading = [...document.querySelectorAll<HTMLElement>('.dex .box-grid')].some((grid) => getComputedStyle(grid).opacity !== '1');
+      if (!late && (fading || document.querySelector('.dex[data-stale], .box-grid[data-hidden]'))) {
         frame = requestAnimationFrame(step);
         return;
       }
@@ -266,17 +312,31 @@ function TrackerInner () {
   const handleOpenReview = useCallback((pointed = 0) => {
     const matchesFilters = filterMatcher(filters);
     const matchesQuery = queryMatcher(query, Boolean(activeDexView?.regional));
-    const queue = captures.filter((capture) => matchesFilters(capture) && matchesQuery(capture)).map((capture) => capture.pokemon.id);
-    setReview({ queue, start: Math.max(0, queue.indexOf(selectedPokemon || pointed)) });
+    // the one it starts from is shown, so it's in, where it stands, though the view only holds it (a press marked it)
+    const from = selectedPokemon || pointed;
+    const queue = captures.filter((capture) => capture.pokemon.id === from || (matchesFilters(capture) && matchesQuery(capture))).map((capture) => capture.pokemon.id);
+    closingReview.current = false;
+    setReview({ queue, start: Math.max(0, queue.indexOf(from)) });
     setSelectedPokemon(0);
   }, [captures, filters, query, activeDexView, selectedPokemon]);
+  const closingReview = useRef(false);
   const handleCloseReview = useCallback((pokemon: number | null) => {
-    if (pokemon === null) {
+    if (closingReview.current) {
+      return;
+    }
+    const capture = pokemon === null ? undefined : captures.find((entry) => entry.pokemon.id === pokemon);
+    const shown = capture && filterMatcher(filters)(capture) && queryMatcher(query, Boolean(activeDexView?.regional))(capture);
+    if (pokemon === null || !shown) {
       setReview(null);
       return;
     }
-    handOff(() => setReview(null), { pokemon, select: false });
-  }, [handOff]);
+    closingReview.current = true;
+    // let go as the close lands, so a review opened again (from W or a scene) closes again
+    handOff(() => {
+      closingReview.current = false;
+      setReview(null);
+    }, { pokemon, select: false });
+  }, [handOff, captures, filters, query, activeDexView]);
   // the tile or ledger row under the pointer, as L and D find theirs (Dex.tsx)
   useHotkey('w', () => {
     if (!activeDex!.checklist && !document.querySelector('.facet-panel')) {
@@ -396,6 +456,7 @@ function TrackerInner () {
         <div
           className="dex-wrapper"
           data-crisp-balls={crispBalls || undefined}
+          data-crisp-hub={crispHub || undefined}
           style={{
             '--dex-columns': columns,
             '--dex-header-width': `${headerWidth}px`,

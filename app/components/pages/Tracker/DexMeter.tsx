@@ -70,9 +70,10 @@ export function DexMeter ({ marked, total }: Pick<Props, 'marked' | 'total'>) {
     if (!el) {
       return undefined;
     }
+    // the spring's overshoot past either end shows as that end, never a "-0.0%" or a "100.3%"
     const show = (n: number) => {
       shownRef.current = n;
-      el.textContent = `${n.toFixed(1)}%`;
+      el.textContent = `${Math.min(100, Math.max(0, n)).toFixed(1)}%`;
     };
     const curve = openedRef.current ? SPRING : DRAW;
     openedRef.current = true;

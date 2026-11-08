@@ -6,8 +6,8 @@ html {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   overscroll-behavior: none;
-  // what the browser draws itself (a date's calendar) light, or dark under Soft Dark (.soft-dark, on this element),
-  // which the whole page inherits
+  // what the browser draws itself (a date's calendar) light, or dark on a dark theme (below), which the whole page
+  // inherits
   color-scheme: light;
 }
 
@@ -75,7 +75,7 @@ textarea,
   user-select: text;
 }
 
-.soft-dark {
+:root[data-mode='dark'] {
   color-scheme: dark;
 }
 
@@ -142,7 +142,7 @@ nav {
 
   // with a menu open anywhere, a click on the bar has to reach the page to close it, not start a window drag
   &.dropdown-open,
-  :root:has(.dropdown-menu) & {
+  :root:has(.dropdown-menu, .nav-menu-dropdown, .facet-panel) & {
     -webkit-app-region: no-drag;
   }
 
@@ -239,9 +239,9 @@ nav {
       font-size: 11px;
     }
 
-    // the next group (Soft Dark, the display modes, then the display switches) sets off with a band of the bar's deeper
-    // shade
-    &.theme-soft-dark,
+    // the next group (the typefaces, the display modes, then the display switches) sets off with a band of the bar's
+    // deeper shade
+    &.theme-typefaces,
     &.theme-modes,
     &.theme-display {
       border-top: 4px solid var(--chrome-active);
@@ -297,11 +297,6 @@ nav .nav-menu > a.tooltip .tooltip-text {
     color: var(--on-accent);
   }
 
-  &.btn-delete {
-    color: var(--on-danger);
-    background-color: var(--danger);
-  }
-
   .svg-inline--fa {
     font-size: 10px;
     margin-left: 3px;
@@ -318,10 +313,6 @@ nav .nav-menu > a.tooltip .tooltip-text {
 
     &.btn-blue {
       background-color: var(--accent-hover);
-    }
-
-    &.btn-delete {
-      background-color: var(--danger-hover);
     }
   }
 }
@@ -399,22 +390,13 @@ form {
   }
 }
 
-// Still mode (M): a menu or the filters' panel there at once, a chevron turned where it stands; the review's Enter flow
-// opens a menu for each field it comes to, mon after mon
-:root[data-still] {
-  :is(.dropdown-menu, .nav-menu-dropdown, .facet-panel) {
-    animation: none;
-  }
-
-  :is(.dropdown-chevron, .dex-menu-chevron, .ledger-chevron) {
-    transition: none;
-  }
-}
-
-// and with no exceptions: past the rules above and each sheet's own, whatever animation or transition is left plays out
+// Still mode (M), with no exceptions: past each sheet's own rules, whatever animation or transition is left plays out
 // in no time, so an entrance lands on its last frame at once (its animationend still firing) and a change of state shows
 // at once, a new animation included before it's ever given a rule. A transition's delay stays, being when something
-// happens rather than how. The one motion left is a hold's fill, which is the hold itself (--hold, set where it's drawn)
+// happens rather than how. The one motion left is a hold's fill, which is the hold itself (--hold, set where it's drawn).
+// A chevron turns where it stands, and a menu or the filters' panel is there at once (the review's Enter flow opens a
+// menu for each field it comes to, mon after mon), by this net and never by `animation: none`, which lifted as still
+// mode ends would unfurl one that's open again
 :root[data-still] *,
 :root[data-still] *::before,
 :root[data-still] *::after {

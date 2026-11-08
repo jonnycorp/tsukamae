@@ -10,8 +10,7 @@ import { SlotsLine, flipsName, liftsSprite } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { defaultStatus } from '../../../utils/local-data';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
-import { locationTint } from '../../../utils/location-moves';
-import { isDisplaySealed, useTrackerActions } from './use-tracker';
+import { isDisplaySealed, tileTint, useTrackerActions } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLongPress } from '../../../hooks/use-long-press';
 import { useMark } from './use-mark';
@@ -157,12 +156,9 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture, setSel
     holdHost.current?.(capture.pokemon.id);
   };
 
-  // a sealed mon away from where its dex keeps them is tinted for where it is (utils/location-moves), and a checklist's
-  // Elsewhere as a mon checked out of HOME is
-  let tint = displaySealed && !checklist ? locationTint(capture.location, activeDexView!.game.id === 'home') : null;
-  if (checklist && capture.status === 'temporary') {
-    tint = 'out';
-  }
+  // a sealed mon away from where its dex keeps them is tinted for where it is, and a checklist's Elsewhere as a mon
+  // checked out of HOME is (use-tracker's tileTint)
+  const tint = displaySealed ? tileTint(capture, checklist, activeDexView!.game.id === 'home') : null;
   // a sealed mon whose sprite FlipStrips draws over the tile (liftsSprite), the tile's own hidden under it
   const lifted = displaySealed && !checklist && liftsSprite(capture);
   const classes = classNames('pokemon', tint && `loc-${tint}`, {

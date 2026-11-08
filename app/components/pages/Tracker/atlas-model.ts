@@ -1,5 +1,5 @@
-import { copyKind } from '../../../utils/copies';
-import { getCatalogDex, progressToCaptures } from '../../../utils/local-data';
+import { copyKind, everyDex } from '../../../utils/copies';
+import { getCatalogDex } from '../../../utils/local-data';
 
 import type { Capture, CapturePokemon } from '../../../types';
 import type { PersonalDex } from '../../../utils/local-data';
@@ -47,8 +47,7 @@ const stateOf = (capture: Capture, checklist: boolean): AtlasState => {
 
 export function atlas (dexes: PersonalDex[], activeId: string, activeCaptures: Capture[]): AtlasData {
   const copies = new Map<number, number>();
-  const rows = dexes.map((dex) => {
-    const captures = dex.id === activeId ? activeCaptures : progressToCaptures(dex);
+  const rows = everyDex(dexes, activeId, activeCaptures).map(({ dex, captures }) => {
     const states = new Map<number, AtlasState>();
     const holds = new Set<number>();
     let marked = 0;

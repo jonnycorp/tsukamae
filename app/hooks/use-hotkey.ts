@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 // a modal, the timeline (or another scene), or a menu open anywhere: a dropdown (whose type-ahead a letter belongs to) or the nav's gear
 // and theme menus; every keyboard shortcut stands down while one is up
-export const MENU_OR_MODAL = '.modal-overlay, .timeline, .almanac, .review, .scene, .dropdown-menu, .nav-menu-dropdown';
+export const MENU_OR_MODAL = '.modal-overlay, .timeline, .almanac, .review, .scene, .dropdown-menu, .nav-menu-dropdown, .species-picker';
 
 // a bare letter; stays quiet while typing, under a modal or an open menu, for a key a control has already claimed, on
 // key repeat and beside cmd/ctrl/alt
@@ -15,7 +15,8 @@ export function useHotkey (key: string, handler: () => void) {
       if (e.key.toLowerCase() !== key || e.defaultPrevented || e.repeat || e.isComposing || e.metaKey || e.ctrlKey || e.altKey) {
         return;
       }
-      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')) {
+      // a checkbox (the popover's Nickname box) takes no text, so a letter stays a hotkey over one
+      if (e.target instanceof Element && e.target.closest('input:not([type="checkbox"]), textarea, [contenteditable]')) {
         return;
       }
       if (document.querySelector(MENU_OR_MODAL)) {

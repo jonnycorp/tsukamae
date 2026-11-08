@@ -190,6 +190,7 @@ $jr-mon-gap: 3px;
   .jr-labels {
     opacity: 0;
     animation: none;
+    pointer-events: none;
   }
 }
 

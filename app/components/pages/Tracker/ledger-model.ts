@@ -170,11 +170,12 @@ const GROUPS: Record<Exclude<LedgerGroupId, 'none'>, GroupDef> = {
       return place ? placeKey(place) : '';
     },
     label: (key, ctx) => placeLabel(placeFromKey(key), ctx.saves, ctx.locale),
-    // HOME, Champions, your games in My Games' order, then a game with no save
+    // HOME, Champions, HOME in one of your checklists' boxes (a free-form dex's), your games in My Games' order, then a
+    // game with no save
     rank: (key, ctx) => {
       const place = placeFromKey(key);
       if (place.location !== 'game') {
-        return place.location === 'home' ? 0 : 1;
+        return place.location === 'champions' ? 1 : place.location_save ? 1.5 : 0;
       }
       const save = ctx.saves.findIndex((entry) => entry.id === place.location_save);
       return 2 + (save === -1 ? ctx.saves.length : save);

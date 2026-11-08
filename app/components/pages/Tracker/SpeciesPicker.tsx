@@ -65,10 +65,23 @@ export function SpeciesPicker ({ at, onPick, onClose }: Props) {
         onClose();
       }
     };
+    // Esc closes it from anywhere in it: a press on its edge or its "no matches" line takes the focus off the input,
+    // whose own Esc goes no further
+    const handleKeyDown = (e: Event) => {
+      if (!(e instanceof window.KeyboardEvent)) {
+        return;
+      }
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        e.preventDefault();
+        onClose();
+      }
+    };
     document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('resize', onClose);
     return () => {
+      document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', onClose);

@@ -10,7 +10,7 @@ import { EMPTY_METADATA } from '../../../utils/capture-fields';
 import { FlipStrips } from './FlipStrips';
 import { Pokemon } from './Pokemon';
 import { SpeciesPicker } from './SpeciesPicker';
-import { shineClip, useTrackerActions } from './use-tracker';
+import { sealClip, sealTintClips, useTrackerActions } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -35,7 +35,7 @@ interface Slot {
   slot: number | null;
 }
 
-// an empty slot, for the shine and the flips, which place a sealed mon by its index in its box
+// an empty slot, for the seal material and the flips, which place a sealed mon by its index in its box
 const hole = (slot: number): Capture => ({
   ...EMPTY_METADATA,
   pokemon: { id: -1 - slot, national_id: 0, name: '', name_ja: null, form: null, box: null, dex_number: 0, generation: 0 },
@@ -51,7 +51,8 @@ const hole = (slot: number): Capture => ({
 // another slot (a mon there trades places) or onto an open box's name, and to sort. An open box's frame marches; a
 // locked one takes no drag and no sort. An empty slot pressed adds a mon there, open or locked
 export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
-  const { activeDex, editDexes } = useDexContext();
+  const { activeDex, activeDexView, editDexes } = useDexContext();
+  const homeDex = activeDexView!.game.id === 'home';
   const { narrow } = useTrackerActions();
   const { t } = useTranslation();
   const dex = activeDex!;
@@ -207,8 +208,8 @@ export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
         {boxes.map((box, i) => {
           const slots = grids[i];
           const filled = slots.filter(Boolean).length;
-          const sealed = slots.filter((capture) => capture?.sealed).length;
-          const clip = narrow ? null : shineClip(padded[i], false);
+          const clip = narrow ? null : sealClip(padded[i], false);
+          const tintClips = narrow ? [] : sealTintClips(padded[i], false, homeDex);
           const lit = over?.box === box.id ? over.slot : undefined;
           return (
             <div
@@ -220,6 +221,7 @@ export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
             >
               <div
                 className={classNames('box-header', 'free-box-header', { over: lit === null })}
+                onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOver(null)}
                 onDragOver={dragOver(box, true)}
                 onDrop={drop(box, true)}
               >
@@ -267,7 +269,6 @@ export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
                   : <h1>{boxName(box, i)}</h1>
                 }
                 <span className="free-box-end">
-                  <span className="box-sealed-count">{t('box.sealedCount', { sealed, total: filled })}</span>
                   <span className="free-box-tools">
                     <button
                       aria-label={t(box.open ? 'free.boxOpen' : 'free.boxLocked')}
@@ -317,10 +318,15 @@ export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
                   />
                 }
                 {clip &&
-                  <div className="box-shine" style={{ clipPath: clip }}>
-                    <div className="box-shine-band" />
+                  <div className="seal-material" style={{ clipPath: clip }}>
+                    <div className="seal-flow" />
                   </div>
                 }
+                {tintClips.map(({ tint, clip: tintClip }) => (
+                  <div className="seal-material" data-tint={tint} key={tint} style={{ clipPath: tintClip }}>
+                    <div className="seal-flow" />
+                  </div>
+                ))}
               </div>
             </div>
           );

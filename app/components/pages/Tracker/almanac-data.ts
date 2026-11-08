@@ -1,3 +1,4 @@
+import { DATE } from './timeline-layout';
 import { MYSTERY_GIFT } from '../../../utils/capture-fields';
 import { TYPE_ORDER } from './filters';
 import { placeKey, shownPlace } from '../../../utils/location-moves';
@@ -152,7 +153,8 @@ export function almanacData (captures: Capture[], saves: GameSave[]): AlmanacDat
         trained++;
       }
     }
-    if (capture.catch_date) {
+    // a whole date only: a bare year's month would run the month loop below for ever
+    if (capture.catch_date && DATE.test(capture.catch_date)) {
       tally(months, capture.catch_date.slice(0, 7));
       byDate.push(capture);
     } else {

@@ -560,6 +560,11 @@ export function withFieldInvariants (
   if (wasFloored !== isFloored && merged.favorite !== 'partner') {
     next.favorite = isFloored ? 'favorite' : 'no';
   }
+  // and whoever writes the heart (a batch's Favorite: No over a nicknamed mon) can't set one 'no'; only a write to it,
+  // so a legacy 'no' already stored stays till it's edited
+  if (patch.favorite === 'no' && isFloored) {
+    next.favorite = 'favorite';
+  }
 
   // every mon with the Gigantamax factor is a partner, brought to Gen 8 and fed a DLC's soup; taking the factor
   // away leaves the heart to change by hand

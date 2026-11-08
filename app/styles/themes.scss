@@ -1,49 +1,495 @@
 @use 'variables' as *;
 
 // a theme's character beyond its colours, keyed on [data-theme] and [data-mode] (palette/apply-theme sets both on the
-// root, and the Theme Preview on each panel). Every touch here is a static background, border or shadow: nothing that
-// costs a frame
+// root). Every touch here is a static background, border or shadow, but for the few layers that move (Ember's embers,
+// the seal materials' flows), each by transform alone
 
-// Game Boy: the page a dot-matrix screen, under a pocket console's heavier rules (its lineAlpha)
+// a page texture lies on the dex's scroller, which carries it with the boxes. Its gutters at both edges stand outside
+// what it scrolls and show what's behind it: plain paper, rather than the body's texture, which held still as the boxes
+// scrolled and showed a seam down each edge of the window
+:root[data-theme] .dex-wrapper {
+  background-color: var(--paper);
+}
+
+// art behind the rows of boxes (Wisteria's clouds, Midnight's mountains, Ink's pond), drawn by scripts/theme-marks.mjs
+// in strips 520px wide and three rows tall. A row, top to top, is a box's title line and margin, its tiles in their
+// frame (as .box-placeholder holds them) and the grid's gap under it
+$art-title: 25px * 1.35 + 10px;
+$art-row: $art-title + $box-rows * $pokemon-box-size + 2px + 60px;
+$art-size: 520px 3 * $art-row;
+// where a strip starts, inside the first row's tiles, so a band between rows never meets a strip's end
+$art-origin: 200px;
+
+// a theme's strips (`$layers`, each at its side) on a layer under everything in the box grid, as wide as its columns,
+// so a strip anchored to a side lies on the first or last box at any width. It starts at the first row's tiles, so
+// nothing shows over the first row, and ends with the last row; a slot nothing fills is plain paper, so nothing lies
+// behind it. The narrow list's boxes have no one height, so it has none
+@mixin row-art ($layers...) {
+  .tile-grid > .pokemon:not(.captured) {
+    background-color: var(--paper);
+  }
+
+  @media (width > 750px) {
+    .box-grid {
+      isolation: isolate;
+
+      &::before {
+        $columns: calc(var(--dex-columns) * #{$box-width + $dex-grid-gap} - #{$dex-grid-gap});
+
+        content: '';
+        position: absolute;
+        top: $art-title;
+        bottom: 0;
+        left: calc(50% - #{$columns} / 2);
+        z-index: -1;
+        width: $columns;
+        background: $layers;
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+// Game Boy: the page a dot-matrix screen, under a pocket console's heavier rules (its lineAlpha); its sprites in its
+// own four greens (theme-sprites.scss)
 :root[data-theme='game-boy'] body,
-.theme-preview-panel[data-theme='game-boy'] {
-  background-image: radial-gradient(color-mix(in srgb, var(--ink) 10%, transparent) 0.7px, transparent 1.1px);
+:root[data-theme='game-boy'] .dex-wrapper .dex-column {
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 16%, transparent) 0.8px, transparent 1.2px);
   background-size: 4px 4px;
 }
 
-// Ink: an unobtainable slot hatched, as a printed checklist strikes one out
-[data-theme='ink'] .pokemon.captured.unobtainable {
-  background-image: repeating-linear-gradient(-45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 7px);
+:root[data-theme='game-boy'] {
+  // the screen's pixel grid over every box's tiles, a screen pixel wide and three of the dex's own apart, so it scales
+  // with the zoom as the sprites do; one static layer a box, raised over the tiles but under the flips' overlays, whose
+  // names and figures stay crisp over it (a free-form box's ::after is its marching frame). Lit, the gaps between the
+  // pixels show dark; unlit, a little darker still
+  --lcd-gap: color-mix(in srgb, var(--ink) 9%, transparent);
+
+  &[data-mode='dark'] {
+    --lcd-gap: rgb(0 0 0 / 22%);
+  }
+
+  :is(.box-container, .results-chunk)::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    z-index: 1;
+    pointer-events: none;
+    background-image:
+      linear-gradient(90deg, var(--lcd-gap) var(--dex-px, 1px), transparent 0),
+      linear-gradient(var(--lcd-gap) var(--dex-px, 1px), transparent 0);
+    background-size: 3px 3px;
+  }
+
+  // over search results as one screen: a chunk's to the edges it leaves open (tracker.scss), its dots in step with the
+  // first chunk's, a chunk's rise (--seal-row, --seal-rise) back up
+  .search-results > .results-chunk {
+    &::before {
+      background-position: 0 calc(var(--seal-row, 0) * var(--seal-rise, 0) * -1px);
+    }
+
+    &:not(:last-child)::before {
+      bottom: 0;
+    }
+
+    & + .results-chunk::before {
+      top: 0;
+    }
+  }
+
+  // a sealed mon away from where the dex keeps it, dithered rather than tinted, as a four-green screen would have to:
+  // HOME's a sparse dot, Champions' a diagonal, one out in a game a fine check
+  &:not([data-plain-seals]) .pokemon.captured.sealed {
+    --dither: color-mix(in srgb, var(--on-tile) 24%, transparent);
+
+    &:is(.loc-home, .loc-champions, .loc-out) {
+      --wash: var(--wash-seal);
+    }
+
+    &.loc-home {
+      background-image:
+        radial-gradient(var(--dither) 0.9px, transparent 1.3px),
+        linear-gradient(180deg, var(--wash), color-mix(in srgb, var(--wash) 17%, transparent));
+      background-size: 5px 5px, auto;
+    }
+
+    &.loc-champions {
+      background-image:
+        repeating-linear-gradient(45deg, var(--dither) 0 1px, transparent 1px 5px),
+        linear-gradient(180deg, var(--wash), color-mix(in srgb, var(--wash) 17%, transparent));
+    }
+
+    &.loc-out {
+      background-image:
+        conic-gradient(var(--dither) 25%, transparent 0 50%, var(--dither) 0 75%, transparent 0),
+        linear-gradient(180deg, var(--wash), color-mix(in srgb, var(--wash) 17%, transparent));
+      background-size: 4px 4px, auto;
+    }
+  }
+
+  // the figures a pocket screen would draw: the meter's and the boxes' numbers in pixel numerals (a font whose range is
+  // the digits and their marks alone, so a box's 〜 and any letters stay in the theme's own face)
+  .dex-meter-figure span {
+    font-family: $font-pixel-digits, $font-secondary;
+    font-size: 20px;
+    font-style: normal;
+    letter-spacing: 0;
+    transform: none;
+  }
+
+  // the smaller numerals on the line a title takes at 25px, which a box not yet built holds for it (tracker.scss)
+  .box-header h1 {
+    font-family: $font-pixel-digits, $font-secondary;
+    font-size: 17px;
+    line-height: 25px * 1.35;
+  }
 }
 
-// Midnight, after dark: a sealed tile edged in neon, its wash's own colour
-[data-theme='midnight'][data-mode='dark'] .pokemon.captured.sealed:not([data-selected]) {
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--wash) 75%, white),
-    inset 0 0 14px color-mix(in srgb, var(--wash) 55%, transparent);
+// Ink: calligraphy, every mark a brush's (alpha masks drawn by scripts/theme-marks.mjs, in the theme's own tones). The
+// page is plain paper, soft and unbleached, and the bar is brushed onto it, its foot one broad stroke the window's width;
+// each box's title is written over a stroke of sumi in the paper's colour, a finished box's over a seal's vermilion and
+// signed with a seal (済); the meter is one long stroke, entered at 45° and pressed along to where the marks reach, run
+// dry there, over the faint dry stroke of the length still to go, its figure a seal's impression beside it; the bar is
+// signed with a seal (捕, as in 捕獲); a sealed record carries the brush's circle (ensō) round its sprite; an
+// unobtainable slot is struck through with one falling stroke (ノ); and a press lets fall a drop whose rings spread on the
+// tile. A pond lies under the boxes, which float on it, and it lives: koi swim under them, a droplet's rings spread
+// where none does
+
+// the pond, alive: over every row but the first (whose band is the dex's header), one fish and one droplet to a row of
+// two boxes, the columns trading from row to row: every fourth box and the one before the next fourth swim (a kohaku,
+// a sumi koi), the two between ripple. A fish swims the band over its box's tiles left to right, as the dex reads,
+// rising into view at the box's left and sinking from it at the right, so it never meets an edge, its back under the
+// row above and passing under the box's title; a droplet's rings spread from under the row above and fade. Each is a
+// layer of its own moved by transform and opacity alone; still mode leaves each where it rests. Wide windows only, as
+// the art behind the rows: the narrow list's boxes have no one height
+$ink-koi-run: $box-width - 151px;
+
+@media (width > 750px) {
+  [data-theme='ink'] {
+    .box-grid {
+      isolation: isolate;
+    }
+
+    // a slot nothing fills is plain paper, so nothing swims behind it
+    .tile-grid > .pokemon:not(.captured) {
+      background-color: var(--paper);
+    }
+
+    .box-grid > .box .box-header {
+      position: relative;
+
+      &::before,
+      &::after {
+        position: absolute;
+        z-index: -1;
+        scale: min(1, var(--seal-row, 0));
+        pointer-events: none;
+      }
+    }
+
+    .box-grid > .box:is(:nth-child(4n + 1), :nth-child(4n)) .box-header::before {
+      content: '';
+      bottom: -4px;
+      left: 0;
+      width: 151px;
+      height: 84px;
+      background: url('/themes/ink/koi-kohaku.png') center / 100% 100% no-repeat;
+      opacity: 0;
+      animation: ink-koi 58s ease-in-out infinite;
+      animation-delay: calc(var(--seal-row, 0) * -23s);
+    }
+
+    .box-grid > .box:nth-child(4n) .box-header::before {
+      width: 139px;
+      height: 77px;
+      background-image: url('/themes/ink/koi-sumi.png');
+      animation-duration: 66s;
+    }
+
+    .box-grid > .box:is(:nth-child(4n + 2), :nth-child(4n + 3)) .box-header::after {
+      content: '';
+      bottom: calc(100% + 26px);
+      left: 13%;
+      width: 100px;
+      height: 42px;
+      background-color: var(--ink);
+      mask: url('/themes/ink/ripple.png') center / 100% 100% no-repeat;
+      opacity: 0;
+      animation: ink-ripple 11s ease-out infinite;
+      animation-delay: calc(var(--seal-row, 0) * -4.3s);
+    }
+
+    .box-grid > .box:nth-child(4n + 3) .box-header::after {
+      right: 13%;
+      left: auto;
+    }
+  }
+
+  :root[data-still][data-theme='ink'] .box-grid > .box .box-header {
+    &::before {
+      opacity: 1;
+      transform: translateX(#{$ink-koi-run * .3});
+      animation: none;
+    }
+
+    &::after {
+      opacity: .3;
+      animation: none;
+    }
+  }
 }
 
-// Pokédex: the device's blue lens beside the name on the bar, and a screen's rounded corners on every box
+@keyframes ink-koi {
+  0% {
+    opacity: 0;
+    transform: translate(0, 6px) rotate(3deg);
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  25% {
+    transform: translate(#{$ink-koi-run * .25}, -6px) rotate(-2.5deg);
+  }
+
+  50% {
+    transform: translate(#{$ink-koi-run * .5}, 5px) rotate(2.5deg);
+  }
+
+  75% {
+    transform: translate(#{$ink-koi-run * .75}, -5px) rotate(-2deg);
+  }
+
+  92% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate($ink-koi-run, 4px) rotate(1.5deg);
+  }
+}
+
+@keyframes ink-ripple {
+  0% {
+    opacity: 0;
+    transform: scale(.3);
+  }
+
+  6% {
+    opacity: .5;
+  }
+
+  52%,
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+[data-theme='ink'] {
+  // a title's stroke sits in its own box, past its letters' padding, so the header keeps its height
+  .box-header h1 {
+    position: relative;
+    z-index: 0;
+    padding: 0 26px;
+    color: var(--paper-raised);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: -9px -4px;
+      z-index: -1;
+      background-color: var(--ink);
+      mask: url('/themes/ink/title.png') center / 100% 100% no-repeat;
+      pointer-events: none;
+    }
+  }
+
+  .box-complete .box-header h1 {
+    color: var(--on-accent);
+
+    &::before {
+      background-color: var(--accent);
+    }
+
+    // and signed with a seal past the stroke's dry end: 済, done
+    &::after {
+      content: '済' / '';
+      display: grid;
+      position: absolute;
+      top: 50%;
+      left: calc(100% + 14px);
+      place-items: center;
+      width: 27px;
+      height: 27px;
+      margin-top: -14px;
+      background-color: var(--accent);
+      color: var(--on-accent);
+      font-family: $font-theme-brush;
+      font-size: 17px;
+      font-weight: 400;
+      line-height: 1;
+      mask: url('/themes/ink/seal.png') center / 100% 100% no-repeat;
+      rotate: -5deg;
+    }
+  }
+
+  // a sealed record's ensō, the brush's circle round its sprite, faint, the same on every sealed tile, over the wash
+  .pokemon.captured.sealed {
+    background-image: url('/themes/ink/enso.png'), linear-gradient(180deg, var(--wash), color-mix(in srgb, var(--wash) 17%, transparent));
+    background-position: 50% 26%, 0 0;
+    background-size: 72px 72px, auto;
+    background-repeat: no-repeat;
+  }
+
+  // a press lets fall a drop, its rings spreading on the tile once it's let go: a transition back from the press, so
+  // nothing waits on an animation's end, on the one tile under the pointer
+  .tile-grid > .pokemon:hover::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    z-index: 2;
+    background-color: var(--ink);
+    mask: url('/themes/ink/drop.png') center / contain no-repeat;
+    opacity: 0;
+    transform: scale(1.12);
+    transition: transform .95s cubic-bezier(.15, .7, .3, 1), opacity .95s ease-out;
+    pointer-events: none;
+  }
+
+  .tile-grid > .pokemon:hover:active::before {
+    opacity: .42;
+    transform: scale(.22);
+    transition: none;
+  }
+
+  // the bar brushed onto the paper: its foot one broad stroke, ragged with the brush's hairs and drying toward the
+  // right, the window's width, under the window buttons too
+  nav::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 14px;
+    background-color: var(--chrome);
+    mask: url('/themes/ink/bar-edge.png') 0 0 / 100% 100% no-repeat;
+    pointer-events: none;
+  }
+
+  .pokemon.captured.unobtainable {
+    background-image: url('/themes/ink/slash.png');
+    background-size: 100% 100%;
+  }
+
+  // the meter: no tube, the stroke laid straight on the paper. Its head and its dry end keep their shape and its middle
+  // stretches to the fill's length (the masks are 86px high, meter-head 150 wide and meter-tail 350, so 80px and 187px
+  // at the tube's 46px); the glint a change runs stays inside the stroke
+  .dex-meter-bar {
+    border: 0;
+    background: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: color-mix(in srgb, var(--ink) 13%, transparent);
+      mask: url('/themes/ink/track.png') center / 100% 100% no-repeat;
+    }
+  }
+
+  .dex-meter-fill,
+  .dex-meter-shine {
+    mask:
+      url('/themes/ink/meter-head.png') left center / 80px 100% no-repeat,
+      url('/themes/ink/meter-body.png') 79px center / calc(100% - 265px) 100% no-repeat,
+      url('/themes/ink/meter-tail.png') right center / 187px 100% no-repeat;
+  }
+
+  // the water's waves and sheen aren't ink's; nor is the post, the stroke's own end showing where the marks reach
+  .dex-meter-water,
+  .dex-meter-edge {
+    display: none;
+  }
+
+  .dex-meter-figure {
+    margin-right: 10px;
+    padding: 0 16px;
+    clip-path: none;
+    mask: url('/themes/ink/seal-wide.png') center / 100% 100% no-repeat;
+
+    span {
+      font-style: normal;
+      text-shadow: none;
+      transform: none;
+    }
+  }
+
+  // a tenth crossed, stamped above the stroke as a seal too
+  .dex-meter-milestone {
+    background: var(--accent);
+    text-shadow: none;
+    mask: url('/themes/ink/seal-wide.png') center / 100% 100% no-repeat;
+  }
+
+  .nav-logo::after {
+    content: '捕' / '';
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 17px;
+    height: 17px;
+    margin-left: 8px;
+    background-color: var(--accent);
+    color: var(--on-accent);
+    font-size: 11px;
+    line-height: 1;
+    mask: url('/themes/ink/seal.png') center / 100% 100% no-repeat;
+  }
+}
+
+// Pokédex: the device's blue lens beside the name on the bar, its three small lights (red, yellow, green) after it, and
+// a screen's rounded corners on every box. The lights are the lens's own shadows, shrunk and set off to its right
 [data-theme='pokedex'] .nav-logo::before {
   content: '';
   flex: none;
   width: 14px;
   height: 14px;
-  margin-right: 10px;
+  margin-right: 46px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 32%, #fff 0 14%, #8fdcff 22%, #1a7fd1 62%, #0b4d8a 100%);
-  box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgb(0 0 0 / 25%);
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 3px rgb(0 0 0 / 25%),
+    21px -3px 0 -4px #ff5a5a,
+    31px -3px 0 -4px #ffd84a,
+    41px -3px 0 -4px #5fd17a;
 }
 
-// Pokédex and HOME: boxes as rounded panels, the shine kept inside them
-[data-theme='pokedex'],
-[data-theme='home'] {
+// and the hinge under its bar: a darker seam the bar's width, a knuckle of the hinge every so often along it
+[data-theme='pokedex'] nav::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 5px;
+  background:
+    linear-gradient(rgb(0 0 0 / 30%), rgb(0 0 0 / 30%)) left bottom / 100% 2px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 140px, rgb(0 0 0 / 20%) 140px 176px, transparent 176px 320px);
+  pointer-events: none;
+}
+
+// Pokédex: boxes as rounded panels, the seal material kept inside them
+[data-theme='pokedex'] {
   .tile-grid {
     border-radius: 12px;
     overflow: hidden;
   }
 
-  .box-shine {
+  .seal-material {
     border-radius: 11px;
   }
 }
@@ -51,8 +497,8 @@
 // and the tiles in their corners rounded inside the frame, so the ring a selected or hovered tile draws turns the
 // corner with the box: a box's four, where a short last row (search results) has its own; keep in sync with the 750px
 // media queries in tracker.scss
-@media (min-width: 751px) {
-  :is([data-theme='pokedex'], [data-theme='home']) .tile-grid > .pokemon {
+@media (width > 750px) {
+  [data-theme='pokedex'] .tile-grid > .pokemon {
     &:first-child {
       border-top-left-radius: 11px;
     }
@@ -75,7 +521,7 @@
   @for $boxes from 2 through 8 {
     $n: $boxes * $box-columns;
 
-    :is([data-theme='pokedex'], [data-theme='home']) .results-chunk > .tile-grid[data-columns='#{$n}'] > .pokemon {
+    [data-theme='pokedex'] .results-chunk > .tile-grid[data-columns='#{$n}'] > .pokemon {
       &:nth-child(#{$box-columns}) {
         border-top-right-radius: 0;
       }
@@ -97,7 +543,7 @@
 
 // a narrow window's list: its first row and its last shown (the empty slots after it are hidden)
 @media (max-width: 750px) {
-  :is([data-theme='pokedex'], [data-theme='home']) .tile-grid > .pokemon {
+  [data-theme='pokedex'] .tile-grid > .pokemon {
     &:first-child {
       border-top-left-radius: 11px;
       border-top-right-radius: 11px;
@@ -112,21 +558,22 @@
 
 // a complete box's frame: square, it's a border and an outline a screen pixel each, but an outline doesn't follow a
 // rounded corner as the border does; a ring a screen pixel wide (--dex-px) does, so the corner matches the sides
-:is([data-theme='pokedex'], [data-theme='home']) .box-complete .tile-grid {
+[data-theme='pokedex'] .box-complete .tile-grid {
   outline: none;
   box-shadow: 0 0 0 var(--dex-px, 1px) var(--status-caught);
 }
 
-// search results run on as one grid (tracker.scss): rounded at its two ends, square where one chunk meets the next
-:is([data-theme='pokedex'], [data-theme='home']) .search-results {
-  .results-chunk:not(:first-child) > :is(.tile-grid, .box-shine),
-  .results-chunk:not(:first-child) > .tile-grid > .pokemon {
+// search results run on as one grid (tracker.scss): rounded at its two ends, square where one chunk meets the next. A
+// tile's rule here (:nth-child(n), any tile) is as specific as the widest corner rule above, so coming after, it wins
+[data-theme='pokedex'] .search-results {
+  .results-chunk:not(:first-child) > :is(.tile-grid, .seal-material),
+  .results-chunk:not(:first-child) > .tile-grid > .pokemon:nth-child(n) {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
   }
 
-  .results-chunk:not(:last-child) > :is(.tile-grid, .box-shine),
-  .results-chunk:not(:last-child) > .tile-grid > .pokemon {
+  .results-chunk:not(:last-child) > :is(.tile-grid, .seal-material),
+  .results-chunk:not(:last-child) > .tile-grid > .pokemon:nth-child(n) {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
@@ -135,4 +582,724 @@
 // Ember: a line of the ember orange under the charcoal bar
 [data-theme='ember'] nav {
   box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+// Apricot: a fruit's skin, a fine speckle over the page at two pitches, so it never lines up into a grid
+:root[data-theme='apricot'] body,
+:root[data-theme='apricot'] .dex-wrapper .dex-column {
+  --speck: color-mix(in srgb, var(--accent) 18%, transparent);
+
+  background-image:
+    radial-gradient(circle at 30% 40%, var(--speck) 0.7px, transparent 1.2px),
+    radial-gradient(circle at 70% 25%, var(--speck) 0.5px, transparent 1px);
+  background-size: 11px 13px, 17px 7px;
+}
+
+// Matcha: a tea room's floor, tatami laid in courses, each row half a mat on from the last so no four corners meet. The
+// rush, a straw over the paper, runs across every mat in a fine weave; each long side is edged in cloth (heri), so two
+// edges lie side by side where rows meet, a seam between them; a seam shows where two mats butt; and every other mat
+// lies a shade apart, as mats laid head to tail take the light. All of it from the theme's own tones, so the floor
+// follows the mode; the dex's name sits over a brush stroke
+:root[data-theme='matcha'] body,
+:root[data-theme='matcha'] .dex-wrapper .dex-column {
+  // a mat's short side, its long side twice that, and the width of a cloth edge
+  --mat: 96px;
+  --heri-w: 5px;
+  --rush: color-mix(in srgb, var(--tile-temporary) 45%, transparent);
+  --heri: color-mix(in srgb, var(--accent) 52%, transparent);
+  --weave: color-mix(in srgb, var(--ink) 6%, transparent);
+  --seam: color-mix(in srgb, var(--ink) 24%, transparent);
+  --shade: color-mix(in srgb, var(--ink) 3.5%, transparent);
+
+  background-image:
+    conic-gradient(at 1px var(--mat), transparent 0 270deg, var(--seam) 0),
+    conic-gradient(at 1px var(--mat), transparent 0 270deg, var(--seam) 0),
+    repeating-linear-gradient(var(--seam) 0 1px, var(--heri) 1px var(--heri-w), transparent var(--heri-w) calc(var(--mat) - var(--heri-w)), var(--heri) calc(var(--mat) - var(--heri-w)) var(--mat)),
+    repeating-linear-gradient(90deg, var(--weave) 0 1px, transparent 1px 3px),
+    conic-gradient(at calc(var(--mat) * 2) var(--mat), transparent 0 270deg, var(--shade) 0),
+    conic-gradient(at calc(var(--mat) * 2) var(--mat), transparent 0 270deg, var(--shade) 0),
+    linear-gradient(var(--rush), var(--rush));
+  background-position: 0 0, var(--mat) var(--mat), 0 0, 0 0, 0 0, var(--mat) var(--mat), 0 0;
+  background-size:
+    calc(var(--mat) * 2) calc(var(--mat) * 2),
+    calc(var(--mat) * 2) calc(var(--mat) * 2),
+    auto,
+    auto,
+    calc(var(--mat) * 4) calc(var(--mat) * 2),
+    calc(var(--mat) * 4) calc(var(--mat) * 2),
+    auto;
+}
+
+// at night the cloth edges and the seams go dark against the mats, and every other mat a little light off the rush
+:root[data-theme='matcha'][data-mode='dark'] :is(body, .dex-wrapper .dex-column) {
+  --heri: rgb(0 0 0 / 34%);
+  --seam: rgb(0 0 0 / 40%);
+  --shade: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+// the floor stops at the boxes: a slot nothing fills is plain paper, so nothing lies behind it (the grid itself left
+// clear, for the seal material under it). A box's name is a paper tag of its own laid on the floor, edged in the theme's
+// green with a hard shadow, so a mat's cloth edge never runs behind its letters
+[data-theme='matcha'] {
+  --tag-shadow: color-mix(in srgb, var(--accent) 24%, transparent);
+
+  .tile-grid > .pokemon:not(.captured) {
+    background-color: var(--paper);
+  }
+
+  .box-header h1 {
+    padding: 0 16px;
+    background-color: var(--paper-raised);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 3px 3px 0 var(--tag-shadow);
+  }
+}
+
+[data-theme='matcha'][data-mode='dark'] {
+  --tag-shadow: rgb(0 0 0 / 40%);
+}
+
+// the stroke sits in the name's own box, under its lower half, so the header keeps its height
+[data-theme='matcha'] .dex-menu .dex-menu-name {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12' preserveAspectRatio='none'%3E%3Cpath fill='%234c684b' fill-opacity='.42' d='M2 7C30 3 70 4 110 5s70 1 86-1c2 0 2 3 0 4-20 3-60 3-100 3S20 9 4 10c-3 0-4-2-2-3z'/%3E%3C/svg%3E") left bottom / 100% 9px no-repeat;
+}
+
+[data-theme='matcha'][data-mode='dark'] .dex-menu .dex-menu-name {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12' preserveAspectRatio='none'%3E%3Cpath fill='%23b5c99f' fill-opacity='.4' d='M2 7C30 3 70 4 110 5s70 1 86-1c2 0 2 3 0 4-20 3-60 3-100 3S20 9 4 10c-3 0-4-2-2-3z'/%3E%3C/svg%3E");
+}
+
+// Harbor: a rope twisted along the bar's foot, its strands the theme's navy and the bar's own blue
+[data-theme='harbor'] nav::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 6px;
+  background: repeating-linear-gradient(120deg, var(--accent) 0 2.5px, var(--chrome-pattern) 2.5px 5px);
+  pointer-events: none;
+}
+
+// Wisteria: miyabi, a court's elegance, in the Elegant Vivillon's colours and gold. The bar is laid with gold waves
+// (seigaiha) over a gold edge, the whole width, under the window buttons too (apply-theme clears their ground). The meter
+// is a sash in the colourway, violet through orchid to peony, the waves woven over it in gold inside a gold frame, and
+// each box carries the sash in small: its name on a plaque of it, gilt on lacquer once the box is finished. Every box is
+// framed in gold, and at night gold clouds (suyari-gasumi) drift behind the rows. The waves and the clouds are drawn by
+// scripts/theme-marks.mjs; everything is still
+:root[data-theme='wisteria'] {
+  --gold: #a9802c;
+  --gold-leaf: #e2c47e;
+}
+
+:root[data-theme='wisteria'][data-mode='dark'] {
+  --gold: #dcb766;
+  --gold-leaf: #e0b55a;
+}
+
+
+[data-theme='wisteria'] {
+  // the sash's colourway (the meter's), the same deepened for a plaque the bar's lettering reads on, lacquer (the bar's
+  // violet near black, the colourway's orchid in its grain) and gold leaf for lettering, paler where the light catches
+  // its top
+  --sash: linear-gradient(90deg, color-mix(in srgb, var(--chrome) 70%, var(--status-caught)), var(--status-caught) 55%, var(--status-temporary));
+  --sash-deep: linear-gradient(90deg, color-mix(in oklab, var(--chrome) 82%, var(--status-caught)), color-mix(in oklab, var(--chrome) 48%, var(--status-caught)));
+  --lacquer: linear-gradient(90deg, color-mix(in oklab, var(--chrome) 55%, black), color-mix(in oklab, color-mix(in oklab, var(--chrome) 70%, var(--status-caught)) 60%, black));
+  --leaf-lettering: linear-gradient(color-mix(in srgb, var(--gold-leaf) 45%, white) 30%, var(--gold-leaf) 52%, color-mix(in srgb, var(--gold-leaf) 65%, var(--gold)) 72%);
+
+  // the waves under the bar's own words and buttons (the bar is their stacking context), a scale 16px across
+  nav {
+    box-shadow: inset 0 -2px 0 var(--gold);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-color: color-mix(in srgb, var(--gold) 34%, transparent);
+      mask: url('/themes/wisteria/seigaiha.png') 0 0 / 32px 16px;
+      pointer-events: none;
+    }
+  }
+
+  // a box's name on a plaque of the sash, sized to it: plain, so the name reads clean, its corners scooped as a Japanese
+  // frame's are (sumi-iri), edged in a faint gold; the lettering larger on the line a 25px title takes, which a box not
+  // yet built holds for it
+  .box-header h1 {
+    position: relative;
+    z-index: 0;
+    padding: 0 22px;
+    border-radius: 7px;
+    corner-shape: scoop;
+    background: var(--sash-deep);
+    color: var(--on-chrome);
+    font-size: 27px;
+    line-height: 25px * 1.35;
+    outline: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    outline-offset: -1px;
+  }
+
+  // every box framed in gold; search results aren't boxes, and keep the plain frame
+  .box-container > .tile-grid {
+    border-color: color-mix(in srgb, var(--gold) 60%, var(--paper));
+  }
+
+  // a finished box: its name gilt on lacquer (maki-e) inside a second gold frame, a hairline in from the first; its own
+  // frame gold
+  .box-complete {
+    .box-header h1 {
+      background-image: var(--leaf-lettering), var(--lacquer);
+      background-clip: text, padding-box;
+      color: transparent;
+      outline-color: var(--gold);
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 3px;
+        z-index: -1;
+        border: 1px solid var(--gold);
+        border-radius: 4px;
+        corner-shape: scoop;
+        pointer-events: none;
+      }
+    }
+
+    .tile-grid {
+      border-color: var(--gold);
+      outline-color: var(--gold);
+    }
+  }
+
+  .dex-meter-bar {
+    border-color: var(--gold);
+  }
+
+  .dex-meter-fill {
+    background-image: var(--sash);
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: color-mix(in srgb, var(--gold-leaf) 45%, transparent);
+      mask: url('/themes/wisteria/seigaiha.png') 0 0 / 32px 16px;
+    }
+  }
+
+  // the sash's water quieter, so its colours stay deep under the waves
+  .dex-meter-water {
+    opacity: 0.6;
+  }
+
+  // the percentage flat on its gold: its offset shadow, a darker gold under dark lettering, read as a smudged double
+  .dex-meter-figure span {
+    text-shadow: none;
+  }
+
+  // at night, gold clouds behind the rows of boxes (Wisteria is made for Soft Dark; they don't suit its light): three
+  // strips down the grid, anchored to its left, right and centre, a cloud or two in the band under each row, tucked
+  // behind the row above or the row below, so the boxes always lie over them; none reaches the window's edge. The
+  // narrow list's boxes have no one height, so it has none
+  &[data-mode='dark'] {
+    // the clouds stop at the boxes: a slot nothing fills is plain paper, so nothing lies behind it (the grid itself left
+    // clear, for the seal material under it)
+    .tile-grid > .pokemon:not(.captured) {
+      background-color: var(--paper);
+    }
+
+    @media (width > 750px) {
+      .box-grid {
+        background:
+          url('/themes/wisteria/clouds-left.svg') left top / #{$art-size} repeat-y,
+          url('/themes/wisteria/clouds-right.svg') right top / #{$art-size} repeat-y,
+          url('/themes/wisteria/clouds-centre.svg') center top / #{$art-size} repeat-y;
+      }
+    }
+  }
+}
+
+// Graphite: a blueprint, the page ruled in a fine grid and a coarse one, and each box's corners ticked as a drawing's
+:root[data-theme='graphite'] body,
+:root[data-theme='graphite'] .dex-wrapper .dex-column {
+  --rule: color-mix(in srgb, var(--accent) 8%, transparent);
+  --rule-major: color-mix(in srgb, var(--accent) 15%, transparent);
+
+  background-image:
+    linear-gradient(var(--rule-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule-major) 1px, transparent 1px),
+    linear-gradient(var(--rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 60px 60px, 60px 60px, 12px 12px, 12px 12px;
+}
+
+[data-theme='graphite'] .box-container::before {
+  --tick: var(--ink-muted);
+  --tick-w: var(--dex-px, 1px);
+
+  content: '';
+  position: absolute;
+  inset: -8px;
+  background:
+    linear-gradient(var(--tick), var(--tick)) left top / 10px var(--tick-w) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) left top / var(--tick-w) 10px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) right top / 10px var(--tick-w) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) right top / var(--tick-w) 10px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) left bottom / 10px var(--tick-w) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) left bottom / var(--tick-w) 10px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) right bottom / 10px var(--tick-w) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) right bottom / var(--tick-w) 10px no-repeat;
+  pointer-events: none;
+}
+
+// Riso: the headings printed twice, the second ink a hard step off the first as a riso's drums drift (a fixed
+// offset, nothing moving), and the meter's water laid down as halftone dots of the pink with the blue between them;
+// its sprites in the two inks (theme-sprites.scss)
+[data-theme='riso'] {
+  .dex-menu .dex-menu-name,
+  .box-header h1 {
+    text-shadow: 2px 2px 0 color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+
+  .dex-meter-figure span {
+    text-shadow: 2px 2px 0 var(--chrome);
+  }
+
+  .dex-meter-fill {
+    background-color: color-mix(in srgb, var(--status-caught) 30%, var(--paper-raised));
+    background-image:
+      radial-gradient(var(--status-caught) 1.2px, transparent 1.6px),
+      radial-gradient(color-mix(in srgb, var(--chrome) 75%, transparent) 0.8px, transparent 1.2px);
+    background-position: 0 0, 2.5px 2.5px;
+    background-size: 5px 5px;
+  }
+}
+
+// ---- set pieces: a bigger prop for the themes with a character, in the bar or the meter, off the tiles; every one
+// still but Ember's embers, one layer moved by transform that still mode puts away
+
+// Game Boy: the meter is its screen, in a bezel of the deepest green, wider on the left for the power light
+[data-theme='game-boy'] .dex-meter {
+  border-radius: 3px;
+  box-shadow: 0 0 0 5px var(--chrome), -10px 0 0 5px var(--chrome);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: calc(50% - 3px);
+    left: -12px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffb3a8, #e0302a 60%, #8c1410);
+    box-shadow: 0 0 5px 1px rgb(224 48 42 / 60%);
+  }
+}
+
+// Midnight: a synthwave horizon in the meter's tube, there to see in the part not yet filled: a sunset sky, the sun
+// sinking behind its slats where the sky meets the ground, and the ground a neon grid running to it
+[data-theme='midnight'] .dex-meter-bar {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 42'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffe066'/%3E%3Cstop offset='1' stop-color='%23ff4f9a'/%3E%3C/linearGradient%3E%3Cmask id='m'%3E%3Crect width='640' height='42' fill='white'/%3E%3Crect x='530' y='14' width='60' height='1.4' fill='black'/%3E%3Crect x='530' y='18' width='60' height='1.8' fill='black'/%3E%3Crect x='530' y='22' width='60' height='2.2' fill='black'/%3E%3C/mask%3E%3C/defs%3E%3Cpath mask='url(%23m)' fill='url(%23s)' d='M538 26a22 22 0 0 1 44 0z'/%3E%3Cg stroke='%23ff4fd8' stroke-opacity='.7' stroke-width='1'%3E%3Cpath d='M560 26L80 42M560 26L200 42M560 26L320 42M560 26L440 42M560 26L560 42M560 26L680 42M560 26L800 42M560 26L920 42'/%3E%3C/g%3E%3C/svg%3E") right center / auto 100% no-repeat,
+    linear-gradient(transparent calc(68% - 1px), rgb(255 79 216 / 55%) calc(68% - 1px) 68%, transparent 68%),
+    linear-gradient(transparent calc(77% - 1px), rgb(255 79 216 / 60%) calc(77% - 1px) 77%, transparent 77%),
+    linear-gradient(transparent calc(90% - 1px), rgb(255 79 216 / 65%) calc(90% - 1px) 90%, transparent 90%),
+    linear-gradient(#1b0b3d 0, #4b1670 38%, #b1287f 58%, #ff5aa0 61%, #160828 62%);
+}
+
+// Midnight after dark, the side it's made for: vaporwave, the night's own dark with the sunset's neon pink for its
+// lines. The tiles the dark, a sealed one's grid in the pink; the meter's filled length a neon floor running to the sun;
+// the bar's foot a neon tube running pink through lavender into cyan, a box's name lettered in cyan neon, a finished box
+// lit, its frame a pink tube aglow; and neon mountains behind the rows (scripts/theme-marks.mjs). Glows, light the
+// neon gives off, not shadows
+:root[data-theme='midnight'][data-mode='dark'] {
+  // the sunset's pink (the meter's), its sun's gold (between the sun's yellow and its rose) and its mountains' lavender,
+  // the accent's cyan lightened
+  --neon-pink: #ff4fd8;
+  --neon-sun: #ff9f43;
+  --neon-lavender: #b98cff;
+  --neon-cyan: oklch(from var(--accent) 0.9 0.13 calc(h + 12));
+  // a sealed tile's lines, its frame and its grid, in the neon of where it is: the pink where the dex keeps it
+  --line-neon: var(--neon-pink);
+
+  nav::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--neon-pink), var(--neon-lavender) 50%, var(--neon-cyan));
+    box-shadow: 0 0 8px 1px color-mix(in srgb, var(--neon-pink) 45%, transparent);
+    pointer-events: none;
+  }
+
+  .box-header h1 {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 8px oklch(from var(--neon-cyan) 0.8 0.16 h / 60%);
+  }
+
+  .box-complete .tile-grid {
+    border-color: color-mix(in oklab, var(--neon-pink) 70%, white);
+    outline-color: color-mix(in oklab, var(--neon-pink) 70%, white);
+    box-shadow: 0 0 10px 2px color-mix(in srgb, var(--neon-pink) 55%, transparent), 0 0 26px 4px color-mix(in srgb, var(--neon-pink) 22%, transparent);
+  }
+
+  // a sealed tile the dark too, its place told by its lines alone, the ground the same under every one: framed in a
+  // neon line, its grid in the same neon (a material of its own for each place, sealTintClips): the pink where the dex
+  // keeps it, the sun's gold in Champions, the neon blue out in one of your games, lavender in HOME. Those are its
+  // location tints: with them off (the palette menu), every one in the pink
+  .pokemon.captured.sealed {
+    background-image: none;
+  }
+
+  .pokemon.captured.sealed:not([data-selected]) {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-neon) 85%, transparent);
+  }
+
+  &:not([data-plain-seals]) {
+    .seal-material[data-tint] {
+      display: block;
+    }
+
+    :is(.pokemon.loc-champions, .seal-material[data-tint='champions']) {
+      --line-neon: var(--neon-sun);
+    }
+
+    :is(.pokemon.loc-out, .seal-material[data-tint='out']) {
+      --line-neon: var(--neon-cyan);
+    }
+
+    :is(.pokemon.loc-home, .seal-material[data-tint='home']) {
+      --line-neon: var(--neon-lavender);
+    }
+  }
+
+  // its grid in the pink, faint enough to lie back behind the sprites and words, four lanes a tile, laid from each box's
+  // own corner (not the sheet down the dex, whose rows don't fall a whole lane apart), so at rest a tile's edges fall on
+  // its own lines and every tile's grid is the same; a haze under each line. Its rows flow down a lane at a time, toward
+  // you
+  .seal-flow {
+    --flow-y: 27.5px;
+    --neon: color-mix(in srgb, var(--line-neon) 42%, transparent);
+    --haze: color-mix(in srgb, var(--line-neon) 8%, transparent);
+
+    background:
+      linear-gradient(var(--neon) 0 1px, transparent 1px) 0 0 / 27.5px 27.5px,
+      linear-gradient(90deg, var(--neon) 0 1px, transparent 1px) 0 0 / 27.5px 27.5px,
+      linear-gradient(var(--haze) 0 3px, transparent 3px) 0 -1px / 27.5px 27.5px,
+      linear-gradient(90deg, var(--haze) 0 3px, transparent 3px) -1px 0 / 27.5px 27.5px;
+  }
+
+  // the meter's filled length a neon floor running to the sun at the track's right end (100cqw, the track's width), in
+  // place of the water
+  .dex-meter-fill {
+    background: url('/themes/midnight/floor.svg') left top / 100cqw 100% no-repeat, linear-gradient(#2a0f4a, #160828);
+  }
+
+  .dex-meter-water {
+    display: none;
+  }
+
+  @include row-art(
+    url('/themes/midnight/mountains-left.svg') left #{$art-origin - $art-title} / #{$art-size} repeat-y,
+    url('/themes/midnight/mountains-right.svg') right #{$art-origin - $art-title} / #{$art-size} repeat-y
+  );
+}
+
+// Ember: embers rising off the molten fill, one layer of three sparse sizes drifting up through the tube, each pattern
+// a whole fraction of the tube's height so the loop never jumps
+[data-theme='ember'] .dex-meter-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 200%;
+  background-image:
+    radial-gradient(circle, #ffd27a 0 1.2px, transparent 1.9px),
+    radial-gradient(circle, #ff8a3d 0 1px, transparent 1.7px),
+    radial-gradient(circle, #fff0c4 0 0.7px, transparent 1.3px);
+  background-position: 0 0, 19px 7px, 9px 3px;
+  background-size: 41px 25%, 57px 50%, 31px 12.5%;
+  animation: ember-rise 6s linear infinite;
+  will-change: transform;
+}
+
+@keyframes ember-rise {
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+:root[data-still][data-theme='ember'] .dex-meter-fill::after {
+  display: none;
+}
+
+// ---- each theme's seal material: the ground its sealed tiles are drawn on (.seal-material, tracker.scss), in place of
+// the shine. A colour of its own, and a faint pattern flowing slowly through it, endlessly, one sheet down the whole dex,
+// under the sprites and words and the location tints. Every flow moves one period of its pattern in a loop by transform
+// alone, so its cost is one layer a box; still mode holds it. A wash across the whole display (.seal-material::before)
+// keeps still, placed by the box's place on the sheet like the flow
+
+// a wash across the whole display, a theme's hues at its tiles' own lightness (--wash-hues), so the words on a tile read
+// as they always did
+%seal-wash {
+  // and on past this box's far corner, however far along and down the display it stands (a long dex one box across runs
+  // past 24000px)
+  &::before {
+    content: '';
+    position: absolute;
+    top: var(--seal-y);
+    left: var(--seal-x);
+    width: max(6000px, calc(100% - var(--seal-x)));
+    height: max(24000px, calc(100% - var(--seal-y)));
+    background: var(--seal-wash);
+  }
+}
+
+// Wisteria: every sealed tile alike, in the colourway's violet, and the gold waves (seigaiha) of its bar drifting through
+// them to the right, as the eye reads the dex, never against it
+[data-theme='wisteria'] .seal-flow {
+  --flow-x: 32px;
+  --flow-time: 9s;
+
+  display: block;
+  background-color: color-mix(in srgb, var(--gold) 32%, transparent);
+  mask: url('/themes/wisteria/seigaiha.png') var(--seal-x) var(--seal-y) / 32px 16px;
+}
+
+// at night the pale leaf's gold, which reads on the deep orchid where the darker gold didn't; and the waves larger and
+// fainter, a scale 64px across at 30% of the leaf, so fewer and calmer circles lie behind the sprites and words, drifting
+// at the same pace (a scale in 18 s). The bar and the meter keep their smaller waves
+[data-theme='wisteria'][data-mode='dark'] .seal-flow {
+  --flow-x: 64px;
+  --flow-time: 18s;
+
+  background-color: color-mix(in srgb, var(--gold-leaf) 30%, transparent);
+  mask-image: url('/themes/wisteria/seigaiha-large.png');
+  mask-size: 64px 32px;
+}
+
+// Ink: mist in a diluted ink drifting through the wash, as a sumi-e painter leaves between mountains, to the right as
+// the dex reads
+[data-theme='ink'] .seal-flow {
+  --flow-x: 512px;
+  --flow-time: 100s;
+
+  display: block;
+  background-color: color-mix(in srgb, var(--ink) 15%, transparent);
+  mask: url('/themes/ink/mist.png') var(--seal-x) var(--seal-y) / 512px 256px;
+}
+
+// Matcha: light through a shoji, its lattice's soft shadow moving slowly across the tiles as the sun does across a tea room
+[data-theme='matcha'] .seal-flow {
+  --flow-x: 96px;
+  --flow-y: 120px;
+  --flow-time: 50s;
+
+  display: block;
+  background-color: color-mix(in srgb, var(--ink) 14%, transparent);
+  mask: url('/themes/matcha/shoji.png') var(--seal-x) var(--seal-y) / 96px 120px;
+}
+
+// Game Boy: water as the old games drew it, its crests stepping a pixel at a time
+[data-theme='game-boy'] .seal-flow {
+  --flow-x: 48px;
+  --flow-time: 6s;
+
+  display: block;
+  background-color: color-mix(in srgb, var(--paper-raised) 46%, transparent);
+  mask: url('/themes/game-boy/water.png') var(--seal-x) var(--seal-y) / 48px 24px;
+  animation-timing-function: steps(16);
+}
+
+// Midnight: a neon grid running toward you, cyan across the pink
+[data-theme='midnight'] .seal-flow {
+  --flow-y: 28px;
+  --flow-time: 5s;
+  --neon: color-mix(in srgb, var(--accent) 34%, transparent);
+
+  display: block;
+  background:
+    linear-gradient(var(--neon) 0 1px, transparent 1px) var(--seal-x) var(--seal-y) / 28px 28px,
+    linear-gradient(90deg, var(--neon) 0 1px, transparent 1px) var(--seal-x) var(--seal-y) / 28px 28px;
+}
+
+// Ember: magma's veins glowing through the tiles, rising slowly as heat does
+[data-theme='ember'] .seal-flow {
+  --flow-y: -384px;
+  --flow-time: 90s;
+
+  display: block;
+  background-color: color-mix(in srgb, #fff0c0 60%, transparent);
+  mask: url('/themes/ember/magma.png') var(--seal-x) var(--seal-y) / 384px 384px;
+}
+
+[data-theme='ember'][data-mode='dark'] .seal-flow {
+  background-color: color-mix(in srgb, #ffb347 42%, transparent);
+}
+
+// Riso: the two inks' screens, the blue held and the pink drifting over it a hair finer, so a moiré rolls slowly through
+// the tiles as a riso's drums misregister
+[data-theme='riso'] .seal-material {
+  --seal-wash: radial-gradient(circle, color-mix(in srgb, var(--chrome) 20%, transparent) 1.1px, transparent 1.6px) 0 0 / 7px 7px;
+
+  @extend %seal-wash;
+
+  .seal-flow {
+    --flow-x: 7.6px;
+    --flow-y: 7.6px;
+    --flow-time: 12s;
+
+    display: block;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 24%, transparent) 1.1px, transparent 1.6px) var(--seal-x) var(--seal-y) / 7.6px 7.6px;
+  }
+}
+
+// Pokédex: the screen's scanlines crawling down it
+[data-theme='pokedex'] .seal-flow {
+  --flow-y: 4px;
+  --flow-time: 2.4s;
+
+  display: block;
+  background: repeating-linear-gradient(transparent 0 3px, color-mix(in srgb, var(--status-caught) 16%, transparent) 3px 4px);
+}
+
+// Harbor: caustics, the net of light moving water draws, drifting across the tiles
+[data-theme='harbor'] .seal-flow {
+  --flow-x: 320px;
+  --flow-y: 320px;
+  --flow-time: 80s;
+
+  display: block;
+  background-color: color-mix(in srgb, white 34%, transparent);
+  mask: url('/themes/harbor/caustics.png') var(--seal-x) var(--seal-y) / 320px 320px;
+}
+
+[data-theme='harbor'][data-mode='dark'] .seal-flow {
+  background-color: color-mix(in srgb, #bfe6ff 22%, transparent);
+}
+
+// Apricot: the fruit's own colours, coral through peach to gold, washing slowly across the dex
+[data-theme='apricot'] .seal-flow {
+  --flow-x: -600px;
+  --flow-time: 75s;
+
+  display: block;
+  background: repeating-linear-gradient(90deg, oklch(from var(--tile-caught) l calc(c * 1.25) calc(h - 16)) 0, var(--tile-caught) 150px, oklch(from var(--tile-caught) l calc(c * 1.25) calc(h + 30)) 300px, var(--tile-caught) 450px, oklch(from var(--tile-caught) l calc(c * 1.25) calc(h - 16)) 600px) var(--seal-x) 0;
+}
+
+// Graphite: a pencil's hatching drifting across the tiles
+[data-theme='graphite'] .seal-flow {
+  --flow-x: 10px;
+  --flow-time: 8s;
+
+  display: block;
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--ink) 10%, transparent) 0 1px, transparent 1px 7.0711px);
+}
+
+// ---- a theme's own typefaces for its headings and figures, while the theme menu's switch is on (data-typefaces):
+// the boxes' titles, the meter's figure, the dex's name and a scene's title, logo and tab (the timeline's, the
+// almanac's and the review's bars, built alike, as well), and its name in the theme menu; the tiles keep the app's own
+// thin numbers and names. Ink a brush's hand, Wisteria a printed serif and Mincho, Game Boy a dot font, Midnight a wide
+// display face, Pokédex a device's seven-segment numerals (its words left as they are)
+$theme-headings: '.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name, .scene-top h1, .scene-logo, .scene-banner-tab, ' +
+  '.tl-logo, .tl-dex, .almanac-logo, .almanac-top h1, .review-logo, .review-top h1';
+
+:root[data-typefaces] {
+  &[data-theme='ink'] :is(#{$theme-headings}) {
+    font-family: $font-theme-brush;
+    font-style: normal;
+    letter-spacing: 0;
+  }
+
+  &[data-theme='wisteria'] :is(#{$theme-headings}) {
+    font-family: $font-theme-serif;
+    font-style: normal;
+    letter-spacing: 0;
+  }
+
+  &[data-theme='wisteria'] .dex-meter-figure span {
+    transform: none;
+  }
+
+  // Wisteria's face everywhere, a test: every word in the app (the bar, the tiles' names, numbers and pages, the
+  // filters and counts, the panels, the menus and the pages) in the serif and Mincho, its numerals and their marks in
+  // the Mincho, and upright as its headings are: neither face has an italic to slant into. All but the theme menu,
+  // which keeps the app's own in every theme (below)
+  &[data-theme='wisteria'] body *:not(.theme-popover, .theme-popover *),
+  &[data-theme='wisteria'] body *:not(.theme-popover, .theme-popover *)::before,
+  &[data-theme='wisteria'] body *:not(.theme-popover, .theme-popover *)::after {
+    font-family: $font-theme-serif;
+    font-style: normal;
+  }
+
+  // Ink's hand everywhere: every word in a brush pen's (Zen Kurenaido), the titles, the dex's name and the figures in
+  // the brush's own (above). All but the theme menu, which keeps the app's own in every theme
+  &[data-theme='ink'] body *:not(.theme-popover, .theme-popover *),
+  &[data-theme='ink'] body *:not(.theme-popover, .theme-popover *)::before,
+  &[data-theme='ink'] body *:not(.theme-popover, .theme-popover *)::after {
+    font-family: $font-theme-pen;
+    font-style: normal;
+  }
+
+  &[data-theme='ink'] body :is(#{$theme-headings}) {
+    font-family: $font-theme-brush;
+  }
+
+  // the theme menu: each theme's name in its own face, a preview of it, where that face has letters (Pokédex's numerals
+  // have none), the menu's own words in the app's (Nav)
+  .theme-popover {
+    [data-face='ink'] {
+      font-family: $font-theme-brush;
+    }
+
+    [data-face='wisteria'] {
+      font-family: $font-theme-serif;
+    }
+
+    [data-face='game-boy'] {
+      font-family: $font-theme-dot;
+      font-weight: 400;
+    }
+
+    [data-face='midnight'] {
+      font-family: $font-theme-wide;
+    }
+  }
+
+  &[data-theme='game-boy'] :is(#{$theme-headings}) {
+    font-family: $font-theme-dot;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  &[data-theme='midnight'] :is(#{$theme-headings}) {
+    font-family: $font-theme-wide;
+    letter-spacing: 1px;
+  }
+
+  // Midnight's face everywhere at night, a test as Wisteria's: every word in MS PGothic, the face of the Japanese
+  // computer of the years vaporwave samples, its figures and their marks in Orbitron; the headings Orbitron still, their
+  // Japanese the same gothic. The theme menu keeps the app's own (above)
+  &[data-theme='midnight'][data-mode='dark'] body *:not(.theme-popover, .theme-popover *),
+  &[data-theme='midnight'][data-mode='dark'] body *:not(.theme-popover, .theme-popover *)::before,
+  &[data-theme='midnight'][data-mode='dark'] body *:not(.theme-popover, .theme-popover *)::after {
+    font-family: $font-theme-gothic;
+    font-style: normal;
+  }
+
+  &[data-theme='midnight'][data-mode='dark'] body :is(#{$theme-headings}) {
+    font-family: $font-theme-wide-gothic;
+  }
+
+  &[data-theme='pokedex'] :is(.box-header h1, .dex-meter-figure span) {
+    font-family: $font-theme-lcd;
+    font-style: normal;
+    letter-spacing: 1px;
+  }
+
+  &[data-theme='pokedex'] .dex-meter-figure span {
+    transform: none;
+  }
 }

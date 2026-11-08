@@ -5,9 +5,11 @@ import { useMemo, useRef } from 'react';
 
 import { LANGUAGE_ABBRS, ORIGIN_GAME_NAMES, nameLang } from '../../../utils/capture-fields';
 import { Scene, SceneMon, sceneScroll, useScrollBack } from './Scene';
+import { GigantamaxMark } from './seal-faces';
 import { displayName } from '../../library/PokemonName';
 import { gameColor } from '../../../utils/game-colors';
 import { localizeOriginGame } from '../../../i18n/names';
+import { showsGigantamax } from '../../../utils/gigantamax';
 import { trainerCards } from './trainer-cards-model';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerState } from './use-tracker';
@@ -26,14 +28,17 @@ interface Props {
   onFilter: (filters: TrackerFilters, view: SceneView) => void;
 }
 
-// a mon on a card, its heart beside it as the badge row draws it (a favourite's blue, a partner's pink)
+// a mon on a card, its heart beside it as the badge row draws it (a favourite's blue, a partner's pink), or a G-Max
+// mon's mark in its place
 function Mon ({ capture }: { capture: Capture }) {
   const { locale } = useTranslation();
   const hearted = capture.favorite === 'favorite' || capture.favorite === 'partner';
   return (
     <span className="tc-mon" title={displayName(capture.pokemon.name, capture.pokemon.name_ja, locale)}>
       <SceneMon pokemon={capture.pokemon} />
-      {hearted && <FontAwesomeIcon className={classNames('heart-badge', { partner: capture.favorite === 'partner' })} icon={faHeart} />}
+      {showsGigantamax(capture)
+        ? <GigantamaxMark />
+        : hearted && <FontAwesomeIcon className={classNames('heart-badge', { partner: capture.favorite === 'partner' })} icon={faHeart} />}
     </span>
   );
 }

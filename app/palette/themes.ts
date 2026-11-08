@@ -2,6 +2,7 @@
 import { contrast, cssColor, deltaE, hueDistance, over, parseCssColor, toLch, toRgb } from './color.ts';
 
 import type { Lch, Rgb } from './color.ts';
+import type { Locale } from '../i18n/translations';
 import type { PokemonType } from '../types';
 
 export type Mode = 'light' | 'dark';
@@ -35,15 +36,56 @@ export interface ThemeSeed {
   tones?: Partial<Record<Mode, Record<string, ToneOverride>>>;
   // how strongly the grid's lines and rules show, over the shared .15
   lineAlpha?: number;
+  // one colour family throughout: the marks (gender, the gift, the star) and the type glyphs drawn from the caught hue,
+  // only their lightness telling them apart, as on a pocket screen's four greens
+  mono?: boolean;
+  // the dash a box's title sets between its first and last number, by language, where the theme's face has none of the
+  // language's own: a pocket screen's pixel font, a straight hyphen in either; a brush's hand, which has no wave dash
+  // (〜), its fullwidth tilde (～)
+  rangeDash?: Partial<Record<Locale, string>>;
+  // the side it's made for and shown on, there being no switch between them: dark, unless it says
+  side?: Mode;
 }
 
-// Apricot is the one contrasting theme; the rest are waves through a single colour family
+// Apricot contrasts, and Wisteria with its gold; the rest are waves through a single colour family. Every theme's
+// tiles, most of the screen, take a hue no other theme's do: Apricot's coral, apart from the greens of Matcha and Game
+// Boy, Wisteria's orchid, apart from Midnight's and Riso's pinks, and Graphite's a cool neutral, apart from Harbor's
+// blue and Ink's grey
 export const THEMES: ThemeSeed[] = [
-  { name: 'Apricot', hue: 55, ink: 42, unobtainable: 75, temporary: 355, caught: 132, chroma: 1 },
+  { name: 'Apricot', hue: 55, ink: 42, unobtainable: 75, temporary: 355, caught: 28, chroma: 1 },
   { name: 'Matcha', hue: 128, ink: 145, unobtainable: 160, temporary: 112, caught: 145, chroma: 0.85 },
   { name: 'Harbor', hue: 232, ink: 245, unobtainable: 68, temporary: 205, caught: 240, chroma: 0.8, unobtainableChroma: 0.9 },
-  { name: 'Wisteria', hue: 300, ink: 295, unobtainable: 285, temporary: 318, caught: 292, chroma: 1 },
-  { name: 'Graphite', hue: 250, ink: 255, unobtainable: 250, temporary: 232, caught: 256, chroma: 0.22, statusChroma: 0.85, unobtainableChroma: 0.3 },
+  // miyabi, in the Elegant Vivillon's colours: violet and orchid tiles, a peony pink, and gold, the unobtainable laid
+  // in pale gold. Light is lavender paper under a deep violet bar; Soft Dark an aubergine night, gold what you press.
+  // The waves on its bar and the gold clouds behind its rows are drawn by scripts/theme-marks.mjs and laid on in
+  // styles/themes.scss
+  {
+    name: 'Wisteria', hue: 310, ink: 303, unobtainable: 78, temporary: 345, caught: 320, chroma: 1, unobtainableChroma: 0.85,
+    tones: {
+      light: {
+        chrome: { l: 0.37, c: 0.12, source: 'ink' }, 'chrome-hover': { l: 0.42, c: 0.12, source: 'ink' }, 'chrome-active': { l: 0.46, c: 0.12, source: 'ink' }, 'chrome-pattern': { l: 0.33, c: 0.11, source: 'ink' },
+        accent: { l: 0.5, c: 0.17, source: 'caught' }, 'accent-hover': { l: 0.44, c: 0.16, source: 'caught' },
+        overlay: { l: 0.32, c: 0.1, source: 'ink' }, 'overlay-deep': { l: 0.28, c: 0.095, source: 'ink' }, 'overlay-deeper': { l: 0.25, c: 0.09, source: 'ink' }, 'overlay-edge': { l: 0.5, c: 0.17, source: 'caught' },
+        'tile-caught': { l: 0.825, c: 0.095 }, 'tile-unobtainable': { l: 0.9, c: 0.045 },
+      },
+      dark: {
+        paper: { l: 0.22, c: 0.045 }, 'paper-raised': { l: 0.26, c: 0.05 }, 'paper-sunken': { l: 0.19, c: 0.04 }, chip: { l: 0.19, c: 0.04 },
+        chrome: { l: 0.16, c: 0.06, source: 'ink' }, 'chrome-hover': { l: 0.2, c: 0.065, source: 'ink' }, 'chrome-active': { l: 0.24, c: 0.07, source: 'ink' }, 'chrome-pattern': { l: 0.14, c: 0.055, source: 'ink' },
+        meter: { l: 0.25, c: 0.06 }, 'meter-edge': { l: 0.72, c: 0.11, source: 'unobtainable' },
+        accent: { l: 0.8, c: 0.12, source: 'unobtainable' }, 'accent-hover': { l: 0.85, c: 0.1, source: 'unobtainable' },
+        overlay: { l: 0.18, c: 0.06, source: 'ink' }, 'overlay-deep': { l: 0.22, c: 0.065, source: 'ink' }, 'overlay-deeper': { l: 0.26, c: 0.07, source: 'ink' }, 'overlay-edge': { l: 0.72, c: 0.11, source: 'unobtainable' },
+        field: { l: 0.19, c: 0.04 }, 'field-edge': { l: 0.45, c: 0.07, source: 'ink' }, 'field-focus': { l: 0.8, c: 0.12, source: 'unobtainable' },
+        'tile-caught': { l: 0.38, c: 0.11 }, 'tile-unobtainable': { l: 0.27, c: 0.042 }, 'tile-temporary': { l: 0.3, c: 0.07 }, 'tile-temporary-stripe': { l: 0.34, c: 0.09 },
+      },
+    },
+  },
+  {
+    name: 'Graphite', hue: 250, ink: 255, unobtainable: 250, temporary: 232, caught: 256, chroma: 0.22, statusChroma: 0.85, unobtainableChroma: 0.3,
+    tones: {
+      light: { 'tile-caught': { l: 0.74, c: 0.03 } },
+      dark: { 'tile-caught': { l: 0.41, c: 0.042 } },
+    },
+  },
   // the device: a red bar with white type over near-white paper, the dex's teal screen glow on the tiles; Soft Dark a
   // deep red bar over blue-black
   {
@@ -67,19 +109,22 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // four greens of a pocket screen, statuses told apart by depth (and temporary's stripes); Soft Dark the screen unlit
+  // four greens of a pocket screen, far apart: the deepest for the bar and the type, a pea-soup page, the tiles a
+  // brighter green; statuses told apart by depth (and temporary's stripes). Its sprites are redrawn in the same four
+  // (scripts/theme-sprites.mjs), the balls left in the colours that tell them apart, and its marks and type glyphs share
+  // the hue (mono). Soft Dark the screen unlit
   {
-    name: 'Game Boy', hue: 118, ink: 135, unobtainable: 112, temporary: 128, caught: 125, chroma: 1, lineAlpha: 0.24,
+    name: 'Game Boy', hue: 118, ink: 135, unobtainable: 112, temporary: 128, caught: 125, chroma: 1, lineAlpha: 0.24, mono: true, rangeDash: { en: '-', ja: '-' },
     tones: {
       light: {
-        paper: { l: 0.87, c: 0.07 }, 'paper-raised': { l: 0.9, c: 0.06 }, 'paper-sunken': { l: 0.84, c: 0.075 }, chip: { l: 0.83, c: 0.07 },
-        chrome: { l: 0.36, c: 0.07 }, 'chrome-hover': { l: 0.41, c: 0.075 }, 'chrome-active': { l: 0.45, c: 0.08 }, 'chrome-pattern': { l: 0.33, c: 0.065 },
-        meter: { l: 0.7, c: 0.12 }, 'meter-edge': { l: 0.4, c: 0.07 },
-        accent: { l: 0.36, c: 0.07 }, 'accent-hover': { l: 0.31, c: 0.065 },
-        overlay: { l: 0.3, c: 0.06 }, 'overlay-deep': { l: 0.26, c: 0.055 }, 'overlay-deeper': { l: 0.23, c: 0.05 }, 'overlay-edge': { l: 0.2, c: 0.045 },
-        field: { l: 0.91, c: 0.05 }, 'field-edge': { l: 0.42, c: 0.06 }, 'field-focus': { l: 0.3, c: 0.06 },
-        'tile-unobtainable': { l: 0.92, c: 0.05 }, 'tile-temporary': { l: 0.82, c: 0.09 }, 'tile-temporary-stripe': { l: 0.76, c: 0.11 }, 'tile-caught': { l: 0.7, c: 0.13 },
-        'status-unobtainable': { l: 0.62, c: 0.07 }, 'status-temporary': { l: 0.52, c: 0.1 }, 'status-caught': { l: 0.4, c: 0.1 },
+        paper: { l: 0.875, c: 0.1 }, 'paper-raised': { l: 0.905, c: 0.085 }, 'paper-sunken': { l: 0.845, c: 0.1 }, chip: { l: 0.83, c: 0.1 },
+        chrome: { l: 0.27, c: 0.055 }, 'chrome-hover': { l: 0.32, c: 0.06 }, 'chrome-active': { l: 0.37, c: 0.065 }, 'chrome-pattern': { l: 0.24, c: 0.05 },
+        meter: { l: 0.74, c: 0.15 }, 'meter-edge': { l: 0.27, c: 0.055 },
+        accent: { l: 0.3, c: 0.06 }, 'accent-hover': { l: 0.25, c: 0.055 },
+        overlay: { l: 0.27, c: 0.055 }, 'overlay-deep': { l: 0.24, c: 0.05 }, 'overlay-deeper': { l: 0.21, c: 0.045 }, 'overlay-edge': { l: 0.18, c: 0.04 },
+        field: { l: 0.925, c: 0.06 }, 'field-edge': { l: 0.3, c: 0.06 }, 'field-focus': { l: 0.3, c: 0.06 },
+        'tile-unobtainable': { l: 0.93, c: 0.06 }, 'tile-temporary': { l: 0.82, c: 0.12 }, 'tile-temporary-stripe': { l: 0.75, c: 0.14 }, 'tile-caught': { l: 0.76, c: 0.16 },
+        'status-unobtainable': { l: 0.62, c: 0.08 }, 'status-temporary': { l: 0.5, c: 0.1 }, 'status-caught': { l: 0.35, c: 0.08 },
       },
       dark: {
         paper: { l: 0.24, c: 0.04 }, 'paper-raised': { l: 0.28, c: 0.045 }, 'paper-sunken': { l: 0.21, c: 0.035 }, chip: { l: 0.21, c: 0.035 },
@@ -92,14 +137,16 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // synthwave: a hot violet bar and magenta buttons over lilac in Light; in Soft Dark deep indigo with neon cyan tiles,
-  // amber and hot pink beside them
+  // synthwave: a hot violet bar over lilac in Light, hot pink tiles with cyan buttons and a cyan temporary; Soft Dark,
+  // the side it's made for, is vaporwave on a deep indigo night, its tiles the night's own dark (an indigo, a teal
+  // temporary, a plum unobtainable) and the sunset's neon pink their lines (styles/themes.scss). Pokédex keeps the teal
+  // screen to itself
   {
-    name: 'Midnight', hue: 285, ink: 330, unobtainable: 75, temporary: 345, caught: 190, chroma: 1.2, statusChroma: 1.3,
+    name: 'Midnight', hue: 285, ink: 330, unobtainable: 75, temporary: 190, caught: 345, chroma: 1.2, statusChroma: 1.3,
     tones: {
       light: {
         chrome: { l: 0.45, c: 0.2 }, 'chrome-hover': { l: 0.5, c: 0.19 }, 'chrome-active': { l: 0.55, c: 0.18 }, 'chrome-pattern': { l: 0.41, c: 0.2 },
-        accent: { l: 0.55, c: 0.2 }, 'accent-hover': { l: 0.49, c: 0.19 },
+        accent: { l: 0.55, c: 0.2, source: 'temporary' }, 'accent-hover': { l: 0.49, c: 0.19, source: 'temporary' },
         overlay: { l: 0.28, c: 0.08, source: 'hue' }, 'overlay-deep': { l: 0.24, c: 0.075, source: 'hue' }, 'overlay-deeper': { l: 0.21, c: 0.07, source: 'hue' }, 'overlay-edge': { l: 0.55, c: 0.2 },
         'tile-caught': { l: 0.84, c: 0.1 },
       },
@@ -107,55 +154,67 @@ export const THEMES: ThemeSeed[] = [
         paper: { l: 0.19, c: 0.05 }, 'paper-raised': { l: 0.23, c: 0.055 }, 'paper-sunken': { l: 0.16, c: 0.045 }, chip: { l: 0.16, c: 0.045 },
         chrome: { l: 0.14, c: 0.06 }, 'chrome-hover': { l: 0.19, c: 0.07 }, 'chrome-active': { l: 0.23, c: 0.08 }, 'chrome-pattern': { l: 0.17, c: 0.065 },
         meter: { l: 0.22, c: 0.07 }, 'meter-edge': { l: 0.6, c: 0.2, source: 'ink' },
-        accent: { l: 0.72, c: 0.2, source: 'ink' }, 'accent-hover': { l: 0.77, c: 0.18, source: 'ink' },
+        accent: { l: 0.72, c: 0.2, source: 'temporary' }, 'accent-hover': { l: 0.77, c: 0.18, source: 'temporary' },
         overlay: { l: 0.16, c: 0.06, source: 'hue' }, 'overlay-deep': { l: 0.2, c: 0.065, source: 'hue' }, 'overlay-deeper': { l: 0.24, c: 0.07, source: 'hue' }, 'overlay-edge': { l: 0.6, c: 0.2 },
         field: { l: 0.16, c: 0.045 }, 'field-edge': { l: 0.45, c: 0.1, source: 'hue' }, 'field-focus': { l: 0.72, c: 0.2 },
-        'tile-unobtainable': { l: 0.22, c: 0.04 }, 'tile-temporary': { l: 0.26, c: 0.08 }, 'tile-temporary-stripe': { l: 0.31, c: 0.11 }, 'tile-caught': { l: 0.3, c: 0.1 },
+        'tile-unobtainable': { l: 0.235, c: 0.065, source: 'ink' }, 'tile-temporary': { l: 0.26, c: 0.08 }, 'tile-temporary-stripe': { l: 0.31, c: 0.11 }, 'tile-caught': { l: 0.27, c: 0.065, source: 'hue' },
       },
     },
   },
-  // print: white paper, black bar and rules, greys for the statuses and a single red for what you press
+  // calligraphy: sumi on warm washi, a black bar and rules, the statuses in the cool greys of a diluted ink (usuzumi),
+  // and a seal's vermilion for what you press; Soft Dark the same ink on an inkstone's black. Light is the side it's
+  // made for: its washi a soft, unbleached white rather than a bright one, the tiles a step deeper to keep apart from it.
+  // Its brush marks are drawn by scripts/theme-marks.mjs
   {
-    name: 'Ink', hue: 260, ink: 25, unobtainable: 260, temporary: 25, caught: 260, chroma: 0.05, statusChroma: 0.6, unobtainableChroma: 0.05, lineAlpha: 0.32,
+    name: 'Ink', hue: 80, ink: 33, unobtainable: 250, temporary: 33, caught: 250, chroma: 0.05, statusChroma: 0.6, unobtainableChroma: 0.05, lineAlpha: 0.32,
+    rangeDash: { ja: '～' },
+    side: 'light',
     tones: {
       light: {
-        paper: { l: 0.975, c: 0 }, 'paper-raised': { l: 1, c: 0 }, 'paper-sunken': { l: 0.945, c: 0 }, chip: { l: 0.925, c: 0 },
-        chrome: { l: 0.2, c: 0 }, 'chrome-hover': { l: 0.27, c: 0 }, 'chrome-active': { l: 0.32, c: 0 }, 'chrome-pattern': { l: 0.16, c: 0 },
-        meter: { l: 0.82, c: 0 }, 'meter-edge': { l: 0.2, c: 0 },
-        accent: { l: 0.52, c: 0.19 }, 'accent-hover': { l: 0.46, c: 0.18 },
-        overlay: { l: 0.2, c: 0 }, 'overlay-deep': { l: 0.26, c: 0 }, 'overlay-deeper': { l: 0.31, c: 0 }, 'overlay-edge': { l: 0.12, c: 0 },
-        field: { l: 1, c: 0 }, 'field-edge': { l: 0.25, c: 0 }, 'field-focus': { l: 0.52, c: 0.19 },
-        'tile-unobtainable': { l: 0.885, c: 0 }, 'tile-temporary': { l: 0.93, c: 0 }, 'tile-temporary-stripe': { l: 0.86, c: 0 }, 'tile-caught': { l: 0.8, c: 0 },
-        'status-unobtainable': { l: 0.62, c: 0 }, 'status-temporary': { l: 0.55, c: 0.18 }, 'status-caught': { l: 0.3, c: 0 },
+        paper: { l: 0.928, c: 0.018 }, 'paper-raised': { l: 0.948, c: 0.014 }, 'paper-sunken': { l: 0.903, c: 0.02 }, chip: { l: 0.888, c: 0.02 },
+        chrome: { l: 0.2, c: 0.006 }, 'chrome-hover': { l: 0.27, c: 0.006 }, 'chrome-active': { l: 0.32, c: 0.006 }, 'chrome-pattern': { l: 0.16, c: 0.006 },
+        meter: { l: 0.82, c: 0.008 }, 'meter-edge': { l: 0.2, c: 0.006 },
+        accent: { l: 0.55, c: 0.19 }, 'accent-hover': { l: 0.49, c: 0.18 },
+        overlay: { l: 0.2, c: 0.006 }, 'overlay-deep': { l: 0.26, c: 0.006 }, 'overlay-deeper': { l: 0.31, c: 0.006 }, 'overlay-edge': { l: 0.12, c: 0.006 },
+        field: { l: 0.955, c: 0.012 }, 'field-edge': { l: 0.25, c: 0.006 }, 'field-focus': { l: 0.55, c: 0.19 },
+        'tile-unobtainable': { l: 0.85, c: 0.009 }, 'tile-temporary': { l: 0.882, c: 0.012 }, 'tile-temporary-stripe': { l: 0.828, c: 0.012 }, 'tile-caught': { l: 0.775, c: 0.012 },
+        'status-unobtainable': { l: 0.62, c: 0.008 }, 'status-temporary': { l: 0.55, c: 0.18 }, 'status-caught': { l: 0.3, c: 0.006 },
       },
       dark: {
-        paper: { l: 0.17, c: 0 }, 'paper-raised': { l: 0.21, c: 0 }, 'paper-sunken': { l: 0.14, c: 0 }, chip: { l: 0.14, c: 0 },
-        chrome: { l: 0.1, c: 0 }, 'chrome-hover': { l: 0.15, c: 0 }, 'chrome-active': { l: 0.2, c: 0 }, 'chrome-pattern': { l: 0.12, c: 0 },
-        meter: { l: 0.3, c: 0 }, 'meter-edge': { l: 0.7, c: 0 },
-        accent: { l: 0.66, c: 0.17, source: 'ink' }, 'accent-hover': { l: 0.71, c: 0.15, source: 'ink' },
-        overlay: { l: 0.24, c: 0 }, 'overlay-deep': { l: 0.29, c: 0 }, 'overlay-deeper': { l: 0.33, c: 0 }, 'overlay-edge': { l: 0.5, c: 0 },
-        field: { l: 0.14, c: 0 }, 'field-edge': { l: 0.6, c: 0 }, 'field-focus': { l: 0.66, c: 0.17, source: 'ink' },
-        'tile-unobtainable': { l: 0.235, c: 0 }, 'tile-temporary': { l: 0.29, c: 0 }, 'tile-temporary-stripe': { l: 0.345, c: 0 }, 'tile-caught': { l: 0.42, c: 0 },
-        'status-unobtainable': { l: 0.55, c: 0 }, 'status-temporary': { l: 0.66, c: 0.16 }, 'status-caught': { l: 0.82, c: 0 },
+        paper: { l: 0.17, c: 0.005 }, 'paper-raised': { l: 0.21, c: 0.005 }, 'paper-sunken': { l: 0.14, c: 0.005 }, chip: { l: 0.14, c: 0.005 },
+        chrome: { l: 0.1, c: 0.004 }, 'chrome-hover': { l: 0.15, c: 0.004 }, 'chrome-active': { l: 0.2, c: 0.004 }, 'chrome-pattern': { l: 0.12, c: 0.004 },
+        meter: { l: 0.3, c: 0.005 }, 'meter-edge': { l: 0.7, c: 0.005 },
+        accent: { l: 0.67, c: 0.17, source: 'ink' }, 'accent-hover': { l: 0.72, c: 0.15, source: 'ink' },
+        overlay: { l: 0.24, c: 0.005 }, 'overlay-deep': { l: 0.29, c: 0.005 }, 'overlay-deeper': { l: 0.33, c: 0.005 }, 'overlay-edge': { l: 0.5, c: 0.005 },
+        field: { l: 0.14, c: 0.005 }, 'field-edge': { l: 0.6, c: 0.005 }, 'field-focus': { l: 0.67, c: 0.17, source: 'ink' },
+        'tile-unobtainable': { l: 0.235, c: 0.005 }, 'tile-temporary': { l: 0.29, c: 0.006 }, 'tile-temporary-stripe': { l: 0.345, c: 0.006 }, 'tile-caught': { l: 0.42, c: 0.008 },
+        'status-unobtainable': { l: 0.55, c: 0.005 }, 'status-temporary': { l: 0.67, c: 0.16 }, 'status-caught': { l: 0.82, c: 0.006 },
       },
     },
   },
-  // Pokémon HOME's own: a mint bar, sky-blue buttons and boxes over white; Soft Dark its navy
+  // a risograph: warm stock printed in two inks, a blue bar and popover, fluorescent pink for what you press and for
+  // the caught tiles, their overprint purple for the unobtainable; Soft Dark the same inks on blue-black stock. Its
+  // sprites in the two inks (scripts/theme-sprites.mjs), its headings a little misregistered (styles/themes.scss)
   {
-    name: 'HOME', hue: 178, ink: 232, unobtainable: 62, temporary: 345, caught: 212, chroma: 1,
+    name: 'Riso', hue: 85, ink: 262, unobtainable: 300, temporary: 248, caught: 352, chroma: 1, statusChroma: 1.2,
     tones: {
       light: {
-        paper: { l: 0.97, c: 0.012 }, 'paper-raised': { l: 0.993, c: 0.005 }, 'paper-sunken': { l: 0.94, c: 0.016 },
-        chrome: { l: 0.8, c: 0.1 }, 'chrome-hover': { l: 0.85, c: 0.085 }, 'chrome-active': { l: 0.89, c: 0.07 }, 'chrome-pattern': { l: 0.76, c: 0.105 },
-        accent: { l: 0.52, c: 0.14 }, 'accent-hover': { l: 0.46, c: 0.13 },
-        overlay: { l: 0.4, c: 0.08 }, 'overlay-deep': { l: 0.35, c: 0.075 }, 'overlay-deeper': { l: 0.31, c: 0.07 }, 'overlay-edge': { l: 0.32, c: 0.07 },
-        'tile-caught': { l: 0.86, c: 0.06 },
+        paper: { l: 0.962, c: 0.016 }, 'paper-raised': { l: 0.985, c: 0.01 }, 'paper-sunken': { l: 0.935, c: 0.018 }, chip: { l: 0.925, c: 0.018 },
+        chrome: { l: 0.5, c: 0.16, source: 'temporary' }, 'chrome-hover': { l: 0.53, c: 0.15, source: 'temporary' }, 'chrome-active': { l: 0.555, c: 0.14, source: 'temporary' }, 'chrome-pattern': { l: 0.46, c: 0.16, source: 'temporary' },
+        meter: { l: 0.9, c: 0.05, source: 'caught' }, 'meter-edge': { l: 0.5, c: 0.16, source: 'temporary' },
+        accent: { l: 0.58, c: 0.24, source: 'caught' }, 'accent-hover': { l: 0.53, c: 0.23, source: 'caught' },
+        overlay: { l: 0.32, c: 0.12, source: 'temporary' }, 'overlay-deep': { l: 0.28, c: 0.11, source: 'temporary' }, 'overlay-deeper': { l: 0.25, c: 0.1, source: 'temporary' }, 'overlay-edge': { l: 0.62, c: 0.24, source: 'caught' },
+        field: { l: 0.985, c: 0.01 }, 'field-edge': { l: 0.5, c: 0.16, source: 'temporary' }, 'field-focus': { l: 0.62, c: 0.24, source: 'caught' },
+        'tile-caught': { l: 0.87, c: 0.08 }, 'tile-temporary': { l: 0.9, c: 0.05 }, 'tile-temporary-stripe': { l: 0.84, c: 0.08 }, 'tile-unobtainable': { l: 0.89, c: 0.045 },
+        'status-caught': { l: 0.63, c: 0.22 }, 'status-temporary': { l: 0.55, c: 0.15 }, 'status-unobtainable': { l: 0.52, c: 0.13 },
       },
       dark: {
-        paper: { l: 0.27, c: 0.04, source: 'ink' }, 'paper-raised': { l: 0.31, c: 0.045, source: 'ink' }, 'paper-sunken': { l: 0.24, c: 0.035, source: 'ink' }, chip: { l: 0.24, c: 0.035, source: 'ink' },
-        field: { l: 0.24, c: 0.035, source: 'ink' },
-        chrome: { l: 0.22, c: 0.05 }, 'chrome-hover': { l: 0.26, c: 0.055 }, 'chrome-active': { l: 0.3, c: 0.06 }, 'chrome-pattern': { l: 0.2, c: 0.05 },
-        'tile-caught': { l: 0.34, c: 0.07 },
+        paper: { l: 0.2, c: 0.025, source: 'temporary' }, 'paper-raised': { l: 0.24, c: 0.03, source: 'temporary' }, 'paper-sunken': { l: 0.17, c: 0.022, source: 'temporary' }, chip: { l: 0.17, c: 0.022, source: 'temporary' },
+        field: { l: 0.17, c: 0.022, source: 'temporary' },
+        chrome: { l: 0.32, c: 0.13, source: 'temporary' }, 'chrome-hover': { l: 0.36, c: 0.13, source: 'temporary' }, 'chrome-active': { l: 0.4, c: 0.13, source: 'temporary' }, 'chrome-pattern': { l: 0.29, c: 0.12, source: 'temporary' },
+        meter: { l: 0.25, c: 0.06, source: 'caught' }, 'meter-edge': { l: 0.6, c: 0.15, source: 'temporary' },
+        accent: { l: 0.72, c: 0.22, source: 'caught' }, 'accent-hover': { l: 0.77, c: 0.2, source: 'caught' },
+        'tile-caught': { l: 0.32, c: 0.1 }, 'tile-temporary': { l: 0.27, c: 0.07 }, 'tile-temporary-stripe': { l: 0.31, c: 0.09 }, 'tile-unobtainable': { l: 0.24, c: 0.05 },
       },
     },
   },
@@ -251,7 +310,6 @@ const FIXED: Record<Mode, Record<string, Lch>> = {
   light: {
     gift: { l: 0.52, c: 0.19, h: 26 },
     danger: { l: 0.52, c: 0.16, h: 25 },
-    'danger-hover': { l: 0.46, c: 0.15, h: 25 },
     'mark-blue': { l: 0.62, c: 0.13, h: 256 },
     'mark-pink': { l: 0.7, c: 0.14, h: 358 },
     star: { l: 0.56, c: 0.21, h: 27 },
@@ -259,7 +317,6 @@ const FIXED: Record<Mode, Record<string, Lch>> = {
   dark: {
     gift: { l: 0.76, c: 0.15, h: 25 },
     danger: { l: 0.6, c: 0.13, h: 25 },
-    'danger-hover': { l: 0.66, c: 0.12, h: 25 },
     'mark-blue': { l: 0.72, c: 0.12, h: 256 },
     'mark-pink': { l: 0.78, c: 0.12, h: 358 },
     star: { l: 0.7, c: 0.17, h: 27 },
@@ -444,20 +501,27 @@ function buildPalette (seed: ThemeSeed, mode: Mode): Record<string, string> {
   lch['paper-shadow'] = shadowFor(lch['paper-raised'], lch.ink, { c: Math.min(lch.accent.c, 0.09), h: lch.accent.h }, dark ? 0.005 : -0.005);
   lch['on-overlay'] = solve(tint(0.96, 0.01, 'hue'), [rgb('overlay', 'overlay-deep', 'overlay-deeper'), 4.5]);
   lch['on-status'] = solve(tint(dark ? 0.2 : 0.99, 0.01, 'hue'), [rgb('status-unobtainable', 'status-temporary', 'status-caught'), 3]);
-  lch['on-danger'] = solve({ l: dark ? 0.18 : 0.98, c: 0.01, h: 25 }, [rgb('danger', 'danger-hover'), 4.5]);
+  lch['on-danger'] = solve({ l: dark ? 0.18 : 0.98, c: 0.01, h: 25 }, [rgb('danger'), 4.5]);
   lch['ink-danger'] = solve({ ...lch.danger }, [rgb('paper', 'paper-raised'), 4.5]);
   const sealedTile = rgb('tile-caught', 'wash-seal', 'wash-home', 'wash-champions', 'wash-loan');
   lch['on-tile'] = solve({ ...lch.ink }, [rgb('tile-unobtainable', 'tile-temporary', 'tile-temporary-stripe', 'tile-caught'), 7], [sealedTile, 4.5]);
   lch['on-tile-accent'] = solve(tint(dark ? 0.86 : 0.46, 0.11 * statusScale + 0.02, 'caught'), [sealedTile, 4.5]);
   lch['ink-caught'] = solve(tint(dark ? 0.86 : 0.5, 0.12 * statusScale + 0.02, 'caught'), [rgb('paper', 'paper-raised'), 4.5]);
   lch['ink-temporary'] = solve(tint(dark ? 0.86 : 0.5, 0.12 * statusScale + 0.02, 'temporary'), [rgb('paper', 'paper-raised'), 4.5]);
+  // a one-family theme's marks take its caught hue, each keeping its own lightness, and its type glyphs one shade
+  if (seed.mono) {
+    for (const name of ['gift', 'mark-blue', 'mark-pink', 'star']) {
+      lch[name] = { l: lch[name].l, c: Math.min(lch[name].c, 0.1), h: hues.caught };
+    }
+  }
   // the gift red only sits on a tile's lower third, where the wash has faded below half; so do the type glyphs. It's
   // darkened only as far as the marks' 3:1 there, so it stays the gift's own red rather than a maroon
   const fill = toRgb(lch['tile-caught']);
   const lowerThird = [fill, ...sealedTile.map((top) => over({ ...top, a: 0.45 }, fill))];
   lch.gift = solve(lch.gift, [lowerThird, 3]);
   for (const [type, color] of Object.entries(TYPE_COLORS)) {
-    lch[`type-${type}`] = solve(toLch(parseCssColor(color)), [lowerThird, GLYPH_CONTRAST[mode]]);
+    const base = seed.mono ? { l: dark ? 0.8 : 0.4, c: 0.08, h: hues.caught } : toLch(parseCssColor(color));
+    lch[`type-${type}`] = solve(base, [lowerThird, GLYPH_CONTRAST[mode]]);
   }
   lch['mark-blue'] = solve(lch['mark-blue'], [rgb('tile-caught', 'tile-unobtainable'), 3]);
   lch['mark-pink'] = solve(lch['mark-pink'], [rgb('tile-caught', 'tile-unobtainable'), 3]);
@@ -467,9 +531,13 @@ function buildPalette (seed: ThemeSeed, mode: Mode): Record<string, string> {
     palette[name] = cssColor(toRgb(color));
   }
   const alpha = (name: string, a: number) => cssColor({ ...toRgb(lch[name]), a });
+  const lineAlpha = seed.lineAlpha ?? (dark ? 0.16 : 0.15);
   return {
     ...palette,
-    line: alpha('ink', seed.lineAlpha ?? (dark ? 0.16 : 0.15)),
+    line: alpha('ink', lineAlpha),
+    // the same line laid on the paper, opaque: a box's grid lines, so whatever lies under them (a seal material, a page's
+    // texture) never changes how they look
+    'line-solid': cssColor(over({ ...toRgb(lch.ink), a: lineAlpha }, toRgb(lch.paper))),
     'line-soft': alpha('ink', 0.12),
     'overlay-line': alpha('on-overlay', 0.16),
     'hover-wash': alpha('ink', dark ? 0.07 : 0.05),
@@ -491,6 +559,11 @@ export function themeSlug (name: string): string {
 
 export function findTheme (name: string): ThemeSeed {
   return THEMES.find((seed) => seed.name === name) ?? THEMES.find((seed) => seed.name === DEFAULT_THEME)!;
+}
+
+// the side a theme is shown on
+export function themeSide (seed: ThemeSeed): Mode {
+  return seed.side ?? 'dark';
 }
 
 export function themePalette (seed: ThemeSeed, mode: Mode): Record<string, string> {

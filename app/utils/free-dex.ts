@@ -178,7 +178,8 @@ export function sortEntries (state: AppState, dexId: string, by: FreeSort, reach
   const origins = ranks(ORIGIN_GAMES.map((game) => game.id));
   const languages = ranks(LANGUAGES.map((language) => language.id));
   const balls = ranks(BALLS.map((ball) => ball.id));
-  const types = ranks(['normal', 'fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']);
+  // as filters.ts's TYPE_ORDER, the games' own
+  const types = ranks(['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']);
   const collator = new Intl.Collator('ja-JP');
   withDex(state, dexId, (dex) => {
     const record = (entry: FreeEntry) => dex.progress[entry.id];
