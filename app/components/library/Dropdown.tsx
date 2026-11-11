@@ -189,6 +189,12 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
 
   // what the native selects did: arrows, Home/End and a first letter move, Enter or Space picks, Tab moves on
   const handleKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    // a held Enter or Space picks once: its repeats would pick on and open the next (the review's Enter flow), or toggle
+    // a closed one by the button's own click
+    if ((e.key === 'Enter' || e.key === ' ') && e.repeat && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      return;
+    }
     if (!open) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();

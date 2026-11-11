@@ -261,10 +261,12 @@ $ledger-head: 40px;
     background-image: repeating-linear-gradient(45deg, transparent 0 3px, var(--tile-temporary-stripe) 3px 6px);
   }
 
-  // a checklist's Elsewhere: a check, in the checked-out rose
+  // a checklist's Elsewhere: a check, in the checked-out rose (plain with Location Tints off, as its tile)
   .ledger-row.elsewhere & {
+    --wash: var(--wash-loan);
+
     background-color: var(--tile-caught);
-    background-image: linear-gradient(var(--wash-loan), var(--wash-loan));
+    background-image: linear-gradient(var(--wash), var(--wash));
   }
 
   .state-unobtainable & {
@@ -294,7 +296,7 @@ $ledger-head: 40px;
 }
 
 // Location Tints off: as the tiles (styles/tracker.scss)
-:root[data-plain-seals] .ledger-row:is(.loc-home, .loc-champions, .loc-out) .ledger-swatch {
+:root[data-plain-seals] .ledger-row:is(.loc-home, .loc-champions, .loc-out, .elsewhere) .ledger-swatch {
   --wash: var(--wash-seal);
 }
 

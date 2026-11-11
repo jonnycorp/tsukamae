@@ -30,33 +30,29 @@ function Level ({ capture }: Props) {
   return typeof capture.level === 'number' ? <span className="page-level">Lv.{capture.level}</span> : null;
 }
 
-function Ball ({ capture, className }: Props & { className?: string }) {
+// the hub's ball, large in its middle
+function Ball ({ capture }: Props) {
   return capture.ball && capture.ball !== 'unknown'
-    ? <img alt="" className={classNames('page-ball', className)} src={`/balls/${capture.ball}.png`} />
+    ? <img alt="" className="page-ball hub-ball" src={`/balls/${capture.ball}.png`} />
     : null;
 }
 
-function Mark ({ capture }: Props) {
-  return capture.origin_game ? <OriginMark game={capture.origin_game} /> : null;
-}
+// the hub's moons that hold something, each its badge or nothing (hubMoons)
+const gender = (capture: Capture) => (capture.gender === 'male' || capture.gender === 'female'
+  ? <FontAwesomeIcon className={`gender-badge ${capture.gender}`} icon={capture.gender === 'male' ? faMars : faVenus} />
+  : null);
 
-function Gender ({ capture }: Props) {
-  return capture.gender === 'male' || capture.gender === 'female'
-    ? <FontAwesomeIcon className={`gender-badge ${capture.gender}`} icon={capture.gender === 'male' ? faMars : faVenus} />
-    : null;
-}
+const heart = (capture: Capture) => (capture.favorite === 'favorite' || capture.favorite === 'partner'
+  ? <FontAwesomeIcon className={classNames('heart-badge', { partner: capture.favorite === 'partner' })} icon={faHeart} />
+  : null);
 
-function Heart ({ capture }: Props) {
-  return capture.favorite === 'favorite' || capture.favorite === 'partner'
-    ? <FontAwesomeIcon className={classNames('heart-badge', { partner: capture.favorite === 'partner' })} icon={faHeart} />
-    : null;
-}
+const mark = (capture: Capture) => (capture.origin_game && hasOriginMark(capture.origin_game)
+  ? <OriginMark game={capture.origin_game} />
+  : null);
 
-function Trained ({ capture }: Props) {
-  return capture.trained === 'ivs' || capture.trained === 'ev'
-    ? <span className={`trained-badge ${capture.trained}`} />
-    : null;
-}
+const trained = (capture: Capture) => (capture.trained === 'ivs' || capture.trained === 'ev'
+  ? <span className={`trained-badge ${capture.trained}`} />
+  : null);
 
 // ---- the stat hexagon: HP at the top and on clockwise as the summary draws it, every stat two thirds of the way out,
 // the raised one pushed to the rim and the lowered one pulled in to a third, so the shape is the nature's; a neutral
@@ -121,7 +117,7 @@ function HubPage ({ capture }: Props) {
   return (
     <>
       <span aria-hidden="true" className="hub-ring" />
-      <Ball capture={capture} className="hub-ball" />
+      <Ball capture={capture} />
       <span aria-hidden="true" className="hub-ring front" />
     </>
   );
@@ -139,12 +135,10 @@ export const HUB_SLOTS = 5;
 
 export function hubMoons (capture: Capture): (ReactNode | null)[] {
   return [
-    capture.gender === 'male' || capture.gender === 'female' ? <Gender capture={capture} /> : null,
-    showsGigantamax(capture)
-      ? <GigantamaxMark />
-      : capture.favorite === 'favorite' || capture.favorite === 'partner' ? <Heart capture={capture} /> : null,
-    capture.origin_game && hasOriginMark(capture.origin_game) ? <Mark capture={capture} /> : null,
-    capture.trained === 'ivs' || capture.trained === 'ev' ? <Trained capture={capture} /> : null,
+    gender(capture),
+    showsGigantamax(capture) ? <GigantamaxMark /> : heart(capture),
+    mark(capture),
+    trained(capture),
     natureStats(capture.nature) ? <NatureHex capture={capture} /> : null,
   ];
 }

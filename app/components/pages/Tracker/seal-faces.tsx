@@ -92,7 +92,7 @@ export function GigantamaxMark () {
   return <img alt="" className="gmax-mark" src="/marks/gigantamax.png" />;
 }
 
-// a sealed tile's badges, on its last page; drawn on the flips' overlay, which takes no pointer, so none has a tooltip
+// a sealed tile's badges, on its record page; drawn on the flips' overlay, which takes no pointer, so none has a tooltip
 export function BadgeRow ({ capture }: Props) {
   return (
     <span className="badge-row">

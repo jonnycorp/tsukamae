@@ -8,9 +8,15 @@
 $at-strip: 22px;
 $at-axis: 24px;
 
+// a strip drawn in from the left: shape to shape, as a clip-path eases only between two of the same kind (to `none` it
+// would jump halfway), held at its start through its delay, then left unclipped
 @keyframes at-sweep {
   from {
     clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0);
   }
 }
 
@@ -152,7 +158,7 @@ $at-axis: 24px;
 
 .at-strip {
   display: block;
-  animation: at-sweep .9s cubic-bezier(.45, 0, .2, 1) both;
+  animation: at-sweep .9s cubic-bezier(.45, 0, .2, 1) backwards;
   animation-delay: calc(300ms + var(--i) * 50ms);
 }
 

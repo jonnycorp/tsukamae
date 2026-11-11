@@ -45,7 +45,10 @@ export const Box = memo(function Box ({ captures, setSelectedPokemon }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { narrow } = useTrackerActions();
   const { locale } = useTranslation();
-  const { theme } = useThemeContext();
+  const { theme, typefaces } = useThemeContext();
+  // a theme's own dash only while its face draws the title (ThemeSeed.rangeDash)
+  const seed = findTheme(theme);
+  const dash = typefaces || seed.ownFace ? seed.rangeDash?.[locale] : undefined;
   const checklist = Boolean(activeDex!.checklist);
 
   // the clip is drawn for the 6-column grid, not the narrow list view
@@ -60,7 +63,7 @@ export const Box = memo(function Box ({ captures, setSelectedPokemon }: Props) {
   return (
     <div className={classNames('box', { 'box-complete': complete })}>
       <div className="box-header">
-        <h1>{boxTitle(captures, activeDexView!, locale, findTheme(theme).rangeDash?.[locale])}</h1>
+        <h1>{boxTitle(captures, activeDexView!, locale, dash)}</h1>
       </div>
       <div className="box-container">
         <div className="tile-grid">

@@ -58,8 +58,8 @@ export function useCalmStart (run = 0): boolean {
   return calmRun === run;
 }
 
-// a scene's title card (the timeline, the review, the almanac): its name slammed onto a slash of the accent with a
-// flash and a shake, the dex's name sliding in under it, then cleared
+// a scene's title card (the timeline, the review, the almanac, a page in the scene frame): its name slammed onto a
+// slash of the accent with a flash and a shake, the dex's name sliding in under it, then cleared
 export function TitleCard ({ title }: { title: string }) {
   const { activeDex } = useDexContext();
   const { t } = useTranslation();
@@ -86,11 +86,11 @@ export function TitleCard ({ title }: { title: string }) {
   );
 }
 
-// a scene opening on its title card (the review, the almanac): its motion held (gate) till its first frames have
-// gone by (useCalmStart), what's under its bar out of sight with its entrance held (intro) till the card's about to
-// clear, then faded in as it does; the card gone once it has (titleCard). A key (Escape aside, which still closes the
-// scene) or a click skips to the end, the key claimed so it does nothing else. Still mode, or a scene come back to
-// (quiet): no card, the scene there at once
+// a scene opening on its title card (the review, the almanac, a page in the scene frame): its motion held (gate) till
+// its first frames have gone by (useCalmStart), what's under its bar out of sight with its entrance held (intro) till
+// the card's about to clear, then faded in as it does; the card gone once it has (titleCard). A key (Escape aside,
+// which still closes the scene) or a click skips to the end, the key claimed so it does nothing else. Still mode, or a
+// scene come back to (quiet): no card, the scene there at once
 export function useTitleCard (quiet = false): { titleCard: boolean; intro: boolean; gate: boolean } {
   const { still } = useThemeContext();
   const calm = useCalmStart();

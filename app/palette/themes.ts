@@ -41,8 +41,10 @@ export interface ThemeSeed {
   mono?: boolean;
   // the dash a box's title sets between its first and last number, by language, where the theme's face has none of the
   // language's own: a pocket screen's pixel font, a straight hyphen in either; a brush's hand, which has no wave dash
-  // (〜), its fullwidth tilde (～)
+  // (〜), its fullwidth tilde (～). Only while that face is on: with the typefaces switch (Nav), or always (ownFace)
   rangeDash?: Partial<Record<Locale, string>>;
+  // its box titles in its own face whatever the typefaces switch says (Game Boy's pixel numerals, styles/themes.scss)
+  ownFace?: boolean;
   // the side it's made for and shown on, there being no switch between them: dark, unless it says
   side?: Mode;
   // how a sealed tile's pages change: slid up, unless it says brushed, a brush's mark laid over the line as its text
@@ -119,7 +121,7 @@ export const THEMES: ThemeSeed[] = [
   // (scripts/theme-sprites.mjs), the balls left in the colours that tell them apart, and its marks and type glyphs share
   // the hue (mono). Soft Dark the screen unlit
   {
-    name: 'Game Boy', hue: 118, ink: 135, unobtainable: 112, temporary: 128, caught: 125, chroma: 1, lineAlpha: 0.24, mono: true, rangeDash: { en: '-', ja: '-' },
+    name: 'Game Boy', hue: 118, ink: 135, unobtainable: 112, temporary: 128, caught: 125, chroma: 1, lineAlpha: 0.24, mono: true, rangeDash: { en: '-', ja: '-' }, ownFace: true,
     tones: {
       light: {
         paper: { l: 0.875, c: 0.1 }, 'paper-raised': { l: 0.905, c: 0.085 }, 'paper-sunken': { l: 0.845, c: 0.1 }, chip: { l: 0.83, c: 0.1 },

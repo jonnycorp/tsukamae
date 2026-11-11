@@ -114,7 +114,8 @@ export function FilterBar ({ filters, query, setFilters, source }: Props) {
   useHotkey('r', () => setFilters(EMPTY_FILTERS));
 
   const checklist = Boolean(activeDex?.checklist);
-  const views = FILTER_VIEWS.filter((view) => !checklist || !view.records);
+  // a checklist keeps no records; a free-form dex's mons are all marked, so none is ever missing
+  const views = FILTER_VIEWS.filter((view) => (!checklist || !view.records) && !(activeDex?.free && view.id === 'missing'));
   const facets = FACETS.filter((facet) => !facet.pressOnly && (!checklist || facet.species));
   const active = anyFilterActive(filters);
 

@@ -3,6 +3,7 @@ import { getCatalogDex } from '../../../utils/local-data';
 import { localizeBall, localizeCatalogGame, localizeNature, localizeOriginGame } from '../../../i18n/names';
 import { padding } from '../../../utils/formatting';
 import { sameId } from '../../../utils/game-reach';
+import { speciesKey } from '../../../utils/copies';
 import { translate } from '../../../i18n/translations';
 
 import type { Capture, CaptureLocation, FavoriteState, PokemonType, TrainedState } from '../../../types';
@@ -92,9 +93,9 @@ const GAME_DEXES: { id: string; name: string; catalogs: string[] }[] = [
   { id: 'x', name: 'X & Y', catalogs: ['x-y-regional'] },
 ];
 
-// a species, a regional form its own (Paldean Wooper isn't Wooper): its national number and form, which every catalog
-// agrees on, where a catalog's own ids don't (Z-A's, Full Paldea's and Sword and Shield's DLC count differently)
-const speciesKey = (mon: { national_id: number; form?: string | null }) => `${mon.national_id}:${mon.form ?? ''}`;
+// a species is known by its national number and form (speciesKey, utils/copies), a regional form its own (Paldean
+// Wooper isn't Wooper), which every catalog agrees on, where a catalog's own ids don't (Z-A's, Full Paldea's and Sword
+// and Shield's DLC count differently)
 
 // which games' dexes list a species, worked out once
 let gameDexesBySpecies: Map<string, string[]> | null = null;

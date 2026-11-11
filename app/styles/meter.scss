@@ -266,21 +266,9 @@ $wave-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewB
 }
 
 // Still mode (M; applyDisplay sets data-still on the root): not a thing on the meter moves. DexMeter adds no pop,
-// shine or banner, and here what's left holds still and takes a change at once: the water stops drifting, and the
-// draw-in lands at once by main.scss's net, so it stays landed when still mode goes (taken off here, it was played
-// again from empty under a figure already showing its count)
-:root[data-still] {
-  .dex-meter-water::before,
-  .dex-meter-water::after {
-    animation: none;
-  }
-
-  .dex-meter-fill,
-  .dex-meter-water,
-  .dex-meter-edge {
-    transition: none;
-  }
-}
+// shine or banner, and main.scss's net holds what's left: the water's drift and the fill's changes take no time, and the
+// draw-in lands at once, so it stays landed when still mode goes (taken off by its own rule, it was played again from
+// empty under a figure already showing its count)
 
 @keyframes meter-banner {
   from {

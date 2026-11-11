@@ -646,7 +646,9 @@ export function Review ({ queue: opened, start, onClose }: Props) {
           <FontAwesomeIcon icon={faXmark} />
         </button>
       </header>
-      <div className="review-progress"><span style={{ transform: `scaleX(${queue.length > 0 ? (index + 1) / queue.length : 0})` }} /></div>
+      {/* the progress line and the foot held out of sight under the title card with the body, so nothing is pressed
+          on a mon not yet shown */}
+      <div className="review-progress" data-intro={intro || undefined}><span style={{ transform: `scaleX(${queue.length > 0 ? (index + 1) / queue.length : 0})` }} /></div>
       <div className={classNames('review-body', { listed: list })} data-intro={intro || undefined}>
         {list &&
           <aside aria-label={t('review.list')} className="review-run" ref={runRef}>
@@ -723,7 +725,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         </div>
       </div>
       {titleCard && <TitleCard title={t('review.title')} />}
-      <footer className="review-foot" style={{ zoom: scale }}>
+      <footer className="review-foot" data-intro={intro || undefined} style={{ zoom: scale }}>
         <button className="review-nav" disabled={index === 0} onClick={() => go(-1)} type="button">
           <FontAwesomeIcon icon={faArrowLeft} />{t('review.prev')}<kbd>Q</kbd>
         </button>

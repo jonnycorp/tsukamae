@@ -1,5 +1,5 @@
 import { GAME_FACTS } from './game-facts';
-import { REGIONAL_FORMS } from './champions';
+import { REGIONAL_FORMS, slotKey } from './champions';
 import { getCatalogDex } from './local-data';
 
 import type { Capture, GameSave } from '../types';
@@ -107,7 +107,6 @@ export function gameDexes (): Record<string, Set<number>> {
     const swsh = nationals(['sword-shield-regional', 'sword-shield-expansion-regional']);
     const za = nationals(['legends-z-a-regional', 'legends-z-a-mega-dimension']);
     dexes = {
-      legends_arceus: nationals(['legends-arceus-regional']),
       scarlet: sv,
       violet: sv,
       sword: swsh,
@@ -134,16 +133,24 @@ export function debutOf (stage: Stage, fallback: number): number {
   return debuts.get(stage.national) ?? fallback;
 }
 
+// Legends: Arceus's dex by species and regional form, so its Hisuian Growlithe is no Kantonian one and its Raichu no
+// Alolan one; a form of no region (a cloak, a sea) read as its species
+let hisui: Set<string> | null = null;
+function hisuiHas (stage: Stage): boolean {
+  hisui ??= new Set(getCatalogDex('legends-arceus-regional').pokemonList.map((mon) => slotKey(mon.national_id, mon.form)));
+  return hisui.has(slotKey(stage.national, stage.form));
+}
+
 // what a closed game can be caught in: Let's Go is Kanto's 151 (their Alolan forms among its trades) and Meltan's
-// line, Legends: Arceus is Hisui's dex, Brilliant Diamond and Shining Pearl the first 493; nothing else, and whatever
-// is on their lists can, whatever the generation the dataset files it under (Meltan's). null for a game that isn't
-// closed
+// line, Legends: Arceus is Hisui's dex in its own forms, Brilliant Diamond and Shining Pearl the first 493; nothing
+// else, and whatever is on their lists can, whatever the generation the dataset files it under (Meltan's). null for a
+// game that isn't closed
 export function closedGameHas (game: string, stage: Stage): boolean | null {
   if (LETS_GO.has(game)) {
     return (stage.form === null || stage.form === 'alola') && (stage.national <= 151 || stage.national === 808 || stage.national === 809);
   }
   if (game === 'legends_arceus') {
-    return gameDexes().legends_arceus.has(stage.national);
+    return hisuiHas(stage);
   }
   if (BDSP.has(game)) {
     return stage.form === null && stage.national <= 493;

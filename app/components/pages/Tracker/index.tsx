@@ -71,15 +71,21 @@ export function Tracker () {
 
 // a CSS animation starts when its element is first styled, which content-visibility delays until scroll-in, and a
 // moon slot's group (FlipStrips) only once a mon fills it: the seal materials' flow and the moons' turn all run from the
-// timeline's start, so every box keeps in step, and a row's slots their fifth of a turn apart (by their delays)
-const SYNCED = ['seal-flow', 'hub-far', 'hub-near'];
+// timeline's start, so every box keeps in step, and a row's slots their fifth of a turn apart (by their delays); and an
+// open free box's marching frame, so two open at once march together
+const SYNCED = ['seal-flow', 'hub-far', 'hub-near', 'free-march'];
 
 function syncLoops (e: AnimationEvent<HTMLDivElement>) {
   if (!SYNCED.includes(e.animationName)) {
     return;
   }
-  for (const animation of (e.target as HTMLElement).getAnimations()) {
-    animation.startTime = 0;
+  // a pseudo-element's animation (the frame's ::after) comes only with the subtree's, of which it alone is set
+  const target = e.target as HTMLElement;
+  for (const animation of target.getAnimations({ subtree: Boolean(e.pseudoElement) })) {
+    const effect = animation.effect as KeyframeEffect | null;
+    if (!e.pseudoElement || (effect?.target === target && effect.pseudoElement === e.pseudoElement)) {
+      animation.startTime = 0;
+    }
   }
 }
 
@@ -195,21 +201,29 @@ function TrackerInner () {
 
   const handlePopoverClose = useCallback(() => setSelectedPokemon(0), []);
 
+  // a page handing the dex a view (a filter pressed in the almanac or Journeys, one cleared to find a mon) or a mon to
+  // show: the page stays up over the dex till the dex shows that view whole (the filters it renders behind the last
+  // view, Dex.tsx's data-stale, then a rebuilt grid's first screenful, data-hidden) with the mon brought into view, and
+  // goes in one frame, so the dex never shows what it showed before, or half of what comes next. A mon's looked for
+  // over a few frames from there, as the boxes or the ledger's later rows can take that long to render it. The page's
+  // own close (Escape, its ✕) waits for it too, as closing first would show what it holds back
+  const [handing, setHanding] = useState<HandOff | null>(null);
+  const handingRef = useRef(false);
+
   // a checklist keeps no catch dates, so it has no timeline
   const timeline = !activeDex!.checklist;
   const handleOpenTimeline = useCallback(() => {
     setSelectedPokemon(0);
     setShowTimeline(true);
   }, []);
-  const handleCloseTimeline = useCallback(() => setShowTimeline(false), []);
+  const handleCloseTimeline = useCallback(() => {
+    if (!handingRef.current) {
+      setShowTimeline(false);
+    }
+  }, []);
 
-  // a page handing the dex a view (a filter pressed in the almanac or Journeys, one cleared to find a mon) or a mon to
-  // show: the page stays up over the dex till the dex shows that view whole (the filters it renders behind the last
-  // view, Dex.tsx's data-stale, then a rebuilt grid's first screenful, data-hidden) with the mon brought into view, and
-  // goes in one frame, so the dex never shows what it showed before, or half of what comes next. A mon's looked for
-  // over a few frames from there, as the boxes or the ledger's later rows can take that long to render it
-  const [handing, setHanding] = useState<HandOff | null>(null);
   const handOff = useCallback((close: () => void, locate: HandOff['locate'] = null) => {
+    handingRef.current = true;
     setHanding((prev) => ({ closes: [...(prev?.closes ?? []), close], locate: locate ?? prev?.locate ?? null }));
   }, []);
   useLayoutEffect(() => {
@@ -237,6 +251,7 @@ function TrackerInner () {
         return;
       }
       tile?.scrollIntoView({ block: 'center' });
+      handingRef.current = false;
       closes.forEach((close) => close());
       if (tile && locate.select) {
         setSelectedPokemon(locate.pokemon);
@@ -266,7 +281,11 @@ function TrackerInner () {
     setSelectedPokemon(0);
     setShowAlmanac(true);
   }, []);
-  const handleCloseAlmanac = useCallback(() => setShowAlmanac(false), []);
+  const handleCloseAlmanac = useCallback(() => {
+    if (!handingRef.current) {
+      setShowAlmanac(false);
+    }
+  }, []);
   const handleAlmanacFilter = useCallback((facet: FacetId, value: string) => {
     setQuery('');
     setFilters({ view: 'all', facets: { [facet]: [value] } });
@@ -378,7 +397,11 @@ function TrackerInner () {
     setSceneBack(null);
     setScene(next);
   }, []);
-  const handleCloseScene = useCallback(() => setScene(null), []);
+  const handleCloseScene = useCallback(() => {
+    if (!handingRef.current) {
+      setScene(null);
+    }
+  }, []);
   // a press in a scene that filters the dex (Journeys, the trainer cards, the ball orrery) does it as a layer over it,
   // which stands while the filter it set does (the search left empty): Escape there, nothing else taking it, or the tab
   // naming the scene, goes back to that scene as it was left, without its entrance, and the dex back to what it showed

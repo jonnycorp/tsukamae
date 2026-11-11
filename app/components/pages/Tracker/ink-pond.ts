@@ -82,8 +82,9 @@ void main () {
   // struck at once, then fading as it spreads and as it ages, gone by its reach and by its end; flat at its very centre
   float left = clamp(1.0 - t / life, 0.0, 1.0);
   float fall = (1.0 - smoothstep(reach * 0.62, reach, r)) / sqrt(1.0 + r / (8.0 * lambda));
-  // and gone by the canvas's top and foot, where the water ends between the rows (seen only between their columns)
-  fall *= smoothstep(0.0, edge, px.y) * smoothstep(0.0, edge, size.y - px.y);
+  // and gone by the canvas's edges: its top and foot, where the water ends between the rows (seen only between their
+  // columns), and its sides where the dex's column ends
+  fall *= smoothstep(0.0, edge, px.y) * smoothstep(0.0, edge, size.y - px.y) * smoothstep(0.0, edge, px.x) * smoothstep(0.0, edge, size.x - px.x);
   float s = slope * smoothstep(0.0, 0.06, t) * pow(left, 1.4) * fall * (rings(r, t) + 0.45 * rings(r, t - 0.22));
   // the dent where it struck, filled in again within a moment
   float q = r / dent;
@@ -281,8 +282,9 @@ function pickSpot (onKoi: boolean): Spot | null {
 // a canvas the drawing of the koi's picture goes through, once per drop on one
 let paper: HTMLCanvasElement | null = null;
 
-// one drop at `spot` on `water`: the canvas laid there, its rings run out, the koi given back. Returns a stop
-function drop (water: Water, spot: Spot, done: () => void): () => void {
+// one drop at `spot` on `water`: the canvas laid there, its rings run out, the koi given back. Returns a stop, or null
+// if there's no water there to show it in
+function drop (water: Water, spot: Spot, done: () => void): (() => void) | null {
   const { canvas, gl } = water;
   const uniforms = water.uniforms!;
   const { header, x, y, koi } = spot;
@@ -292,8 +294,9 @@ function drop (water: Water, spot: Spot, done: () => void): () => void {
   // the canvas's box in the header's px (from its left, up from its bottom): round the rings' reach, and the koi's, but
   // only in the water between the rows, from the box's own tiles up to the row above's. Kept off every tile, as each
   // one it overlapped would be lifted into a layer of its own over it, a frame's work as the drop came and went (the
-  // rings pass under the tiles unseen anyway). Its edges on whole device px and its pixels the screen's, so the koi it
-  // draws lands exactly on the stylesheet's
+  // rings pass under the tiles unseen anyway); and inside the dex's column, past whose sides it would give the column a
+  // sideways scroll while it lasted. Its edges on whole device px and its pixels the screen's, so the koi it draws
+  // lands exactly on the stylesheet's
   const b = koi && koiBounds(koi);
   const at = header.getBoundingClientRect();
   const dpr = window.devicePixelRatio;
@@ -301,15 +304,21 @@ function drop (water: Water, spot: Spot, done: () => void): () => void {
   const gap = parseFloat(getComputedStyle(header.closest('.box-grid')!).rowGap) || 0;
   const floor = (tiles ? (at.bottom - tiles.top) / zoom : 0) + 1 / res;
   const ceiling = at.height / zoom + gap - 1 / res;
-  const left = (Math.round((at.left + Math.min(x - REACH, b ? b.x - b.ex - 4 : Infinity) * zoom) * dpr) / dpr - at.left) / zoom;
+  // the column isn't zoomed, so its sides are the screen's px
+  const column = header.closest<HTMLElement>('.dex-column');
+  const inside = column ? column.getBoundingClientRect().left + column.clientLeft : 0;
+  const leftmost = column ? (inside - at.left) / zoom : -Infinity;
+  const rightmost = column ? (inside + column.clientWidth - at.left) / zoom : Infinity;
+  const leftEdge = Math.max(leftmost, Math.min(x - REACH, b ? b.x - b.ex - 4 : Infinity));
+  const left = (Math.ceil((at.left + leftEdge * zoom) * dpr) / dpr - at.left) / zoom;
   const lowest = Math.max(floor, Math.min(y - REACH, b ? b.y - b.ey - 4 : Infinity));
   const low = (at.bottom - Math.floor((at.bottom - lowest * zoom) * dpr) / dpr) / zoom;
-  const W = Math.ceil((Math.max(x + REACH, b ? b.x + b.ex + 4 : -Infinity) - left) * res);
+  const W = Math.floor((Math.min(rightmost, Math.max(x + REACH, b ? b.x + b.ex + 4 : -Infinity)) - left) * res);
   const H = Math.floor((Math.min(ceiling, Math.max(y + REACH, b ? b.y + b.ey + 4 : -Infinity)) - low) * res);
   const high = low + H / res;
-  if (H < 8) {
-    done();
-    return () => undefined;
+  // no water to show (a layout that leaves none): no drop
+  if (W < 8 || H < 8) {
+    return null;
   }
   Object.assign(canvas.style, { left: `${left}px`, bottom: `${low}px`, width: `${W / res}px`, height: `${H / res}px`, visibility: 'hidden' });
   header.append(canvas);
@@ -327,9 +336,12 @@ function drop (water: Water, spot: Spot, done: () => void): () => void {
     delete header.dataset.stirred;
     canvas.style.visibility = 'hidden';
     canvas.remove();
+    window.removeEventListener('resize', finish);
     water.busy = false;
     done();
   };
+  // a window resized (the columns regrouped, the zoom stepped) leaves the canvas drawn for the layout it had: let it go
+  window.addEventListener('resize', finish);
 
   const start = (img: HTMLImageElement | null) => {
     if (stopped) {
@@ -389,7 +401,7 @@ function drop (water: Water, spot: Spot, done: () => void): () => void {
         return;
       }
       const time = Math.max(0, now - t0) / 1000;
-      if (time * 1000 >= LIFE_MS || still() || !pondOn() || !canvas.isConnected || gl.isContextLost()) {
+      if (time * 1000 >= LIFE_MS || still() || !pondOn() || !canvas.isConnected || gl.isContextLost() || (header.currentCSSZoom || 1) !== zoom) {
         finish();
         return;
       }
@@ -438,8 +450,18 @@ export function useInkPond () {
         const spot = water && pickSpot(count % ON_KOI === 0);
         if (water && spot) {
           count++;
-          const stop: () => void = drop(water, spot, () => running.delete(stop));
-          running.add(stop);
+          // a drop can end before drop() returns (its context lost), so its stop is kept only if it's still running
+          let ended = false;
+          let stop: (() => void) | null = null;
+          stop = drop(water, spot, () => {
+            ended = true;
+            if (stop) {
+              running.delete(stop);
+            }
+          });
+          if (stop && !ended) {
+            running.add(stop);
+          }
         }
         pool.splice(0, pool.length, ...pool.filter((w) => !w.dead));
       }

@@ -11,7 +11,9 @@ interface RosterEntry {
 // a regional form came with its region, so its own generation is its debut (utils/game-reach); any other form is
 // read by its species
 export const REGIONAL_FORMS = new Set(['alola', 'galar', 'hisui', 'paldea']);
-const slotKey = (national: number, form: string | null | undefined) => (form && REGIONAL_FORMS.has(form) ? `${national}:${form}` : String(national));
+// a species and its regional form as one key, any other form read as its species (the roster's slots, a closed game's
+// dex, utils/game-reach)
+export const slotKey = (national: number, form: string | null | undefined) => (form && REGIONAL_FORMS.has(form) ? `${national}:${form}` : String(national));
 const ROSTER = new Set((rosterJson.pokemon as RosterEntry[]).map((entry) => slotKey(entry.national, entry.form)));
 
 // whether a mon can go to Champions this season

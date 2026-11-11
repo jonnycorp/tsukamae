@@ -1,7 +1,7 @@
 import { isDexPlaceId } from './dex-places';
 import { progressToCaptures } from './local-data';
 
-import type { Capture, CapturePokemon } from '../types';
+import type { Capture } from '../types';
 import type { PersonalDex } from './local-data';
 
 // one mon is one copy, however many of your dexes mention it. A records dex's mark is a copy of its own, and so
@@ -10,7 +10,7 @@ import type { PersonalDex } from './local-data';
 // checklist's boxes, where it is that checklist's check and counted there
 
 // a mon as every catalog knows it: its species and form (ids differ between catalogs)
-export const speciesKey = (pokemon: Pick<CapturePokemon, 'national_id' | 'form'>) => `${pokemon.national_id}|${pokemon.form ?? ''}`;
+export const speciesKey = (pokemon: { national_id: number; form?: string | null }) => `${pokemon.national_id}|${pokemon.form ?? ''}`;
 
 export type CopyKind = 'copy' | 'elsewhere' | null;
 

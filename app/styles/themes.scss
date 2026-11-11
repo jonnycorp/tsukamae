@@ -1,8 +1,9 @@
 @use 'variables' as *;
 
 // a theme's character beyond its colours, keyed on [data-theme] and [data-mode] (palette/apply-theme sets both on the
-// root). Every touch here is a static background, border or shadow, but for the few layers that move (Ember's embers,
-// the seal materials' flows), each by transform alone
+// root). Every touch here is a static background, border or shadow, but for the few that move (Ember's embers, the
+// seal materials' flows, Ink's press drop), each by transform and opacity alone; Ink's pond and brushed pages are
+// canvases of their own (components/pages/Tracker/ink-pond.ts, page-brush.ts)
 
 // a page texture lies on the dex's scroller, which carries it with the boxes. Its gutters at both edges stand outside
 // what it scrolls and show what's behind it: plain paper, rather than the body's texture, which held still as the boxes
@@ -11,7 +12,7 @@
   background-color: var(--paper);
 }
 
-// art behind the rows of boxes (Wisteria's clouds, Midnight's mountains, Ink's pond), drawn by scripts/theme-marks.mjs
+// art behind the rows of boxes (Wisteria's clouds, Midnight's mountains), drawn by scripts/theme-marks.mjs
 // in strips 520px wide and three rows tall. A row, top to top, is a box's title line and margin, its tiles in their
 // frame (as .box-placeholder holds them) and the grid's gap under it
 $art-title: 25px * 1.35 + 10px;

@@ -4,8 +4,8 @@
 // the ball orrery (components/pages/Tracker/BallOrrery.tsx): the rings flat on a plane leaned back from
 // you in one 3D scene, so a ball passing behind the middle or another is hidden by it, and each ball (and the count in
 // the middle) turned back to face you. A ring's balls go round on arms, each ball counter-turning in step on the same
-// clock; only transforms move. One pointed at holds every orbit where it is; in still mode (the scene's own rule) none
-// moves at all, each standing at its angle. Come back to from the dex, the clock starts where it was left (--orb-at, a
+// clock; only transforms move. One pointed at holds every orbit where it is; in still mode (its 0s net, styles/main.scss)
+// none moves at all, each standing at its angle. Come back to from the dex, the clock starts where it was left (--orb-at, a
 // delay set back by that much)
 $orb-tilt: 64deg;
 $orb-drop: 4px 4px 0 color-mix(in srgb, var(--ink) 14%, transparent);

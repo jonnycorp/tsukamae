@@ -797,9 +797,12 @@ $wire: 30px;
     --wire: var(--status-caught);
   }
 
-  // its open menu over the plates after it, which are still their own layers while they fade in
+  // its open menu over the plates after it, which are still their own layers while they fade in; and the plate itself
+  // in at once if it's still fading in, as a menu inside it fades with it (the Enter flow's, pressed as the mon comes up)
   &:has(.dropdown-menu) {
     z-index: 2;
+    animation-duration: 0s;
+    animation-delay: 0s;
   }
 }
 
@@ -925,14 +928,3 @@ $wire: 30px;
   }
 }
 
-// Still mode (M): nothing of it moves; a held unseal still fills, as that's the hold answering
-:root[data-still] {
-  :is(.review, .review-bay, .review-brackets, .review-lens-glass .pkicon, .review-stamp, .review-plate, .review-plate-mark .svg-inline--fa),
-  .review-lens-glass::after {
-    animation: none;
-  }
-
-  :is(.review-pip, .review-progress span) {
-    transition: none;
-  }
-}

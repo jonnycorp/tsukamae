@@ -1,9 +1,9 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-// a scene's title card (components/pages/Tracker/TitleCard.tsx: the timeline, the review, the almanac), over the scene
-// below its bar: a slash of the accent cuts open across it, the scene's name slams down onto it with a flash and a
-// shake, the dex's name slides in under it, then the card clears. In step with CARD_MS and REVEAL_MS there, and with the
+// a scene's title card (components/pages/Tracker/TitleCard.tsx: the timeline, the review, the almanac, a page in the
+// scene frame), over the scene below its bar: a slash of the accent cuts open across it, the scene's name slams down
+// onto it with a flash and a shake, the dex's name slides in under it, then the card clears. In step with CARD_MS and REVEAL_MS there, and with the
 // timeline's INTRO_MS. It lets every click through to the scene, which skips it. Every part that moves is a layer of
 // its own from the first frame (will-change), so none is set up mid-motion, and moves only by transform and opacity,
 // which the compositor runs off the page's thread: the scene building itself under it can't make it judder
@@ -187,11 +187,13 @@ $card-clear-at: 1.05s;
   }
 }
 
-// what's under a scene's title card as it opens (data-intro: the review's, the almanac's): out of sight, its entrance
-// held at its start, till the card's about to clear, then faded in as it does. Important, as the gate's below: an
-// animation shorthand sets the play state too, and the scenes' own run as deep as their selectors do. The almanac's body is its
-// scroller too, so its scrollbar's fade stays beside
-.review-body {
+// what's under a scene's title card as it opens (data-intro: the review's, the almanac's, the scene frame's): out of
+// sight, its entrance held at its start, till the card's about to clear, then faded in as it does. Important, as the
+// gate's below: an animation shorthand sets the play state too, and the scenes' own run as deep as their selectors do.
+// The almanac's body is its scroller too, so its scrollbar's fade stays beside
+.review-body,
+.review-progress,
+.review-foot {
   transition: opacity .24s ease-out;
 }
 

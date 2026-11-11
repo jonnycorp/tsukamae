@@ -52,8 +52,8 @@ function sendTitleBar () {
   window.tracker?.setTitleBarColors({ color: clear(shaded(titleBar.color, shade)), symbolColor: shaded(titleBar.symbolColor, shade) });
 }
 
-// frame by frame alongside the backdrop's fade (ease-out, as in the CSS), starting from wherever the last fade left it;
-// at once in still mode, as the backdrop is
+// frame by frame alongside the backdrop's fade, on its curve (a quadratic ease-out, .modal-overlay in styles/main.scss),
+// starting from wherever the last fade left it; at once in still mode, as the backdrop is
 export function dimTitleBar (dim: boolean) {
   openBackdrops = Math.max(0, openBackdrops + (dim ? 1 : -1));
   const from = shade;
@@ -99,9 +99,9 @@ export function applyTheme (name: string) {
 }
 
 // attributes on the root for the styles to read, so switching any of them restyles the dex without rendering a tile:
-// with location tints off every sealed tile takes a game's wash; in still mode nothing moves (the meter's water;
-// useFlipClock holds the flips), the sealed look staying as it is. The display mode picks the flips'
-// cycle for its pages (styles/tile-faces.scss), the pages FlipStrips draws
+// with location tints off a sealed mon away from where its dex keeps them is washed as one there is; in still mode
+// nothing moves (the meter's water; useFlipClock holds the flips), the sealed look staying as it is. The display mode
+// picks the flips' cycle for its pages (styles/tile-faces.scss), the pages FlipStrips draws
 export function applyDisplay (locationTints: boolean, still: boolean, display: DisplayMode, typefaces: boolean) {
   const root = document.documentElement;
   root.toggleAttribute('data-typefaces', typefaces);

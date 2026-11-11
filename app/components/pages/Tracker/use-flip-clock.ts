@@ -87,6 +87,14 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
     }
   };
   el.addEventListener('animationstart', handleAnimationStart);
+  // a theme whose pages change another way (ThemeSeed.pageChange) gives every strip a new cycle, which would show its
+  // first page for the frame before its animationstart: put them all on the clock before that frame
+  const pageChange = new MutationObserver(() => {
+    if (!paused) {
+      syncAll(el.getAnimations({ subtree: true }));
+    }
+  });
+  pageChange.observe(document.documentElement, { attributes: true, attributeFilter: ['data-page-change'] });
 
   const held = () => Number(el.dataset.flipPaused ?? 0);
 
@@ -173,7 +181,7 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
         return true;
       }
       const from = held();
-      if (!paused || landing || face === from || face >= pages().length) {
+      if (!paused || face === from || face >= pages().length) {
         return false;
       }
       stopSlides();
@@ -212,6 +220,7 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
       window.clearTimeout(landing);
       stopSlides();
       el.removeEventListener('animationstart', handleAnimationStart);
+      pageChange.disconnect();
     },
   };
 }

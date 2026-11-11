@@ -262,14 +262,13 @@ export function usePageBrush (ref: RefObject<HTMLElement>, display: DisplayMode)
       }
       const tick = () => {
         const now = phase(anim);
-        const ms = now ? now.into - HOLD_MS : SLIDE_MS;
-        // done, or held, or the theme or the display mode changed under it
-        if (!now || now.page !== page || ms >= SLIDE_MS || !live()) {
+        // done (its page over), or held, or the theme or the display mode changed under it
+        if (!now || now.page !== page || !live()) {
           stop();
           check();
           return;
         }
-        draw(ms);
+        draw(now.into - HOLD_MS);
         frame = window.requestAnimationFrame(tick);
       };
       frame = window.requestAnimationFrame(tick);
@@ -299,11 +298,13 @@ export function usePageBrush (ref: RefObject<HTMLElement>, display: DisplayMode)
       }
     };
 
-    // a face picked while the flips are held: its change, timed from now
+    // a face picked while the flips are held: its change, timed from now. It takes over from a change of the cycle's
+    // own still being marked (a pick made as a pause landed), so it hands the watch back to check() as it ends
     const handlePick = (e: Event) => {
       const { from, to } = (e as CustomEvent<FlipPick>).detail;
       stop();
       if (!live()) {
+        check();
         return;
       }
       lines = build(namesChange(from, to));
@@ -312,6 +313,7 @@ export function usePageBrush (ref: RefObject<HTMLElement>, display: DisplayMode)
         const ms = now - start;
         if (ms >= SLIDE_MS || !live() || !el.hasAttribute('data-flip-paused')) {
           stop();
+          check();
           return;
         }
         draw(ms);

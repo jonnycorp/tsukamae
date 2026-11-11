@@ -317,6 +317,11 @@ $tl-spine-at: 1s;
     animation: tl-plop .52s cubic-bezier(.25, .8, .35, 1) both;
   }
 
+  // nowhere to point at till it drops in: no hand over the empty paper, and no name to copy there
+  .tl-stage:not(.settled) &:not(.dropping) {
+    pointer-events: none;
+  }
+
   // icon pixels at a whole multiple, so the art stays crisp
   .pkicon {
     flex: none;

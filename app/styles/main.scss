@@ -731,8 +731,14 @@ form {
   background-color: rgba(0, 0, 0, .35);
   // above the nav and the tracker's positioned elements; portalled into body, clear of any page's stacking context
   z-index: 100;
-  animation: fade-in $fade-duration ease-out;
-  transition: opacity $fade-duration ease-out;
+  // in from nothing by the same transition that takes it back out, so one closed before it's all in fades back from
+  // where it stood (an entrance animation would hold the fade-out off till it ended); on the window buttons' curve, a
+  // quadratic ease-out (dimTitleBar, palette/apply-theme.ts), so their shade and the backdrop dim as one
+  transition: opacity $fade-duration cubic-bezier(.3333, .6667, .6667, 1);
+
+  @starting-style {
+    opacity: 0;
+  }
 
   &.closing {
     opacity: 0;

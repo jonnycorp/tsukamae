@@ -248,5 +248,5 @@ export function useDragReorder (count: number, onMove: (from: number, to: number
     'data-dragging': dragging === index || undefined,
   });
 
-  return { itemProps, dragging };
+  return { itemProps };
 }
