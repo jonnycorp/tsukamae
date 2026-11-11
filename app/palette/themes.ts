@@ -45,6 +45,9 @@ export interface ThemeSeed {
   rangeDash?: Partial<Record<Locale, string>>;
   // the side it's made for and shown on, there being no switch between them: dark, unless it says
   side?: Mode;
+  // how a sealed tile's pages change: slid up, unless it says brushed, a brush's mark laid over the line as its text
+  // changes under it (its mark and ink --page-brush and --page-brush-color in styles/themes.scss; page-brush.ts)
+  pageChange?: 'brush';
 }
 
 // Apricot contrasts, and Wisteria with its gold; the rest are waves through a single colour family. Every theme's
@@ -90,6 +93,8 @@ export const THEMES: ThemeSeed[] = [
   // deep red bar over blue-black
   {
     name: 'Pokédex', hue: 25, ink: 255, unobtainable: 75, temporary: 320, caught: 190, chroma: 1,
+    // a box's range on the device's seven segments, its dash the middle bar, in either language
+    rangeDash: { en: '-', ja: '-' },
     tones: {
       light: {
         paper: { l: 0.972, c: 0.008 }, 'paper-raised': { l: 0.994, c: 0.004 }, 'paper-sunken': { l: 0.94, c: 0.012 }, chip: { l: 0.925, c: 0.012 },
@@ -169,6 +174,7 @@ export const THEMES: ThemeSeed[] = [
     name: 'Ink', hue: 80, ink: 33, unobtainable: 250, temporary: 33, caught: 250, chroma: 0.05, statusChroma: 0.6, unobtainableChroma: 0.05, lineAlpha: 0.32,
     rangeDash: { ja: '～' },
     side: 'light',
+    pageChange: 'brush',
     tones: {
       light: {
         paper: { l: 0.928, c: 0.018 }, 'paper-raised': { l: 0.948, c: 0.014 }, 'paper-sunken': { l: 0.903, c: 0.02 }, chip: { l: 0.888, c: 0.02 },

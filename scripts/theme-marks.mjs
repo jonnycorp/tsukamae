@@ -420,13 +420,6 @@ function mountainStrip (ranges, tone, seed, { width, row, title, origin, sink })
 
 // ---- Ink's pond: koi and a droplet's ripples, in clean brush lines, at `scale` times the size they're shown
 
-// a point given along a koi or round a ripple, turned by `angle` (degrees) about (cx, cy), at `scale`
-const placed = (cx, cy, angle, scale) => {
-  const a = (angle * Math.PI) / 180;
-  const [c, s] = [Math.cos(a), Math.sin(a)];
-  return ([x, y, p]) => [(cx + x * c - y * s) * scale, (cy + x * s + y * c) * scale, p];
-};
-
 // a shape swept along `points` ([x, y, breadth]), a disc `size` wide at breadth 1, so it swells and tapers as they say
 // and its edge is clean
 function swept (sheet, points, size, amount = 1) {
@@ -456,76 +449,6 @@ function patch (sheet, body, { x, y, rx, ry, angle, seed }) {
       }
     }
   }
-}
-
-// a koi from above, as sumi-e paints one, swimming toward `heading` (degrees, 0 to the right), `length` nose to tail
-// tip: a body swept nose to tail root, widest at the shoulders, edged in a line a little heavier on one side; a forked
-// tail and pectoral and pelvic fins in a dilute wash, ribbed with fine lines; eyes and gills in the line's sumi.
-// `patches` are where the colour lies along it (0 the nose, 1 the tail root), or none for a koi all of its `body`
-function koi (parts, { cx, cy, heading, length, curve = 0.05, patches = [], gills = true, seed }, scale) {
-  const at = placed(cx, cy, heading, scale);
-  const reach = length * 0.78;
-  const nose = length / 2;
-  const breadth = length * 0.105 * scale;
-  const bend = (t) => Math.sin(t * Math.PI) * curve * length;
-  const point = (t, side = 0) => [nose - t * reach, bend(t) + side];
-  const profile = [[0, 0.3], [0.03, 0.58], [0.09, 0.82], [0.2, 0.97], [0.32, 1], [0.5, 0.86], [0.7, 0.56], [0.88, 0.27], [1, 0.14]];
-  const width = (t) => {
-    const k = profile.findIndex(([stop]) => stop >= t);
-    const [t0, w0] = profile[Math.max(0, k - 1)];
-    const [t1, w1] = profile[k];
-    return t1 === t0 ? w1 : w0 + (w1 - w0) * ease((t - t0) / (t1 - t0));
-  };
-  const spine = profile.map(([t, w]) => [...point(t), w]);
-
-  // the fins under the body: each a fan of rays off its root, `spread` degrees either side of `angle` (off the heading,
-  // 180 straight back) and `long` at the middle, shorter toward its edges, each ray bowed back as a fin trails in the
-  // water; a wash of them laid close, ribbed with `ribs` fine lines
-  const fin = (root, angle, spread, long, ribs, bow) => {
-    const ray = (f) => {
-      const a = ((angle + f * spread) * Math.PI) / 180;
-      const r = long * (1 - 0.22 * f * f);
-      const b = a + (bow * Math.PI) / 180;
-      return [root, [root[0] + Math.cos(b) * r * 0.55, root[1] + Math.sin(b) * r * 0.55], [root[0] + Math.cos(a) * r, root[1] + Math.sin(a) * r]];
-    };
-    for (let f = -1; f <= 1.0001; f += 0.03) {
-      const [a, b, c] = ray(f);
-      swept(parts.fins, [[...a, 0.25], [...b, 0.7], [...c, 1]].map(at), length * 0.012 * scale);
-    }
-    for (let k = 0; k < ribs; k++) {
-      const [a, b, c] = ray(ribs > 1 ? (2 * k) / (ribs - 1) - 1 : 0);
-      swept(parts.ribs, [[...a, 0.8], [...b, 0.6], [...c, 0.15]].map(at), 0.7 * scale);
-    }
-  };
-  [-1, 1].forEach((side) => {
-    fin(point(0.21, side * length * 0.08), side * 118, 30, length * 0.19, 6, side * 14);
-    fin(point(0.62, side * length * 0.04), side * 142, 22, length * 0.11, 4, side * 10);
-    fin(point(0.985), 180 - side * 19, 17, length * 0.3, 6, -side * 9);
-  });
-
-  // the body, its edge a line a touch heavier on the side away from the light
-  swept(parts.line, spine.map(([x, y, w]) => [x - 0.2, y + 0.35, w + 0.05]).map(at), breadth);
-  swept(parts.body, spine.map(at), breadth);
-
-  // the colour, in the body's shape
-  const onBody = (t, side) => {
-    const [x, y] = at([...point(t, side), 0]);
-    return { x, y };
-  };
-  patches.forEach(({ t, side = 0, long, wide, tilt = 0 }, k) => {
-    patch(parts.colour, parts.body, { ...onBody(t, side * length), rx: long * length * scale, ry: wide * length * scale, angle: ((heading + tilt) * Math.PI) / 180, seed: seed + 7 * k });
-  });
-
-  // the eyes, a gill's short arc on a koi that shows one, and a dorsal line down the back
-  [-1, 1].forEach((side) => {
-    const eye = at([...point(0.075, side * width(0.075) * length * 0.078), 1]);
-    parts.marks.dab(eye[0], eye[1], length * 0.0058 * scale, 1);
-    if (gills) {
-      const gill = [0.15, 0.165, 0.15].map((t, k) => [...point(t, side * width(t) * length * [0.46, 0.68, 0.9][k] * 0.105), 0.5]);
-      swept(parts.marks, gill.map(at), 0.7 * scale, 0.6);
-    }
-  });
-  swept(parts.marks, [[...point(0.36), 0.05], [...point(0.5), 0.5], [...point(0.66), 0.05]].map(at), 1 * scale, 0.42);
 }
 
 // a droplet's ripples on water seen at a slant (rings `squash` as tall as wide): each ring an open line that swells and
@@ -563,22 +486,117 @@ function layered (width, height, layers) {
   return encode({ width, height, pixels });
 }
 
-// a koi alone, swimming right as the dex reads, in a sheet just large enough for it and its fins: a kohaku's white body
-// with vermilion on it, a sumi koi all ink, their fins a dilute sumi. At `scale` times the size it's shown
-function koiAlone (kind, { length, ...item }, seed, scale) {
+// a koi from above as a sumi-e painter puts one down, swimming right as the dex reads, in a sheet just large enough for
+// it and its fins, and nothing in it a pen's line. A kohaku's white body is the paper's own, its edges two strokes of
+// dilute ink pressed through the shoulders and lifted at the nose and the tail root, its vermilion laid on wet so it
+// takes the paper's grain; a sumi koi's body is one loaded stroke running dry into the tail. Its fins and tail are
+// quick strokes of a half-dry brush, pressed at the root and flicked off to a point, their streaks the rays; its eyes a
+// touch of the tip, each gill one short pull. At `scale` times the size it's shown
+function koiBrushed (kind, { length, curve = 0.04, patches = [] }, seed, scale) {
   const [w, h] = [Math.round(length * 1.26), Math.round(length * 0.7)];
-  const sheet = () => new Sheet(w * scale, h * scale, null);
-  const parts = { fins: sheet(), ribs: sheet(), line: sheet(), body: sheet(), colour: sheet(), marks: sheet() };
-  koi(parts, { cx: length * 0.63, cy: h / 2, heading: 0, length, ...item, seed }, scale);
+  const [W, H] = [w * scale, h * scale];
+  const tooth = paperTooth(W, H, seed + 1, 2.5);
+  const parts = {
+    fins: new Sheet(W, H, tooth), line: new Sheet(W, H, tooth), body: new Sheet(W, H, tooth),
+    colour: new Sheet(W, H, null), marks: new Sheet(W, H, tooth), shape: new Sheet(W, H, null),
+  };
+  const [cx, cy] = [length * 0.63, h / 2];
+  const at = ([x, y, p]) => [(cx + x) * scale, (cy + y) * scale, p];
+  const nose = length / 2;
+  const reach = length * 0.78;
+  const bend = (t) => Math.sin(t * Math.PI) * curve * length;
+  const profile = [[0, 0.3], [0.04, 0.6], [0.1, 0.84], [0.2, 0.98], [0.32, 1], [0.5, 0.82], [0.7, 0.5], [0.88, 0.22], [1, 0.1]];
+  const widthAt = (t) => {
+    const k = profile.findIndex(([stop]) => stop >= t);
+    const [t0, w0] = profile[Math.max(0, k - 1)];
+    const [t1, w1] = profile[k];
+    return t1 === t0 ? w1 : w0 + (w1 - w0) * ease((t - t0) / (t1 - t0));
+  };
+  const half = (t) => length * 0.084 * widthAt(t);
+  const spine = (t, side = 0) => [nose - t * reach, bend(t) + side];
+  const along = Array.from({ length: 41 }, (_, i) => i / 40);
+
+  // the body's own shape, which the colour keeps to (a touch past its edge, as wet colour runs)
+  swept(parts.shape, along.map((t) => at([...spine(t), widthAt(t) * 1.05])), length * 0.084 * scale);
+
+  // a fin: `count` strokes fanning back from `root`, each pressed there and flicked off to a point
+  let n = 0;
+  const fin = (root, angle, spread, long, count, bow, size) => {
+    for (let i = 0; i < count; i++) {
+      const f = count > 1 ? (2 * i) / (count - 1) - 1 : 0;
+      const a = ((angle + f * spread) * Math.PI) / 180;
+      const b = a + (bow * Math.PI) / 180;
+      const c = a - (bow * 0.3 * Math.PI) / 180;
+      const r = long * (1 - 0.16 * f * f);
+      stroke(parts.fins, [
+        [root[0], root[1], 1],
+        [root[0] + Math.cos(b) * r * 0.4, root[1] + Math.sin(b) * r * 0.4, 0.86],
+        [root[0] + Math.cos(c) * r * 0.75, root[1] + Math.sin(c) * r * 0.75, 0.55],
+        [root[0] + Math.cos(a) * r, root[1] + Math.sin(a) * r, 0.04],
+      ].map(at), { size: length * size * scale, body: 0.4, hairs: 70, ink: 0.9, streak: 0.5, dryFrom: 0.5, dryness: 0.9, seed: seed + 31 * ++n });
+    }
+  };
+  [-1, 1].forEach((side) => {
+    fin(spine(0.2, side * half(0.2) * 0.75), side * 132, 22, length * 0.19, 7, side * 5, 0.027);
+    fin(spine(0.62, side * half(0.62) * 0.55), side * 148, 16, length * 0.11, 5, side * 4, 0.023);
+    fin(spine(0.9, side * half(0.9) * 0.3), 180 - side * 19, 15, length * 0.33, 8, -side * 10, 0.036);
+  });
+
+  if (kind === 'kohaku') {
+    // its edges, two strokes nose to tail root, the brush lifted at either end
+    const runs = [
+      [[0.02, 0.2], [0.06, 0.6], [0.14, 0.72], [0.26, 0.7], [0.4, 0.62], [0.5, 0.3]],
+      [[0.47, 0.2], [0.56, 0.6], [0.7, 0.55], [0.86, 0.12]],
+    ];
+    [-1, 1].forEach((side, i) => {
+      runs.forEach((run, j) => {
+        stroke(parts.line, run.map(([t, press]) => at([...spine(t, side * half(t)), press])), { size: length * 0.02 * scale, body: 0.42, hairs: 70, ink: 0.9, streak: 0.3, dryFrom: 0.6, dryness: 0.8, seed: seed + 7 + 2 * i + j });
+      });
+    });
+    // its vermilion, laid on wet: a patch with a wandering rim, kept to the body, the paper's grain in it
+    patches.forEach(({ t: along, side = 0, long, wide, tilt = 0 }, k) => {
+      const [x, y] = at([...spine(along, side * length), 0]);
+      patch(parts.colour, parts.shape, { x, y, rx: long * length * scale, ry: wide * length * scale, angle: (tilt * Math.PI) / 180, seed: seed + 7 * k });
+    });
+    for (let i = 0; i < W * H; i++) {
+      parts.colour.alpha[i] *= 0.8 + 0.2 * (1 - tooth[i]);
+    }
+    // a gill each side, one short pull of the tip
+    [-1, 1].forEach((side, i) => {
+      stroke(parts.line, [at([...spine(0.135, side * half(0.135) * 0.35), 0.5]), at([...spine(0.158, side * half(0.158) * 0.7), 0.4]), at([...spine(0.152, side * half(0.152) * 0.92), 0.05])], { size: length * 0.018 * scale, body: 0.4, hairs: 36, ink: 0.7, streak: 0.4, dryFrom: 0.3, dryness: 0.7, seed: seed + 51 + i });
+    });
+  } else {
+    // the body, laid on wet in one stroke: its shape with a rim that wanders a little, running dry in streaks along
+    // the run of the brush into the tail
+    const wander = noise1(random(seed + 3), 0.18);
+    swept(parts.body, along.map((t) => at([...spine(t), widthAt(t) * (1 + 0.07 * wander(t))])), length * 0.084 * scale);
+    const streaks = paperTooth(W, H, seed + 9, 6);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        const t = (nose - (x / scale - cx)) / reach;
+        const dry = clamp((t - 0.62) / 0.4);
+        if (dry > 0 && streaks[i] < dry * 0.95) {
+          parts.body.alpha[i] *= 0.1;
+        }
+      }
+    }
+  }
+
+  // the eyes, a touch of the tip each
+  [-1, 1].forEach((side) => {
+    const [x, y] = at([...spine(0.07, side * half(0.07) * 0.6), 0]);
+    parts.marks.dab(x, y, length * 0.0065 * scale, 1);
+  });
+
   const [sumi, vermilion, shell] = [[38, 32, 30], [208, 66, 34], [249, 245, 238]];
   const kohaku = kind === 'kohaku';
-  return layered(w * scale, h * scale, [
-    { sheet: parts.fins, rgb: sumi, strength: kohaku ? 0.13 : 0.2 },
-    { sheet: parts.ribs, rgb: sumi, strength: kohaku ? 0.4 : 0.5 },
-    { sheet: parts.line, rgb: sumi },
-    { sheet: parts.body, rgb: kohaku ? shell : sumi, strength: kohaku ? 1 : 0.94 },
-    { sheet: parts.colour, rgb: vermilion },
-    { sheet: parts.marks, rgb: kohaku ? sumi : shell, strength: kohaku ? 1 : 0.7 },
+  return layered(W, H, [
+    { sheet: parts.fins, rgb: sumi, strength: kohaku ? 0.3 : 0.38 },
+    { sheet: parts.body, rgb: sumi, strength: 0.94 },
+    { sheet: parts.line, rgb: sumi, strength: 0.55 },
+    { sheet: parts.colour, rgb: vermilion, strength: 0.95 },
+    { sheet: parts.marks, rgb: kohaku ? sumi : shell, strength: kohaku ? 0.75 : 0.3 },
   ]);
 }
 
@@ -771,16 +789,14 @@ const ART_ORIGIN = 200;
   });
 }
 
-// Ink's pond under the boxes, alive (styles/themes.scss swims and spreads them): a kohaku and a sumi koi, each alone,
-// facing right as the dex reads; a droplet's rings on the pond, seen at a slant; and a drop's rings on a tile pressed,
-// seen from above. At twice the size they're shown, so the lines stay crisp under the dex's zoom
-write('ink', 'koi-kohaku.png', koiAlone('kohaku', {
+// Ink's pond under the boxes (styles/themes.scss): a kohaku and a sumi koi, each alone, facing right as the dex
+// reads; and a drop's rings on a tile pressed, seen from above. At twice the size they're shown, so the lines stay crisp under the dex's zoom
+write('ink', 'koi-kohaku.png', koiBrushed('kohaku', {
   length: 120,
-  curve: 0.04,
+  curve: 0.05,
   patches: [{ t: 0.1, long: 0.075, wide: 0.06 }, { t: 0.42, side: 0.012, long: 0.13, wide: 0.075, tilt: 8 }, { t: 0.78, side: -0.006, long: 0.075, wide: 0.05 }],
 }, 131, 2));
-write('ink', 'koi-sumi.png', koiAlone('sumi', { length: 110, curve: -0.04, gills: false }, 141, 2));
-write('ink', 'ripple.png', rings([12, 27, 46], 0.34, 151, 2));
+write('ink', 'koi-sumi.png', koiBrushed('sumi', { length: 110, curve: -0.05 }, 141, 2));
 write('ink', 'drop.png', rings([9, 20, 32], 1, 161, 2));
 
 // a sealed tile's ensō, the circle a brush draws in one breath: entered at the left, carried round over the top and

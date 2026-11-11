@@ -152,143 +152,69 @@ $art-origin: 200px;
 // dry there, over the faint dry stroke of the length still to go, its figure a seal's impression beside it; the bar is
 // signed with a seal (捕, as in 捕獲); a sealed record carries the brush's circle (ensō) round its sprite; an
 // unobtainable slot is struck through with one falling stroke (ノ); and a press lets fall a drop whose rings spread on the
-// tile. A pond lies under the boxes, which float on it, and it lives: koi swim under them, a droplet's rings spread
-// where none does
+// tile. A pond lies under the boxes, which float on it: koi rest in it, and drops fall on it every second or two, their
+// rings spreading under the boxes (ink-pond.ts)
 
-// the pond, alive: over every row but the first (whose band is the dex's header), one fish and one droplet to a row of
-// two boxes, the columns trading from row to row: every fourth box and the one before the next fourth swim (a kohaku,
-// a sumi koi), the two between ripple. A fish swims the band over its box's tiles left to right, as the dex reads,
-// rising into view at the box's left and sinking from it at the right, so it never meets an edge, its back under the
-// row above and passing under the box's title; a droplet's rings spread from under the row above and fade. Each is a
-// layer of its own moved by transform and opacity alone; still mode leaves each where it rests. Wide windows only, as
+// the pond: over every row but the first (whose band is the dex's header), one koi to a row of two boxes, resting in
+// the band over its box's tiles beside the box's name, the columns trading from row to row: a kohaku on every fourth
+// box, at its left and heading up into the band, a sumi koi on the one before the next fourth, at its right and heading
+// down, its back under the row above. Still, painted with the brush (scripts/theme-marks.mjs). Wide windows only, as
 // the art behind the rows: the narrow list's boxes have no one height
-$ink-koi-run: $box-width - 151px;
-
 @media (width > 750px) {
   [data-theme='ink'] {
     .box-grid {
       isolation: isolate;
     }
 
-    // a slot nothing fills is plain paper, so nothing swims behind it
+    // a slot nothing fills is plain paper, so nothing lies behind it
     .tile-grid > .pokemon:not(.captured) {
       background-color: var(--paper);
     }
 
+    // every title's line holds its own water (ink-pond.ts), and two in four a koi
     .box-grid > .box .box-header {
       position: relative;
+    }
 
-      &::before,
-      &::after {
+    .box-grid > .box:is(:nth-child(4n + 1), :nth-child(4n)) .box-header {
+      &::before {
+        content: '';
         position: absolute;
+        bottom: 2px;
+        left: 22px;
         z-index: -1;
+        width: 151px;
+        height: 84px;
+        background: url('/themes/ink/koi-kohaku.png') center / 100% 100% no-repeat;
         scale: min(1, var(--seal-row, 0));
+        rotate: -9deg;
         pointer-events: none;
       }
     }
 
-    .box-grid > .box:is(:nth-child(4n + 1), :nth-child(4n)) .box-header::before {
-      content: '';
-      bottom: -4px;
-      left: 0;
-      width: 151px;
-      height: 84px;
-      background: url('/themes/ink/koi-kohaku.png') center / 100% 100% no-repeat;
-      opacity: 0;
-      animation: ink-koi 58s ease-in-out infinite;
-      animation-delay: calc(var(--seal-row, 0) * -23s);
+    // a drop whose rings reach a koi draws the koi in its water (ink-pond.ts), the stylesheet's put away while it moves
+    .box-header[data-stirred]::before {
+      visibility: hidden;
     }
 
     .box-grid > .box:nth-child(4n) .box-header::before {
+      right: 24px;
+      bottom: 8px;
+      left: auto;
       width: 139px;
       height: 77px;
       background-image: url('/themes/ink/koi-sumi.png');
-      animation-duration: 66s;
+      rotate: 7deg;
     }
-
-    .box-grid > .box:is(:nth-child(4n + 2), :nth-child(4n + 3)) .box-header::after {
-      content: '';
-      bottom: calc(100% + 26px);
-      left: 13%;
-      width: 100px;
-      height: 42px;
-      background-color: var(--ink);
-      mask: url('/themes/ink/ripple.png') center / 100% 100% no-repeat;
-      opacity: 0;
-      animation: ink-ripple 11s ease-out infinite;
-      animation-delay: calc(var(--seal-row, 0) * -4.3s);
-    }
-
-    .box-grid > .box:nth-child(4n + 3) .box-header::after {
-      right: 13%;
-      left: auto;
-    }
-  }
-
-  :root[data-still][data-theme='ink'] .box-grid > .box .box-header {
-    &::before {
-      opacity: 1;
-      transform: translateX(#{$ink-koi-run * .3});
-      animation: none;
-    }
-
-    &::after {
-      opacity: .3;
-      animation: none;
-    }
-  }
-}
-
-@keyframes ink-koi {
-  0% {
-    opacity: 0;
-    transform: translate(0, 6px) rotate(3deg);
-  }
-
-  8% {
-    opacity: 1;
-  }
-
-  25% {
-    transform: translate(#{$ink-koi-run * .25}, -6px) rotate(-2.5deg);
-  }
-
-  50% {
-    transform: translate(#{$ink-koi-run * .5}, 5px) rotate(2.5deg);
-  }
-
-  75% {
-    transform: translate(#{$ink-koi-run * .75}, -5px) rotate(-2deg);
-  }
-
-  92% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate($ink-koi-run, 4px) rotate(1.5deg);
-  }
-}
-
-@keyframes ink-ripple {
-  0% {
-    opacity: 0;
-    transform: scale(.3);
-  }
-
-  6% {
-    opacity: .5;
-  }
-
-  52%,
-  100% {
-    opacity: 0;
-    transform: scale(1.12);
   }
 }
 
 [data-theme='ink'] {
+  // its pages change by the brush (ThemeSeed.pageChange, page-brush.ts): a title's stroke laid in sumi over each line
+  // whose text changes, the text rewritten under it as it dries away
+  --page-brush: url('/themes/ink/title.png');
+  --page-brush-color: var(--ink);
+
   // a title's stroke sits in its own box, past its letters' padding, so the header keeps its height
   .box-header h1 {
     position: relative;

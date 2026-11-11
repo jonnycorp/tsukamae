@@ -7,16 +7,33 @@ import type { DisplayMode, FacePage } from '../../../utils/display-modes';
 import type { RefObject } from 'react';
 
 // keep in sync with $flip-hold and $flip-slide in styles/tile-faces.scss
-const HOLD_MS = 5500;
-const SLIDE_MS = 800;
+export const HOLD_MS = 5500;
+export const SLIDE_MS = 800;
 // a face's hold and the slide off it; the cycle holds each of the display mode's pages in turn (utils/display-modes)
-const PHASE_MS = HOLD_MS + SLIDE_MS;
+export const PHASE_MS = HOLD_MS + SLIDE_MS;
 // the keys that pick each held face, in the picker's order
 export const FACE_KEYS = ['1', '2', '3'];
 
 const now = () => document.timeline.currentTime as number;
-const isFlip = (animation: Animation) => 'animationName' in animation && String(animation.animationName).startsWith('flip-cycle');
+export const isFlip = (animation: Animation) => 'animationName' in animation && String(animation.animationName).startsWith('flip-cycle');
 const up = (distance: string) => `translateY(calc(-1 * ${distance}))`;
+// a theme's brushed change in place of the slide (ThemeSeed.pageChange): the text dips out, the strip cuts to the face
+// while it's out, and the text comes back, at the moments styles/tile-faces.scss's cycle has them ($brush-out ...)
+const brushed = () => document.documentElement.dataset.pageChange === 'brush';
+const brushFrames = (a: string, b: string) => [
+  { offset: 0, transform: a, opacity: 1, easing: 'linear' },
+  { offset: 0.1, transform: a, opacity: 1, easing: 'ease-in' },
+  { offset: 0.45, transform: a, opacity: 0, easing: 'linear' },
+  { offset: 0.5, transform: a, opacity: 0, easing: 'steps(1, start)' },
+  { offset: 0.55, transform: b, opacity: 0, easing: 'ease-out' },
+  { offset: 0.95, transform: b, opacity: 1 },
+  { offset: 1, transform: b, opacity: 1 },
+];
+// the event a pick's change sends from the clock's element, for a brushed change's marks (page-brush.ts)
+export interface FlipPick {
+  from: number;
+  to: number;
+}
 
 // a strip's slide between two held faces, a single move either way (styles/tile-faces.scss places its rests): the
 // lower block a page apart, wrapping between its last page and its first through its copy of the first; the name on
@@ -83,13 +100,20 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
     el.dataset.flipPaused = String(face);
   };
 
-  // every strip's slide from one held face to another, kept so the next pick or a resume can cancel it
+  // every strip's slide from one held face to another (or its brushed change), kept so the next pick or a resume can
+  // cancel it
   const playSlides = (from: number, to: number) => {
+    const brush = brushed();
     for (const strip of el.querySelectorAll<HTMLElement>('.flip-strip')) {
       const path = slide(pages(), from, to, Boolean(strip.closest('.flip-lower')));
       if (path) {
-        slides.push(strip.animate([{ transform: path[0] }, { transform: path[1] }], { duration: SLIDE_MS, easing: 'ease-in-out' }));
+        slides.push(brush
+          ? strip.animate(brushFrames(path[0], path[1]), { duration: SLIDE_MS })
+          : strip.animate([{ transform: path[0] }, { transform: path[1] }], { duration: SLIDE_MS, easing: 'ease-in-out' }));
       }
+    }
+    if (brush) {
+      el.dispatchEvent(new CustomEvent<FlipPick>('flippick', { detail: { from, to } }));
     }
   };
 

@@ -87,6 +87,7 @@ function setTokens (name: string) {
   // a theme's character beyond its colours keys on these (styles/themes.scss)
   root.dataset.theme = themeSlug(seed.name);
   root.dataset.mode = side;
+  root.dataset.pageChange = seed.pageChange ?? 'slide';
   titleBar = { color: palette.chrome, symbolColor: palette['on-chrome'] };
 }
 

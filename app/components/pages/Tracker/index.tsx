@@ -26,6 +26,8 @@ import { useLocalStorage } from '../../../hooks/use-local-storage';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDexScale } from './use-dex-scale';
 import { useFlipClock } from './use-flip-clock';
+import { useInkPond } from './ink-pond';
+import { usePageBrush } from './page-brush';
 import { useDisplayContext, useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -108,6 +110,10 @@ function TrackerInner () {
   const { still, setStill } = useThemeContext();
   const { display, setDisplay } = useDisplayContext();
   const flipPause = useFlipClock(containerRef, still, display);
+  // Ink's pond, drops falling on it every second or two (ink-pond.ts)
+  useInkPond();
+  // a theme's brushed page change, its marks laid over the lines as they change (page-brush.ts)
+  usePageBrush(containerRef, display);
   // still mode (M): no moving part anywhere, the flips held on the face its picker shows (useFlipClock), the sealed
   // boxes' seal flows stopped and the meter at rest; kept through a restart
   useHotkey('m', () => setStill(!still));

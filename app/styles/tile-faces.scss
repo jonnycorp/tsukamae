@@ -68,6 +68,114 @@ $display-modes: (
   @include flip-names-frames(3, 1);
 }
 
+// a theme's brushed page change (ThemeSeed.pageChange, data-page-change on the root): no slide; the text dips out under
+// the brush's mark (components/pages/Tracker/page-brush.ts), the strip cuts to its next page while it's out, and the new
+// text comes up as the mark dries away, all in the slide's time, so the clock (useFlipClock) runs the same either way.
+// The dip's moments, from the end of a page's hold; keep in step with page-brush.ts and useFlipClock's picks
+$brush-out: .08s;
+$brush-gone: .36s;
+$brush-cut: .4s;
+$brush-back: .44s;
+$brush-in: .76s;
+
+// a strip's brushed change after page $p's hold (of $n), from the face $from up the strip to $to
+@mixin flip-brush-change ($n, $p, $from, $to) {
+  $end: $p * $flip-phase + $flip-hold;
+
+  #{flip-n-at($end + $brush-out, $n)} {
+    transform: translateY(calc(-1 * #{$from} * var(--flip-face)));
+    opacity: 1;
+    animation-timing-function: ease-in;
+  }
+
+  #{flip-n-at($end + $brush-gone, $n)} {
+    transform: translateY(calc(-1 * #{$from} * var(--flip-face)));
+    opacity: 0;
+    animation-timing-function: linear;
+  }
+
+  #{flip-n-at($end + $brush-cut, $n)} {
+    transform: translateY(calc(-1 * #{$from} * var(--flip-face)));
+    opacity: 0;
+    animation-timing-function: steps(1, start);
+  }
+
+  #{flip-n-at($end + $brush-back, $n)} {
+    transform: translateY(calc(-1 * #{$to} * var(--flip-face)));
+    opacity: 0;
+    animation-timing-function: ease-out;
+  }
+
+  #{flip-n-at($end + $brush-in, $n)} {
+    transform: translateY(calc(-1 * #{$to} * var(--flip-face)));
+    opacity: 1;
+  }
+}
+
+// the lower block brushed from page to page, on to its copy of the first to wrap
+@mixin flip-lower-brush-frames ($n) {
+  @for $i from 0 through $n - 1 {
+    #{flip-n-at($i * $flip-phase, $n)} {
+      transform: translateY(calc(-1 * #{$i} * var(--flip-face)));
+      opacity: 1;
+      animation-timing-function: linear;
+    }
+
+    @include flip-brush-change($n, $i, $i, $i + 1);
+  }
+
+  100% {
+    transform: translateY(calc(-1 * #{$n} * var(--flip-face)));
+    opacity: 1;
+  }
+}
+
+// where the name rests on page $p: its first face, the nickname for the trainer's page $t, the copy of its name after
+@function flip-name-rest ($p, $t) {
+  @if $p == $t {
+    @return 1;
+  } @else if $p > $t {
+    @return 2;
+  }
+
+  @return 0;
+}
+
+// the name brushed only where it changes, to the nickname and back; the wrap onto its first face is unseen, as ever
+@mixin flip-names-brush-frames ($n, $t) {
+  @for $p from 0 through $n - 1 {
+    $rest: flip-name-rest($p, $t);
+    $next: 2;
+
+    @if $p < $n - 1 {
+      $next: flip-name-rest($p + 1, $t);
+    }
+
+    #{flip-n-at($p * $flip-phase, $n)} {
+      transform: translateY(calc(-1 * #{$rest} * var(--flip-face)));
+      opacity: 1;
+      animation-timing-function: linear;
+    }
+
+    @if $next != $rest {
+      @include flip-brush-change($n, $p, $rest, $next);
+    }
+  }
+
+  100% {
+    transform: translateY(calc(-2 * var(--flip-face)));
+    opacity: 1;
+  }
+}
+
+@keyframes flip-cycle-lower-brush-3 {
+  @include flip-lower-brush-frames(3);
+}
+
+@keyframes flip-cycle-names-brush-3-1 {
+  @include flip-names-brush-frames(3, 1);
+}
+
 // every strip runs its mode's cycle on the compositor, all from one start (useFlipClock), unless the flips are held or
 // the mode has nothing to flip
 .flip-strip {
@@ -89,6 +197,17 @@ $display-modes: (
       .flip-names .flip-strip {
         animation-name: flip-cycle-names-#{$n}-#{$t};
         animation-duration: $n * $flip-phase;
+      }
+    }
+
+    // a theme's brushed change in place of the slide
+    &[data-page-change='brush'] .tracker-container:not([data-flip-paused]) {
+      .flip-lower .flip-strip {
+        animation-name: flip-cycle-lower-brush-#{$n};
+      }
+
+      .flip-names .flip-strip {
+        animation-name: flip-cycle-names-brush-#{$n}-#{$t};
       }
     }
 
