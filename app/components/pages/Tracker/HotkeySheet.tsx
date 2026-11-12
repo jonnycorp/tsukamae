@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { ALT_KEY, MAC, MOD_KEY } from '../../../utils/platform';
 import { ModalShell } from '../../library/ModalShell';
 import { useDismissable } from '../../../hooks/use-dismissable';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -98,7 +99,7 @@ const GROUPS: Group[] = [
     title: 'help.group.atlas',
     shortcuts: [
       { keys: [['Q'], ['E'], ['←'], ['→']], label: 'help.atlasWalk' },
-      { keys: [['Home'], ['End']], label: 'help.atlasEnds' },
+      { keys: MAC ? [['Ctrl', '←'], ['Ctrl', '→']] : [['Home'], ['End']], label: 'help.atlasEnds' },
       { keys: [['Enter']], label: 'help.atlasGo' },
     ],
   },
@@ -111,8 +112,7 @@ const GROUPS: Group[] = [
   },
 ];
 
-const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
-const MAC_CAPS: Record<string, string> = { Ctrl: '⌘', Alt: '⌥' };
+const CAPS: Record<string, string> = { Ctrl: MOD_KEY, Alt: ALT_KEY };
 
 interface Props {
   checklist: boolean;
@@ -137,7 +137,7 @@ export function HotkeySheet ({ checklist, onClose }: Props) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [dismiss]);
 
-  const cap = (key: Cap) => (typeof key === 'string' ? (MAC && MAC_CAPS[key]) || key : t(key.press));
+  const cap = (key: Cap) => (typeof key === 'string' ? CAPS[key] ?? key : t(key.press));
   const shown = (entry: { records?: boolean }) => !(checklist && entry.records);
 
   return (

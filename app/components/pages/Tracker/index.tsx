@@ -131,7 +131,7 @@ function TrackerInner () {
       setShowHelp(true);
     }
   });
-  const { scale, columns, rows, measured, headerWidth, flipLines, zoom, nudges } = useDexScale(areaRef);
+  const { scale, columns, rows, measured, headerWidth, flipLines, zoom, nudges } = useDexScale(areaRef, columnRef);
   // the ball badge draws a 20px sprite area at 15px (styles/tracker.scss): pixelated only once that's no longer a shrink
   const crispBalls = scale * window.devicePixelRatio >= 20 / 15;
   // and Orbit's hub draws it at 26px (styles/tile-faces.scss), no longer a shrink from a lower zoom

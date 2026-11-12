@@ -246,6 +246,7 @@ declare global {
       importState: (state: AppState) => Promise<void>;
       onSaveStatus: (listener: (ok: boolean) => void) => () => void;
       setTitleBarColors: (colors: { color: string; symbolColor: string }) => void;
+      setBackground: (color: string) => void;
       pinZoom: () => void;
     };
   }

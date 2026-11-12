@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
+import { ALT_KEY } from '../../utils/platform';
 import { DexIndicator } from '../library/DexIndicator';
 import { DexModal } from '../library/DexModal';
 import { PokeballLogo } from '../library/PokeballLogo';
@@ -60,7 +61,7 @@ export function Landing () {
                 return (
                   <li
                     {...drag}
-                    aria-roledescription={t('landing.dragHint')}
+                    aria-roledescription={t('landing.dragHint', { alt: ALT_KEY })}
                     className="dex-list-item"
                     key={dex.id}
                     onClick={() => (editing ? undefined : setActiveDex(dex.id))}
@@ -71,7 +72,7 @@ export function Landing () {
                     style={{ '--spine': gameColor(view.game.id) } as CSSProperties}
                     tabIndex={0}
                   >
-                    <span aria-hidden="true" className="block-grip" data-drag-handle="" title={t('landing.dragHint')} />
+                    <span aria-hidden="true" className="block-grip" data-drag-handle="" title={t('landing.dragHint', { alt: ALT_KEY })} />
                     <div className="dex-list-item-title">
                       <h3>{dex.title}</h3>
                       <DexIndicator dex={view} />

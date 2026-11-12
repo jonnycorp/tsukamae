@@ -40,6 +40,7 @@ $seal-chunk-rise: $box-rows * math.div($pokemon-box-size, 1px);
       flex-direction: column;
       flex-grow: 1;
       position: relative;
+      padding-left: $centred-gutter;
       background: var(--paper) local;
       will-change: scroll-position;
     }
@@ -1019,6 +1020,11 @@ $flip-face-width: $search-height;
 // what Tracker keeps drawn near the screen (data-near), so a fast fling never outruns it
 :is(.box-container > .tile-grid, .results-chunk > .tile-grid, .seal-material, .flip-overlay)[data-near] {
   content-visibility: visible;
+}
+
+// skipped again while a zoom or resize is under way (useDexScale), so each frame lays out the screen alone
+.dex-column[data-rescaling] :is(.box-container > .tile-grid, .results-chunk > .tile-grid, .seal-material, .flip-overlay)[data-near] {
+  content-visibility: auto;
 }
 
 // a sealed tile's material: one overlay per box or results chunk, under its grid (z-index -1 in the container), clipped

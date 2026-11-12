@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { MAC } from '../utils/platform';
+
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 
 // how far a press travels before it's a drag rather than a click
@@ -233,8 +235,9 @@ export function useDragReorder (count: number, onMove: (from: number, to: number
       }
     },
     onKeyDown: (e: ReactKeyboardEvent<HTMLElement>) => {
-      // Alt with ↑ ↓, or Q E from the left hand
-      const step = { ArrowUp: -1, ArrowDown: 1, q: -1, e: 1 }[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+      // Alt with ↑ ↓, or Q E from the left hand; on macOS Option turns Q and E into œ and a dead key, so their codes
+      const name = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      const step = { ArrowUp: -1, ArrowDown: 1, q: -1, e: 1 }[MAC ? { KeyQ: 'q', KeyE: 'e' }[e.code] ?? name : name];
       if (!e.altKey || !step || e.target !== e.currentTarget) {
         return;
       }

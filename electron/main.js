@@ -360,7 +360,7 @@ function createWindow () {
     const mod = input.control || input.meta;
     if (key === 'f11') {
       win.setFullScreen(!win.isFullScreen());
-    } else if (!app.isPackaged && (key === 'f12' || (mod && input.shift && key === 'i'))) {
+    } else if (!app.isPackaged && (key === 'f12' || (mod && (input.shift || input.alt) && input.code === 'KeyI'))) {
       win.webContents.toggleDevTools();
     } else if (!app.isPackaged && (key === 'f5' || (mod && key === 'r'))) {
       win.webContents.reload();
@@ -489,6 +489,14 @@ if (app.requestSingleInstanceLock()) {
     }
   });
 
+  // the theme's paper, so what a resize uncovers before the page catches up isn't a white or black flash
+  ipcMain.on('window:background', (event, color) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)) {
+      win.setBackgroundColor(color);
+    }
+  });
+
   // the renderer reports every change of pixel ratio, which a page zoom is one of
   ipcMain.on('window:pin-zoom', (event) => pinZoom(event.sender));
 
@@ -524,6 +532,10 @@ if (app.requestSingleInstanceLock()) {
       return response;
     });
 
+    // `electron .` runs Electron's own bundle, whose dock icon is Electron's; the packaged app's is the bundle's
+    if (process.platform === 'darwin' && !app.isPackaged) {
+      app.dock?.setIcon(path.join(__dirname, 'icon.png'));
+    }
     buildMenu();
     createWindow();
   });

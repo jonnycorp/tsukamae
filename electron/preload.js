@@ -13,5 +13,6 @@ contextBridge.exposeInMainWorld('tracker', {
     return () => ipcRenderer.removeListener('tracker:save-status', relay);
   },
   setTitleBarColors: (colors) => ipcRenderer.send('window:title-bar', colors),
+  setBackground: (color) => ipcRenderer.send('window:background', color),
   pinZoom: () => ipcRenderer.send('window:pin-zoom'),
 });

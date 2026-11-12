@@ -10,6 +10,7 @@ import { PokemonName, displayName } from '../../library/PokemonName';
 import { SLOT_H, SLOT_W, layoutTimeline } from './timeline-layout';
 import { MODIFIERS, TitleCard, useCalmStart } from './TitleCard';
 import { iconClass } from '../../../utils/pokemon';
+import { scrollbarSize } from '../../../utils/scrollbar';
 import { localizeOriginGame } from '../../../i18n/names';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
@@ -26,9 +27,6 @@ import type { MonthSegment, TimelineLayout, TimelineSprite } from './timeline-la
 // labels and the year banners, and the room kept above the tallest stack
 const SPINE_BOTTOM = 96;
 const HEADROOM = 56;
-// the stage's scrollbars' thickness: the fit always leaves the horizontal one its room, or a track just wider than the
-// stage would fit itself out from under its own scrollbar and back, every frame
-const SCROLLBAR = 10;
 const SKIP_INSET = 16;
 // the hover card's tallest (with a nickname) and its distance from the mon
 const CARD_HEIGHT = 100;
@@ -220,7 +218,8 @@ export function Timeline ({ onClose, onLocate }: Props) {
 
   const stageRef = useRef<HTMLDivElement>(null);
   const counterRef = useRef<HTMLElement>(null);
-  // the view's size, and the height the fit has, whether or not the horizontal scrollbar is up
+  // the view's size, and the height the fit has, whether or not the horizontal scrollbar is up: always its room, or a
+  // track just wider than the stage would fit itself out from under its own scrollbar and back, every frame
   const [stageSize, setStageSize] = useState<{ height: number; fitHeight: number } | null>(null);
   // null fits the tallest stack, following the window as it resizes; a number is a zoom of your own
   const [zoom, setZoom] = useState<number | null>(null);
@@ -300,7 +299,7 @@ export function Timeline ({ onClose, onLocate }: Props) {
     const stage = stageRef.current!;
     const measure = () => {
       holdAnchor(0, null);
-      setStageSize({ height: stage.clientHeight, fitHeight: stage.offsetHeight - SCROLLBAR });
+      setStageSize({ height: stage.clientHeight, fitHeight: stage.offsetHeight - scrollbarSize() });
       setHovered(null);
     };
     measure();

@@ -5,8 +5,10 @@ import { createRoot } from 'react-dom/client';
 import { App } from './components/pages/App';
 import { LocalStorageContextProvider } from './hooks/contexts/use-local-storage-context';
 import { bootstrapTheme } from './palette/apply-theme';
+import { measureScrollbar } from './utils/scrollbar';
 
 bootstrapTheme();
+measureScrollbar();
 
 // the page itself never zooms (electron/main.js pins it at 100%), and a change of pixel ratio may be one
 function watchPixelRatio () {

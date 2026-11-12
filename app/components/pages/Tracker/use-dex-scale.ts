@@ -5,6 +5,7 @@ import { BOX_COLUMNS, BOX_GAP, BOX_SIZE, BOX_WIDTH, TILE_SIZE } from '../../../u
 import { NARROW_WIDTH } from './use-tracker';
 import { useHotkey } from '../../../hooks/use-hotkey';
 import { useLocalStorage } from '../../../hooks/use-local-storage';
+import { measureScrollbar, scrollbarSize } from '../../../utils/scrollbar';
 
 import type { RefObject } from 'react';
 
@@ -13,8 +14,8 @@ import type { RefObject } from 'react';
 // slot)
 const COVERED = '.modal-overlay, .timeline, .almanac, .review, .scene, .dropdown-menu, .species-picker';
 
-// screen px, not scaled px: scrollbars keep their size whatever the dex zoom, so room for a gutter either side
-const GUTTERS = 24;
+// screen px either side past the scrollbar's room, so a box's outline never meets the scroller's edge
+const EDGE_ROOM = 8;
 // screen px too: the header sits outside the dex's zoom, and is measured as it shows, its own zoom and all; this is
 // about what it is until it has been
 const HEADER_GUESS = 160;
@@ -44,6 +45,46 @@ const MAX_STEP_OUT = 1.15;
 const LIST_MIN_ZOOM = 0.5;
 // wheel deltaY per step: a mouse notch is about 100, a trackpad pinch sends many small ones
 const WHEEL_STEP = 50;
+// what holds the scroll place through a zoom or resize: a tile or ledger row, else the box or chunk round a gap
+const ANCHORS = '[data-pokemon-id], .box, .results-chunk';
+// screen px from the point searched across a gap for one
+const PROBES = [0, 40, -40, 80, -80, 160, -160];
+// how long after the last zoom or resize only the screen is kept drawn (data-rescaling)
+const RESCALE_SETTLE_MS = 400;
+
+function gutters (): number {
+  return 2 * (scrollbarSize() + EDGE_ROOM);
+}
+
+interface Anchor {
+  el: Element;
+  // the point's place on it as a share of its height, which scales with it
+  at: number;
+  y: number;
+}
+
+// none at the very top, which stays the top; a point off the scroller (a wheel over the header) takes its middle
+function findAnchor (scroller: HTMLElement, x?: number, y?: number): Anchor | null {
+  if (scroller.scrollTop < 1) {
+    return null;
+  }
+  const view = scroller.getBoundingClientRect();
+  const px = x !== undefined && x >= view.left && x < view.right ? x : view.left + view.width / 2;
+  const py = y !== undefined && y >= view.top && y < view.bottom ? y : view.top + view.height / 2;
+  for (const dy of PROBES) {
+    if (py + dy < view.top || py + dy >= view.bottom) {
+      continue;
+    }
+    for (const hit of document.elementsFromPoint(px, py + dy)) {
+      const el = hit.closest(ANCHORS);
+      if (el && scroller.contains(el)) {
+        const rect = el.getBoundingClientRect();
+        return { el, at: rect.height > 0 ? (py - rect.top) / rect.height : 0, y: py };
+      }
+    }
+  }
+  return null;
+}
 
 // two boxes span the width, scaled up or down to it, or one box where two would shrink below MIN_TWO_FIT; the height
 // can stop it enlarging but never shrinks it, and leaves the same gap below the first row as above it; a window too
@@ -52,15 +93,15 @@ function fitScale (width: number, height: number, header = HEADER_GUESS): number
   if (width <= NARROW_WIDTH) {
     return 1;
   }
-  const two = (width - GUTTERS) / (2 * BOX_WIDTH + BOX_GAP);
-  const across = two >= MIN_TWO_FIT ? two : (width - GUTTERS) / BOX_WIDTH;
+  const two = (width - gutters()) / (2 * BOX_WIDTH + BOX_GAP);
+  const across = two >= MIN_TWO_FIT ? two : (width - gutters()) / BOX_WIDTH;
   const down = Math.max(1, (height - header) / (BOX_HEIGHT + 2 * TOP_GAP));
   return Math.floor(Math.min(MAX_FIT, across, down) * 100) / 100;
 }
 
 // as many boxes across as the scaled width holds
 function columnsAt (width: number, scale: number): number {
-  return Math.max(1, Math.floor(((width - GUTTERS) / scale + BOX_GAP) / (BOX_WIDTH + BOX_GAP)));
+  return Math.max(1, Math.floor(((width - gutters()) / scale + BOX_GAP) / (BOX_WIDTH + BOX_GAP)));
 }
 
 // screen px the boxes span at a fit: the header's width (headerWidth)
@@ -84,7 +125,7 @@ function flipLinesAt (scale: number): Record<keyof typeof FLIP_LINES, number> {
 
 // the zoom at which exactly `columns` boxes fill the width, nudged under the boundary so it floors to them
 function zoomForColumns (width: number, fit: number, columns: number): number {
-  return ((width - GUTTERS) / (fit * (columns * (BOX_WIDTH + BOX_GAP) - BOX_GAP))) * 0.9999;
+  return ((width - gutters()) / (fit * (columns * (BOX_WIDTH + BOX_GAP) - BOX_GAP))) * 0.9999;
 }
 
 // this window's steps: the zooms that fit each column count from one more than the fit shows to MIN_COLUMNS across (the
@@ -139,7 +180,7 @@ interface DexScale {
 }
 
 // ref is the unscaled area below the nav; Ctrl+wheel, Ctrl+=/− and Ctrl+0 set the zoom (Cmd on macOS), Z resets it
-export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
+export function useDexScale (ref: RefObject<HTMLElement>, scroller: RefObject<HTMLElement>): DexScale {
   const [area, setArea] = useState({ width: 0, height: 0, header: HEADER_GUESS });
   // as it's laid out now, for the observer, which runs between renders
   const areaRef = useRef(area);
@@ -152,6 +193,7 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
   useEffect(() => {
     let media: MediaQueryList;
     const handleChange = () => {
+      measureScrollbar();
       setPixelRatio(window.devicePixelRatio);
       watch();
     };
@@ -171,10 +213,29 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
   const stepsRef = useRef(steps);
   stepsRef.current = steps;
 
-  const applyZoom = useCallback((next: number) => {
+  // taken before a change of scale renders, restored in the same commit (below) so the old place never paints
+  const anchorRef = useRef<Anchor | null>(null);
+  const rescaleTimer = useRef(0);
+  // during a burst, Tracker's off-screen data-near content goes back to skipped, so each frame lays out the screen alone
+  const holdPlace = useCallback((x?: number, y?: number) => {
+    const el = scroller.current;
+    if (!el) {
+      return;
+    }
+    anchorRef.current ??= findAnchor(el, x, y);
+    el.toggleAttribute('data-rescaling', true);
+    window.clearTimeout(rescaleTimer.current);
+    rescaleTimer.current = window.setTimeout(() => el.removeAttribute('data-rescaling'), RESCALE_SETTLE_MS);
+  }, [scroller]);
+  useEffect(() => () => window.clearTimeout(rescaleTimer.current), []);
+
+  const applyZoom = useCallback((next: number, x?: number, y?: number) => {
+    if (next !== stepFrom(zoomRef.current, 0, stepsRef.current)) {
+      holdPlace(x, y);
+    }
     setZoom(next);
     setNudges((count) => count + 1);
-  }, [setZoom]);
+  }, [setZoom, holdPlace]);
 
   useHotkey('z', () => applyZoom(1));
 
@@ -224,10 +285,17 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
         const next = { width: el.clientWidth, height: el.clientHeight, header: headerFor(el.clientWidth, el.clientHeight) };
         const shown = areaRef.current;
         if (next.width === shown.width && next.height === shown.height && next.header === shown.header) {
-          return;
+          break;
+        }
+        // a quarter down, as a resize from the bottom edge moves the middle
+        if (pass === 0 && scroller.current) {
+          const view = scroller.current.getBoundingClientRect();
+          holdPlace(undefined, view.top + view.height / 4);
         }
         flushSync(() => setArea(next));
       }
+      // dropped when the fit didn't change, or a later scale change would restore it
+      anchorRef.current = null;
     };
     setArea({ width: el.clientWidth, height: el.clientHeight, header: header?.getBoundingClientRect().height ?? HEADER_GUESS });
     let frame = 0;
@@ -251,7 +319,7 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [ref]);
+  }, [ref, scroller, holdPlace]);
 
   useEffect(() => {
     let wheel = 0;
@@ -269,7 +337,7 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
       }
       wheel += e.deltaY;
       if (Math.abs(wheel) >= WHEEL_STEP) {
-        applyZoom(stepFrom(zoomRef.current, wheel < 0 ? 1 : -1, stepsRef.current));
+        applyZoom(stepFrom(zoomRef.current, wheel < 0 ? 1 : -1, stepsRef.current), e.clientX, e.clientY);
         wheel = 0;
       }
     };
@@ -301,9 +369,22 @@ export function useDexScale (ref: RefObject<HTMLElement>): DexScale {
   // a stored value from another window size or an older step list snaps to the nearest step
   const steppedZoom = stepFrom(zoom, 0, steps);
   const scale = fit * steppedZoom;
+  const columns = columnsAt(area.width, scale);
+
+  // nudges too, so a place held for a zoom stopped at a limit is dropped
+  useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    anchorRef.current = null;
+    const el = scroller.current;
+    if (el && anchor?.el.isConnected) {
+      const rect = anchor.el.getBoundingClientRect();
+      el.scrollTop += rect.top + anchor.at * rect.height - anchor.y;
+    }
+  }, [scale, columns, nudges, scroller]);
+
   return {
     scale,
-    columns: columnsAt(area.width, scale),
+    columns,
     rows: Math.max(1, Math.ceil((area.height - area.header) / ((BOX_HEIGHT + BOX_ROW_GAP) * scale))),
     measured: area.width > 0,
     headerWidth: spanAt(area.width, fit),

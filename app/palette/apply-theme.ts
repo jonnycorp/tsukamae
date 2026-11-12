@@ -89,6 +89,8 @@ function setTokens (name: string) {
   root.dataset.mode = side;
   root.dataset.pageChange = seed.pageChange ?? 'slide';
   titleBar = { color: palette.chrome, symbolColor: palette['on-chrome'] };
+  // what a resize uncovers before the page repaints it
+  window.tracker?.setBackground(palette.paper);
 }
 
 // the browser repaints the buttons at once, while the page takes a frame or more to restyle for a new theme: sent with

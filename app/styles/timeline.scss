@@ -118,7 +118,7 @@ $tl-spine-at: 1s;
 }
 
 // the background stays put while the track scrolls past it: a halftone in the ink over the paper, sinking to its
-// sunken shade and on into a dusk of the accent toward the spine; scrolled by the app's thin bar in the accent
+// sunken shade and on into a dusk of the accent toward the spine; scrolled by the app's bar in the accent
 .tl-stage {
   position: relative;
   flex: 1 1 auto;
@@ -129,7 +129,6 @@ $tl-spine-at: 1s;
     radial-gradient(circle, color-mix(in srgb, #{$tl-ink} 7%, transparent) 1px, transparent 1.6px) 0 0 / 16px 16px,
     linear-gradient(180deg, $tl-stage 0%, $tl-stage-2 62%, color-mix(in srgb, #{$tl-accent} 18%, #{$tl-stage-2}) 100%);
   scrollbar-color: color-mix(in srgb, #{$tl-accent} 55%, transparent) transparent;
-  scrollbar-width: thin;
 
   &.settled {
     cursor: grab;

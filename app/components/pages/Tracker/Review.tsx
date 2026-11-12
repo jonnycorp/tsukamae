@@ -25,6 +25,7 @@ import { useMediaQuery, useTrackerActions, useTrackerState } from './use-tracker
 import { usePatchRecords } from './use-patch';
 import { useSceneScale } from './use-scene-scale';
 import { useTranslation } from '../../../hooks/use-translation';
+import { MOD_KEY } from '../../../utils/platform';
 
 import type { CSSProperties } from 'react';
 import type { Capture, CaptureStatus, Dex } from '../../../types';
@@ -632,7 +633,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         <h1>{activeDex!.title}</h1>
         <span className="review-position">{t('review.position', { n: Math.min(index + 1, queue.length), total: queue.length })}</span>
         <span className="review-tally">{t('review.tally', { sealed: tally.sealed, open: tally.open })}</span>
-        <span className="review-hint">{t('review.hint')}</span>
+        <span className="review-hint">{t('review.hint', { mod: MOD_KEY })}</span>
         <button
           aria-pressed={list}
           className={classNames('review-list-toggle', { on: list })}
@@ -732,7 +733,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         <span className="review-spacer" />
         {sealable &&
           <button className="review-seal" onClick={seal} type="button">
-            <FontAwesomeIcon icon={faLock} />{t('seal.action')}<kbd>Ctrl+Enter</kbd>
+            <FontAwesomeIcon icon={faLock} />{t('seal.action')}<kbd>{MOD_KEY}+Enter</kbd>
           </button>
         }
         <button className="review-nav" disabled={last} onClick={() => go(1)} type="button">

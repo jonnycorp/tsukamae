@@ -2,6 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faPencilAlt, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
+import { ALT_KEY } from '../../utils/platform';
 import { Dropdown } from './Dropdown';
 import { ModalShell } from './ModalShell';
 import { LANGUAGES, ORIGIN_GAMES, idDigits, nameMaxLength, saveLabel } from '../../utils/capture-fields';
@@ -118,13 +119,13 @@ export function SavesModal ({ onRequestClose }: Props) {
             {saves.map((save, index) => (
               <li
                 {...itemProps(index)}
-                aria-roledescription={t('landing.dragHint')}
+                aria-roledescription={t('landing.dragHint', { alt: ALT_KEY })}
                 className="saves-list-item"
                 key={save.id}
                 style={{ '--spine': gameColor(save.game) } as CSSProperties}
                 tabIndex={0}
               >
-                <span aria-hidden="true" className="block-grip" data-drag-handle="" title={t('landing.dragHint')} />
+                <span aria-hidden="true" className="block-grip" data-drag-handle="" title={t('landing.dragHint', { alt: ALT_KEY })} />
                 <div className="saves-list-key">{saveLabel(save, locale)}</div>
                 <div className="saves-list-key">{save.ot}</div>
                 <div className="saves-list-key saves-list-tid">{save.tid || '—'}</div>

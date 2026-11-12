@@ -8,10 +8,11 @@ $font-theme-brush: 'Theme Brush', serif;
 $font-theme-pen: 'Theme Pen', 'Theme Brush', serif;
 $font-theme-dot: 'Pixel Digits', 'Theme Dot', monospace;
 $font-theme-wide: 'Theme Wide', 'Montserrat', 'Helvetica', sans-serif;
-// Midnight at night, every word: MS PGothic, the Japanese computer's face (a Windows face, so elsewhere the system's
-// gothic), its figures in Orbitron; its headings Orbitron, their Japanese the same gothic
-$font-theme-gothic: 'Theme Wide Digits', 'MS PGothic', 'MS Gothic', sans-serif;
-$font-theme-wide-gothic: 'Theme Wide', 'MS PGothic', 'MS Gothic', sans-serif;
+// Midnight at night, every word: MS PGothic, the Japanese computer's face, its figures in Orbitron; its headings
+// Orbitron, their Japanese the same gothic. On macOS: Osaka (the Mac's own, when installed), else Hiragino
+$mac-gothic: 'Osaka', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans';
+$font-theme-gothic: 'Theme Wide Digits', 'MS PGothic', 'MS Gothic', $mac-gothic, sans-serif;
+$font-theme-wide-gothic: 'Theme Wide', 'MS PGothic', 'MS Gothic', $mac-gothic, sans-serif;
 $font-theme-lcd: 'Theme LCD', 'Montserrat', 'Helvetica', sans-serif;
 
 // keep in sync with TILE_SIZE, BOX_COLUMNS and BOX_SIZE in utils/pokemon.ts

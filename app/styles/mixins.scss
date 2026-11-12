@@ -5,7 +5,7 @@
 $scrollbar-fade: scrollbar-color .3s ease-out;
 
 @mixin scrollbar-fade {
-  scrollbar-width: thin;
+  scrollbar-width: auto;
   scrollbar-color: transparent transparent;
   transition: $scrollbar-fade;
 
@@ -19,12 +19,14 @@ $scrollbar-fade: scrollbar-color .3s ease-out;
   }
 }
 
-// both-edges keeps content centred where scrollbars take layout space (Windows); overlay scrollbars (macOS) take none
+// right gutter only (both-edges clipped outlines on the left); a centred scroller pads its left by $centred-gutter
+$centred-gutter: var(--scrollbar-size, 0px);
+
 @mixin overflow-y-scroll {
   @include scrollbar-fade;
 
   overflow-y: scroll;
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: stable;
 }
 
 // a pokesprite ball: the 32px canvas drawn 1:1 and cropped to the ball, since pixel art breaks up at fractional scales

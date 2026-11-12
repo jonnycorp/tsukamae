@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Scene, SceneMon, placeBeside } from './Scene';
 import { atlas, pickups, wanted } from './atlas-model';
 import { displayName } from '../../library/PokemonName';
+import { MAC } from '../../../utils/platform';
 import { padding } from '../../../utils/formatting';
 import { useContentWidth } from '../../../hooks/use-content-width';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
@@ -125,11 +126,12 @@ export function Atlas ({ onClose, onLocate }: Props) {
   };
 
   // ← → or Q E walk the line along the dex (Shift for ten at a time), the first press setting it on #1; Home and End to
-  // its ends, Enter goes to the species it's on
+  // its ends (⌘← ⌘→ on macOS, whose keyboards mostly lack them), Enter goes to the species it's on
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const from = hot?.national;
     let national = from ?? 1;
-    const key = e.ctrlKey || e.metaKey || e.altKey ? '' : { q: 'ArrowLeft', e: 'ArrowRight' }[e.key.toLowerCase()] ?? e.key;
+    const macEnd = MAC && e.metaKey && !e.ctrlKey && !e.altKey ? { ArrowLeft: 'Home', ArrowRight: 'End' }[e.key] : undefined;
+    const key = macEnd ?? (e.ctrlKey || e.metaKey || e.altKey ? '' : { q: 'ArrowLeft', e: 'ArrowRight' }[e.key.toLowerCase()] ?? e.key);
     switch (key) {
       case 'ArrowLeft': national = from === undefined ? 1 : from - (e.shiftKey ? 10 : 1); break;
       case 'ArrowRight': national = from === undefined ? 1 : from + (e.shiftKey ? 10 : 1); break;
