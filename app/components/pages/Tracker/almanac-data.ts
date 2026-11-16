@@ -39,14 +39,15 @@ export interface AlmanacData {
   all: StatusCounts;
   generations: (StatusCounts & { generation: number })[];
   types: (StatusCounts & { type: PokemonType })[];
-  // over the marked records that answer each field, most first
+  // over the sealed records that answer each field, most first
   origins: Tally[];
   languages: Tally[];
   balls: Tally[];
   ots: Tally[];
   // sealed mons by where they are: home, champions, game:<save id>, or game where the save is unanswered
   places: Tally[];
-  // catches by month, oldest first, every month from the first catch to the last (empty ones too)
+  // sealed mons' catches by month, oldest first, every month from the first catch to the last (empty ones too); and
+  // the sealed ones with no whole date
   months: MonthCount[];
   undated: number;
   specials: {
@@ -130,7 +131,8 @@ export function almanacData (captures: Capture[], saves: GameSave[]): AlmanacDat
     if (!capture.captured || capture.status === 'unobtainable') {
       continue;
     }
-    // what a record says of itself counts once it's sealed, a placeholder till then, as in the filters they press into
+    // what a record says of itself counts once it's sealed, a placeholder till then, as in the filters they press into;
+    // its catch date too, as the timeline places it
     if (capture.sealed) {
       tally(origins, capture.origin_game);
       tally(languages, capture.language);
@@ -152,13 +154,13 @@ export function almanacData (captures: Capture[], saves: GameSave[]): AlmanacDat
       if (capture.trained === 'ivs' || capture.trained === 'ev') {
         trained++;
       }
-    }
-    // a whole date only: a bare year's month would run the month loop below for ever
-    if (capture.catch_date && DATE.test(capture.catch_date)) {
-      tally(months, capture.catch_date.slice(0, 7));
-      byDate.push(capture);
-    } else {
-      undated++;
+      // a whole date only: a bare year's month would run the month loop below for ever
+      if (capture.catch_date && DATE.test(capture.catch_date)) {
+        tally(months, capture.catch_date.slice(0, 7));
+        byDate.push(capture);
+      } else {
+        undated++;
+      }
     }
   }
 

@@ -40,6 +40,8 @@ import type { OrreryView } from './BallOrrery';
 
 // frames a located mon is looked for before it's taken as filtered out, beyond those the boxes are still going in for
 const LOCATE_FRAMES = 30;
+// how many of the grids, seal materials and flips that have come near the screen are drawn in a frame
+const NEAR_PER_FRAME = 6;
 // the longest a page waits on the dex it hands a view to (handOff) before it goes anyway
 const HAND_OFF_MS = 1500;
 
@@ -131,7 +133,7 @@ function TrackerInner () {
       setShowHelp(true);
     }
   });
-  const { scale, columns, rows, measured, headerWidth, flipLines, zoom, nudges } = useDexScale(areaRef, columnRef);
+  const { scale, columns, rows, measured, headerWidth, flipLines, zoom, nudges, onRescaled } = useDexScale(areaRef, columnRef, layout === 'ledger');
   // the ball badge draws a 20px sprite area at 15px (styles/tracker.scss): pixelated only once that's no longer a shrink
   const crispBalls = scale * window.devicePixelRatio >= 20 / 15;
   // and Orbit's hub draws it at 26px (styles/tile-faces.scss), no longer a shrink from a lower zoom
@@ -157,16 +159,54 @@ function TrackerInner () {
   // a fast fling scrolls on ahead of what's been drawn, and content-visibility draws a box's tiles, its seal ground and
   // its row's flips only once they're nearly in view, so they came in blank: those within a screen and a half either
   // way are kept drawn (data-near, styles/tracker.scss). Watched as they're added and let go as they leave, the boxes
-  // going in a few a frame
+  // going in a few a frame. What comes near is drawn a few a frame too (NEAR_PER_FRAME, a couple of boxes' worth): a
+  // zoom out or a narrower window brings a screenful of boxes near at once, which drawn together held a frame a third
+  // of a second. And while the dex is stretched to a scale it's on its way to (data-rescaling, useDexScale) they wait:
+  // drawn then, they'd be drawn at the scale it's leaving and again as it lands
   useEffect(() => {
     const root = columnRef.current;
     if (!root) {
       return undefined;
     }
     const NEAR = '.box-container > .tile-grid, .results-chunk > .tile-grid, .seal-material, .flip-overlay';
+    const waiting = new Set<Element>();
+    let drawing = 0;
+    const draw = () => {
+      drawing = 0;
+      if (root.hasAttribute('data-rescaling')) {
+        return;
+      }
+      let drawn = 0;
+      for (const el of waiting) {
+        waiting.delete(el);
+        el.toggleAttribute('data-near', true);
+        if (++drawn === NEAR_PER_FRAME) {
+          break;
+        }
+      }
+      if (waiting.size > 0) {
+        drawing = requestAnimationFrame(draw);
+      }
+    };
     const near = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => entry.target.toggleAttribute('data-near', entry.isIntersecting));
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          waiting.add(entry.target);
+        } else {
+          waiting.delete(entry.target);
+          entry.target.removeAttribute('data-near');
+        }
+      });
+      if (waiting.size > 0 && drawing === 0) {
+        drawing = requestAnimationFrame(draw);
+      }
     }, { root, rootMargin: '150% 0px' });
+    const landed = new MutationObserver(() => {
+      if (waiting.size > 0 && drawing === 0) {
+        drawing = requestAnimationFrame(draw);
+      }
+    });
+    landed.observe(root, { attributes: true, attributeFilter: ['data-rescaling'] });
     const each = (node: Node, act: (el: Element) => void) => {
       if (node instanceof Element) {
         if (node.matches(NEAR)) {
@@ -176,13 +216,19 @@ function TrackerInner () {
       }
     };
     each(root, (el) => near.observe(el));
+    // one gone is let go, and out of the queue, where it would take a turn from one still there
     const added = new MutationObserver((records) => records.forEach((record) => {
       record.addedNodes.forEach((node) => each(node, (el) => near.observe(el)));
-      record.removedNodes.forEach((node) => each(node, (el) => near.unobserve(el)));
+      record.removedNodes.forEach((node) => each(node, (el) => {
+        near.unobserve(el);
+        waiting.delete(el);
+      }));
     }));
     added.observe(root, { childList: true, subtree: true });
     return () => {
+      cancelAnimationFrame(drawing);
       added.disconnect();
+      landed.disconnect();
       near.disconnect();
     };
   }, []);
@@ -488,7 +534,6 @@ function TrackerInner () {
           data-crisp-hub={crispHub || undefined}
           style={{
             '--dex-columns': columns,
-            '--dex-header-width': `${headerWidth}px`,
             '--flip-names': `${flipLines.names}px`,
             '--flip-badges': `${flipLines.badges}px`,
             '--flip-numbers': `${flipLines.numbers}px`,
@@ -508,6 +553,7 @@ function TrackerInner () {
             setFilters={setFilters}
             setQuery={setQuery}
             source={layerStands ? { title: t(LAYER_TITLES[layer.from.scene]), onBack: handleLayerBack } : undefined}
+            width={headerWidth}
           />
           <div className="dex-column" data-veil={(curtain && !curtain.revealed) || undefined} ref={columnRef}>
             <div className="scroll-sentinel" ref={sentinelRef} style={{ height: SHOW_SCROLL_THRESHOLD }} />
@@ -516,6 +562,7 @@ function TrackerInner () {
               filters={filters}
               layout={layout}
               measured={measured}
+              onRescaled={onRescaled}
               onScrollButtonClick={handleScrollButtonClick}
               query={query}
               rows={rows}

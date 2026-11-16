@@ -12,16 +12,14 @@ import type { PersonalDex } from './local-data';
 // a mon as every catalog knows it: its species and form (ids differ between catalogs)
 export const speciesKey = (pokemon: { national_id: number; form?: string | null }) => `${pokemon.national_id}|${pokemon.form ?? ''}`;
 
-export type CopyKind = 'copy' | 'elsewhere' | null;
-
-export function copyKind (capture: Capture, dex: PersonalDex): CopyKind {
+export function isCopy (capture: Capture, dex: PersonalDex): boolean {
   if (!capture.captured || capture.status === 'unobtainable') {
-    return null;
+    return false;
   }
   if (dex.checklist) {
-    return capture.status === 'temporary' ? 'elsewhere' : 'copy';
+    return capture.status !== 'temporary';
   }
-  return dex.free && capture.location === 'home' && isDexPlaceId(capture.location_save) ? null : 'copy';
+  return !(dex.free && capture.location === 'home' && isDexPlaceId(capture.location_save));
 }
 
 export interface DexCaptures {
@@ -39,7 +37,7 @@ export function copiesByDex (all: DexCaptures[]): Map<string, Map<string, number
   const held = new Map<string, Map<string, number>>();
   for (const { dex, captures } of all) {
     for (const capture of captures) {
-      if (copyKind(capture, dex) === 'copy') {
+      if (isCopy(capture, dex)) {
         const key = speciesKey(capture.pokemon);
         const by = held.get(key) ?? held.set(key, new Map()).get(key)!;
         by.set(dex.id, (by.get(dex.id) ?? 0) + 1);

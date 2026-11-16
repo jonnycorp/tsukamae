@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { Box } from './Box';
 import { FreeBoxes } from './FreeBoxes';
@@ -27,6 +27,8 @@ interface Props {
   layout: DexLayout;
   measured: boolean;
   filters: TrackerFilters;
+  // run as the dex is drawn at a new scale or columns, its place put back (useDexScale)
+  onRescaled: () => void;
   onScrollButtonClick: MouseEventHandler<HTMLDivElement>;
   query: string;
   // rows of boxes a screen shows at the scale
@@ -118,7 +120,7 @@ function BoxGrid ({ boxes, columns, rows: rowsInView, entrance, setSelectedPokem
     return all;
   }, [boxes, columns]);
 
-  // building while the clock runs, which a mon looked for waits out (Tracker's handleLocate)
+  // building while the clock runs, which a mon looked for waits out (Tracker's handOff)
   return (
     <div className="box-grid" data-building={frame < plan.last || undefined} data-hidden={frame < plan.shown || undefined}>
       {boxes.map((box, i) => (frame >= plan.box(i)
@@ -153,6 +155,7 @@ export function Dex ({
   layout,
   measured,
   filters,
+  onRescaled,
   onScrollButtonClick,
   query,
   rows,
@@ -214,6 +217,9 @@ export function Dex ({
     }
   }, [measured]);
   const showsBoxes = layout === 'boxes' && measured && !hasQuery(deferredQuery) && !anyFilterActive(deferredFilters);
+
+  // after the boxes' own effects and ahead of the popover's, which places itself by where this leaves its tile
+  useLayoutEffect(onRescaled, [onRescaled, scale, columns]);
 
   return (
     <>

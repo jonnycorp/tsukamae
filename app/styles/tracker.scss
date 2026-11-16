@@ -170,7 +170,8 @@ $seal-chunk-rise: $box-rows * math.div($pokemon-box-size, 1px);
 
     flex: 1 1 auto;
     min-height: 0;
-    padding: 12px 14px 2px;
+    // its fields as far from each edge: the bar's room on the right matched on the left
+    padding: 12px 14px 2px calc(14px + #{$centred-gutter});
 
     .form-group {
       margin-bottom: 12px;
@@ -306,7 +307,8 @@ $flip-face-width: $search-height;
   padding: 12px;
 
   // as wide as the boxes at 100% (--dex-header-width, from useDexScale, in screen px, so divided by the header's own
-  // zoom), the meter's ends on theirs: zooming the boxes never moves it
+  // zoom), the meter's ends on theirs: zooming the boxes never moves it. Set on the header itself (SearchBar), where a
+  // dragged window changes it every frame: on the wrapper it was every tile's to inherit, and restyled them all
   .dex-search-bar-inner {
     container: dex-header / inline-size;
     max-width: calc(var(--dex-header-width) / var(--header-zoom, 1));
@@ -1022,9 +1024,18 @@ $flip-face-width: $search-height;
   content-visibility: visible;
 }
 
-// skipped again while a zoom or resize is under way (useDexScale), so each frame lays out the screen alone
-.dex-column[data-rescaling] :is(.box-container > .tile-grid, .results-chunk > .tile-grid, .seal-material, .flip-overlay)[data-near] {
-  content-visibility: auto;
+// while a window is being dragged to a new size the dex is shown as it's drawn, stretched to the scale it's going to and
+// followed frame by frame, and drawn anew there once the drag rests (useDexScale). The stretch never brings a bar across
+// the foot
+.dex-column[data-rescaling] {
+  overflow-x: hidden;
+}
+
+// as the dex is drawn at a new scale (a zoom step, a regroup, a stretch landing), the frame that draws it takes the
+// flips on screen alone: the rest are skipped outright (data-unsettled), where `auto` and data-near would keep six rows
+// of them drawn, and come back a few a frame after it (useDexScale). After data-near's rule, which it outranks
+.dex-column .flip-overlay[data-unsettled] {
+  content-visibility: hidden;
 }
 
 // a sealed tile's material: one overlay per box or results chunk, under its grid (z-index -1 in the container), clipped

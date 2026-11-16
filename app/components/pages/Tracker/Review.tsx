@@ -27,7 +27,7 @@ import { useSceneScale } from './use-scene-scale';
 import { useTranslation } from '../../../hooks/use-translation';
 import { MOD_KEY } from '../../../utils/platform';
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, SyntheticEvent } from 'react';
 import type { Capture, CaptureStatus, Dex } from '../../../types';
 import type { CaptureField } from '../../../utils/capture-fields';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -102,6 +102,17 @@ function nextToFill (capture: Capture, after: string | null, from: string | null
 
 // how many recent dates the date plate offers
 const RECENT_DATES = 3;
+
+// a plate taken up as it comes in (pressed, or focused: the Enter flow's menu opens on it a frame on) is in at once, and
+// stays in while the mon's up: a menu inside it would fade with it, and a fade held off only while the menu was open
+// came back where it had got to as an answer shut it, the plate gone again before it faded back in
+function showPlate (e: SyntheticEvent<HTMLElement>) {
+  for (const animation of e.currentTarget.getAnimations()) {
+    if ('animationName' in animation && animation.animationName === 'fade-in') {
+      animation.finish();
+    }
+  }
+}
 
 interface RowProps {
   capture: Capture;
@@ -615,6 +626,8 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         className={classNames('review-plate', { waiting, done: field.gatesSeal && !waiting && capture.captured })}
         data-field={field.id}
         key={field.id}
+        onClickCapture={showPlate}
+        onFocus={showPlate}
         style={{ '--k': k } as CSSProperties}
       >
         {body}

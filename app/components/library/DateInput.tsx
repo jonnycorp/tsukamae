@@ -145,8 +145,11 @@ export function DateInput ({ id, value, onChange, recent = [], onRecentPicked }:
       recentButtons()[0]?.focus();
     }
   };
-  // ← → along them, ↑ back to the field
+  // ← → along them, ↑ back to the field; with a modifier they're the page's (the Review's Ctrl or Alt+← → between mons)
   const handleRecentKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
+      return;
+    }
     const buttons = recentButtons();
     const at = buttons.indexOf(e.currentTarget);
     if (e.key === 'ArrowUp') {

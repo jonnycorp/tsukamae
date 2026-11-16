@@ -6,7 +6,7 @@
 // dex number traced large behind, each field a plate wired to it either side, a pip under it for each field the seal
 // waits on, the seal a stamp. A mon comes in from the side the run moved to, the lens scanned and the sprite dropped
 // in, its plates lit one after another; a field answered ticks its plate, lights its wire and its pip. The run's list
-// down the left. Still mode keeps all of it still (at the foot)
+// down the left. Still mode keeps all of it still (main.scss's net)
 $review-ease: cubic-bezier(.2, .9, .3, 1);
 $review-spring: cubic-bezier(.2, 1.5, .4, 1);
 // the list's width, at the scene's scale (--scale)
@@ -797,12 +797,10 @@ $wire: 30px;
     --wire: var(--status-caught);
   }
 
-  // its open menu over the plates after it, which are still their own layers while they fade in; and the plate itself
-  // in at once if it's still fading in, as a menu inside it fades with it (the Enter flow's, pressed as the mon comes up)
+  // its open menu over the plates after it, which are still their own layers while they fade in. The plate itself is
+  // in by then, as one is once it's pressed or focused (Review's showPlate)
   &:has(.dropdown-menu) {
     z-index: 2;
-    animation-duration: 0s;
-    animation-delay: 0s;
   }
 }
 

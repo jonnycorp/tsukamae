@@ -140,8 +140,8 @@ nav {
   -webkit-app-region: drag;
   padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
 
-  // with a menu open anywhere, a click on the bar has to reach the page to close it, not start a window drag
-  &.dropdown-open,
+  // with a menu open anywhere, a click on the bar has to reach the page to close it, not start a window drag (the nav's
+  // own, .nav-menu-dropdown, too)
   :root:has(.dropdown-menu, .nav-menu-dropdown, .facet-panel) & {
     -webkit-app-region: no-drag;
   }
@@ -514,7 +514,6 @@ form {
   }
 }
 
-// a field, one size wherever it is ($field-height, $field-font); the search, a size up, sets its own
 // the review's recent dates under its catch date (DateInput's recent), each a field-edged button a press away
 .date-recent {
   display: flex;
@@ -545,6 +544,7 @@ form {
   }
 }
 
+// a field, one size wherever it is ($field-height, $field-font); the search, a size up, sets its own
 .form-control {
   width: 100%;
   height: $field-height;
@@ -750,6 +750,8 @@ form {
   @include overflow-y-scroll;
 
   position: relative;
+  // its form centred in the frame: the bar's room on the right matched on the left
+  padding-left: $centred-gutter;
   margin: 6vh auto;
   // the two-column dex form: 2 × 280px columns + gutters
   width: min(660px, calc(100vw - 32px));
@@ -957,9 +959,10 @@ form {
   width: min(760px, calc(100vw - 32px));
 }
 
-// the sheet of shortcuts: room for its two columns' labels on a line each
+// the sheet of shortcuts: room for its two columns' labels on a line each (the longest, Escape's in Japanese, is some
+// 360px), past the scrollbar's room on the right and the same kept on the left (.modal)
 .modal:has(> .hotkey-sheet) {
-  width: min(980px, calc(100vw - 32px));
+  width: min(calc(1060px + 2 * #{$centred-gutter}), calc(100vw - 32px));
 }
 
 // H's sheet of shortcuts (HotkeySheet): the dex's groups in two columns, each shortcut its keys as caps, the ways to
@@ -1141,6 +1144,12 @@ $saves-table-width: 640px;
 button.btn.btn-edit-list {
   min-width: 0;
   margin-top: $space-sm;
+
+  // My Games' (the dexes' is on the landing, out of a modal)
+  .modal & {
+    width: min($saves-table-width, 100%);
+  }
+
   padding: 13px 15px;
   border: 2px solid var(--field-edge);
   background: none;

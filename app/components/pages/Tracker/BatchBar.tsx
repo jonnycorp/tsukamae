@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { faArrowRightFromBracket, faBan, faCheck, faClock, faLink, faLock, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
-import { CAPTURE_FIELDS, EMPTY_METADATA, findSave, saveLabel, statusKey, unansweredFields } from '../../../utils/capture-fields';
+import { CAPTURE_FIELDS, EMPTY_METADATA, findSave, saveLabel, stampedSave, statusKey, unansweredFields } from '../../../utils/capture-fields';
 import { CaptureFieldControl, NOT_MINE } from '../../library/CaptureFieldControl';
 import { Dropdown } from '../../library/Dropdown';
 import { canHold } from '../../../utils/game-reach';
@@ -102,6 +102,11 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
       recorded.filter((capture) => capture.sealed).forEach((capture) => moveTo(capture.pokemon.id, place));
       // Champions is only reachable from a mon that's been there, so moving one there says it has
       patchRecords(editable, { ...place, ...(place.location === 'champions' ? { been_to_champions: true } : {}) });
+    } else if (field === 'save' && draft.origin_game === null) {
+      // Not my game clears what a pick of one of your games filled in, on the records still all four of one, as a
+      // record's own pick does (CaptureFieldControl): one Not my game already, or with no game given, keeps the fields
+      // typed into it by hand
+      patchRecords(editable.filter((capture) => stampedSave(saves, capture)), draft);
     } else {
       patchRecords(editable, draft);
     }
@@ -138,7 +143,7 @@ export function BatchBar ({ targets, shown, onSelectAll, onClear }: Props) {
     label: t(CAPTURE_FIELDS.find((entry) => entry.id === id)!.labelKey as TranslationKey),
   }));
   // My Game as a draft, not a record (CaptureFieldControl's): blank sets nothing, Not my game clears the game, the
-  // language and the OT on each
+  // language, the OT and the ID No. on each still filled in from one of your games (apply)
   const saveControl = (
     <Dropdown
       blankLabel={t('common.unspecified')}

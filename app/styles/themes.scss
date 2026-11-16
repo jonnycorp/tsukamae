@@ -5,9 +5,9 @@
 // seal materials' flows, Ink's press drop), each by transform and opacity alone; Ink's pond and brushed pages are
 // canvases of their own (components/pages/Tracker/ink-pond.ts, page-brush.ts)
 
-// a page texture lies on the dex's scroller, which carries it with the boxes. Its gutters at both edges stand outside
-// what it scrolls and show what's behind it: plain paper, rather than the body's texture, which held still as the boxes
-// scrolled and showed a seam down each edge of the window
+// a page texture lies on the dex's scroller, which carries it with the boxes. The scrollbar's gutter at the right stands
+// outside what it scrolls and shows what's behind it: plain paper, rather than the body's texture, which held still as
+// the boxes scrolled and showed a seam down the window's edge
 :root[data-theme] .dex-wrapper {
   background-color: var(--paper);
 }

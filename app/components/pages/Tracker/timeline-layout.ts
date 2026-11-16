@@ -86,14 +86,15 @@ interface Dated {
   date: string;
 }
 
-// every marked mon that has a record to show (unobtainable ones hold none), placed by catch date: a stack per day, the
-// days of a month side by side, from the first month to the last. A busy day stands tall rather than widening, so a
-// stack's height is that day's count at a glance; the stage zooms out to take in the tallest
+// every sealed mon, placed by catch date: an unsealed one's record (its date with it) is a placeholder till it's sealed,
+// so it waits off the timeline, as it does off every tally of what records say. A stack per day, the days of a month
+// side by side, from the first month to the last. A busy day stands tall rather than widening, so a stack's height is
+// that day's count at a glance; the stage zooms out to take in the tallest
 export function layoutTimeline (captures: Capture[]): TimelineLayout {
   const dated: Dated[] = [];
   const undated: Capture[] = [];
   captures.forEach((capture, index) => {
-    if (!capture.captured || capture.status === 'unobtainable') {
+    if (!capture.captured || !capture.sealed || capture.status === 'unobtainable') {
       return;
     }
     const match = capture.catch_date ? DATE.exec(capture.catch_date) : null;

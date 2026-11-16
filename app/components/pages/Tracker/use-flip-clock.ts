@@ -35,9 +35,16 @@ export interface FlipPick {
   to: number;
 }
 
+// where the name stands on a face as a slide leaves it: its first face, its nickname for the trainer's page alone, the
+// copy of its name after it
+function nameRest (pages: FacePage[], face: number): string {
+  const trainer = pages.indexOf('trainer');
+  return up(face === trainer ? 'var(--flip-face)' : face > trainer ? 'calc(2 * var(--flip-face))' : '0px');
+}
+
 // a strip's slide between two held faces, a single move either way (styles/tile-faces.scss places its rests): the
-// lower block a page apart, wrapping between its last page and its first through its copy of the first; the name on
-// its nickname for the trainer's page alone, the copy of its name after it
+// lower block a page apart, wrapping between its last page and its first through its copy of the first; the name to
+// or from the trainer's page alone
 function slide (pages: FacePage[], from: number, to: number, lower: boolean): [string, string] | null {
   if (lower) {
     const n = pages.length;
@@ -50,8 +57,7 @@ function slide (pages: FacePage[], from: number, to: number, lower: boolean): [s
   if (from !== trainer && to !== trainer) {
     return null;
   }
-  const rest = (face: number) => (face === trainer ? 'var(--flip-face)' : face > trainer ? 'calc(2 * var(--flip-face))' : '0px');
-  return [up(rest(from)), up(rest(to))];
+  return [nameRest(pages, from), nameRest(pages, to)];
 }
 
 interface Held {
@@ -110,14 +116,19 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
 
   // every strip's slide from one held face to another (or its brushed change), kept so the next pick or a resume can
   // cancel it
-  const playSlides = (from: number, to: number) => {
+  // standing: where a strip stood in a slide still under way, which it goes on from rather than its rest. A name this
+  // pick doesn't move, caught mid-slide (between two pages that both show it), goes on to where it was going, the face
+  // it was held on: a slide of its own begun with the rest, as the old one, left running, would run on through the
+  // pick's own work (about half a second offscreen, in a full dex) and be at its end by the next frame
+  const playSlides = (from: number, to: number, standing?: Map<Element, string>) => {
     const brush = brushed();
     for (const strip of el.querySelectorAll<HTMLElement>('.flip-strip')) {
-      const path = slide(pages(), from, to, Boolean(strip.closest('.flip-lower')));
+      const lower = Boolean(strip.closest('.flip-lower'));
+      const path = slide(pages(), from, to, lower) ?? (!lower && standing?.has(strip) ? [standing.get(strip)!, nameRest(pages(), from)] : null);
       if (path) {
         slides.push(brush
           ? strip.animate(brushFrames(path[0], path[1]), { duration: SLIDE_MS })
-          : strip.animate([{ transform: path[0] }, { transform: path[1] }], { duration: SLIDE_MS, easing: 'ease-in-out' }));
+          : strip.animate([{ transform: standing?.get(strip) ?? path[0] }, { transform: path[1] }], { duration: SLIDE_MS, easing: 'ease-in-out' }));
       }
     }
     if (brush) {
@@ -184,11 +195,22 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
       if (!paused || face === from || face >= pages().length) {
         return false;
       }
+      // a pick's slide still under way: each strip goes on from where it stands, not back from the face it was
+      // sliding to (a brushed change has no place between two faces to go on from)
+      const standing = new Map<Element, string>();
+      if (!brushed()) {
+        for (const animation of slides) {
+          const strip = animation.playState === 'running' && animation.effect instanceof KeyframeEffect ? animation.effect.target : null;
+          if (strip) {
+            standing.set(strip, getComputedStyle(strip).transform);
+          }
+        }
+      }
       stopSlides();
       pauseOn(face);
       // in still mode the face changes where it stands
       if (!still()) {
-        playSlides(from, face);
+        playSlides(from, face, standing);
       }
       return true;
     },
@@ -292,7 +314,9 @@ export function useFlipClock (ref: RefObject<HTMLElement>, still: boolean, displ
       }
       const face = FACE_KEYS.indexOf(e.key);
       if (face >= 0) {
-        if (pausedRef.current && !e.repeat) {
+        // with something flipping, as the picker shows only then (styles/tracker.scss): in the list, or a dex with no
+        // seals, a key would move the held face unseen
+        if (pausedRef.current && !e.repeat && el.querySelector('.flip-strip')) {
           e.preventDefault();
           pick(face);
         }

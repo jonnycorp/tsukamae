@@ -150,6 +150,12 @@ $centred-gutter: var(--scrollbar-size, 0px);
   button {
     -webkit-app-region: no-drag;
   }
+
+  // with a menu open in the scene (a field's, in the review), a click on the bar has to reach the page to close it,
+  // not start a window drag, as on the nav
+  :root:has(.dropdown-menu) & {
+    -webkit-app-region: no-drag;
+  }
 }
 
 // the scene's name at its bar's left end, the bar's height in the accent; each scene shapes the block its own way

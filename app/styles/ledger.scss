@@ -256,6 +256,11 @@ $ledger-head: 40px;
     background-color: var(--tile-caught);
   }
 
+  // a checklist's check: the sealed look its tile wears (isDisplaySealed), with no record behind it to be sealed
+  .ledger-row.checklist.state-caught & {
+    background-image: linear-gradient(var(--wash), var(--wash));
+  }
+
   .state-temporary & {
     background-color: var(--tile-temporary);
     background-image: repeating-linear-gradient(45deg, transparent 0 3px, var(--tile-temporary-stripe) 3px 6px);

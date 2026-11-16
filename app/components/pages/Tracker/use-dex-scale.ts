@@ -47,10 +47,23 @@ const LIST_MIN_ZOOM = 0.5;
 const WHEEL_STEP = 50;
 // what holds the scroll place through a zoom or resize: a tile or ledger row, else the box or chunk round a gap
 const ANCHORS = '[data-pokemon-id], .box, .results-chunk';
-// screen px from the point searched across a gap for one
+// screen px from the point searched for one: down across the gap between two rows of boxes, and along past the gap
+// between two boxes, which is where the scroller's middle falls with an even number of them across
 const PROBES = [0, 40, -40, 80, -80, 160, -160];
-// how long after the last zoom or resize only the screen is kept drawn (data-rescaling)
-const RESCALE_SETTLE_MS = 400;
+const PROBES_ACROSS = [0, 48, -48];
+// a change of scale restyles every tile the dex holds, a frame of a quarter of a second or more with a thousand of
+// them, where a transform costs a frame nothing. So a window being dragged first shows the dex as it's drawn, stretched
+// to the scale it's going to and followed frame by frame, and it's drawn anew at that scale once, this long after the
+// last frame of the drag. A zoom step isn't shown that way (it was, for a day: the boxes eased to their size, spilled
+// off the screen where a step in regrouped them, then jumped to their places as it landed, a theme's page art with
+// them; the user's ask was the place kept, not a move): it's drawn at once, its place put back in the same frame.
+const LAND_MS = 140;
+// what makes that frame slow is the sealed tiles' flipping lines (FlipStrips): about seventy elements a tile against
+// the tile's own six, nine in ten of everything the dex holds, and the browser keeps the rows of them within some
+// 3000px of the screen drawn, six rows where two show. So the frame that draws the dex at a new scale takes the rows on
+// screen alone (data-unsettled: every other row's flips skipped outright, styles/tracker.scss), 100ms where it took
+// 250, and the rows around them come back after it, nearest first, this many overlays a frame (a row of boxes has three)
+const SETTLE_PER_FRAME = 3;
 
 function gutters (): number {
   return 2 * (scrollbarSize() + EDGE_ROOM);
@@ -58,32 +71,55 @@ function gutters (): number {
 
 interface Anchor {
   el: Element;
+  // a tile's or a row's mon, by which it's found again where the change drew it anew (a results chunk regrouped)
+  id?: string;
   // the point's place on it as a share of its height, which scales with it
   at: number;
   y: number;
 }
 
-// none at the very top, which stays the top; a point off the scroller (a wheel over the header) takes its middle
+// none at the very top, which stays the top; a point off the scroller (a wheel over the header) takes its middle, and
+// so does one beside the boxes (the paper either side of one box across), at the point's height
 function findAnchor (scroller: HTMLElement, x?: number, y?: number): Anchor | null {
   if (scroller.scrollTop < 1) {
     return null;
   }
   const view = scroller.getBoundingClientRect();
-  const px = x !== undefined && x >= view.left && x < view.right ? x : view.left + view.width / 2;
+  const middle = view.left + view.width / 2;
+  const px = x !== undefined && x >= view.left && x < view.right ? x : middle;
   const py = y !== undefined && y >= view.top && y < view.bottom ? y : view.top + view.height / 2;
-  for (const dy of PROBES) {
-    if (py + dy < view.top || py + dy >= view.bottom) {
-      continue;
-    }
-    for (const hit of document.elementsFromPoint(px, py + dy)) {
-      const el = hit.closest(ANCHORS);
-      if (el && scroller.contains(el)) {
-        const rect = el.getBoundingClientRect();
-        return { el, at: rect.height > 0 ? (py - rect.top) / rect.height : 0, y: py };
+  for (const across of px === middle ? [px] : [px, middle]) {
+    for (const dy of PROBES) {
+      if (py + dy < view.top || py + dy >= view.bottom) {
+        continue;
+      }
+      for (const dx of PROBES_ACROSS) {
+        for (const hit of document.elementsFromPoint(across + dx, py + dy)) {
+          const el = hit.closest<HTMLElement>(ANCHORS);
+          if (el && scroller.contains(el)) {
+            const rect = el.getBoundingClientRect();
+            return { el, id: el.dataset.pokemonId, at: rect.height > 0 ? (py - rect.top) / rect.height : 0, y: py };
+          }
+        }
       }
     }
   }
   return null;
+}
+
+// what the dex is drawn at: its scale and boxes across, the zoom asked for (as stored, which only a zoom changes: the
+// step it snaps to moves with the window where it's one that fits a number of boxes across), and whether a change from
+// it can be shown stretched first (the boxes and a search's results, which keep their width; the narrow list and the
+// ledger fill theirs, so they're drawn anew at once)
+interface Drawn {
+  scale: number;
+  columns: number;
+  zoom: number;
+  stretches: boolean;
+}
+
+function sameDrawn (a: Drawn, b: Drawn): boolean {
+  return a.scale === b.scale && a.columns === b.columns && a.zoom === b.zoom && a.stretches === b.stretches;
 }
 
 // two boxes span the width, scaled up or down to it, or one box where two would shrink below MIN_TWO_FIT; the height
@@ -164,6 +200,8 @@ function stepFrom (zoom: number, direction: number, steps: number[]): number {
 }
 
 interface DexScale {
+  // the scale and the boxes across the dex is drawn at: at once for a zoom step or boxes regrouped, and for a resize
+  // that keeps the boxes across once the window has come to rest (it's shown stretched till then)
   scale: number;
   columns: number;
   // rows of boxes the area shows at the scale, a partly shown one included: the screenful the dex opens on
@@ -177,10 +215,14 @@ interface DexScale {
   zoom: number;
   // counts zoom inputs, including ones already at a limit
   nudges: number;
+  // for the dex's own layout effect on its scale and columns: the place put back as soon as it's drawn at them, ahead
+  // of whatever places itself by its tiles after (the popover)
+  onRescaled: () => void;
 }
 
-// ref is the unscaled area below the nav; Ctrl+wheel, Ctrl+=/− and Ctrl+0 set the zoom (Cmd on macOS), Z resets it
-export function useDexScale (ref: RefObject<HTMLElement>, scroller: RefObject<HTMLElement>): DexScale {
+// ref is the unscaled area below the nav; Ctrl+wheel, Ctrl+=/− and Ctrl+0 set the zoom (Cmd on macOS), Z resets it.
+// ledger: the list is up in the boxes' place
+export function useDexScale (ref: RefObject<HTMLElement>, scroller: RefObject<HTMLElement>, ledger: boolean): DexScale {
   const [area, setArea] = useState({ width: 0, height: 0, header: HEADER_GUESS });
   // as it's laid out now, for the observer, which runs between renders
   const areaRef = useRef(area);
@@ -213,21 +255,24 @@ export function useDexScale (ref: RefObject<HTMLElement>, scroller: RefObject<HT
   const stepsRef = useRef(steps);
   stepsRef.current = steps;
 
-  // taken before a change of scale renders, restored in the same commit (below) so the old place never paints
+  // taken before a change of scale renders, and put back in the commit that draws the dex at the new one (rescaled,
+  // below), so the old place never paints; with the point it was taken at, where it's taken again as a stretch lands
   const anchorRef = useRef<Anchor | null>(null);
-  const rescaleTimer = useRef(0);
-  // during a burst, Tracker's off-screen data-near content goes back to skipped, so each frame lays out the screen alone
+  const pointRef = useRef<{ x?: number; y?: number }>({});
+  // a stretch under way: what the dex was drawn at as it began, and the timer it lands on (0 once that's run)
+  const stretchRef = useRef<{ from: Drawn; timer: number } | null>(null);
+  // the scale and columns the dex was last drawn at (0 till it's been measured: the scale it opens at is no change),
+  // and the frame its flips are coming back on
+  const settledRef = useRef({ scale: 0, columns: 0, frame: 0 });
+  const measuredRef = useRef(false);
+  measuredRef.current = area.width > 0;
   const holdPlace = useCallback((x?: number, y?: number) => {
     const el = scroller.current;
-    if (!el) {
-      return;
+    if (el && !stretchRef.current) {
+      pointRef.current = { x, y };
+      anchorRef.current ??= findAnchor(el, x, y);
     }
-    anchorRef.current ??= findAnchor(el, x, y);
-    el.toggleAttribute('data-rescaling', true);
-    window.clearTimeout(rescaleTimer.current);
-    rescaleTimer.current = window.setTimeout(() => el.removeAttribute('data-rescaling'), RESCALE_SETTLE_MS);
   }, [scroller]);
-  useEffect(() => () => window.clearTimeout(rescaleTimer.current), []);
 
   const applyZoom = useCallback((next: number, x?: number, y?: number) => {
     if (next !== stepFrom(zoomRef.current, 0, stepsRef.current)) {
@@ -287,15 +332,17 @@ export function useDexScale (ref: RefObject<HTMLElement>, scroller: RefObject<HT
         if (next.width === shown.width && next.height === shown.height && next.header === shown.header) {
           break;
         }
-        // a quarter down, as a resize from the bottom edge moves the middle
-        if (pass === 0 && scroller.current) {
+        // a quarter down, as a resize from the bottom edge moves the middle; each pass, the one before having used it
+        if (scroller.current) {
           const view = scroller.current.getBoundingClientRect();
           holdPlace(undefined, view.top + view.height / 4);
         }
         flushSync(() => setArea(next));
       }
-      // dropped when the fit didn't change, or a later scale change would restore it
-      anchorRef.current = null;
+      // dropped when the scale didn't change, or a later change would put it back
+      if (!stretchRef.current) {
+        anchorRef.current = null;
+      }
     };
     setArea({ width: el.clientWidth, height: el.clientHeight, header: header?.getBoundingClientRect().height ?? HEADER_GUESS });
     let frame = 0;
@@ -368,28 +415,148 @@ export function useDexScale (ref: RefObject<HTMLElement>, scroller: RefObject<HT
 
   // a stored value from another window size or an older step list snaps to the nearest step
   const steppedZoom = stepFrom(zoom, 0, steps);
-  const scale = fit * steppedZoom;
-  const columns = columnsAt(area.width, scale);
+  // where the window and the zoom put the dex now, and what it's drawn at: the same at rest. A resize that keeps the
+  // boxes across is shown stretched first; every other change is drawn at once: a zoom step, a resize that regroups the
+  // boxes (the fit's own change of columns, two boxes giving way to one, is no stretch of what's there), and whatever
+  // can't be shown stretched. A zoom step is told by the zoom asked for, not the step: at three boxes across, say, the
+  // step is whatever zoom fits three to the window, a new one every frame of a drag
+  const target: Drawn = {
+    scale: fit * steppedZoom,
+    columns: columnsAt(area.width, fit * steppedZoom),
+    zoom: Number.isFinite(zoom) ? zoom : 1,
+    stretches: area.width > NARROW_WIDTH && !ledger,
+  };
+  const [held, setHeld] = useState(target);
+  const direct = !target.stretches || !held.stretches || held.zoom !== target.zoom || held.columns !== target.columns;
+  if (direct && !sameDrawn(held, target)) {
+    setHeld(target);
+  }
+  const drawn = direct ? target : held;
+  const targetRef = useRef(target);
+  targetRef.current = target;
+  const drawnRef = useRef(drawn);
+  drawnRef.current = drawn;
 
-  // nudges too, so a place held for a zoom stopped at a limit is dropped
-  useLayoutEffect(() => {
-    const anchor = anchorRef.current;
-    anchorRef.current = null;
+  // run as a change renders, by the dex on what it's drawn at (onRescaled) and here on where it's going. On its way
+  // there, the dex is stretched to it about the place held (its top, at the top) and the landing put off; drawn there,
+  // or back where it began, the stretch comes off and the place goes back under the point it was held at
+  const rescaled = useCallback(() => {
     const el = scroller.current;
-    if (el && anchor?.el.isConnected) {
-      const rect = anchor.el.getBoundingClientRect();
-      el.scrollTop += rect.top + anchor.at * rect.height - anchor.y;
+    const dex = el?.querySelector<HTMLElement>(':scope > .dex');
+    if (!el || !dex) {
+      return;
     }
-  }, [scale, columns, nudges, scroller]);
+    const going = targetRef.current;
+    const shown = drawnRef.current;
+    const away = going.scale !== shown.scale;
+    // the stretch off, and the place back under its point; where the dex is drawn anew, the flips on screen with it
+    // and the rest after
+    const put = () => {
+      if (stretchRef.current) {
+        window.clearTimeout(stretchRef.current.timer);
+        stretchRef.current = null;
+        dex.style.transform = '';
+        dex.style.transformOrigin = '';
+        el.removeAttribute('data-rescaling');
+      }
+      const settled = settledRef.current;
+      const anew = measuredRef.current && settled.scale !== 0 && (settled.scale !== shown.scale || settled.columns !== shown.columns);
+      if (measuredRef.current) {
+        settled.scale = shown.scale;
+        settled.columns = shown.columns;
+      }
+      // every overlay there now held back, before the first layout at the new scale, which the place's rects below
+      // force; one drawn after (a search's results, a row's first seal) isn't, as it's drawn at the new scale anyway
+      const flips = anew ? [...el.querySelectorAll('.flip-overlay')] : [];
+      if (flips.length > 0) {
+        cancelAnimationFrame(settled.frame);
+        flips.forEach((flip) => flip.setAttribute('data-unsettled', ''));
+      }
+      const anchor = anchorRef.current;
+      anchorRef.current = null;
+      const at = anchor && (anchor.el.isConnected ? anchor.el : anchor.id ? el.querySelector(`[data-pokemon-id='${anchor.id}']`) : null);
+      if (anchor && at) {
+        const rect = at.getBoundingClientRect();
+        const off = rect.top + anchor.at * rect.height - anchor.y;
+        if (Math.abs(off) >= 0.5) {
+          el.scrollTop += off;
+        }
+      }
+      if (flips.length > 0) {
+        const view = el.getBoundingClientRect();
+        const ranked = flips.map((flip) => {
+          const rect = flip.getBoundingClientRect();
+          return { flip, by: Math.max(0, view.top - rect.bottom, rect.top - view.bottom) };
+        }).sort((a, b) => a.by - b.by);
+        let next = ranked.findIndex(({ by }) => by > 0);
+        next = next === -1 ? ranked.length : next;
+        ranked.slice(0, next).forEach(({ flip }) => flip.removeAttribute('data-unsettled'));
+        const more = () => {
+          ranked.slice(next, next + SETTLE_PER_FRAME).forEach(({ flip }) => flip.removeAttribute('data-unsettled'));
+          next += SETTLE_PER_FRAME;
+          if (next < ranked.length) {
+            settled.frame = requestAnimationFrame(more);
+          }
+        };
+        if (next < ranked.length) {
+          settled.frame = requestAnimationFrame(more);
+        }
+      }
+    };
+    // drawn anew since its stretch began (landed, or regrouped by a resize), or landed back where it began; or with no
+    // stretch, a change drawn at once
+    const before = stretchRef.current;
+    if (before ? before.from !== shown || (!away && before.timer === 0) : !away) {
+      put();
+    }
+    const stretch = stretchRef.current;
+    if (!away && !stretch) {
+      return;
+    }
+    if (!stretch) {
+      // (a step on from one that's just landed takes the place anew)
+      anchorRef.current ??= findAnchor(el, pointRef.current.x, pointRef.current.y);
+      const anchor = anchorRef.current;
+      // in the dex's own px, which its zoom scales
+      dex.style.transformOrigin = `50% ${anchor ? (anchor.y - dex.getBoundingClientRect().top) / shown.scale : 0}px`;
+    }
+    el.setAttribute('data-rescaling', '');
+    dex.style.transform = `scale(${going.scale / shown.scale})`;
+    window.clearTimeout(stretch?.timer);
+    const timer = window.setTimeout(() => {
+      const landing = stretchRef.current;
+      if (!landing) {
+        return;
+      }
+      landing.timer = 0;
+      // the place as it's come to be shown, a scroll since the stretch began and all
+      anchorRef.current = findAnchor(el, pointRef.current.x, pointRef.current.y);
+      if (sameDrawn(targetRef.current, drawnRef.current)) {
+        // back where it began (a window dragged out and back): nothing to draw anew
+        rescaledRef.current();
+      } else {
+        setHeld(targetRef.current);
+      }
+    }, LAND_MS);
+    stretchRef.current = { from: stretch?.from ?? shown, timer };
+  }, [scroller]);
+  const rescaledRef = useRef(rescaled);
+  rescaledRef.current = rescaled;
+  useLayoutEffect(rescaled, [rescaled, drawn.scale, drawn.columns, target.scale]);
+  useEffect(() => () => {
+    window.clearTimeout(stretchRef.current?.timer);
+    cancelAnimationFrame(settledRef.current.frame);
+  }, []);
 
   return {
-    scale,
-    columns,
-    rows: Math.max(1, Math.ceil((area.height - area.header) / ((BOX_HEIGHT + BOX_ROW_GAP) * scale))),
+    scale: drawn.scale,
+    columns: drawn.columns,
+    rows: Math.max(1, Math.ceil((area.height - area.header) / ((BOX_HEIGHT + BOX_ROW_GAP) * drawn.scale))),
     measured: area.width > 0,
     headerWidth: spanAt(area.width, fit),
-    flipLines: flipLinesAt(scale),
+    flipLines: flipLinesAt(drawn.scale),
     zoom: steppedZoom,
     nudges,
+    onRescaled: rescaled,
   };
 }

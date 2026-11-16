@@ -141,7 +141,7 @@ export function HotkeySheet ({ checklist, onClose }: Props) {
   const shown = (entry: { records?: boolean }) => !(checklist && entry.records);
 
   return (
-    <ModalShell closing={closing} contentLabel={t('help.title')} onDismiss={dismiss} wide>
+    <ModalShell closing={closing} contentLabel={t('help.title')} onDismiss={dismiss}>
       <div className="form hotkey-sheet">
         <h1>{t('help.title')}</h1>
         <div className="hotkey-groups">

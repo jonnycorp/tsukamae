@@ -93,14 +93,18 @@ export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
   nameNewBoxes((n) => t('free.box', { n }));
   const boxName = (box: FreeBox, i: number) => box.name || t('free.box', { n: i + 1 });
 
-  // the new mon's popover opens once its tile is there
+  // the new mon's popover opens once its tile is there, brought into view first where its box is off screen (the
+  // toolbar's Add fills the first box with room, or a new last one): the popover closes itself on a tile out of sight
   const add = (species: number, to: Slot) => {
     let id = 0;
     editDexes((state) => {
       id = addEntry(state, dex.id, species, to);
     });
     setPicking(null);
-    requestAnimationFrame(() => requestAnimationFrame(() => setSelectedPokemon(id)));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.querySelector(`.dex [data-pokemon-id='${id}']`)?.scrollIntoView({ block: 'nearest' });
+      setSelectedPokemon(id);
+    }));
   };
   const pickAt = (to: Slot) => (e: MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();

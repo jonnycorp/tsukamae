@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faClock, faGamepad, faLock, faMinus, faPlus, faRotateRight, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faGamepad, faMinus, faPlus, faRotateRight, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { LANGUAGE_ABBRS, ORIGIN_GAME_NAMES, findSave, nameLang } from '../../../utils/capture-fields';
@@ -141,7 +141,7 @@ const Mons = memo(function Mons ({ dex, layout, locale }: MonsProps) {
     <>
       {layout.sprites.map(({ capture, x, row, order, dated }) => (
         <div
-          className={classNames('tl-mon', { sealed: capture.sealed, temporary: capture.status === 'temporary', undated: !dated })}
+          className={classNames('tl-mon', { undated: !dated })}
           data-copy-name={displayName(capture.pokemon.name, capture.pokemon.name_ja, locale)}
           data-order={order}
           key={capture.pokemon.id}
@@ -209,7 +209,7 @@ interface Props {
 }
 
 // the dex's catches as a scene of their own: a title card slams in, the timeline's spine draws across, and every
-// marked mon drops onto the day it was caught, oldest first, while the stage pans along with them. Then it zooms
+// sealed mon drops onto the day it was caught, oldest first, while the stage pans along with them. Then it zooms
 // (Ctrl+wheel, + and −, or the bar's buttons) and pans (drag, wheel, Shift+wheel) like a map
 export function Timeline ({ onClose, onLocate }: Props) {
   const { activeDex, activeDexView } = useDexContext();
@@ -587,8 +587,6 @@ export function Timeline ({ onClose, onLocate }: Props) {
       <div className="tl-card" style={{ left: x, '--card-x': x, '--track-w': trackWidth, ...place } as CSSProperties}>
         <b>
           <PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} />
-          {capture.sealed && <FontAwesomeIcon className="tl-card-mark sealed" icon={faLock} title={t('seal.sealed')} />}
-          {capture.status === 'temporary' && <FontAwesomeIcon className="tl-card-mark" icon={faClock} title={t('status.temporary')} />}
         </b>
         {capture.has_nickname && capture.nickname &&
           <span className="tl-card-nickname" lang={nameLang(capture.nickname, capture.language)}>{capture.nickname}</span>

@@ -1,4 +1,4 @@
-import { copyKind, everyDex } from '../../../utils/copies';
+import { everyDex, isCopy } from '../../../utils/copies';
 import { getCatalogDex } from '../../../utils/local-data';
 
 import type { Capture, CapturePokemon } from '../../../types';
@@ -54,7 +54,7 @@ export function atlas (dexes: PersonalDex[], activeId: string, activeCaptures: C
     for (const capture of captures) {
       const national = capture.pokemon.national_id;
       const state = stateOf(capture, Boolean(dex.checklist));
-      if (copyKind(capture, dex) === 'copy') {
+      if (isCopy(capture, dex)) {
         copies.set(national, (copies.get(national) ?? 0) + 1);
         holds.add(national);
       }

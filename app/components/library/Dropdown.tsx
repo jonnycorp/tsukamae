@@ -49,7 +49,6 @@ function guardLabels () {
 // the menu is position: fixed so no overflow ancestor (modal, popover body) can clip it
 export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, align = 'start' }: Props) {
   const [open, setOpen] = useState(false);
-  const [up, setUp] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -118,7 +117,6 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       menu.scrollTop = ((chosen.previousElementSibling as HTMLElement | null) ?? chosen).offsetTop;
     }
     menu.style.animation = '';
-    setUp(!below);
     setActive(Math.max(0, all.findIndex((option) => option.value === value)));
   }, [open]);
 
@@ -254,7 +252,7 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
         <FontAwesomeIcon className="dropdown-chevron" icon={faChevronDown} />
       </button>
       {open &&
-        <ul className="dropdown-menu" data-up={up || undefined} ref={menuRef} role="listbox">
+        <ul className="dropdown-menu" ref={menuRef} role="listbox">
           {all.map((option, index) => (
             <li
               aria-selected={option.value === value}

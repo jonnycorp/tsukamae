@@ -11,6 +11,7 @@ import { OriginMark } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { boxTitle } from './Box';
 import { defaultStatus } from '../../../utils/local-data';
+import { MOD_KEY } from '../../../utils/platform';
 import { dexNumber, groupBoxes, iconClass } from '../../../utils/pokemon';
 import { filterMatcher, queryMatcher } from './filters';
 import { STATE_KEYS, groupCaptures, sortCaptures, stateOf } from './ledger-model';
@@ -487,7 +488,7 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
                   className={classNames('ledger-check', { on: allSelected })}
                   onClick={toggleAllShown}
                   role="checkbox"
-                  title={selection.size > 0 ? `${t('batch.clear')} (Esc)` : `${t('batch.selectAll')} (Ctrl+A)`}
+                  title={selection.size > 0 ? `${t('batch.clear')} (Esc)` : `${t('batch.selectAll')} (${MOD_KEY}+A)`}
                   type="button"
                 >
                   {allSelected && <FontAwesomeIcon icon={faCheck} />}

@@ -37,11 +37,13 @@ interface Props {
   setQuery: Dispatch<SetStateAction<string>>;
   // a scene the filter came from, on a tab in the filters' row (FilterBar)
   source?: FilterSource;
+  // screen px the boxes span at 100% (useDexScale's headerWidth)
+  width: number;
 }
 
 // the dex's header: its name (a menu of the scenes, the layouts and Edit Dex) and tags, the search in the middle with
 // the flips' pause after it; the meter, its centerpiece, across the whole width under them; the filters' row last
-export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac, onOpenReview, onOpenTimeline, query, setFilters, setQuery, source }: Props) {
+export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac, onOpenReview, onOpenTimeline, query, setFilters, setQuery, source, width }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { activeDex } = useDexContext();
   const { captures } = useTrackerState();
@@ -95,7 +97,7 @@ export function SearchBar ({ filters, flipPause, layout, onLayout, onOpenAlmanac
   };
 
   return (
-    <div className="dex-search-bar" style={{ zoom: scale, '--header-zoom': scale } as CSSProperties}>
+    <div className="dex-search-bar" style={{ zoom: scale, '--header-zoom': scale, '--dex-header-width': `${width}px` } as CSSProperties}>
       <div className="dex-search-bar-inner">
         <div className="dex-search-bar-top">
           <div className="dex-search-bar-summary">

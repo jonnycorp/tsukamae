@@ -13,8 +13,6 @@ $tl-accent: var(--accent);
 // under the lettering on the accent (themes.ts shadowFor): off the accent and off the lettering both
 $tl-shadow: var(--accent-shadow);
 $tl-on-accent: var(--on-accent);
-// a sealed mon's glow on the ground under it, in the caught colour the sealed tiles wear
-$tl-seal: var(--status-caught);
 $tl-spine-bottom: 96px;
 $tl-slot-w: 40px;
 $tl-slot-h: 34px;
@@ -327,23 +325,6 @@ $tl-spine-at: 1s;
     zoom: 2;
   }
 
-  // a placeholder, openly waiting on a better catch
-  &.temporary {
-    --tl-mon-opacity: .5;
-  }
-
-  // sealed: a glow on the ground under it in the sealed tiles' caught colour
-  &.sealed::before {
-    content: '';
-    position: absolute;
-    right: 3px;
-    bottom: -2px;
-    left: 3px;
-    height: 12px;
-    border-radius: 50%;
-    background: radial-gradient(closest-side, color-mix(in srgb, #{$tl-seal} 80%, transparent), transparent);
-  }
-
   &.undated .pkicon {
     filter: grayscale(1) brightness(.85);
   }
@@ -356,7 +337,7 @@ $tl-spine-at: 1s;
 
 // once the last is down, the animations go, and with them a composited layer per mon
 .tl-stage.settled .tl-mon {
-  opacity: var(--tl-mon-opacity, 1);
+  opacity: 1;
   animation: none;
   transition: transform .12s ease-out;
 
@@ -398,17 +379,6 @@ $tl-spine-at: 1s;
   .tl-card-date {
     font-weight: 800;
     letter-spacing: 1px;
-  }
-
-  // sealed, or temporary, beside the name
-  .tl-card-mark {
-    margin-left: 6px;
-    font-size: 11px;
-    vertical-align: 1px;
-
-    &.sealed {
-      color: var(--on-overlay-muted);
-    }
   }
 
   // where it came from: the game's mark, the game and language, the OT, and a pad when that's one of your games
@@ -472,7 +442,7 @@ body:has(> .timeline) > .name-copied {
   }
 
   100% {
-    opacity: var(--tl-mon-opacity, 1);
+    opacity: 1;
     transform: none;
   }
 }
