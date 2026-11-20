@@ -5,23 +5,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BALL_NAMES } from '../../../../utils/capture-fields';
 import { LabTip } from './LabTip';
 import { Scene, SceneMon } from '../Scene';
+import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
 import { displayName } from '../../../library/PokemonName';
 import { alpha, easeOut, fitCanvas, token, useCalm, useFrameLoop } from './lab-kit';
 import { localizeBall } from '../../../../i18n/names';
 import { useLabText } from './lab-i18n';
-import { useTrackerState } from '../use-tracker';
 
-import type { Capture } from '../../../../types';
 import type { LabProps } from './lab-kit';
+import type { LabRecord } from './LabScope';
 import type { PointerEvent as ReactPointerEvent, WheelEvent } from 'react';
 
-const DAY_MS = 86_400_000;
 // the spiral the balls sit along, by the order they were first used: its start out from the heart, and the room
 // between two balls along it
 const SPIRAL_START = 30;
 const SPIRAL_ROOM = 16;
 // the room the scrubber takes at the foot, which the galaxy is centred above
-const FOOT = 96;
+const FOOT = 130;
 // a ball's mons in rings round it: the first ring's gap from the ball, the step out, and how close they pack
 const RING_GAP = 9;
 const RING_STEP = 5.5;
@@ -29,14 +28,24 @@ const RING_PITCH = 7;
 // one turn of the whole galaxy, and of a mon round its ball (an outer ring slower)
 const GALAXY_TURN = 420_000;
 const ORBIT_TURN = 26_000;
-// the replay on opening: the whole history in this long, a newly caught mon flying out to its ring in FLY_MS
-const REPLAY_MS = 7000;
+// the replay runs through your catches in order, not through the calendar, so a year with none passes in no time: each
+// catch its own step, the whole run at least MIN_REPLAY_MS and at most MAX_REPLAY_MS; a newly caught mon flies out to
+// its ring in FLY_MS
+const STEP_MS = 14;
+const MIN_REPLAY_MS = 5000;
+const MAX_REPLAY_MS = 16_000;
 const FLY_MS = 900;
+// how long a newly reached ball is named under the date
+const ARRIVAL_MS = 2200;
+// the zoom the camera keeps to while it follows the replay out, at most
 const TIP_MONS = 24;
 
+const FOLLOW_ZOOM = 2.2;
+
 interface Mote {
-  capture: Capture;
-  born: number;
+  record: LabRecord;
+  // its place in the order of your catches
+  index: number;
   ring: number;
   angle: number;
   radius: number;
@@ -46,10 +55,12 @@ interface Body {
   ball: string;
   // how far round the spiral (radians)
   theta: number;
-  mons: Capture[];
+  mons: LabRecord[];
   motes: Mote[];
-  first: number;
-  last: number;
+  // its first mon's place in the order of catches, and its first and last days
+  firstIndex: number;
+  first: string;
+  last: string;
   pitch: number;
   x: number;
   y: number;
@@ -57,17 +68,20 @@ interface Body {
   reach: number;
 }
 
-const dayOf = (capture: Capture) => Date.parse(`${capture.catch_date}T00:00:00`);
-
-function buildBodies (captures: Capture[]): Body[] {
-  const groups = new Map<string, Capture[]>();
-  for (const capture of captures) {
-    groups.set(capture.ball!, [...(groups.get(capture.ball!) ?? []), capture]);
+// the records in the order they were caught, each ball's by its first, the earliest ball first
+function buildBodies (ordered: LabRecord[]): Body[] {
+  const index = new Map(ordered.map((record, i) => [record, i]));
+  const groups = new Map<string, LabRecord[]>();
+  for (const record of ordered) {
+    groups.set(record.capture.ball!, [...(groups.get(record.capture.ball!) ?? []), record]);
   }
-  const bodies = [...groups.entries()].map(([ball, mons]) => {
-    const sorted = [...mons].sort((a, b) => dayOf(a) - dayOf(b));
-    return { ball, mons: sorted, first: dayOf(sorted[0]), last: dayOf(sorted[sorted.length - 1]) };
-  }).sort((a, b) => a.first - b.first || b.mons.length - a.mons.length);
+  const bodies = [...groups.entries()].map(([ball, mons]) => ({
+    ball,
+    mons,
+    firstIndex: index.get(mons[0])!,
+    first: mons[0].capture.catch_date!,
+    last: mons[mons.length - 1].capture.catch_date!,
+  })).sort((a, b) => a.firstIndex - b.firstIndex);
 
   const sized = bodies.map((body) => {
     const size = Math.round(16 + 7 * Math.log2(1 + body.mons.length));
@@ -80,8 +94,8 @@ function buildBodies (captures: Capture[]): Body[] {
       const fits = Math.max(6, Math.floor((2 * Math.PI * radius) / RING_PITCH));
       const here = Math.min(fits, body.mons.length - placed);
       for (let k = 0; k < here; k++) {
-        const capture = body.mons[placed + k];
-        motes.push({ capture, born: dayOf(capture), ring, angle: (2 * Math.PI * k) / here + ring * 0.6, radius });
+        const record = body.mons[placed + k];
+        motes.push({ record, index: index.get(record)!, ring, angle: (2 * Math.PI * k) / here + ring * 0.6, radius });
       }
       placed += here;
       ring++;
@@ -104,22 +118,25 @@ function buildBodies (captures: Capture[]): Body[] {
 
 const spiralRadius = (theta: number, pitch: number) => SPIRAL_START + pitch * theta;
 
-// the ball galaxy: the balls you've used as a spiral galaxy, the first one ever used at its heart and each after it a
-// golden turn further out, so the spiral is the order your balls came into your life; a ball's size is how many mons
-// it holds, each mon a mote circling it in its first type's colour. It opens by replaying your history, every mon
-// flying out to its ball on the day it was caught; the bar at the foot scrubs or replays it. Drag to look around, wheel
-// to zoom; a ball pointed at shows its mons (close enough, a mote shows its mon) and pressed filters the dex to it
+// the ball galaxy: the balls you've used as a spiral galaxy, the first one ever used at its heart and each after it
+// further out along the arm, so the spiral is the order your balls came into your life; a ball's size is how many mons
+// it holds, each mon a mote circling it in its first type's colour. It opens by replaying your catches in order (a
+// step each, so a quiet year takes no longer than a busy day), the date large at the top, each ball named as it first
+// turns up and lit in the row of balls at the foot, the camera drawing back as the galaxy grows. The scrubber takes it
+// to any point. Drag to look around, wheel to zoom; a ball pointed at shows its mons (close enough, a mote shows its
+// mon) and pressed filters the dex to it. The open dex's balls, or every dex's together
 export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
-  const { captures } = useTrackerState();
   const { lt, locale } = useLabText();
   const calm = useCalm();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [scope, setScope] = useLabScope('galaxy');
+  const records = useScopedRecords(scope);
 
-  const usable = useMemo(() => captures.filter((capture) => capture.captured && capture.status !== 'unobtainable' &&
-    capture.ball && capture.ball !== 'unknown' && capture.catch_date), [captures]);
-  const bodies = useMemo(() => buildBodies(usable), [usable]);
-  const start = bodies.reduce((min, body) => Math.min(min, body.first), Infinity);
-  const end = bodies.reduce((max, body) => Math.max(max, body.last), -Infinity) + DAY_MS;
+  const ordered = useMemo(() => records.filter(({ capture }) => capture.captured && capture.status !== 'unobtainable' &&
+    capture.ball && capture.ball !== 'unknown' && capture.catch_date)
+  .sort((a, b) => a.capture.catch_date!.localeCompare(b.capture.catch_date!) || a.key.localeCompare(b.key)), [records]);
+  const bodies = useMemo(() => buildBodies(ordered), [ordered]);
+  const total = ordered.length;
 
   const images = useMemo(() => {
     const map = new Map<string, HTMLImageElement>();
@@ -131,47 +148,68 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     return map;
   }, [bodies]);
 
-  // the replay's day (ms), and whether it's playing; opened from the dex, or calm, it starts at the end
-  const [cursor, setCursor] = useState(() => (back || calm ? end : start));
-  const [playing, setPlaying] = useState(() => !back && !calm && bodies.length > 0);
+  // how many catches the replay has shown, and whether it's playing; opened from the dex, or calm, it starts at the end
+  const [cursor, setCursor] = useState(() => (back || calm ? total : 0));
+  const [playing, setPlaying] = useState(() => !back && !calm && total > 0);
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
+  // a scope switched starts the galaxy over, whole
+  const [shownScope, setShownScope] = useState(scope);
+  if (shownScope !== scope) {
+    setShownScope(scope);
+    setCursor(total);
+    setPlaying(false);
+  }
+  // the ball the replay last reached for the first time, named for a moment under the date
+  const [arrival, setArrival] = useState<{ ball: string; at: number } | null>(null);
 
   const [hot, setHot] = useState<{ body: Body; mote: Mote | null; x: number; y: number } | null>(null);
   const hotRef = useRef(hot);
   hotRef.current = hot;
 
-  // the camera, eased toward where it's asked to be
+  // the camera, eased toward where it's asked to be; following the replay out till it's moved by hand
   const camera = useRef({ x: 0, y: 0, zoom: 1, tx: 0, ty: 0, tzoom: 1 });
+  const follow = useRef(true);
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   // when each mote and ball came into view in the replay (performance.now()), for its flight out
-  const revealed = useRef(new Map<Capture, number>());
+  const revealed = useRef(new Map<LabRecord, number>());
   const ballsShown = useRef(new Map<string, number>());
   const spin = useRef(0);
   // the motes' clock, which the picking reads to find them where they're drawn
   const clock = useRef(0);
   const stars = useRef<{ x: number; y: number; r: number; a: number }[]>([]);
 
-  // the extent fitted to the window as it opens
-  useEffect(() => {
+  // the zoom that fits the balls reached so far in the window, above the foot
+  const fitZoom = (reachedCount: number) => {
     const canvas = canvasRef.current;
     if (!canvas) {
-      return;
+      return 1;
     }
-    const extent = bodies.reduce((most, body) => Math.max(most, Math.hypot(body.x, body.y) + body.reach), 200);
-    const fit = Math.min(1.6, Math.min(canvas.clientWidth, canvas.clientHeight - FOOT) / (2 * extent + 60));
-    Object.assign(camera.current, { zoom: fit * 0.8, tzoom: fit });
+    const extent = bodies.filter((body) => body.firstIndex < reachedCount)
+    .reduce((most, body) => Math.max(most, Math.hypot(body.x, body.y) + body.reach), 90);
+    return Math.min(FOLLOW_ZOOM, Math.min(canvas.clientWidth, canvas.clientHeight - FOOT) / (2 * extent + 80));
+  };
+
+  useEffect(() => {
+    const zoom = fitZoom(cursorRef.current || total);
+    Object.assign(camera.current, { x: 0, y: 0, tx: 0, ty: 0, zoom: zoom * 0.85, tzoom: zoom });
+    follow.current = true;
     stars.current = Array.from({ length: 220 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.2, a: Math.random() * 0.5 + 0.1 }));
+  // set once per galaxy built
   }, [bodies]);
 
-  // the replay: the cursor runs from the first day to the last over REPLAY_MS
+  // the replay: a catch every STEP_MS, the run kept between its floor and its ceiling
+  const replayMs = Math.min(MAX_REPLAY_MS, Math.max(MIN_REPLAY_MS, total * STEP_MS));
   useFrameLoop((_, dt) => {
-    const next = cursorRef.current + ((end - start) / REPLAY_MS) * dt;
-    if (next >= end) {
-      setCursor(end);
+    const before = Math.floor(cursorRef.current);
+    const next = Math.min(total, cursorRef.current + (total / replayMs) * dt);
+    const reached = bodies.find((body) => body.firstIndex >= before && body.firstIndex < Math.floor(next));
+    if (reached) {
+      setArrival({ ball: reached.ball, at: performance.now() });
+    }
+    setCursor(next);
+    if (next >= total) {
       setPlaying(false);
-    } else {
-      setCursor(next);
     }
   }, playing);
 
@@ -185,6 +223,9 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
     const cam = camera.current;
+    if (follow.current) {
+      cam.tzoom = fitZoom(Math.max(1, cursorRef.current));
+    }
     const ease = 1 - Math.pow(0.001, dt / 1000);
     cam.x += (cam.tx - cam.x) * ease * 3;
     cam.y += (cam.ty - cam.y) * ease * 3;
@@ -225,7 +266,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     const hotBody = hotRef.current?.body;
 
     // the spiral's arm, out as far as the newest ball the replay has reached, fading toward the heart
-    const reached = bodies.filter((body) => body.first <= cursorRef.current).pop();
+    const reached = bodies.filter((body) => body.firstIndex < cursorRef.current).pop();
     if (reached) {
       ctx.strokeStyle = accent;
       ctx.lineWidth = Math.max(1, 1.5 * cam.zoom);
@@ -248,7 +289,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     }
 
     for (const body of bodies) {
-      if (body.first > cursorRef.current) {
+      if (body.firstIndex >= cursorRef.current) {
         continue;
       }
       if (!ballsShown.current.has(body.ball)) {
@@ -260,19 +301,19 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       const lift = hotBody === body ? 1.15 : 1;
 
       for (const mote of body.motes) {
-        if (mote.born > cursorRef.current) {
+        if (mote.index >= cursorRef.current) {
           continue;
         }
-        if (!revealed.current.has(mote.capture)) {
-          revealed.current.set(mote.capture, playing ? now : now - 10_000);
+        if (!revealed.current.has(mote.record)) {
+          revealed.current.set(mote.record, playing ? now : now - 10_000);
         }
-        const fly = easeOut((now - revealed.current.get(mote.capture)!) / FLY_MS);
+        const fly = easeOut((now - revealed.current.get(mote.record)!) / FLY_MS);
         const period = ORBIT_TURN * (1 + mote.ring * 0.35);
         const a = mote.angle + (calm ? 0 : ((t / period) * Math.PI * 2) * (mote.ring % 2 ? -1 : 1));
         const r = mote.radius * fly * lift * cam.zoom;
         const mx = bx + Math.cos(a) * r;
         const my = by + Math.sin(a) * r * 0.92;
-        const color = typeColor(mote.capture.pokemon.types?.[0] ?? 'normal');
+        const color = typeColor(mote.record.capture.pokemon.types?.[0] ?? 'normal');
         const hotMote = hotRef.current?.mote === mote;
         ctx.globalAlpha = dim * (0.4 + 0.6 * fly);
         ctx.fillStyle = color;
@@ -318,7 +359,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     const wx = px * Math.cos(-turn) - py * Math.sin(-turn);
     const wy = px * Math.sin(-turn) + py * Math.cos(-turn);
     for (const body of bodies) {
-      if (body.first > cursorRef.current || Math.hypot(wx - body.x, wy - body.y) > body.reach) {
+      if (body.firstIndex >= cursorRef.current || Math.hypot(wx - body.x, wy - body.y) > body.reach) {
         continue;
       }
       const sx = rect.left + rect.width / 2 + ((body.x * Math.cos(turn) - body.y * Math.sin(turn)) - cam.x) * cam.zoom;
@@ -328,7 +369,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       if (cam.zoom > 1.8) {
         let best = 8;
         for (const candidate of body.motes) {
-          if (candidate.born > cursorRef.current) {
+          if (candidate.index >= cursorRef.current) {
             continue;
           }
           const period = ORBIT_TURN * (1 + candidate.ring * 0.35);
@@ -357,6 +398,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       const dy = e.clientY - held.y;
       if (held.moved || Math.hypot(dx, dy) > 4) {
         held.moved = true;
+        follow.current = false;
         const cam = camera.current;
         cam.tx -= dx / cam.zoom;
         cam.ty -= dy / cam.zoom;
@@ -381,13 +423,16 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     }
     const found = pick(e.clientX, e.clientY);
     if (found?.mote) {
-      onLocate(found.mote.capture.pokemon.id);
+      if (found.mote.record.here) {
+        onLocate(found.mote.record.capture.pokemon.id);
+      }
     } else if (found) {
       onFilter({ view: 'all', facets: { ball: [found.body.ball] } }, { scroll: 0 });
     }
   };
   const onWheel = (e: WheelEvent<HTMLCanvasElement>) => {
     const cam = camera.current;
+    follow.current = false;
     cam.tzoom = Math.min(6, Math.max(0.3, cam.tzoom * Math.exp(-e.deltaY * 0.0015)));
   };
 
@@ -408,19 +453,22 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       setPlaying(false);
       return;
     }
-    if (cursor >= end) {
+    if (cursor >= total) {
       revealed.current.clear();
       ballsShown.current.clear();
-      setCursor(start);
+      setCursor(0);
     }
+    follow.current = true;
     setPlaying(true);
   };
 
   const ballName = (ball: string) => localizeBall(locale, ball, BALL_NAMES.get(ball) ?? ball);
   const tag = locale === 'ja' ? 'ja-JP' : 'en-US';
-  const dateLabel = (ms: number) => new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(Math.min(ms, end - DAY_MS)));
-  const shownCount = usable.filter((capture) => dayOf(capture) <= cursor).length;
-  const shownBalls = bodies.filter((body) => body.first <= cursor).length;
+  const dateLabel = (iso: string) => new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(`${iso}T00:00:00`));
+  const shown = Math.floor(cursor);
+  const current = ordered[Math.max(0, Math.min(total, shown) - 1)];
+  const shownBalls = bodies.filter((body) => body.firstIndex < shown).length;
+  const arriving = arrival && performance.now() - arrival.at < ARRIVAL_MS ? arrival : null;
 
   return (
     <Scene hint={lt('galaxy.hint')} name="lab-galaxy" onClose={onClose} quiet={Boolean(back)} title={lt('galaxy.title')}>
@@ -438,27 +486,51 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
           />
           {bodies.length === 0 && <p className="lg-empty">{lt('galaxy.empty')}</p>}
           <div className="lg-readout" style={{ zoom: scale }}>
-            <b>{bodies.length > 0 ? dateLabel(cursor) : '—'}</b>
-            <span>{lt('galaxy.readout', { mons: shownCount, balls: shownBalls })}</span>
+            <b>{current ? dateLabel(current.capture.catch_date!) : '—'}</b>
+            <span>{lt('galaxy.readout', { mons: Math.min(shown, total), balls: shownBalls })}</span>
+            {arriving && (
+              <span className="lg-arrival" key={arriving.ball}>
+                <img alt="" height={24} src={`/balls/${arriving.ball}.png`} width={24} />
+                {lt('galaxy.newBall', { ball: ballName(arriving.ball) })}
+              </span>
+            )}
+          </div>
+          <div className="lg-scope" style={{ zoom: scale }}>
+            <ScopeSwitch onChange={setScope} scope={scope} />
           </div>
           {bodies.length > 0 && (
-            <div className="lg-scrub" style={{ zoom: scale }}>
-              <button aria-label={lt(playing ? 'galaxy.pause' : 'galaxy.play')} onClick={toggle} type="button">
-                <FontAwesomeIcon icon={playing ? faPause : faPlay} />
-              </button>
-              <input
-                aria-label={lt('galaxy.scrub')}
-                max={end}
-                min={start}
-                onChange={(e) => {
-                  setPlaying(false);
-                  setCursor(Number(e.target.value));
-                }}
-                step={DAY_MS}
-                type="range"
-                value={Math.min(cursor, end)}
-              />
-              <span>{lt('galaxy.legend')}</span>
+            <div className="lg-foot" style={{ zoom: scale }}>
+              <div className="lg-balls">
+                {bodies.map((body) => (
+                  <img
+                    alt={ballName(body.ball)}
+                    className={body.firstIndex < shown ? 'on' : undefined}
+                    height={26}
+                    key={body.ball}
+                    src={`/balls/${body.ball}.png`}
+                    title={ballName(body.ball)}
+                    width={26}
+                  />
+                ))}
+              </div>
+              <div className="lg-scrub">
+                <button aria-label={lt(playing ? 'galaxy.pause' : 'galaxy.play')} onClick={toggle} type="button">
+                  <FontAwesomeIcon icon={playing ? faPause : faPlay} />
+                </button>
+                <input
+                  aria-label={lt('galaxy.scrub')}
+                  max={total}
+                  min={1}
+                  onChange={(e) => {
+                    setPlaying(false);
+                    setCursor(Number(e.target.value));
+                  }}
+                  step={1}
+                  type="range"
+                  value={Math.max(1, Math.min(shown, total))}
+                />
+              </div>
+              <span className="lg-legend">{lt('galaxy.legend')}</span>
             </div>
           )}
           {hot && (
@@ -467,11 +539,11 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
                 ? (
                   <>
                     <span className="lg-tip-head">
-                      <SceneMon pokemon={hot.mote.capture.pokemon} />
-                      <strong>{displayName(hot.mote.capture.pokemon.name, hot.mote.capture.pokemon.name_ja, locale)}</strong>
+                      <SceneMon pokemon={hot.mote.record.capture.pokemon} />
+                      <strong>{displayName(hot.mote.record.capture.pokemon.name, hot.mote.record.capture.pokemon.name_ja, locale)}</strong>
                     </span>
-                    <small>{ballName(hot.body.ball)} · {dateLabel(hot.mote.born)}</small>
-                    <em>{lt('galaxy.pressMon')}</em>
+                    <small>{dateLabel(hot.mote.record.capture.catch_date!)}{scope === 'all' ? ` · ${hot.mote.record.dex.title}` : ''}</small>
+                    {hot.mote.record.here && <em>{lt('galaxy.pressMon')}</em>}
                   </>
                 )
                 : (
@@ -482,7 +554,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
                     </span>
                     <small>{lt('galaxy.ballFacts', { n: hot.body.mons.length, first: dateLabel(hot.body.first), last: dateLabel(hot.body.last) })}</small>
                     <span className="lab-tip-mons">
-                      {hot.body.mons.slice(-TIP_MONS).reverse().map((capture) => <SceneMon key={capture.pokemon.id} pokemon={capture.pokemon} />)}
+                      {hot.body.mons.slice(-TIP_MONS).reverse().map((record) => <SceneMon key={record.key} pokemon={record.capture.pokemon} />)}
                     </span>
                     <em>{lt('galaxy.press')}</em>
                   </>

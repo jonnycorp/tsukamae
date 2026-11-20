@@ -32,43 +32,129 @@
   text-align: center;
 }
 
+// the date front and centre over the galaxy; the count under it, and a ball newly reached named
+// for a moment under that
+@keyframes lg-arrival {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  12%,
+  75% {
+    opacity: 1;
+    transform: none;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lg-ball-on {
+  0% {
+    transform: scale(.4);
+  }
+
+  60% {
+    transform: scale(1.35);
+  }
+}
+
 .lg-readout {
   display: flex;
   position: absolute;
-  top: 20px;
-  left: 26px;
+  top: 18px;
+  left: 50%;
   flex-direction: column;
+  align-items: center;
+  gap: 2px;
   pointer-events: none;
+  transform: translateX(-50%);
 
   b {
     font-family: $font-secondary;
-    font-size: 30px;
+    font-size: 40px;
     font-weight: 200;
     letter-spacing: 1px;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 2px 18px var(--paper);
   }
 
-  span {
+  > span {
     color: var(--ink-muted);
 
     @include small-text(13px);
   }
 }
 
-.lg-scrub {
-  display: grid;
+.lg-arrival {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 3px 12px 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 99px;
+  background-color: color-mix(in srgb, var(--paper-raised) 80%, transparent);
+  color: var(--ink);
+  animation: lg-arrival 2.2s ease-out both;
+
+  @include small-text(12px);
+
+  img {
+    image-rendering: pixelated;
+  }
+}
+
+.lg-scope {
+  position: absolute;
+  top: 20px;
+  right: 26px;
+}
+
+.lg-foot {
+  display: flex;
   position: absolute;
   right: 26px;
-  bottom: 18px;
+  bottom: 14px;
   left: 26px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+// every ball in the order it first turned up, lit once the replay reaches it
+.lg-balls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+
+  img {
+    filter: brightness(0);
+    opacity: .18;
+    image-rendering: pixelated;
+    transition: opacity .3s, filter .3s;
+
+    &.on {
+      filter: none;
+      opacity: 1;
+      animation: lg-ball-on .45s cubic-bezier(.2, 1.4, .4, 1);
+    }
+  }
+}
+
+.lg-scrub {
+  display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 6px 14px;
+  gap: 14px;
 
   button {
     display: grid;
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border: 1px solid var(--line);
     border-radius: 50%;
     background-color: var(--paper-raised);
@@ -87,13 +173,13 @@
     width: 100%;
     accent-color: var(--accent);
   }
+}
 
-  span {
-    grid-column: 2;
-    color: var(--ink-muted);
+.lg-legend {
+  color: var(--ink-muted);
+  text-align: center;
 
-    @include small-text(11px);
-  }
+  @include small-text(11px);
 }
 
 .lg-tip-head {

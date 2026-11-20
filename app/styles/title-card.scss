@@ -2,13 +2,16 @@
 @use 'mixins' as *;
 
 // a scene's title card (components/pages/Tracker/TitleCard.tsx: the timeline, the review, the almanac, a page in the
-// scene frame), over the scene below its bar: a slash of the accent cuts open across it, the scene's name slams down
-// onto it with a flash and a shake, the dex's name slides in under it, then the card clears. In step with CARD_MS and REVEAL_MS there, and with the
-// timeline's INTRO_MS. It lets every click through to the scene, which skips it. Every part that moves is a layer of
-// its own from the first frame (will-change), so none is set up mid-motion, and moves only by transform and opacity,
-// which the compositor runs off the page's thread: the scene building itself under it can't make it judder
-$card-slam-at: .26s;
-$card-impact-at: .42s;
+// scene frame), over the scene below its bar: the page's own paper, a hairline of the accent drawn out from the middle,
+// the scene's name rising up through it as its letters close in, the dex's name fading in under the line; then the
+// whole card lifts away. In step with CARD_MS and REVEAL_MS there, and with the timeline's INTRO_MS. It lets every
+// click through to the scene, which skips it. Every part that moves is a layer of its own from the first frame
+// (will-change), so none is set up mid-motion, and moves only by transform and opacity, which the compositor runs off
+// the page's thread: the scene building itself under it can't make it judder
+$card-ease: cubic-bezier(.16, 1, .3, 1);
+$card-line-at: .05s;
+$card-name-at: .16s;
+$card-sub-at: .42s;
 $card-clear-at: 1.05s;
 
 .title-card {
@@ -16,86 +19,73 @@ $card-clear-at: 1.05s;
   inset: $nav-height 0 0;
   z-index: 10;
   overflow: hidden;
+  background:
+    radial-gradient(60% 50% at 50% 50%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    var(--paper);
   font-family: $font-secondary;
   pointer-events: none;
   will-change: transform, opacity;
-  animation: title-card-shake .3s linear $card-impact-at, title-card-clear .3s ease-in $card-clear-at both;
+  animation: title-card-clear .3s ease-in $card-clear-at both;
 }
 
-.title-card-flash {
-  position: absolute;
-  inset: 0;
-  background-color: var(--shine);
-  opacity: 0;
-  will-change: opacity;
-  // forwards, not both: the flash's first frame mustn't hold through the delay
-  animation: title-card-flash .35s ease-out $card-impact-at forwards;
-}
-
-// across the window at its slant with room to spare (160vw), so its ends are never in sight: it opens out from a cut
-// along its middle rather than sliding in along itself, which showed its end crossing the window as a bar of its own
-.title-card-slash {
+// the hairline across the middle, drawn out both ways from its centre
+.title-card-rule {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 160vw;
-  height: 30vh;
-  margin: -15vh 0 0 -80vw;
-  background-color: var(--accent);
-  box-shadow: 0 0 0 10px var(--paper), 0 0 0 16px var(--accent);
-  transform: rotate(-14deg);
-  will-change: transform;
-  animation: title-card-slash .42s cubic-bezier(.25, 1.35, .45, 1) .08s both;
+  width: min(70vw, 900px);
+  height: 2px;
+  margin-left: max(-35vw, -450px);
+  background: linear-gradient(90deg, transparent, var(--accent) 20%, var(--accent) 80%, transparent);
+  transform-origin: center;
+  will-change: transform, opacity;
+  animation: title-card-rule .7s $card-ease $card-line-at both;
 }
 
+// the name above the line, coming up through it (its box clips it at the line)
 .title-card-title {
   position: absolute;
-  top: 50%;
   right: 0;
+  bottom: 50%;
   left: 0;
+  padding-bottom: 14px;
+  overflow: hidden;
   text-align: center;
-  transform: translateY(-62%);
 
   // the window's size, or smaller where a long name would run past the card (--fit, TitleCard), on one line
   span {
     display: inline-block;
-    color: var(--on-accent);
-    font-size: calc(min(15vw, 190px) * var(--fit, 1));
-    font-style: italic;
-    font-weight: 900;
-    letter-spacing: .04em;
-    line-height: 1;
-    text-shadow: .06em .06em 0 var(--accent-shadow);
-    text-transform: uppercase;
+    color: var(--ink);
+    font-size: calc(min(9vw, 112px) * var(--fit, 1));
+    font-weight: 300;
+    letter-spacing: .06em;
+    line-height: 1.05;
     white-space: nowrap;
     will-change: transform, opacity;
-    animation: title-card-slam .5s cubic-bezier(.2, 1.6, .4, 1) $card-slam-at both;
+    animation: title-card-name .75s $card-ease $card-name-at both;
   }
 }
 
 .title-card-sub {
   display: flex;
   position: absolute;
-  top: calc(50% + min(15vw, 190px) * var(--fit, 1) * .42);
+  top: calc(50% + 16px);
   right: 0;
   left: 0;
   justify-content: center;
 
   span {
     max-width: 80vw;
-    padding: 6px 40px;
     overflow: hidden;
-    background-color: var(--ink);
-    color: var(--paper);
-    font-size: min(3vw, 30px);
-    font-weight: 900;
-    letter-spacing: .12em;
+    color: var(--ink-muted);
+    font-size: min(2vw, 17px);
+    font-weight: 600;
+    letter-spacing: .4em;
     text-overflow: ellipsis;
     text-transform: uppercase;
     white-space: nowrap;
-    clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
     will-change: transform, opacity;
-    animation: title-card-sub .4s cubic-bezier(.2, .9, .3, 1) .55s both;
+    animation: title-card-sub .6s $card-ease $card-sub-at both;
   }
 }
 
@@ -107,83 +97,38 @@ $card-clear-at: 1.05s;
   @include small-text(11px);
   font-weight: 700;
   letter-spacing: 2px;
+  opacity: .7;
   text-transform: uppercase;
   animation: fade-in .3s ease-out .6s both;
 }
 
-@keyframes title-card-slash {
+@keyframes title-card-rule {
   from {
-    transform: rotate(-14deg) scaleY(0);
+    opacity: 0;
+    transform: scaleX(0);
   }
 }
 
-@keyframes title-card-slam {
-  0% {
+@keyframes title-card-name {
+  from {
     opacity: 0;
-    transform: skewX(-10deg) scale(2.6);
-  }
-
-  60% {
-    opacity: 1;
-    transform: skewX(-10deg) scale(.94);
-  }
-
-  100% {
-    opacity: 1;
-    transform: skewX(-10deg);
+    transform: translateY(70%);
   }
 }
 
 @keyframes title-card-sub {
   from {
     opacity: 0;
-    transform: translateX(60vw);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
+    transform: translateY(-6px);
   }
 }
 
-@keyframes title-card-flash {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes title-card-shake {
-  0%,
-  100% {
-    transform: none;
-  }
-
-  20% {
-    transform: translate(-7px, 4px);
-  }
-
-  40% {
-    transform: translate(6px, -4px);
-  }
-
-  60% {
-    transform: translate(-4px, 2px);
-  }
-
-  80% {
-    transform: translate(2px, -1px);
-  }
-}
-
-// a fade alone, which the compositor runs (a visibility in it would pull the whole of it back onto the page's thread);
-// cleared, the card draws nothing, and its clicks always went through
+// lifting away as it fades: a fade and a small rise alone, which the compositor runs (a visibility in it would pull
+// the whole of it back onto the page's thread); cleared, the card draws nothing, and its clicks always went through
 @keyframes title-card-clear {
   to {
     opacity: 0;
+    transform: translateY(-12px);
   }
 }
 

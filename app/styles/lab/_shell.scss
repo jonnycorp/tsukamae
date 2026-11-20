@@ -111,10 +111,12 @@ $lab-ease: cubic-bezier(.2, .9, .3, 1);
   pointer-events: none;
 }
 
+// the loupe lands softly: a short fade up from a little below, a beat after the pointer arrives, so passing over
+// things doesn't flash it; moved on to the next, it glides there rather than jumping
 @keyframes lab-tip-in {
   from {
     opacity: 0;
-    transform: translateY(4px) scale(.97);
+    transform: translateY(6px);
   }
 }
 
@@ -122,21 +124,23 @@ $lab-ease: cubic-bezier(.2, .9, .3, 1);
   display: flex;
   position: fixed;
   flex-direction: column;
-  gap: 6px;
-  min-width: 200px;
-  max-width: 340px;
-  padding: 10px 12px;
-  border: 1px solid var(--overlay-edge);
-  border-radius: 6px;
-  background-color: var(--overlay);
+  gap: 5px;
+  min-width: 170px;
+  max-width: 290px;
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--overlay-edge) 60%, transparent);
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--overlay) 78%, transparent);
   color: var(--on-overlay);
-  box-shadow: 0 14px 34px -14px var(--paper-shadow);
-  animation: lab-tip-in .16s ease-out both;
+  box-shadow: 0 12px 30px -18px var(--paper-shadow);
+  backdrop-filter: blur(8px);
+  transition: left .22s cubic-bezier(.2, .9, .3, 1), top .22s cubic-bezier(.2, .9, .3, 1);
+  animation: lab-tip-in .32s ease-out 70ms both;
 
   @include small-text(12px);
 
   strong {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   em,
@@ -150,5 +154,33 @@ $lab-ease: cubic-bezier(.2, .9, .3, 1);
 .lab-tip-mons {
   display: flex;
   flex-wrap: wrap;
-  max-width: 316px;
+  max-width: 266px;
+}
+
+// a sketch's scope: the open dex, or every dex (LabScope.tsx)
+.lab-scope {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+
+  button {
+    padding: 5px 13px;
+    border: 0;
+    border-radius: 99px;
+    background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: background-color .2s, color .2s;
+
+    &.on {
+      background-color: var(--accent);
+      color: var(--on-accent);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: .4;
+    }
+  }
 }

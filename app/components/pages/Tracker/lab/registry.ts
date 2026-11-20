@@ -1,9 +1,6 @@
 import { BallGalaxy } from './BallGalaxy';
-import { CatchCalendar } from './CatchCalendar';
 import { ChampionsRoster } from './ChampionsRoster';
 import { DexMosaic } from './DexMosaic';
-import { GameLanes } from './GameLanes';
-import { KanaBoard } from './KanaBoard';
 import { NatureGrid } from './NatureGrid';
 
 import type { ComponentType } from 'react';
@@ -24,11 +21,8 @@ export interface LabSketch {
 }
 
 export const LAB_SKETCHES: LabSketch[] = [
-  { id: 'calendar', title: 'calendar.title', blurb: 'calendar.blurb', glyph: '暦', records: true, component: CatchCalendar },
   { id: 'galaxy', title: 'galaxy.title', blurb: 'galaxy.blurb', glyph: '球', records: true, component: BallGalaxy },
-  { id: 'lanes', title: 'lanes.title', blurb: 'lanes.blurb', glyph: '跡', records: true, component: GameLanes },
   { id: 'champions', title: 'champions.title', blurb: 'champions.blurb', glyph: '覧', records: false, component: ChampionsRoster },
-  { id: 'kana', title: 'kana.title', blurb: 'kana.blurb', glyph: 'あ', records: false, component: KanaBoard },
   { id: 'mosaic', title: 'mosaic.title', blurb: 'mosaic.blurb', glyph: '壁', records: false, component: DexMosaic },
   { id: 'nature', title: 'nature.title', blurb: 'nature.blurb', glyph: '性', records: true, component: NatureGrid },
 ];
