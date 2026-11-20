@@ -1,5 +1,6 @@
 import { BallGalaxy } from './BallGalaxy';
 import { CatchCalendar } from './CatchCalendar';
+import { ChampionsRoster } from './ChampionsRoster';
 
 import type { ComponentType } from 'react';
 import type { LabKey } from './lab-i18n';
@@ -21,6 +22,7 @@ export interface LabSketch {
 export const LAB_SKETCHES: LabSketch[] = [
   { id: 'calendar', title: 'calendar.title', blurb: 'calendar.blurb', glyph: '暦', records: true, component: CatchCalendar },
   { id: 'galaxy', title: 'galaxy.title', blurb: 'galaxy.blurb', glyph: '球', records: true, component: BallGalaxy },
+  { id: 'champions', title: 'champions.title', blurb: 'champions.blurb', glyph: '覧', records: false, component: ChampionsRoster },
 ];
 
 export type LabSceneId = 'lab' | `lab:${string}`;

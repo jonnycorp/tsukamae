@@ -37,6 +37,21 @@ const ja = {
   'galaxy.ballFacts': '{n}匹・{first}〜{last}',
   'galaxy.press': '押すとこのボールで図鑑を絞り込み',
   'galaxy.pressMon': '押すと図鑑でこのポケモンへ',
+  'champions.title': 'チャンピオンズ一覧',
+  'champions.blurb': '今シーズン連れていけるポケモンの一覧。全図鑑から、いる・行った・未参加・未所持を表示',
+  'champions.hint': 'カードに合わせると持っている個体、押すと開いている図鑑でそのポケモンへ',
+  'champions.there': 'チャンピオンズにいる',
+  'champions.been': '行ったことがある',
+  'champions.held': '持っているが未参加',
+  'champions.none': '未所持',
+  'champions.reached': '参加済み',
+  'champions.updated': '{date}更新',
+  'champions.gen': '第{n}世代',
+  'champions.atChampions': 'チャンピオンズ',
+  'champions.inGame': 'ソフト',
+  'champions.beenShort': '参加済み',
+  'champions.noCopies': 'どの図鑑にもまだいません',
+  'champions.press': '押すと図鑑でこのポケモンへ',
 };
 
 type LabStrings = Record<keyof typeof ja, string>;
@@ -73,6 +88,21 @@ const en: LabStrings = {
   'galaxy.ballFacts': '{n} Pokémon · {first} to {last}',
   'galaxy.press': 'Press to filter the dex to this ball',
   'galaxy.pressMon': 'Press to go to this mon in the dex',
+  'champions.title': 'Champions Roster',
+  'champions.blurb': 'Every mon this season\'s Champions roster takes, and how far each has got with you across all your dexes',
+  'champions.hint': 'Point at a card to see your copies; press it to go to that mon in the open dex',
+  'champions.there': 'In Champions',
+  'champions.been': 'Been to Champions',
+  'champions.held': 'Held, never gone',
+  'champions.none': 'Not held',
+  'champions.reached': 'have been',
+  'champions.updated': 'Updated {date}',
+  'champions.gen': 'Gen {n}',
+  'champions.atChampions': 'Champions',
+  'champions.inGame': 'In a game',
+  'champions.beenShort': 'been',
+  'champions.noCopies': 'In none of your dexes yet',
+  'champions.press': 'Press to go to this mon in the dex',
 };
 
 const STRINGS: Record<Locale, LabStrings> = { ja, en };
