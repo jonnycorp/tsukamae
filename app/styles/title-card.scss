@@ -42,17 +42,20 @@ $card-clear-at: 1.05s;
   animation: title-card-rule .7s $card-ease $card-line-at both;
 }
 
-// the name above the line, coming up through it (its box clips it at the line)
+// the name above the line, coming up through it: its box runs from the card's top down to the line, the name stood on
+// its foot, so the clip there cuts only at the line; above, a face's tall ink (Meiryo's and Yu Gothic's kanji climb
+// past a line height this tight) has the whole card to rise into
 .title-card-title {
+  display: flex;
   position: absolute;
+  top: 0;
   right: 0;
   bottom: 50%;
   left: 0;
-  // room above the name for a tall glyph or an accent (é), which the clip would otherwise shave
-  padding-top: .3em;
+  align-items: flex-end;
+  justify-content: center;
   padding-bottom: 14px;
   overflow: hidden;
-  text-align: center;
 
   // the window's size, or smaller where a long name would run past the card (--fit, TitleCard), on one line
   span {
@@ -63,6 +66,8 @@ $card-clear-at: 1.05s;
     letter-spacing: .06em;
     line-height: 1.05;
     white-space: nowrap;
+    // its own box over that ink too, so its layer, drawn once and moved, holds the whole of it
+    padding-top: .25em;
     will-change: transform, opacity;
     animation: title-card-name .75s $card-ease $card-name-at both;
   }

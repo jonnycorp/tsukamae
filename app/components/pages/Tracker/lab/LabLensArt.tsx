@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 // the official artwork, as `yarn sprites:art` saves it (scripts/fetch-artwork.mjs): never committed, so a machine
 // without it shows the sprite as ever
 const REGIONAL = new Set(['alola', 'galar', 'hisui', 'paldea']);
-const artSrc = ({ national_id: national, form }: CapturePokemon, shiny: boolean, variety: string | null) =>
+export const artSrc = ({ national_id: national, form }: CapturePokemon, shiny: boolean, variety: string | null) =>
   `/artwork/${shiny ? 'shiny/' : ''}${national}${variety ? `-${variety}` : form && REGIONAL.has(form) ? `-${form}` : ''}.png`;
 
 // every species' other varieties with art saved (megas, Gigantamax, costumes), as the script lists them: read once

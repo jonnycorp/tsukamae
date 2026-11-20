@@ -2,14 +2,15 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { BALL_NAMES } from '../../../../utils/capture-fields';
-import { LabTip } from './LabTip';
-import { Scene, SceneMon } from '../Scene';
+import { BALL_NAMES, ORIGIN_GAME_NAMES } from '../../../../utils/capture-fields';
+import { GalaxyPanel } from './GalaxyPanel';
+import { Scene } from '../Scene';
 import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
-import { displayName } from '../../../library/PokemonName';
 import { alpha, easeOut, fitCanvas, token, useCalm, useFrameLoop, useKeys } from './lab-kit';
-import { localizeBall } from '../../../../i18n/names';
+import { displayName } from '../../../library/PokemonName';
+import { localizeBall, localizeOriginGame } from '../../../../i18n/names';
 import { useLabText } from './lab-i18n';
+import { useLocalStorage } from '../../../../hooks/use-local-storage';
 
 import type { LabProps } from './lab-kit';
 import type { LabRecord } from './LabScope';
@@ -35,12 +36,20 @@ const STEP_MS = 14;
 const MIN_REPLAY_MS = 5000;
 const MAX_REPLAY_MS = 16_000;
 const FLY_MS = 900;
-// how long a newly reached ball is named under the date
-const ARRIVAL_MS = 2200;
 // the zoom the camera keeps to while it follows the replay out, at most
-const TIP_MONS = 24;
-
 const FOLLOW_ZOOM = 2.2;
+// with a star picked, the galaxy and its orbits slow to this share of their speed, and what isn't picked dims to this
+const FOCUS_SPEED = 0.12;
+const FOCUS_DIM = 0.22;
+// the constellation: the stars caught just before and after the picked one, joined in order
+const TRAIL = 8;
+// the room the side panel takes at the right, which the galaxy's centre moves out of the way of
+const PANEL = 380;
+
+// three ways to look at a picked star (the switch at the top): its constellation with a panel at the side, the day it
+// was caught with every other star of that day lit, or its art large behind the whole galaxy
+export type GalaxyMode = 'constellation' | 'day' | 'backdrop';
+const MODES: GalaxyMode[] = ['constellation', 'day', 'backdrop'];
 
 interface Mote {
   record: LabRecord;
@@ -120,23 +129,35 @@ const spiralRadius = (theta: number, pitch: number) => SPIRAL_START + pitch * th
 
 // the ball galaxy: the balls you've used as a spiral galaxy, the first one ever used at its heart and each after it
 // further out along the arm, so the spiral is the order your balls came into your life; a ball's size is how many mons
-// it holds, each mon a mote circling it in its first type's colour. It opens by replaying your catches in order (a
-// step each, so a quiet year takes no longer than a busy day), the date large at the top, each ball named as it first
-// turns up and lit in the row of balls at the foot, the camera drawing back as the galaxy grows. The scrubber takes it
-// to any point. Drag to look around, wheel to zoom; a ball pointed at shows its mons (close enough, a mote shows its
-// mon) and pressed filters the dex to it. The open dex's balls, or every dex's together
+// it holds, each mon a star circling it in its first type's colour. It opens by replaying your catches in order (a step
+// each, so a quiet year takes no longer than a busy day), the date large at the top, each ball lit in the row at the
+// foot as it first turns up. Drag to look around, wheel to zoom; pointing at a star or a ball only names it, lightly.
+// Pressing a star picks it: the galaxy slows and dims round it, and Q and E step to the star caught before or after,
+// in the order you caught them. What a picked star shows is the mode's (MODES); a press on empty space, or Escape,
+// lets it go. Nothing here goes to the dex on its own; the panel offers it
 export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
   const { lt, locale } = useLabText();
   const calm = useCalm();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scope, setScope] = useLabScope('galaxy');
   const records = useScopedRecords(scope);
+  const [mode, setMode] = useLocalStorage<GalaxyMode>('labGalaxy.mode', 'constellation');
 
   const ordered = useMemo(() => records.filter(({ capture }) => capture.captured && capture.status !== 'unobtainable' &&
     capture.ball && capture.ball !== 'unknown' && capture.catch_date)
   .sort((a, b) => a.capture.catch_date!.localeCompare(b.capture.catch_date!) || a.key.localeCompare(b.key)), [records]);
   const bodies = useMemo(() => buildBodies(ordered), [ordered]);
   const total = ordered.length;
+  // each star by its place in the order of catches, with its ball
+  const stars = useMemo(() => {
+    const list: { body: Body; mote: Mote }[] = [];
+    for (const body of bodies) {
+      for (const mote of body.motes) {
+        list[mote.index] = { body, mote };
+      }
+    }
+    return list;
+  }, [bodies]);
 
   const images = useMemo(() => {
     const map = new Map<string, HTMLImageElement>();
@@ -158,32 +179,39 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     cursorRef.current = to;
     setCursor(to);
   };
-  // a scope switched starts the galaxy over, whole
+  // the picked star, by its place in the order of catches
+  const [focus, setFocus] = useState<number | null>(null);
+  const focusRef = useRef(focus);
+  focusRef.current = focus;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  // a scope switched starts the galaxy over, whole, nothing picked
   const [shownScope, setShownScope] = useState(scope);
   if (shownScope !== scope) {
     setShownScope(scope);
     cursorRef.current = total;
     setCursor(total);
     setPlaying(false);
+    setFocus(null);
   }
-  // the ball the replay last reached for the first time, named for a moment under the date
-  const [arrival, setArrival] = useState<{ ball: string; at: number } | null>(null);
 
-  const [hot, setHot] = useState<{ body: Body; mote: Mote | null; x: number; y: number } | null>(null);
-  const hotRef = useRef(hot);
-  hotRef.current = hot;
+  // what the pointer's over: a star or a ball, named lightly beside it on the canvas
+  const hover = useRef<{ body: Body; mote: Mote | null } | null>(null);
+  const [pointing, setPointing] = useState(false);
 
   // the camera, eased toward where it's asked to be; following the replay out till it's moved by hand
-  const camera = useRef({ x: 0, y: 0, zoom: 1, tx: 0, ty: 0, tzoom: 1 });
+  const camera = useRef({ x: 0, y: 0, zoom: 1, tx: 0, ty: 0, tzoom: 1, shift: 0 });
   const follow = useRef(true);
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
-  // when each mote and ball came into view in the replay (performance.now()), for its flight out
+  // when each star and ball came into view in the replay (performance.now()), for its flight out
   const revealed = useRef(new Map<LabRecord, number>());
   const ballsShown = useRef(new Map<string, number>());
+  // the galaxy's turn and the orbits' clock, each run at the speed of the moment (slowed with a star picked)
   const spin = useRef(0);
-  // the motes' clock, which the picking reads to find them where they're drawn
   const clock = useRef(0);
-  const stars = useRef<{ x: number; y: number; r: number; a: number }[]>([]);
+  const speed = useRef(1);
+  const focusFade = useRef(0);
+  const sky = useRef<{ x: number; y: number; r: number; a: number }[]>([]);
 
   // the zoom that fits the balls reached so far in the window, above the foot
   const fitZoom = (reachedCount: number) => {
@@ -200,7 +228,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     const zoom = fitZoom(cursorRef.current || total);
     Object.assign(camera.current, { x: 0, y: 0, tx: 0, ty: 0, zoom: zoom * 0.85, tzoom: zoom });
     follow.current = true;
-    stars.current = Array.from({ length: 220 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.2, a: Math.random() * 0.5 + 0.1 }));
+    sky.current = Array.from({ length: 220 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.2, a: Math.random() * 0.5 + 0.1 }));
   // set once per galaxy built
   }, [bodies]);
 
@@ -209,10 +237,6 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
   useFrameLoop((_, dt) => {
     const before = Math.floor(cursorRef.current);
     const next = Math.min(total, cursorRef.current + (total / replayMs) * dt);
-    const reached = bodies.find((body) => body.firstIndex >= before && body.firstIndex < Math.floor(next));
-    if (reached) {
-      setArrival({ ball: reached.ball, at: performance.now() });
-    }
     cursorRef.current = next;
     if (Math.floor(next) !== before || next >= total) {
       setCursor(next);
@@ -222,26 +246,50 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     }
   }, playing);
 
-  useFrameLoop((t, dt) => {
+  // a star's place on the screen, as it's drawn this frame
+  const view = (w: number, h: number) => {
+    const cam = camera.current;
+    const turn = calm ? 0 : (spin.current / GALAXY_TURN) * Math.PI * 2;
+    const cos = Math.cos(turn);
+    const sin = Math.sin(turn);
+    const cx = (w - cam.shift) / 2 - cam.x * cam.zoom;
+    const cy = (h - FOOT) / 2 - cam.y * cam.zoom;
+    const toScreen = (x: number, y: number): [number, number] => [cx + (x * cos - y * sin) * cam.zoom, cy + (x * sin + y * cos) * cam.zoom];
+    const lift = (body: Body) => (hover.current?.body === body && !hover.current.mote ? 1.12 : 1);
+    const starAt = (body: Body, mote: Mote, fly = 1): [number, number] => {
+      const [bx, by] = toScreen(body.x, body.y);
+      const period = ORBIT_TURN * (1 + mote.ring * 0.35);
+      const a = mote.angle + (calm ? 0 : ((clock.current / period) * Math.PI * 2) * (mote.ring % 2 ? -1 : 1));
+      const r = mote.radius * fly * lift(body) * cam.zoom;
+      return [bx + Math.cos(a) * r, by + Math.sin(a) * r * 0.92];
+    };
+    return { cx, cy, toScreen, starAt, lift };
+  };
+
+  useFrameLoop((_t, dt) => {
     const canvas = canvasRef.current;
     if (!canvas) {
       return;
     }
-    clock.current = t;
     const ctx = fitCanvas(canvas);
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
     const cam = camera.current;
+    const picked = focusRef.current !== null ? stars[focusRef.current] : undefined;
+    const ease = 1 - Math.pow(0.001, dt / 1000);
+    // slowed and dimmed round a picked star, the galaxy's centre moved out from under the panel
+    speed.current += ((picked ? FOCUS_SPEED : 1) - speed.current) * ease * 2;
+    focusFade.current += ((picked ? 1 : 0) - focusFade.current) * ease * 3;
+    cam.shift += ((picked && modeRef.current === 'constellation' ? Math.min(PANEL, w * 0.32) : 0) - cam.shift) * ease * 3;
     if (follow.current) {
       cam.tzoom = fitZoom(Math.max(1, cursorRef.current));
     }
-    const ease = 1 - Math.pow(0.001, dt / 1000);
     cam.x += (cam.tx - cam.x) * ease * 3;
     cam.y += (cam.ty - cam.y) * ease * 3;
     cam.zoom += (cam.tzoom - cam.zoom) * ease * 3;
-    // the turn holds while a ball's pointed at, so it stays under the pointer
-    if (!hotRef.current && !calm) {
-      spin.current += dt;
+    if (!calm) {
+      spin.current += dt * speed.current;
+      clock.current += dt * speed.current;
     }
     const now = performance.now();
     const dark = document.documentElement.dataset.mode === 'dark';
@@ -249,10 +297,17 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     const ink = token('--ink');
     const typeColors = new Map<string, string>();
     const typeColor = (type: string) => typeColors.get(type) ?? typeColors.set(type, token(`--type-${type}`)).get(type)!;
+    const { cx, cy, toScreen, starAt, lift } = view(w, h);
+    const fade = focusFade.current;
+    // what stays lit with a star picked: its constellation's run, or every star of its day
+    const pickedDay = picked?.mote.record.capture.catch_date;
+    const lit = (mote: Mote) => !picked || mote === picked.mote ||
+      (modeRef.current === 'day' ? mote.record.capture.catch_date === pickedDay
+        : modeRef.current === 'constellation' && Math.abs(mote.index - picked.mote.index) <= TRAIL);
 
     ctx.clearRect(0, 0, w, h);
     // the far stars, still, and a glow at the heart in the theme's accent
-    for (const star of stars.current) {
+    for (const star of sky.current) {
       ctx.globalAlpha = star.a * (dark ? 1 : 0.5);
       ctx.fillStyle = ink;
       ctx.beginPath();
@@ -260,19 +315,11 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    const cx = w / 2 - cam.x * cam.zoom;
-    const cy = (h - FOOT) / 2 - cam.y * cam.zoom;
     const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 420 * cam.zoom);
-    glow.addColorStop(0, alpha(accent, dark ? 0.28 : 0.16));
+    glow.addColorStop(0, alpha(accent, (dark ? 0.28 : 0.16) * (1 - fade * 0.5)));
     glow.addColorStop(1, alpha(accent, 0));
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, w, h);
-
-    const turn = calm ? 0 : (spin.current / GALAXY_TURN) * Math.PI * 2;
-    const cos = Math.cos(turn);
-    const sin = Math.sin(turn);
-    const toScreen = (x: number, y: number) => [cx + (x * cos - y * sin) * cam.zoom, cy + (x * sin + y * cos) * cam.zoom];
-    const hotBody = hotRef.current?.body;
 
     // the spiral's arm, out as far as the newest ball the replay has reached, fading toward the heart
     const reached = bodies.filter((body) => body.firstIndex < cursorRef.current).pop();
@@ -286,7 +333,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
         const theta = (reached.theta * k) / steps;
         const r = spiralRadius(theta, reached.pitch);
         const [sx, sy] = toScreen(Math.cos(theta) * r, Math.sin(theta) * r);
-        ctx.globalAlpha = 0.06 + 0.22 * (k / steps);
+        ctx.globalAlpha = (0.06 + 0.22 * (k / steps)) * (1 - fade * 0.6);
         ctx.beginPath();
         ctx.moveTo(lx, ly);
         ctx.lineTo(sx, sy);
@@ -297,6 +344,8 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       ctx.globalAlpha = 1;
     }
 
+    // where each lit star is this frame, for the lines between them
+    const placed = new Map<number, [number, number]>();
     for (const body of bodies) {
       if (body.firstIndex >= cursorRef.current) {
         continue;
@@ -306,8 +355,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       }
       const grow = easeOut((now - ballsShown.current.get(body.ball)!) / 700);
       const [bx, by] = toScreen(body.x, body.y);
-      const dim = hotBody && hotBody !== body ? 0.35 : 1;
-      const lift = hotBody === body ? 1.15 : 1;
+      const ballLit = !picked || body === picked.body || body.motes.some((mote) => lit(mote) && mote.index < cursorRef.current);
 
       for (const mote of body.motes) {
         if (mote.index >= cursorRef.current) {
@@ -317,17 +365,17 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
           revealed.current.set(mote.record, playing ? now : now - 10_000);
         }
         const fly = easeOut((now - revealed.current.get(mote.record)!) / FLY_MS);
-        const period = ORBIT_TURN * (1 + mote.ring * 0.35);
-        const a = mote.angle + (calm ? 0 : ((t / period) * Math.PI * 2) * (mote.ring % 2 ? -1 : 1));
-        const r = mote.radius * fly * lift * cam.zoom;
-        const mx = bx + Math.cos(a) * r;
-        const my = by + Math.sin(a) * r * 0.92;
+        const [mx, my] = starAt(body, mote, fly);
+        const on = lit(mote);
+        if (on && picked) {
+          placed.set(mote.index, [mx, my]);
+        }
         const color = typeColor(mote.record.capture.pokemon.types?.[0] ?? 'normal');
-        const hotMote = hotRef.current?.mote === mote;
-        ctx.globalAlpha = dim * (0.4 + 0.6 * fly);
+        const hovered = hover.current?.mote === mote;
+        ctx.globalAlpha = (on ? 1 : 1 - fade * (1 - FOCUS_DIM)) * (0.4 + 0.6 * fly);
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(mx, my, Math.max(1.2, (hotMote ? 4.2 : 2.3) * Math.min(1.4, cam.zoom)), 0, Math.PI * 2);
+        ctx.arc(mx, my, Math.max(1.2, (hovered ? 3.6 : 2.3) * Math.min(1.4, cam.zoom)), 0, Math.PI * 2);
         ctx.fill();
         // a newly caught mon's spark, once, as it lands
         if (fly < 1) {
@@ -340,60 +388,114 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       }
 
       const img = images.get(body.ball);
-      const size = body.size * cam.zoom * grow * lift;
-      ctx.globalAlpha = dim;
-      if (hotBody === body) {
-        ctx.fillStyle = alpha(accent, 0.35);
-        ctx.beginPath();
-        ctx.arc(bx, by, size * 0.75, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      const size = body.size * cam.zoom * grow * lift(body);
+      ctx.globalAlpha = ballLit ? 1 : 1 - fade * (1 - FOCUS_DIM - 0.1);
       if (img?.complete && img.naturalWidth > 0) {
         ctx.imageSmoothingEnabled = size < 32;
         ctx.drawImage(img, bx - size / 2, by - size / 2, size, size);
       }
       ctx.globalAlpha = 1;
     }
-  });
 
-  // the ball (and, close enough, the mote) under a point in the window
-  const pick = (clientX: number, clientY: number): { body: Body; mote: Mote | null; x: number; y: number } | null => {
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    const cam = camera.current;
-    const turn = calm ? 0 : (spin.current / GALAXY_TURN) * Math.PI * 2;
-    const px = (clientX - rect.left - rect.width / 2) / cam.zoom + cam.x;
-    const py = (clientY - rect.top - (rect.height - FOOT) / 2) / cam.zoom + cam.y;
-    // into the galaxy's own turn
-    const wx = px * Math.cos(-turn) - py * Math.sin(-turn);
-    const wy = px * Math.sin(-turn) + py * Math.cos(-turn);
-    for (const body of bodies) {
-      if (body.firstIndex >= cursorRef.current || Math.hypot(wx - body.x, wy - body.y) > body.reach) {
-        continue;
-      }
-      const sx = rect.left + rect.width / 2 + ((body.x * Math.cos(turn) - body.y * Math.sin(turn)) - cam.x) * cam.zoom;
-      const sy = rect.top + (rect.height - FOOT) / 2 + ((body.x * Math.sin(turn) + body.y * Math.cos(turn)) - cam.y) * cam.zoom;
-      let mote: Mote | null = null;
-      // a mote is near enough to pick once the galaxy's zoomed in on it, found where it's drawn
-      if (cam.zoom > 1.8) {
-        let best = 8;
-        for (const candidate of body.motes) {
-          if (candidate.index >= cursorRef.current) {
+    // a picked star: its constellation (the run caught before and after it, joined in order) or its day (a line out to
+    // every star caught that day), then the star itself ringed
+    if (picked && placed.has(picked.mote.index)) {
+      const [px, py] = placed.get(picked.mote.index)!;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = ink;
+      if (modeRef.current === 'constellation') {
+        let last: [number, number] | null = null;
+        for (let k = picked.mote.index - TRAIL; k <= picked.mote.index + TRAIL; k++) {
+          const at = placed.get(k);
+          if (!at) {
             continue;
           }
-          const period = ORBIT_TURN * (1 + candidate.ring * 0.35);
-          const a = candidate.angle + (calm ? 0 : ((clock.current / period) * Math.PI * 2) * (candidate.ring % 2 ? -1 : 1));
-          const r = candidate.radius * cam.zoom * (hotRef.current?.body === body ? 1.15 : 1);
-          const d = Math.hypot(clientX - sx - Math.cos(a) * r, clientY - sy - Math.sin(a) * r * 0.92);
-          if (d < best) {
-            best = d;
-            mote = candidate;
+          if (last) {
+            ctx.globalAlpha = fade * 0.5 * (1 - Math.abs(k - 0.5 - picked.mote.index) / (TRAIL + 1));
+            ctx.beginPath();
+            ctx.moveTo(last[0], last[1]);
+            ctx.lineTo(at[0], at[1]);
+            ctx.stroke();
+          }
+          last = at;
+        }
+      } else if (modeRef.current === 'day') {
+        for (const [k, at] of placed) {
+          if (k !== picked.mote.index) {
+            ctx.globalAlpha = fade * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(at[0], at[1]);
+            ctx.stroke();
           }
         }
       }
-      return { body, mote, x: sx + (body.reach * cam.zoom) / 2, y: sy };
+      const pulse = calm ? 0 : (Math.sin(now / 420) + 1) / 2;
+      ctx.globalAlpha = fade;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(px, py, 7 + pulse * 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = fade * 0.25;
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(px, py, 14 + pulse * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
     }
-    return null;
+
+    // what's pointed at, named in a whisper beside it
+    const pointed = hover.current;
+    if (pointed && !drag.current?.moved) {
+      const [x, y] = pointed.mote ? starAt(pointed.body, pointed.mote) : toScreen(pointed.body.x, pointed.body.y);
+      const { capture } = pointed.mote?.record ?? {};
+      const label = capture
+        ? `${displayName(capture.pokemon.name, capture.pokemon.name_ja, locale)}  ${capture.catch_date}`
+        : `${localizeBall(locale, pointed.body.ball, BALL_NAMES.get(pointed.body.ball) ?? pointed.body.ball)}  ${pointed.body.mons.length}`;
+      ctx.font = '12px sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = ink;
+      ctx.globalAlpha = 0.85;
+      const off = pointed.mote ? 10 : (pointed.body.size * cam.zoom) / 2 + 8;
+      ctx.fillText(label, x + off, y);
+      ctx.globalAlpha = 1;
+    }
+  });
+
+  // the star (or, failing one near enough, the ball) under a point in the window, found where it's drawn
+  const pick = (clientX: number, clientY: number): { body: Body; mote: Mote | null } | null => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const { toScreen, starAt } = view(rect.width, rect.height);
+    let best: { body: Body; mote: Mote | null } | null = null;
+    let bestD = 7;
+    for (const body of bodies) {
+      if (body.firstIndex >= cursorRef.current) {
+        continue;
+      }
+      const [bx, by] = toScreen(body.x, body.y);
+      if (Math.hypot(x - bx, y - by) > body.reach * camera.current.zoom + 8) {
+        continue;
+      }
+      for (const mote of body.motes) {
+        if (mote.index >= cursorRef.current) {
+          continue;
+        }
+        const [mx, my] = starAt(body, mote);
+        const d = Math.hypot(x - mx, y - my);
+        if (d < bestD) {
+          bestD = d;
+          best = { body, mote };
+        }
+      }
+      if (!best && Math.hypot(x - bx, y - by) < (body.size * camera.current.zoom) / 2 + 4) {
+        best = { body, mote: null };
+      }
+    }
+    return best;
   };
 
   const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -415,13 +517,13 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
         cam.y = cam.ty;
         held.x = e.clientX;
         held.y = e.clientY;
-        setHot(null);
+        hover.current = null;
         return;
       }
     }
-    const found = pick(e.clientX, e.clientY);
-    if (found?.body !== hot?.body || found?.mote !== hot?.mote) {
-      setHot(found);
+    hover.current = pick(e.clientX, e.clientY);
+    if (Boolean(hover.current) !== pointing) {
+      setPointing(Boolean(hover.current));
     }
   };
   const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -431,12 +533,10 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       return;
     }
     const found = pick(e.clientX, e.clientY);
-    if (found?.mote) {
-      if (found.mote.record.here) {
-        onLocate(found.mote.record.capture.pokemon.id);
-      }
-    } else if (found) {
-      onFilter({ view: 'all', facets: { ball: [found.body.ball] } }, { scroll: 0 });
+    // a ball picks its first star; empty space lets the picked one go
+    setFocus(found ? found.mote?.index ?? found.body.firstIndex : null);
+    if (found && playing) {
+      setPlaying(false);
     }
   };
   const onWheel = (e: WheelEvent<HTMLCanvasElement>) => {
@@ -445,12 +545,29 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     cam.tzoom = Math.min(6, Math.max(0.3, cam.tzoom * Math.exp(-e.deltaY * 0.0015)));
   };
 
-  // Space plays or pauses the replay
+  // Q and E step through the stars in the order you caught them (from nothing picked, E starts at the first and Q at
+  // the last), within what the replay has shown; Space plays or pauses; Escape lets a picked star go before it closes
+  const shown = Math.floor(cursor);
+  const step = (by: number) => {
+    const last = Math.max(0, Math.min(shown, total) - 1);
+    setFocus(focus === null ? (by > 0 ? 0 : last) : Math.max(0, Math.min(last, focus + by)));
+    setPlaying(false);
+  };
   useKeys((e) => {
-    if (e.key === ' ' && !e.repeat && !e.defaultPrevented) {
-      e.preventDefault();
-      toggle();
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) {
+      return;
     }
+    const key = e.key.toLowerCase();
+    if (key === ' ' && !e.repeat) {
+      toggle();
+    } else if ((key === 'q' || key === 'e') && total > 0) {
+      step(key === 'e' ? 1 : -1);
+    } else if (key === 'escape' && focus !== null) {
+      setFocus(null);
+    } else {
+      return;
+    }
+    e.preventDefault();
   });
 
   const toggle = () => {
@@ -458,6 +575,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
       setPlaying(false);
       return;
     }
+    setFocus(null);
     if (cursor >= total) {
       revealed.current.clear();
       ballsShown.current.clear();
@@ -470,39 +588,74 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
   const ballName = (ball: string) => localizeBall(locale, ball, BALL_NAMES.get(ball) ?? ball);
   const tag = locale === 'ja' ? 'ja-JP' : 'en-US';
   const dateLabel = (iso: string) => new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(`${iso}T00:00:00`));
-  const shown = Math.floor(cursor);
-  const current = ordered[Math.max(0, Math.min(total, shown) - 1)];
+  const picked = focus !== null ? stars[focus] : undefined;
+  // the date at the top: the picked star's, or the replay's
+  const current = picked?.mote.record ?? ordered[Math.max(0, Math.min(total, shown) - 1)];
   const shownBalls = bodies.filter((body) => body.firstIndex < shown).length;
-  const arriving = arrival && performance.now() - arrival.at < ARRIVAL_MS ? arrival : null;
+  const sameDay = picked ? ordered.filter(({ capture }) => capture.catch_date === picked.mote.record.capture.catch_date) : [];
 
   return (
     <Scene hint={lt('galaxy.hint')} name="lab-galaxy" onClose={onClose} quiet={Boolean(back)} title={lt('galaxy.title')}>
       {({ scale }) => (
-        <div className="lg-page">
+        <div className={`lg-page mode-${mode}`}>
+          {picked && mode === 'backdrop' && (
+            <GalaxyPanel key={`b-${picked.mote.record.key}`} kind="backdrop" record={picked.mote.record} />
+          )}
           <canvas
             className="lg-canvas"
             onPointerDown={onPointerDown}
-            onPointerLeave={() => setHot(null)}
+            onPointerLeave={() => {
+              hover.current = null;
+              setPointing(false);
+            }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onWheel={onWheel}
             ref={canvasRef}
-            style={{ cursor: hot ? 'pointer' : 'grab' }}
+            style={{ cursor: pointing ? 'pointer' : 'grab' }}
           />
           {bodies.length === 0 && <p className="lg-empty">{lt('galaxy.empty')}</p>}
           <div className="lg-readout" style={{ zoom: scale }}>
-            <b>{current ? dateLabel(current.capture.catch_date!) : '—'}</b>
-            <span>{lt('galaxy.readout', { mons: Math.min(shown, total), balls: shownBalls })}</span>
-            {arriving && (
-              <span className="lg-arrival" key={arriving.ball}>
-                <img alt="" height={24} src={`/balls/${arriving.ball}.png`} width={24} />
-                {lt('galaxy.newBall', { ball: ballName(arriving.ball) })}
-              </span>
-            )}
+            <b key={picked ? 'picked' : 'run'}>{current ? dateLabel(current.capture.catch_date!) : '—'}</b>
+            <span>
+              {picked
+                ? lt('galaxy.nth', { n: picked.mote.index + 1, total })
+                : lt('galaxy.readout', { mons: Math.min(shown, total), balls: shownBalls })}
+            </span>
           </div>
-          <div className="lg-scope" style={{ zoom: scale }}>
+          <div className="lg-controls" style={{ zoom: scale }}>
+            <div className="lg-modes" role="group">
+              {MODES.map((option) => (
+                <button aria-pressed={mode === option} className={mode === option ? 'on' : undefined} key={option} onClick={() => setMode(option)} type="button">
+                  {lt(`galaxy.mode.${option}`)}
+                </button>
+              ))}
+            </div>
             <ScopeSwitch onChange={setScope} scope={scope} />
           </div>
+          {picked && mode !== 'backdrop' && (
+            <GalaxyPanel
+              ballName={ballName(picked.body.ball)}
+              day={sameDay}
+              kind={mode}
+              onFilterBall={() => onFilter({ view: 'all', facets: { ball: [picked.body.ball] } }, { scroll: 0 })}
+              onLocate={() => onLocate(picked.mote.record.capture.pokemon.id)}
+              onPick={(record) => setFocus(ordered.indexOf(record))}
+              record={picked.mote.record}
+              scale={scale}
+            />
+          )}
+          {picked && mode === 'backdrop' && (
+            <div className="lg-caption" style={{ zoom: scale }}>
+              <strong>{displayName(picked.mote.record.capture.pokemon.name, picked.mote.record.capture.pokemon.name_ja, locale)}</strong>
+              <span>
+                <img alt="" height={22} src={`/balls/${picked.body.ball}.png`} width={22} />
+                {ballName(picked.body.ball)}
+                {picked.mote.record.capture.origin_game &&
+                  ` · ${localizeOriginGame(locale, picked.mote.record.capture.origin_game, ORIGIN_GAME_NAMES.get(picked.mote.record.capture.origin_game) ?? '')}`}
+              </span>
+            </div>
+          )}
           {bodies.length > 0 && (
             <div className="lg-foot" style={{ zoom: scale }}>
               <div className="lg-balls">
@@ -528,6 +681,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
                   min={1}
                   onChange={(e) => {
                     setPlaying(false);
+                    setFocus(null);
                     moveCursor(Number(e.target.value));
                   }}
                   step={1}
@@ -537,34 +691,6 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
               </div>
               <span className="lg-legend">{lt('galaxy.legend')}</span>
             </div>
-          )}
-          {hot && (
-            <LabTip scale={scale} x={hot.x} y={hot.y}>
-              {hot.mote
-                ? (
-                  <>
-                    <span className="lg-tip-head">
-                      <SceneMon pokemon={hot.mote.record.capture.pokemon} />
-                      <strong>{displayName(hot.mote.record.capture.pokemon.name, hot.mote.record.capture.pokemon.name_ja, locale)}</strong>
-                    </span>
-                    <small>{dateLabel(hot.mote.record.capture.catch_date!)}{scope === 'all' ? ` · ${hot.mote.record.dex.title}` : ''}</small>
-                    {hot.mote.record.here && <em>{lt('galaxy.pressMon')}</em>}
-                  </>
-                )
-                : (
-                  <>
-                    <span className="lg-tip-head">
-                      <img alt="" height={32} src={`/balls/${hot.body.ball}.png`} width={32} />
-                      <strong>{ballName(hot.body.ball)}</strong>
-                    </span>
-                    <small>{lt('galaxy.ballFacts', { n: hot.body.mons.length, first: dateLabel(hot.body.first), last: dateLabel(hot.body.last) })}</small>
-                    <span className="lab-tip-mons">
-                      {hot.body.mons.slice(-TIP_MONS).reverse().map((record) => <SceneMon key={record.key} pokemon={record.capture.pokemon} />)}
-                    </span>
-                    <em>{lt('galaxy.press')}</em>
-                  </>
-                )}
-            </LabTip>
           )}
         </div>
       )}

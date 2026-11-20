@@ -80,7 +80,8 @@ $lab-ease: cubic-bezier(.2, .9, .3, 1);
 
 .lab-card-glyph {
   position: absolute;
-  top: 10px;
+  // clear of the card's top through the parallax's 10px lift, and a tall face's ink above its line
+  top: 24px;
   right: 48px;
   color: var(--accent);
   font-size: 88px;

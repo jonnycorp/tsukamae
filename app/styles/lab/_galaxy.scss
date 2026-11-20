@@ -15,6 +15,8 @@
 
 .lg-canvas {
   display: block;
+  // over the backdrop's hologram, which comes before it
+  position: relative;
   width: 100%;
   height: 100%;
   touch-action: none;
@@ -32,25 +34,7 @@
   text-align: center;
 }
 
-// the date front and centre over the galaxy; the count under it, and a ball newly reached named
-// for a moment under that
-@keyframes lg-arrival {
-  0% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  12%,
-  75% {
-    opacity: 1;
-    transform: none;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
-
+// the date front and centre over the galaxy, the count (or the picked star's place) under it
 @keyframes lg-ball-on {
   0% {
     transform: scale(.4);
@@ -89,36 +73,54 @@
   }
 }
 
-.lg-arrival {
+.lg-controls {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 3px 12px 3px 6px;
-  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
-  border-radius: 99px;
-  background-color: color-mix(in srgb, var(--paper-raised) 80%, transparent);
-  color: var(--ink);
-  animation: lg-arrival 2.2s ease-out both;
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
 
-  @include small-text(12px);
-
-  img {
-    image-rendering: pixelated;
+// a narrow window: the switches to the left, clear of the date in the middle
+@media (width < 1100px) {
+  .lg-controls {
+    right: auto;
+    left: 18px;
+    align-items: flex-start;
   }
 }
 
-.lg-scope {
-  position: absolute;
-  top: 20px;
-  right: 26px;
-}
+// the galaxy's switches airy: no ground but a breath of the paper, a hairline, the picked one a wash of the accent
+.lg-modes,
+.lab-galaxy .lab-scope {
+  display: flex;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 99px;
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  backdrop-filter: blur(6px);
 
-// a narrow window: the switch to the left, clear of the date in the middle
-@media (width < 1100px) {
-  .lg-scope {
-    right: auto;
-    left: 20px;
+  button {
+    padding: 4px 12px;
+    border: 0;
+    border-radius: 99px;
+    background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: background-color .25s, color .25s;
+
+    @include small-text(12px);
+
+    &:not(:disabled):hover {
+      color: var(--ink);
+    }
+
+    &.on {
+      background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+      color: var(--ink);
+    }
   }
 }
 
@@ -161,10 +163,273 @@
   @include small-text(11px);
 }
 
-.lg-tip-head {
+.lab-galaxy .lab-scrub button {
+  border-color: color-mix(in srgb, var(--line) 55%, transparent);
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+// a picked star's hologram: the art tinted toward the accent and lined like a projection, its foot fading out, a glow
+// under it; it flickers on as it's picked and then holds still
+@keyframes lg-holo-on {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scaleY(.92);
+  }
+
+  30% {
+    opacity: .8;
+  }
+
+  40% {
+    opacity: .3;
+  }
+
+  55%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.lg-holo {
+  display: grid;
+  position: relative;
+  height: 210px;
+  place-items: center;
+  animation: lg-holo-on .6s ease-out both;
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    opacity: .9;
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent) 55%, transparent)) saturate(.8);
+    mask-image: linear-gradient(180deg, #000 70%, transparent);
+  }
+
+  // the projection's lines, over the art alone
+  &::after {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--accent) 16%, transparent) 0 1px, transparent 1px 4px);
+    content: '';
+    mask-image: radial-gradient(closest-side, #000 60%, transparent);
+    pointer-events: none;
+  }
+
+  &.large {
+    width: min(70vh, 60vw);
+    height: min(70vh, 60vw);
+
+    img {
+      opacity: .32;
+    }
+  }
+}
+
+// the side panel: a pane of glass, barely there, the galaxy seen through it; the constellation's at the right, the
+// day's at the left
+@keyframes lg-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--from, 16px));
+  }
+}
+
+.lg-panel {
+  display: flex;
+  position: absolute;
+  top: 90px;
+  right: 22px;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+  padding: 14px 18px 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 16px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--paper-raised) 30%, transparent), color-mix(in srgb, var(--paper) 10%, transparent));
+  backdrop-filter: blur(10px);
+  animation: lg-panel-in .4s cubic-bezier(.2, .9, .3, 1) both;
+
+  &.kind-day {
+    --from: -16px;
+
+    right: auto;
+    left: 22px;
+    width: 260px;
+
+    .lg-holo {
+      height: 150px;
+    }
+  }
+}
+
+.lg-panel-name {
+  display: flex;
+  flex-direction: column;
+
+  small {
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+
+    @include small-text(11px);
+  }
+
+  strong {
+    font-family: $font-secondary;
+    font-size: 26px;
+    font-weight: 300;
+    letter-spacing: .04em;
+  }
+}
+
+.lg-panel-ball {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  margin: -4px 0 0;
+  color: var(--ink-muted);
+
+  img {
+    image-rendering: pixelated;
+  }
+}
+
+.lg-panel-facts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+
+  div {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  dt {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+
+  dd {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.lg-panel-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+
+  > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    max-height: 180px;
+    overflow: auto;
+  }
+
+  button {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+    place-items: center;
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--line) 60%, transparent);
+    }
+
+    &.on {
+      border-color: var(--accent);
+      background-color: color-mix(in srgb, var(--accent) 14%, transparent);
+    }
+  }
+}
+
+.lg-panel-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+
+  button {
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    text-underline-offset: 3px;
+
+    @include small-text(12px);
+
+    &:hover {
+      color: var(--ink);
+    }
+  }
+}
+
+.lg-panel-keys {
+  color: var(--ink-muted);
+  opacity: .7;
+
+  @include small-text(11px);
+}
+
+// the backdrop: the hologram large behind the whole galaxy, under the canvas, the stars drawn over it
+.lg-backdrop {
+  display: grid;
+  position: absolute;
+  inset: 0 0 130px;
+  place-items: center;
+  pointer-events: none;
+}
+
+.lg-caption {
+  display: flex;
+  position: absolute;
+  bottom: 140px;
+  left: 26px;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  animation: lg-panel-in .4s ease-out both;
+
+  strong {
+    font-family: $font-secondary;
+    font-size: 30px;
+    font-weight: 300;
+    letter-spacing: .04em;
+  }
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
 
   img {
     image-rendering: pixelated;
