@@ -54,6 +54,19 @@ const ja = {
   'champions.press': '押すと図鑑でこのポケモンへ',
   'art.toSprite': 'ドット絵に',
   'art.toArt': '公式イラストに',
+  'kana.title': '五十音ボード',
+  'kana.blurb': '図鑑のポケモンを名前の五十音で。カタカナとローマ字の読みも一緒に',
+  'kana.hint': '文字に合わせるとそのポケモンと読み、押すと確認で順に表示',
+  'kana.total': '/{n}匹 捕獲済み',
+  'kana.initial': '頭文字',
+  'kana.contains': '名前に含む',
+  'kana.readings': 'ローマ字',
+  'kana.noteInitial': '名前の最初の文字で数えます。下からの塗りが捕獲済みの割合で、全部そろうと「完」。',
+  'kana.noteContains': '名前に入っている文字すべてで数えます（小さい文字は大きい文字として、長音は数えません）。',
+  'kana.tipCount': '{have}/{n}匹',
+  'kana.more': 'ほか{n}匹',
+  'kana.press': '押すと未捕獲から順に確認',
+  'kana.pressLocate': '押すと図鑑で未捕獲のポケモンへ',
 };
 
 type LabStrings = Record<keyof typeof ja, string>;
@@ -107,6 +120,19 @@ const en: LabStrings = {
   'champions.press': 'Press to go to this mon in the dex',
   'art.toSprite': 'Show Sprite',
   'art.toArt': 'Show Artwork',
+  'kana.title': 'Kana Board',
+  'kana.blurb': 'Your dex by the kana of its Japanese names, the gojūon as a Japanese table lays it out, with romaji to read by',
+  'kana.hint': 'Point at a kana to see its mons and how to read them; press it to go through them in the review',
+  'kana.total': 'of {n} caught',
+  'kana.initial': 'First Kana',
+  'kana.contains': 'Any Kana',
+  'kana.readings': 'Romaji',
+  'kana.noteInitial': 'Each mon counts under the first kana of its name. The fill is how many you\'ve caught; a full kana is stamped 完 (complete).',
+  'kana.noteContains': 'Each mon counts under every kana in its name (a small kana as its full one; the long mark isn\'t counted).',
+  'kana.tipCount': '{have} of {n}',
+  'kana.more': '{n} more',
+  'kana.press': 'Press to go through them, uncaught first',
+  'kana.pressLocate': 'Press to go to the first uncaught one in the dex',
 };
 
 const STRINGS: Record<Locale, LabStrings> = { ja, en };
