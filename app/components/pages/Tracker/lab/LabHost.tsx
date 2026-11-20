@@ -57,7 +57,7 @@ function LabDeck ({ checklist, onClose, onOpen }: Pick<Props, 'checklist' | 'onC
   return (
     <Scene hint={lt('lab.hint')} name="lab-deck" onClose={onClose} title={lt('lab.title')}>
       {({ scale }) => (
-        <div className="lab-deck" style={{ zoom: scale }}>
+        <div className="lab-deck-page" style={{ zoom: scale }}>
           <div className="lab-cards">
             {sketches.map((sketch, i) => (
               <button
