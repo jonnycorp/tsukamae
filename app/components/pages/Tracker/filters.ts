@@ -243,7 +243,9 @@ function matchesView (capture: Capture, view: FilterView): boolean {
     case 'unsealed':
       return capture.captured && !capture.sealed;
     case 'incomplete':
-      return capture.captured && !capture.sealed && capture.status !== 'unobtainable' && !isRecordComplete(capture, capture.pokemon.gender_lock);
+      // (lab 10) where an open record is isn't asked (asksPlace: a HOME dex's, the only records dex there is), so it's
+      // left out, as W leaves it
+      return capture.captured && !capture.sealed && capture.status !== 'unobtainable' && !isRecordComplete(capture, capture.pokemon.gender_lock, false);
     default:
       return true;
   }

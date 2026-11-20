@@ -8,6 +8,7 @@
     "build:bundle": "node -e \"fs.rmSync('build',{recursive:true,force:true})\" && webpack --node-env production",
     "build:public": "node -e \"fs.cpSync('public','build',{recursive:true})\"",
     "dataset": "node scripts/generate-dataset.mjs && node scripts/enrich-species.mjs && node scripts/enrich-types.mjs",
+    "data:home": "node scripts/fetch-home-catalogs.mjs",
     "dataset:species": "node scripts/enrich-species.mjs",
     "dataset:types": "node scripts/enrich-types.mjs",
     "sprites:balls": "node scripts/fetch-ball-sprites.mjs",

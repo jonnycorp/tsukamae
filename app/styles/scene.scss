@@ -78,10 +78,6 @@ $scene-spring: cubic-bezier(.2, 1.4, .4, 1);
   @include small-text(11px);
 }
 
-.scene-close {
-  @include scene-button;
-}
-
 .scene-body {
   @include scrollbar-fade;
 

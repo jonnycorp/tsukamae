@@ -1,6 +1,7 @@
 import { GAME_FACTS } from '../../../utils/game-facts';
 import { LETS_GO, cannotReach, closedGameHas, debutOf, gameDexes, homeFileOf, lineOf, sameId } from '../../../utils/game-reach';
-import { MYSTERY_GIFT, nameMaxLength } from '../../../utils/capture-fields';
+import { MYSTERY_GIFT } from '../../../utils/capture-fields';
+import { nicknameMax, otMax } from '../../../utils/game-rules';
 import { today } from '../../../utils/date-entry';
 
 import type { Capture, GameSave } from '../../../types';
@@ -80,7 +81,7 @@ export interface RedPenData {
 
 const LETS_GO_BALLS = new Set(['poke_ball', 'great_ball', 'ultra_ball', 'master_ball', 'premier_ball']);
 // Legends: Arceus's own balls: the Hisuian Poké, Great, Ultra and Heavy Balls and the six it brought. It throws no
-// others but the Master Ball, and nothing else has them
+// others (not even a Master Ball: lab 10 round 7, from PKHeX's tables), and nothing else has them
 const HISUI_BALLS = new Set([
   'hisuian_poke_ball', 'hisuian_great_ball', 'hisuian_ultra_ball', 'hisuian_heavy_ball',
   'feather_ball', 'wing_ball', 'jet_ball', 'leaden_ball', 'gigaton_ball', 'origin_ball',
@@ -127,19 +128,6 @@ const CHINESE = new Set(['chinese_simplified', 'chinese_traditional']);
 const EUROPEAN = new Set(['english', 'french', 'italian', 'german', 'spanish']);
 // the Ultra Beasts, which come as legendaries do, by ways a game's dex doesn't list (Ultra Space, Max Lair)
 const ULTRA_BEASTS = new Set([793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806]);
-
-// the longest OT and nickname a game of a generation took: Gen 3 to 5 games kept Japanese names to 5 characters and
-// European ones to 7 (an OT) and 10 (a nickname); later games, the language's own limit
-function nameLimits (language: string, gen: number): { ot: number; nickname: number } {
-  if (gen <= 5 && language === 'japanese') {
-    return { ot: 5, nickname: 5 };
-  }
-  if (gen <= 5 && EUROPEAN.has(language)) {
-    return { ot: 7, nickname: 10 };
-  }
-  const max = nameMaxLength(language);
-  return { ot: max, nickname: max };
-}
 
 const KANA = /[぀-ヿㇰ-ㇿｦ-ﾟ]/;
 const HAN = /[㐀-䶿一-鿿豈-﫿]/;
@@ -227,7 +215,7 @@ function read (capture: Capture, saves: GameSave[], now: string): Finding[] {
       add('hisuiBall', 'wrong', ['ball', 'origin_game']);
     } else if (origin === 'legends_arceus' && HISUI_TWINS[ball]) {
       add('arceusTwin', 'wrong', ['ball', 'origin_game'], { twin: HISUI_TWINS[ball] });
-    } else if (origin === 'legends_arceus' && !HISUI_BALLS.has(ball) && !['master_ball', 'strange_ball', 'unknown'].includes(ball)) {
+    } else if (origin === 'legends_arceus' && !HISUI_BALLS.has(ball) && !['strange_ball', 'unknown'].includes(ball)) {
       add('arceusBall', 'wrong', ['ball', 'origin_game']);
     } else if (LETS_GO.has(origin) && !LETS_GO_BALLS.has(ball) && ball !== 'unknown') {
       add('letsGoBall', 'wrong', ['ball', 'origin_game']);
@@ -260,7 +248,8 @@ function read (capture: Capture, saves: GameSave[], now: string): Finding[] {
   }
 
   if (language && gen !== undefined) {
-    const limits = nameLimits(language, gen);
+    // (lab 10 round 7) the limits W types to (utils/game-rules.ts): an OT its game's, a nickname its language's
+    const limits = { ot: otMax(origin, language), nickname: nicknameMax(origin, language) };
     if (ot && length(ot) > limits.ot) {
       add('otTooLong', 'wrong', ['ot', 'language'], { max: limits.ot, length: length(ot) });
     }

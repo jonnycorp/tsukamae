@@ -1,52 +1,28 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleExclamation, faLock, faLongArrowAltRight, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
-import { CAPTURE_FIELDS, formatFieldValue, statusOptions, unansweredFields } from '../../../utils/capture-fields';
-import { CaptureFieldControl } from '../../library/CaptureFieldControl';
-import { Dropdown } from '../../library/Dropdown';
+import { CAPTURE_FIELDS, formatFieldValue, unansweredFields } from '../../../utils/capture-fields';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
-import { dexPlacesFor, placeFromKey, placeKey, placeLabel, placeOf, placesFor } from '../../../utils/location-moves';
-import { asksChampions, canVisitChampions } from '../../../utils/champions';
+import { asksChampions } from '../../../utils/champions';
 import { asksGigantamax } from '../../../utils/gigantamax';
-import { serebiiLink } from '../../../utils/formatting';
+import { inTraining } from '../../../utils/location-moves';
+import { levelText } from './review-fields';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../../hooks/use-dismissable';
-import { usePatchRecords } from './use-patch';
-import { useTrackerActions, useTrackerState } from './use-tracker';
+import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { CaptureField } from '../../../utils/capture-fields';
-import type { CaptureStatus } from '../../../types';
-import type { RecordPatch } from './use-patch';
-
-// a family missing here (a dataset newer than this list) falls back to the newest dex, home's
-const SEREBII_LINKS: Record<string, string> = {
-  x_y: 'pokedex-xy',
-  omega_ruby_alpha_sapphire: 'pokedex-xy',
-  sun_moon: 'pokedex-sm',
-  ultra_sun_ultra_moon: 'pokedex-sm',
-  lets_go_pikachu_eevee: 'pokedex-sm',
-  sword_shield: 'pokedex-swsh',
-  sword_shield_expansion_pass: 'pokedex-swsh',
-  brilliant_diamond_shining_pearl: 'pokedex-swsh',
-  legends_arceus: 'pokedex-swsh',
-  scarlet_violet: 'pokedex-sv',
-  scarlet_violet_expansion_pass: 'pokedex-sv',
-  // serebii's gen-9 dex covers both SV and Legends: Z-A
-  legends_za: 'pokedex-sv',
-  home: 'pokedex-sv',
-};
 
 const GAP = 8;
 const DOCK_GAP = 12;
 const MIN_DOCK_WIDTH = 250;
 
 const SPLIT = CAPTURE_FIELDS.findIndex((field) => field.id === 'ball');
-const FORM_COLUMNS = [CAPTURE_FIELDS.slice(0, SPLIT), CAPTURE_FIELDS.slice(SPLIT)];
-const RECORD_COLUMNS = FORM_COLUMNS.map((fields) => fields.filter((field) => field.kind !== 'save'));
+const RECORD_COLUMNS = [CAPTURE_FIELDS.slice(0, SPLIT), CAPTURE_FIELDS.slice(SPLIT)].map((fields) => fields.filter((field) => field.kind !== 'save'));
 
 interface Props {
   onClose: () => void;
@@ -55,11 +31,11 @@ interface Props {
   selectedPokemon: number;
 }
 
+// (lab 10) a sealed mon's card, read only: its record as it stands, where it is among it (moved by S or L over the
+// tile). An open record has none: a press opens it in the review (W), where it's filled in
 export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
-  const { activeDexView, activeDex, dexes, saves } = useDexContext();
+  const { activeDexView, saves } = useDexContext();
   const { captures } = useTrackerState();
-  const { releaseCaptures, moveTo } = useTrackerActions();
-  const patchRecords = usePatchRecords();
   const { t, locale } = useTranslation();
 
   const capture = useMemo(() => captures.find((cap) => cap.pokemon.id === selectedPokemon), [captures, selectedPokemon]);
@@ -71,13 +47,13 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   useEffect(() => revive(), [selectedPokemon, revive]);
 
   const missing = capture ? unansweredFields(capture, capture.pokemon.gender_lock) : [];
-
-  // the edit as storage will keep it, mirrored here (use-patch: shared with the ledger's batch edits)
-  const patch = (changes: RecordPatch) => {
-    if (capture) {
-      patchRecords([capture], changes);
+  // one unsealed while it's up (a hold on its tile) has no card
+  const sealed = Boolean(capture?.sealed);
+  useEffect(() => {
+    if (!sealed) {
+      onClose();
     }
-  };
+  }, [sealed, onClose]);
 
   // beside the tile's box, or where there's no room for that, clear of the tile's row
   const place = useCallback((refit: boolean) => {
@@ -205,46 +181,22 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
     };
   }, [place]);
 
-  const handleSealClick = () => {
-    if (!capture) {
-      return;
-    }
-    const name = displayName(capture.pokemon.name, capture.pokemon.name_ja, locale);
-    if (window.confirm(t('seal.confirm', { name }))) {
-      patch({ sealed: true });
-    }
-  };
-
-  const handleRelease = () => {
-    if (!capture) {
-      return;
-    }
-
-    // closed at once, as D does: a fade would show the card collapse to 'not marked' and jump as it went
-    releaseCaptures([capture.pokemon.id]);
-    onClose();
-  };
-
-  if (!capture) {
+  if (!capture || !sealed) {
     return null;
   }
 
   const { pokemon } = capture;
-  const { sealed } = capture;
   const dexView = activeDexView!;
-  const fields = capture.status !== 'unobtainable';
-  const stale = new Set(sealed ? missing.map((field) => field.id) : []);
-  // where a sealed mon is, and where it can be moved: the games that can hold it (canHold), and the one it's in
-  const here = placeOf(capture);
+  const stale = new Set(missing.map((field) => field.id));
   // Been to Champions only for a mon that can go there (utils/champions)
   const shown = (field: CaptureField) => (field.id !== 'been_to_champions' || asksChampions(capture)) &&
     (field.id !== 'gigantamax' || asksGigantamax(capture));
-  const moveOptions = placesFor(saves, capture, activeDexView!.game.id === 'home', dexPlacesFor(activeDex, dexes ?? []))
-  .map((place) => ({ value: placeKey(place), label: placeLabel(place, saves, locale) }));
+  // a mon out in a game still going up: 育成中, at least the level it left at
+  const training = inTraining(capture, dexView.game.id === 'home');
 
   return (
     <div
-      className={classNames('pokemon-popover', { closing, wide: capture.captured && (sealed || fields) })}
+      className={classNames('pokemon-popover', 'wide', { closing })}
       ref={popoverRef}
     >
       <Fragment key={pokemon.id}>
@@ -254,24 +206,6 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
             <h1 data-copy-name={displayName(pokemon.name, pokemon.name_ja, locale)}><PokemonName name={pokemon.name} nameJa={pokemon.name_ja} /></h1>
             <p className="popover-meta">
               #{dexNumber(pokemon, dexView)}
-              {!sealed &&
-                <>
-                  <a
-                    href={`http://bulbapedia.bulbagarden.net/wiki/${encodeURI(pokemon.name)}_(Pok%C3%A9mon)`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Bulbapedia <FontAwesomeIcon icon={faLongArrowAltRight} />
-                  </a>
-                  <a
-                    href={serebiiLink(SEREBII_LINKS[dexView.game.game_family.id] ?? SEREBII_LINKS.home, pokemon.national_id)}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Serebii <FontAwesomeIcon icon={faLongArrowAltRight} />
-                  </a>
-                </>
-              }
             </p>
           </div>
           <button aria-label={t('popover.close')} className="popover-close" onClick={dismiss} title={t('popover.close')} type="button">
@@ -280,98 +214,28 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
         </div>
 
         <div className="popover-body">
-          {!capture.captured && <p className="popover-uncaught-note">{t('info.notCaught')}</p>}
-
-          {capture.captured && sealed &&
-            <div className="popover-columns">
-              {RECORD_COLUMNS.map((column, index) => (
-                <dl className="popover-column popover-record" key={index}>
-                  {index === 0 &&
-                    <div className="popover-record-row">
-                      <dt>{t('info.status')}</dt>
-                      <dd>{t('seal.sealed')}</dd>
-                    </div>
-                  }
-                  {column.filter(shown).map((field) => (
-                    <div className={classNames('popover-record-row', { stale: stale.has(field.id) })} key={field.id}>
-                      <dt>{t(field.labelKey)}</dt>
-                      <dd>
-                        {stale.has(field.id) && <FontAwesomeIcon icon={faCircleExclamation} />}
-                        {/* the one thing a sealed record still changes: where the mon is (utils/location-moves) */}
-                        {field.id === 'location'
-                          ? <Dropdown
-                            align="end"
-                            blankLabel={here ? undefined : formatFieldValue(field, capture, locale, saves)}
-                            id="popover_move"
-                            onSelect={(key) => {
-                              if (key) {
-                                moveTo(pokemon.id, placeFromKey(key));
-                              }
-                            }}
-                            options={moveOptions}
-                            triggerClassName="popover-move"
-                            value={here ? placeKey(here) : ''}
-                          />
-                          : formatFieldValue(field, capture, locale, saves)
-                        }
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              ))}
-            </div>
-          }
-
-          {capture.captured && !sealed &&
-            <div className="popover-columns">
-              {(fields ? FORM_COLUMNS : FORM_COLUMNS.slice(0, 1)).map((column, index) => (
-                <div className="popover-column" key={index}>
-                  {index === 0 &&
-                    <div className="form-group">
-                      <label htmlFor="status">{t('info.status')}</label>
-                      <Dropdown
-                        id="status"
-                        onSelect={(next) => patch({ status: next as CaptureStatus })}
-                        options={statusOptions(locale)}
-                        value={capture.status || 'caught'}
-                      />
-                    </div>
-                  }
-                  {fields && column.filter(shown).map((field) => (
-                    <CaptureFieldControl
-                      canVisitChampions={canVisitChampions(pokemon)}
-                      field={field}
-                      genderLock={pokemon.gender_lock}
-                      idPrefix="capture"
-                      key={field.id}
-                      onChange={patch}
-                      value={capture}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          }
-        </div>
-
-        {capture.captured && !sealed &&
-          <div className="popover-footer">
-            {capture.status === 'caught' &&
-              <button
-                className="popover-seal"
-                disabled={missing.length > 0}
-                onClick={handleSealClick}
-                title={missing.length > 0 ? t('seal.incomplete', { count: missing.length }) : undefined}
-                type="button"
-              >
-                <FontAwesomeIcon icon={faLock} /> {t('seal.action')}
-              </button>
-            }
-            <button className="popover-release" onClick={handleRelease} type="button">
-              <FontAwesomeIcon icon={faTrash} /> {t('info.release')}
-            </button>
+          <div className="popover-columns">
+            {RECORD_COLUMNS.map((column, index) => (
+              <dl className="popover-column popover-record" key={index}>
+                {index === 0 &&
+                  <div className="popover-record-row">
+                    <dt>{t('info.status')}</dt>
+                    <dd>{t('seal.sealed')}</dd>
+                  </div>
+                }
+                {column.filter(shown).map((field) => (
+                  <div className={classNames('popover-record-row', { stale: stale.has(field.id) })} key={field.id}>
+                    <dt>{t(field.labelKey)}</dt>
+                    <dd>
+                      {stale.has(field.id) && <FontAwesomeIcon icon={faCircleExclamation} />}
+                      {field.id === 'level' && training ? levelText(capture.level, t) : formatFieldValue(field, capture, locale, saves)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ))}
           </div>
-        }
+        </div>
       </Fragment>
     </div>
   );

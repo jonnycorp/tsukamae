@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faGamepad, faMinus, faPlus, faRotateRight, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faGamepad, faMinus, faPlus, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { LANGUAGE_ABBRS, ORIGIN_GAME_NAMES, findSave, nameLang } from '../../../utils/capture-fields';
@@ -626,9 +626,7 @@ export function Timeline ({ onClose, onLocate }: Props) {
             <FontAwesomeIcon icon={faRotateRight} />
           </button>
         }
-        <button aria-label={t('popover.close')} className="tl-button" onClick={onClose} title={t('popover.close')} type="button">
-          <FontAwesomeIcon icon={faXmark} />
-        </button>
+        {/* (lab 10 round 8) no ✕: Esc closes it */}
       </div>
 
       <div

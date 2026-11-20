@@ -1,23 +1,20 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowDownWideShort, faArrowUpShortWide, faCheck, faChevronDown, faCircleExclamation, faHeart, faLock, faMinus } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDownWideShort, faArrowUpShortWide, faChevronDown, faCircleExclamation, faHeart, faLock } from '@fortawesome/free-solid-svg-icons';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { BALL_NAMES, LANGUAGE_ABBRS, ORIGIN_GAME_NAMES, unansweredFields } from '../../../utils/capture-fields';
-import { BatchBar } from './BatchBar';
 import { Dropdown } from '../../library/Dropdown';
 import { NoResults } from './SearchResults';
 import { OriginMark } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { boxTitle } from './Box';
 import { defaultStatus } from '../../../utils/local-data';
-import { MOD_KEY } from '../../../utils/platform';
 import { dexNumber, groupBoxes, iconClass } from '../../../utils/pokemon';
 import { filterMatcher, queryMatcher } from './filters';
 import { STATE_KEYS, groupCaptures, sortCaptures, stateOf } from './ledger-model';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
-import { MENU_OR_MODAL } from '../../../hooks/use-hotkey';
-import { locationTint, placeLabel, shownPlace } from '../../../utils/location-moves';
+import { inTraining, locationTint, placeLabel, shownPlace } from '../../../utils/location-moves';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLocalStorage } from '../../../hooks/use-local-storage';
 import { useMark } from './use-mark';
@@ -162,36 +159,34 @@ const CELLS: Record<LedgerColumnId, (capture: Capture, ctx: RowContext, state: L
   ot: (capture) => (capture.ot ? <span className="ledger-text">{capture.ot}</span> : blank),
   nickname: (capture) => (capture.has_nickname && capture.nickname ? <span className="ledger-text">{capture.nickname}</span> : blank),
   date: (capture) => (capture.catch_date ? capture.catch_date.replaceAll('-', '/') : blank),
-  level: (capture) => capture.level ?? blank,
+  // (lab 10) a mon out in a game still going up (inTraining): its floor, with a plus
+  level: (capture, ctx) => (inTraining(capture, ctx.homeDex)
+    ? <span title={ctx.t('level.training')}>{`${capture.level ?? '?'}+`}</span>
+    : capture.level ?? blank),
 };
 
 interface RowProps {
   capture: Capture;
   ctx: RowContext;
-  selected: boolean;
   onPick: (capture: Capture, e: MouseEvent) => void;
 }
 
 // one mon across the columns; an edit (or a change to whether it's selected) re-renders its own row only. Pressed, an
 // unmarked mon is marked, as its tile's press marks it, and a marked one's popover opens beside it. Its box (or Ctrl,
 // or Shift for the run from the last one) selects it instead, or lets it go
-const LedgerRow = memo(function LedgerRow ({ capture, ctx, selected, onPick }: RowProps) {
+const LedgerRow = memo(function LedgerRow ({ capture, ctx, onPick }: RowProps) {
   const state = stateOf(capture, ctx.checklist);
   const recorded = capture.captured && capture.status !== 'unobtainable';
   // a sealed mon away from where its dex keeps them, tinted as its tile is (utils/location-moves)
   const tint = state === 'sealed' ? locationTint(capture.location, ctx.homeDex) : null;
   return (
     <div
-      aria-selected={selected}
-      className={classNames('ledger-row', `state-${state}`, tint && `loc-${tint}`, { sealed: state === 'sealed', checklist: ctx.checklist, elsewhere: ctx.checklist && state === 'temporary', selected })}
+      className={classNames('ledger-row', `state-${state}`, tint && `loc-${tint}`, { sealed: state === 'sealed', checklist: ctx.checklist, elsewhere: ctx.checklist && state === 'temporary' })}
       data-copy-name={displayName(capture.pokemon.name, capture.pokemon.name_ja, ctx.locale)}
       data-pokemon-id={capture.pokemon.id}
       onClick={(e) => onPick(capture, e)}
       role="row"
     >
-      <div className="ledger-cell col-select" role="cell">
-        <span aria-checked={selected} className="ledger-check" role="checkbox">{selected && <FontAwesomeIcon icon={faCheck} />}</span>
-      </div>
       {ctx.columns.map((column) => (
         <div className={`ledger-cell col-${column.id} p${column.priority}`} data-dock={column.id === 'status' || undefined} key={column.id} role="cell">
           {column.record && !recorded ? null : CELLS[column.id](capture, ctx, state)}
@@ -273,17 +268,17 @@ interface Props {
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   setQuery: Dispatch<SetStateAction<string>>;
-  setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
 // the dex as a table, in place of the boxes (V): the search, the view and the filters narrow it as they do the boxes;
 // a column's head sorts by it (again for the other way, a third time back to the dex's order), and the rows can be
 // grouped by any field, each group folding away under its head
-export function Ledger ({ captures, filters, held, query, setFilters, setQuery, setSelectedPokemon }: Props) {
+export function Ledger ({ captures, filters, held, query, setFilters, setQuery }: Props) {
   const { activeDex, activeDexView, saves } = useDexContext();
   const { t, locale } = useTranslation();
   const mark = useMark();
-  const { holdHost, revealHost } = useTrackerActions();
+  const { holdHost, openHost, revealHost } = useTrackerActions();
+  const openMon = useCallback((capture: Capture) => openHost.current?.(capture.pokemon.id), [openHost]);
   const dex = activeDexView!;
   const checklist = Boolean(activeDex!.checklist);
   const [storedSort, setSort] = useLocalStorage<LedgerSort | null>('ledgerSort', null);
@@ -322,16 +317,11 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
     };
   }, [captures, locale, checklist, saves, dex, activeDex, t]);
 
-  // the rows picked for the batch bar; they stay shown, as the popover's tile does, until let go (Esc, or the bar's
-  // close), so an edit that takes them out of the view (marking the Missing) can be followed by another
-  const [selection, setSelection] = useState<Set<number>>(() => new Set());
-  const anchorRef = useRef<number | null>(null);
-
   const rows = useMemo(() => {
     const matchesFilters = filterMatcher(filters);
     const matchesQuery = queryMatcher(query, Boolean(dex.regional));
-    return captures.filter((capture) => held.includes(capture.pokemon.id) || selection.has(capture.pokemon.id) || (matchesFilters(capture) && matchesQuery(capture)));
-  }, [captures, filters, held, selection, query, dex.regional]);
+    return captures.filter((capture) => held.includes(capture.pokemon.id) || (matchesFilters(capture) && matchesQuery(capture)));
+  }, [captures, filters, held, query, dex.regional]);
 
   const places = useHeldPlaces(captures, held, sort, group);
   const groups = useMemo(() => {
@@ -346,54 +336,25 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
   const budget = useRowBudget(rows.length, `${group}|${filters.view}|${JSON.stringify(filters.facets)}|${query}`);
   let mounted = 0;
 
-  // the rows as they run down the table, folded groups left out: what Shift selects a run of, and Ctrl+A all of
-  const order = useMemo(() => groups.flatMap((entry) => (closed.has(entry.key) ? [] : entry.captures.map((capture) => capture.pokemon.id))), [groups, closed]);
-  const orderRef = useRef(order);
-  useLayoutEffect(() => {
-    orderRef.current = order;
-  }, [order]);
-  // the selection keeps only rows in sight, so the batch bar never acts on one out of sight or counts one that's gone:
-  // a group folded away lets its rows go, as it folds or as a row moves into it (an edit regrouping it) or as a
-  // grouping's folds come back over rows selected meanwhile, and so do rows a free-form dex's release takes away
-  useLayoutEffect(() => {
-    const shown = new Set(order);
-    setSelection((prev) => ([...prev].some((id) => !shown.has(id)) ? new Set([...prev].filter((id) => shown.has(id))) : prev));
-  }, [order]);
-
   // a row pressed, as a tile is (Pokemon.tsx): an unmarked mon marked and nothing more, held where it was drawn, so a
-  // second press opens what the first marked; a marked one opened. Alt opens it without marking. Shift, Ctrl or its box
-  // select it instead
+  // second press opens what the first marked: (lab 10) an open record in the review (W), a sealed one's card. Alt opens
+  // it without marking; Shift never opens one, as on the tiles. A checklist, keeping no records, opens none
   const handlePick = useCallback((capture: Capture, e: MouseEvent) => {
-    const id = capture.pokemon.id;
-    if (e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey && !(e.target as Element).closest('.col-select')) {
+    if (e.altKey) {
       if (!checklist) {
-        setSelectedPokemon(id);
+        openMon(capture);
       }
       return;
     }
-    if (e.shiftKey || e.ctrlKey || e.metaKey || (e.target as Element).closest('.col-select')) {
-      const from = e.shiftKey && anchorRef.current !== null ? orderRef.current.indexOf(anchorRef.current) : -1;
-      const to = orderRef.current.indexOf(id);
-      setSelection((prev) => {
-        const next = new Set(prev);
-        // the row pressed turns over, and a Shift run goes the same way with it
-        const on = !prev.has(id);
-        const run = from !== -1 && to !== -1 ? orderRef.current.slice(Math.min(from, to), Math.max(from, to) + 1) : [id];
-        run.forEach((entry) => (on ? next.add(entry) : next.delete(entry)));
-        return next;
-      });
-      anchorRef.current = id;
-      return;
-    }
     if (capture.captured) {
-      if (!checklist) {
-        setSelectedPokemon(capture.pokemon.id);
+      if (!checklist && !e.shiftKey) {
+        openMon(capture);
       }
       return;
     }
     mark(capture.pokemon.id, defaultStatus(activeDex!));
     holdHost.current?.(capture.pokemon.id);
-  }, [activeDex, checklist, holdHost, mark, setSelectedPokemon]);
+  }, [activeDex, checklist, holdHost, mark, openMon]);
 
   const cycleSort = (column: LedgerColumnId) => {
     if (sort?.column !== column) {
@@ -432,38 +393,12 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
   const allClosed = groups.length > 0 && groups.every((entry) => closed.has(entry.key));
   const toggleAll = () => fold(allClosed ? new Set() : new Set(groups.map((entry) => entry.key)));
 
-  // Esc lets the selection go, Ctrl+A takes every row shown; quiet while typing, under a menu, a modal, the popover or
-  // the Filters panel, whose own Esc closes it
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || document.querySelector(`${MENU_OR_MODAL}, .pokemon-popover, .facet-panel`)) {
-        return;
-      }
-      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')) {
-        return;
-      }
-      if (e.key === 'Escape') {
-        setSelection((prev) => (prev.size > 0 ? new Set() : prev));
-      } else if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        setSelection(new Set(orderRef.current));
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const allSelected = order.length > 0 && order.every((id) => selection.has(id));
-  // as Gmail's: with anything selected it lets the selection go, with nothing it takes every row shown
-  const toggleAllShown = () => setSelection(selection.size > 0 ? new Set() : new Set(order));
-  const targets = useMemo(() => captures.filter((capture) => selection.has(capture.pokemon.id)), [captures, selection]);
-
-  const template = (priority: number) => ['40px', ...columns.filter((column) => column.priority <= priority).map((column) => (priority === 1 && column.tight) || column.width)].join(' ');
+  const template = (priority: number) => columns.filter((column) => column.priority <= priority).map((column) => (priority === 1 && column.tight) || column.width).join(' ');
   const groupOptions = GROUP_OPTIONS.filter((option) => !checklist || !option.record).map((option) => ({ value: option.id, label: t(option.labelKey) }));
 
   return (
     <div
-      className={classNames('ledger', { checklist, selecting: selection.size > 0 })}
+      className={classNames('ledger', { checklist })}
       style={{ '--ledger-cols-1': template(1), '--ledger-cols-2': template(2), '--ledger-cols-3': template(3) } as CSSProperties}
     >
       <div className="ledger-toolbar">
@@ -481,20 +416,6 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
         : (
           <div className="ledger-table" role="table">
             <div className="ledger-head" role="row">
-              <div className="ledger-cell col-select" role="columnheader">
-                <button
-                  aria-checked={allSelected ? 'true' : selection.size > 0 ? 'mixed' : 'false'}
-                  aria-label={t(selection.size > 0 ? 'batch.clear' : 'batch.selectAll')}
-                  className={classNames('ledger-check', { on: allSelected })}
-                  onClick={toggleAllShown}
-                  role="checkbox"
-                  title={selection.size > 0 ? `${t('batch.clear')} (Esc)` : `${t('batch.selectAll')} (${MOD_KEY}+A)`}
-                  type="button"
-                >
-                  {allSelected && <FontAwesomeIcon icon={faCheck} />}
-                  {!allSelected && selection.size > 0 && <FontAwesomeIcon icon={faMinus} />}
-                </button>
-              </div>
               {columns.map((column) => {
                 const sorted = sort?.column === column.id ? sort : null;
                 const label = t(column.labelKey);
@@ -522,16 +443,13 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery, 
                 <div className="ledger-group" key={`${group}:${entry.key}`} role="rowgroup">
                   {group !== 'none' && <GroupHead group={entry} onToggle={() => toggleGroup(entry.key)} open={open} />}
                   {shown.map((capture) => (
-                    <LedgerRow capture={capture} ctx={rowCtx} key={capture.pokemon.id} onPick={handlePick} selected={selection.has(capture.pokemon.id)} />
+                    <LedgerRow capture={capture} ctx={rowCtx} key={capture.pokemon.id} onPick={handlePick} />
                   ))}
                 </div>
               );
             })}
           </div>
         )}
-      {selection.size > 0 &&
-        <BatchBar onClear={() => setSelection(new Set())} onSelectAll={() => setSelection(new Set(order))} shown={order.length} targets={targets} />
-      }
     </div>
   );
 }

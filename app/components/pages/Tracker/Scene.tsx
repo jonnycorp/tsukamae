@@ -1,6 +1,4 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { TitleCard, useTitleCard } from './TitleCard';
@@ -8,7 +6,6 @@ import { iconClass } from '../../../utils/pokemon';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
 import { useSceneScale } from './use-scene-scale';
-import { useTranslation } from '../../../hooks/use-translation';
 
 import type { CapturePokemon } from '../../../types';
 import type { ReactNode, RefObject } from 'react';
@@ -64,11 +61,11 @@ interface Props {
   children: (view: { scale: number }) => ReactNode;
 }
 
-// a scene: over the window as the almanac is, under the same bar (its name in the accent, the dex's beside it, a hint
-// and the close), opening on its title card. Escape closes it, unless something in it (a menu) has claimed the key first
+// a scene: over the window as the almanac is, under the same bar (its name in the accent, the dex's beside it, a hint;
+// lab 10 round 8: no close button), opening on its title card. Escape closes it, unless something in it (a menu) has
+// claimed the key first
 export function Scene ({ name, title, hint, onClose, quiet = false, children }: Props) {
   const { activeDex } = useDexContext();
-  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scale = useSceneScale();
@@ -116,9 +113,7 @@ export function Scene ({ name, title, hint, onClose, quiet = false, children }: 
         <span className="scene-logo"><span>{title}</span></span>
         <h1>{activeDex!.title}</h1>
         <span className="scene-hint">{hint}</span>
-        <button aria-label={t('scene.close')} className="scene-close" onClick={onClose} title={t('scene.close')} type="button">
-          <FontAwesomeIcon icon={faXmark} />
-        </button>
+        {/* (lab 10 round 8) no ✕: Esc closes it */}
       </header>
       <div className="scene-body" data-intro={intro || undefined} ref={bodyRef} tabIndex={-1}>
         {children({ scale })}

@@ -1,7 +1,7 @@
 import { DateInput } from './DateInput';
 import { DraftInput } from './DraftInput';
 import { Dropdown } from './Dropdown';
-import { LANGUAGE_ABBRS, NAME_MAX_FALLBACK, favoriteOptions, findSave, genderOptions, locationOptions, readFavorite, saveLabel, stampedSave } from '../../utils/capture-fields';
+import { LANGUAGE_ABBRS, NAME_MAX_FALLBACK, ballOptions, favoriteOptions, findSave, genderOptions, languageOptions, locationOptions, readFavorite, saveLabel, stampedSave } from '../../utils/capture-fields';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../hooks/use-translation';
 
@@ -74,7 +74,10 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
           />,
         );
       }
-      const options = field.id === 'gender' ? genderOptions(locale, genderLock) : field.options!(locale);
+      // (lab 10 round 7) a ball or a language its origin game holds
+      const options = field.id === 'gender' ? genderOptions(locale, genderLock)
+        : field.id === 'ball' ? ballOptions(locale, value)
+          : field.id === 'language' ? languageOptions(locale, value) : field.options!(locale);
       // a species locked to one gender has nothing to leave unspecified
       const blank = !field.baseline && options.length > 1;
       return wrap(select(id, String(value[key] ?? ''), options, (next) => onChange({ [key]: next || null }), blank));

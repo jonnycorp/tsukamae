@@ -1,3 +1,4 @@
+import homeCatalogs from '../../data/home-catalogs.json';
 import { GAME_FACTS } from './game-facts';
 import { REGIONAL_FORMS, slotKey } from './champions';
 import { getCatalogDex } from './local-data';
@@ -185,6 +186,44 @@ export function homeFileOf (capture: Pick<Capture, 'tid'>, saves: GameSave[]): G
 
 export function originOf (capture: Pick<Capture, 'tid' | 'origin_game'>, saves: GameSave[]): string | null {
   return homeFileOf(capture, saves) ? 'home' : capture.origin_game;
+}
+
+// (lab 10) what HOME can send each of the Switch games that take from it, by species and regional form: Sword and
+// Shield's and Scarlet and Violet's catalogues as Showdown has them (data/home-catalogs.json,
+// scripts/fetch-home-catalogs.mjs), Legends: Z-A's its two dexes, and the closed games theirs (closedGameHas)
+const SWSH = new Set(['sword', 'shield']);
+const SV = new Set(['scarlet', 'violet']);
+let catalogs: { swsh: Set<string>; sv: Set<string>; za: Set<string> } | null = null;
+function catalogOf (game: string): Set<string> | null {
+  catalogs ??= {
+    swsh: new Set(homeCatalogs.sword_shield),
+    sv: new Set(homeCatalogs.scarlet_violet),
+    za: new Set(['legends-z-a-regional', 'legends-z-a-mega-dimension']
+    .flatMap((key) => getCatalogDex(key).pokemonList.map((mon) => slotKey(mon.national_id, mon.form)))),
+  };
+  if (SWSH.has(game)) {
+    return catalogs.swsh;
+  }
+  if (SV.has(game)) {
+    return catalogs.sv;
+  }
+  return game === 'legends_za' ? catalogs.za : null;
+}
+
+// (lab 10) where a HOME dex's mon (a living dex kept in HOME) can be checked out to: only one of the Switch games HOME
+// sends to (nothing before Sword and Shield, nor Let's Go or GO, which HOME sends nothing back to; nor one of HOME's own
+// entries, a trainer), only a species and form its catalogue has (so no Gen 9 in a Gen 8 game), and a mon born in
+// Legends: Z-A only back to Z-A
+export function homeCanSend (save: GameSave, capture: Capture, saves: GameSave[]): boolean {
+  const { national_id: national, form } = capture.pokemon;
+  if (originOf(capture, saves) === 'legends_za' && save.game !== 'legends_za') {
+    return false;
+  }
+  const catalog = catalogOf(save.game);
+  if (catalog) {
+    return catalog.has(slotKey(national, form));
+  }
+  return (BDSP.has(save.game) || save.game === 'legends_arceus') && closedGameHas(save.game, { national, form }) === true;
 }
 
 // whether one of your files can hold a mon: one of HOME's own entries is no game to hold anything, a game can't hold

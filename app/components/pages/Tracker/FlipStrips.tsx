@@ -7,6 +7,7 @@ import { NicknameLine, SpeciesLine, flipsName } from './seal-faces';
 import { gigantamaxIcon, showsGigantamax } from '../../../utils/gigantamax';
 import { isDisplaySealed } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
+import { inTraining } from '../../../utils/location-moves';
 import { useDisplayContext } from '../../../hooks/contexts/use-local-storage-context';
 
 import type { Capture } from '../../../types';
@@ -119,8 +120,10 @@ export const FlipStrips = memo(function FlipStrips ({ grids, columns = BOX_COLUM
       add('sprites', grid, index, sprite);
     }
     const number = dexNumber(capture.pokemon, activeDexView!);
+    // (lab 10) a HOME dex's mon out in a game, still going up (inTraining)
+    const training = inTraining(capture, activeDexView!.game.id === 'home');
     add('lower', grid, index, <>
-      {strip.map((page, i) => <FacePageBlock capture={capture} key={i} number={number} page={page} />)}
+      {strip.map((page, i) => <FacePageBlock capture={capture} key={i} number={number} page={page} training={training} />)}
     </>);
     if (hub) {
       const col = index % columns;

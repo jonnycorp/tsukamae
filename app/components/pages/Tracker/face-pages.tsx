@@ -26,7 +26,11 @@ function LangTag ({ capture }: Props) {
   return abbr ? <span className="language-tag">{abbr}</span> : null;
 }
 
-function Level ({ capture }: Props) {
+// (lab 10) a mon out in a game (inTraining) is still going up: its floor, with a plus
+function Level ({ capture, training }: Props & { training: boolean }) {
+  if (training) {
+    return <span className="page-level">Lv.{capture.level ?? '?'}+</span>;
+  }
   return typeof capture.level === 'number' ? <span className="page-level">Lv.{capture.level}</span> : null;
 }
 
@@ -65,7 +69,8 @@ function hexPoint (letter: StatLetter, r: number): [number, number] {
   return [Math.round(r * Math.cos(angle) * 100) / 100, Math.round(r * Math.sin(angle) * 100) / 100];
 }
 
-function NatureHex ({ capture }: Props) {
+// also drawn larger by CSS on the review's nature plate (lab 10), its viewBox scaling every line with it
+export function NatureHex ({ capture }: Props) {
   const r = 7;
   const stats = natureStats(capture.nature);
   if (!stats) {
@@ -98,12 +103,12 @@ function NatureHex ({ capture }: Props) {
 
 // Hexagon's record: the language at the left of the number line, the level in its middle where the number was, the
 // nature drawn at its right, the stat hexagon as a glyph; the badges as they are
-function RecordPage ({ capture }: Props) {
+function RecordPage ({ capture, training }: Props & { training: boolean }) {
   return (
     <>
       <p className="page-line trio">
         <span className="trio-side"><LangTag capture={capture} /></span>
-        <Level capture={capture} />
+        <Level capture={capture} training={training} />
         <span className="trio-side"><NatureHex capture={capture} /></span>
       </p>
       <div className="page-band"><BadgeRow capture={capture} /></div>
@@ -169,7 +174,7 @@ function SpeciesPage ({ capture, number }: Props & { number: string }) {
   );
 }
 
-export function FacePageBlock ({ capture, page, number }: Props & { page: FacePage; number: string }) {
+export function FacePageBlock ({ capture, page, number, training = false }: Props & { page: FacePage; number: string; training?: boolean }) {
   let body: ReactNode;
   if (page === 'trainer') {
     body = <TrainerPage capture={capture} />;
@@ -178,7 +183,7 @@ export function FacePageBlock ({ capture, page, number }: Props & { page: FacePa
   } else if (page === 'hub') {
     body = <HubPage capture={capture} />;
   } else {
-    body = <RecordPage capture={capture} />;
+    body = <RecordPage capture={capture} training={training} />;
   }
   return <div className={`face-page page-${page}`}>{body}</div>;
 }

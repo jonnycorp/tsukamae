@@ -79,10 +79,9 @@ interface GridProps {
   rows: number;
   // the first boxes this dex has shown, as it opens
   entrance: boolean;
-  setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
-function BoxGrid ({ boxes, columns, rows: rowsInView, entrance, setSelectedPokemon }: GridProps) {
+function BoxGrid ({ boxes, columns, rows: rowsInView, entrance }: GridProps) {
   const { narrow } = useTrackerActions();
   // fixed as the grid's put in, the screenful being the one it opens on
   const [plan] = useState(() => buildPlan(boxes.length, columns, rowsInView, entrance));
@@ -124,7 +123,7 @@ function BoxGrid ({ boxes, columns, rows: rowsInView, entrance, setSelectedPokem
   return (
     <div className="box-grid" data-building={frame < plan.last || undefined} data-hidden={frame < plan.shown || undefined}>
       {boxes.map((box, i) => (frame >= plan.box(i)
-        ? <Box captures={box} key={box[0].pokemon.id} setSelectedPokemon={setSelectedPokemon} />
+        ? <Box captures={box} key={box[0].pokemon.id} />
         // its place held till then (the narrow list's rows have no fixed size to hold)
         : !narrow && <div aria-hidden="true" className="box box-placeholder" key={box[0].pokemon.id} />))}
       {/* keyed by position, so a change of columns regroups the strips without restarting them; a row's the frame
@@ -172,16 +171,19 @@ export function Dex ({
 
   const boxes = useMemo(() => groupBoxes(captures), [captures]);
 
-  // L over a sealed tile (or a sealed mon's ledger row): where it can be moved, in a menu beside it (MoveMenu)
-  useHotkey('l', () => {
+  // S (for ソフト) or L over a sealed tile (or a sealed mon's ledger row): where it can be moved, in a menu beside it at
+  // the tiles' zoom (MoveMenu)
+  const openMove = () => {
     const tile = document.querySelector<HTMLElement>(':is(.pokemon, .ledger-row).sealed[data-pokemon-id]:hover');
     const id = Number(tile?.dataset.pokemonId);
     const capture = captures.find((cap) => cap.pokemon.id === id);
     if (!tile || !capture?.sealed || tile.classList.contains('checklist')) {
       return;
     }
-    openMoveMenu(id, tile);
-  });
+    openMoveMenu(id, tile, tile.classList.contains('ledger-row') ? 1 : scale);
+  };
+  useHotkey('s', openMove);
+  useHotkey('l', openMove);
 
   // D over a marked mon that isn't sealed (a tile or a ledger row): released at a tap, its record erased
   useHotkey('d', () => {
@@ -242,7 +244,6 @@ export function Dex ({
               query={deferredQuery}
               setFilters={setFilters}
               setQuery={setQuery}
-              setSelectedPokemon={setSelectedPokemon}
             />
           }
           {layout === 'boxes' && (hasQuery(deferredQuery) || anyFilterActive(deferredFilters)) &&
@@ -254,16 +255,15 @@ export function Dex ({
               query={deferredQuery}
               setFilters={setFilters}
               setQuery={setQuery}
-              setSelectedPokemon={setSelectedPokemon}
             />
           }
           {/* only once the area's measured, so the plan is the screenful that shows */}
           {showsBoxes && !activeDex!.free &&
-            <BoxGrid boxes={boxes} columns={columns} entrance={!opened.current && !still} rows={rows} setSelectedPokemon={setSelectedPokemon} />
+            <BoxGrid boxes={boxes} columns={columns} entrance={!opened.current && !still} rows={rows} />
           }
           {/* a free-form dex's boxes are its own */}
           {showsBoxes && activeDex!.free &&
-            <FreeBoxes captures={captures} columns={columns} setSelectedPokemon={setSelectedPokemon} />
+            <FreeBoxes captures={captures} columns={columns} />
           }
         </div>
       </div>

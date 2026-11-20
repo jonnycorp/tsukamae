@@ -115,7 +115,9 @@ export function FilterBar ({ filters, query, setFilters, source }: Props) {
 
   const checklist = Boolean(activeDex?.checklist);
   // a checklist keeps no records; a free-form dex's mons are all marked, so none is ever missing
-  const views = FILTER_VIEWS.filter((view) => (!checklist || !view.records) && !(activeDex?.free && view.id === 'missing'));
+  // (lab 10) a HOME dex keeping records has no Temporary to view
+  const views = FILTER_VIEWS.filter((view) => (!checklist || !view.records) && !(activeDex?.free && view.id === 'missing') &&
+    !(view.id === 'temporary' && !checklist && activeDexView?.game.id === 'home'));
   const facets = FACETS.filter((facet) => !facet.pressOnly && (!checklist || facet.species));
   const active = anyFilterActive(filters);
 

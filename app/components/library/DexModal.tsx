@@ -63,6 +63,9 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     const stored = dex?.captureDefaults?.status;
     return stored && STATUSES.includes(stored) ? stored : 'caught';
   });
+  // (lab 10) a HOME dex keeping records has no Temporary: a stored one shows, and saves, as caught
+  const homeRecords = gameId === 'home' && !checklist;
+  const shownStatus = homeRecords && defaultStatus === 'temporary' ? 'caught' : defaultStatus;
   const [defaults, setDefaults] = useState<Partial<CaptureMetadata>>(() => withBaselines({ ...dex?.captureDefaults }, DEFAULTABLE_BASELINES));
 
   const dexesForGame = CATALOG_GROUPS.find((group) => group.game.id === gameId)?.entries || [];
@@ -90,7 +93,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
 
     const resolvedTitle = title.trim() || (free ? t('dexModal.freeTitle') : localizeCatalogDexName(locale, catalogKey, getCatalogDex(catalogKey).name));
 
-    const captureDefaults = { ...defaults, status: defaultStatus };
+    const captureDefaults = { ...defaults, status: shownStatus };
 
     // a checklist has no defaults, and never had them to keep
     if (dex) {
@@ -211,8 +214,8 @@ export function DexModal ({ dex, onRequestClose }: Props) {
                   <Dropdown
                     id="default_status"
                     onSelect={(next) => setDefaultStatus(next as CaptureStatus)}
-                    options={statusOptions(locale)}
-                    value={defaultStatus}
+                    options={statusOptions(locale, homeRecords)}
+                    value={shownStatus}
                   />
                 </div>
                 {/* the status and My Game (which sets the game and language too) here, the rest beside them */}

@@ -1,0 +1,278 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// (lab 10) the move menu (components/pages/Tracker/MoveMenu.tsx), S or L over a sealed tile or at its place under W's
+// lens: the mon and where it is, HOME and Champions large, a free-form dex's checklist boxes, then your games as W's
+// chips with their number keys; coming home from a game, the level it's back at. In the menus' overlay colours, at the
+// zoom of what it opened over (the panel's own zoom)
+.move-menu {
+  position: fixed;
+  z-index: 120;
+}
+
+.move-panel {
+  // W's pictures (review-fields: the chips, the language tags) at the menu's size
+  --vis: 26px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 300px;
+  padding: 10px;
+  border: 2px solid var(--overlay-edge);
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  box-shadow: $menu-shadow;
+  animation: dropdown-furl .2s cubic-bezier(.2, .9, .3, 1);
+}
+
+.move-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--overlay-line);
+}
+
+.move-mon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 40px;
+  overflow: hidden;
+
+  .pkicon {
+    zoom: .72;
+  }
+}
+
+.move-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    overflow: hidden;
+    font-family: $font-secondary;
+    font-size: 17px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.move-now {
+  overflow: hidden;
+  color: var(--on-overlay-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// a place to go: its picture, its name, then where it is ticked, a game's number, or the level a way home asks
+.move-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 38px;
+  padding: 5px 9px;
+  border: 1px solid var(--overlay-line);
+  background: none;
+  color: inherit;
+  font-family: $font-primary;
+  font-size: $field-font;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &.active {
+    background-color: var(--overlay-deep);
+  }
+
+  &.current {
+    border-color: var(--on-overlay);
+    font-weight: 700;
+    cursor: default;
+  }
+
+  .rv-lang {
+    height: 20px;
+    font-size: 10px;
+  }
+}
+
+// HOME and Champions, a row each and taller than a game's, the level a way home asks at the right
+.move-big {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .move-option {
+    min-height: 48px;
+    font-size: 17px;
+    font-weight: 700;
+  }
+}
+
+.move-picture {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--vis);
+  height: var(--vis);
+  font-size: 17px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.move-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.move-id {
+  margin-left: 6px;
+  color: var(--on-overlay-muted);
+  font-size: 12px;
+}
+
+.move-tick {
+  flex: none;
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.move-key {
+  @include key-cap(var(--overlay-line), var(--on-overlay-muted));
+
+  flex: none;
+  min-width: 18px;
+  text-align: center;
+}
+
+.move-level-hint {
+  flex: none;
+  color: var(--on-overlay-muted);
+  font-family: $font-secondary;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.move-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.move-group-title {
+  @include caps-label(11px);
+
+  margin: 2px 0 0;
+  color: var(--on-overlay-muted);
+}
+
+.move-none {
+  margin: 0;
+  color: var(--on-overlay-muted);
+  font-size: 13px;
+}
+
+// coming home from a game: where to, and the level it's back at, at least the floor it kept
+.move-level {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.move-level-to {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.move-level-label {
+  @include caps-label(11px);
+
+  color: var(--on-overlay-muted);
+}
+
+.move-level-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.move-level-lv {
+  font-family: $font-secondary;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.move-level-input {
+  width: 84px;
+  height: $field-height;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.move-level-min {
+  color: var(--on-overlay-muted);
+  font-size: 13px;
+}
+
+.move-level-acts {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.move-back,
+.move-confirm {
+  @include outline-button($field-height);
+
+  kbd {
+    @include key-cap(var(--overlay-line), var(--on-overlay-muted));
+  }
+}
+
+.move-back {
+  border-color: var(--overlay-line);
+  color: var(--on-overlay);
+
+  &:hover {
+    background-color: var(--overlay-deep);
+  }
+}
+
+.move-confirm {
+  border-color: var(--accent);
+  background-color: var(--accent);
+  color: var(--on-accent);
+
+  &:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+  }
+
+  &:disabled {
+    opacity: .45;
+    cursor: default;
+  }
+
+  kbd {
+    @include key-cap(color-mix(in srgb, var(--on-accent) 45%, transparent), inherit);
+  }
+}

@@ -431,11 +431,17 @@ export function freeCaptures (dex: PersonalDex): Capture[] {
       ...record,
       pokemon: { ...species.get(entry.species)!, id: entry.id, box: entry.box },
       captured: true,
-      status: record?.status ?? 'caught',
+      status: statusIn(dex, record?.status) ?? 'caught',
       sealed: Boolean(record?.sealed),
     };
   });
 }
+
+// (lab 10) a HOME dex that keeps records (not a checklist, whose Temporary is Elsewhere) has no Temporary: an open record
+// there already is one. A stored Temporary, an old mark, reads as caught, and nothing offers it
+export const noTemporary = (dex: Pick<PersonalDex, 'checklist' | 'catalogKey'>) => !dex.checklist && getCatalogDex(dex.catalogKey).game.id === 'home';
+const statusIn = (dex: Pick<PersonalDex, 'checklist' | 'catalogKey'>, status: CaptureStatus | null | undefined) =>
+  (status === 'temporary' && noTemporary(dex) ? 'caught' : status);
 
 export function progressToCaptures (dex: PersonalDex): Capture[] {
   if (dex.free) {
@@ -452,7 +458,7 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
       ...entry,
       pokemon,
       captured: true,
-      status: entry.status,
+      status: statusIn(dex, entry.status) ?? null,
       sealed: Boolean(entry.sealed),
     };
   });
@@ -465,7 +471,7 @@ export function dexCounts (dex: PersonalDex): { marked: number; temporary: numbe
   if (dex.free) {
     const entries = dex.entries ?? [];
     // each mon's status as freeCaptures reads it: caught, unless its record says otherwise
-    const statusOf = (id: number) => dex.progress[id]?.status ?? 'caught';
+    const statusOf = (id: number) => statusIn(dex, dex.progress[id]?.status) ?? 'caught';
     return {
       marked: entries.filter((entry) => dex.progress[entry.id]?.sealed).length,
       temporary: entries.filter((entry) => statusOf(entry.id) === 'temporary').length,
@@ -517,10 +523,11 @@ export function freshEntry (dex: PersonalDex, saves: GameSave[], species: number
   return withBaselines({ ...newEntryMetadata(dex, saves, species), status: 'caught', sealed: false });
 }
 
-// what a click marks; a checklist always checks as caught, and so does a default this version doesn't know
-export function defaultStatus (dex: Pick<PersonalDex, 'checklist' | 'captureDefaults'>): CaptureStatus {
+// what a click marks; a checklist always checks as caught, and so does a default this version doesn't know, or (lab 10) a
+// Temporary in a HOME dex
+export function defaultStatus (dex: Pick<PersonalDex, 'checklist' | 'captureDefaults' | 'catalogKey'>): CaptureStatus {
   const status = !dex.checklist && dex.captureDefaults?.status;
-  return isKnownStatus(status) ? status : 'caught';
+  return isKnownStatus(status) ? statusIn(dex, status) ?? 'caught' : 'caught';
 }
 
 export interface UpdateCapturePayload extends Partial<CaptureMetadata> {
@@ -607,14 +614,14 @@ export function deleteCaptures (dexId: string, pokemonIds: number[]): void {
 
 // a sealed mon moved: the only write a sealed record takes besides unsealing, and only to where it is. A move to where
 // it already is, or of a record that isn't sealed, does nothing
-export function moveCapture (dexId: string, pokemon: number, to: Place): void {
+export function moveCapture (dexId: string, pokemon: number, to: Place, level?: number): void {
   commitRecords(dexId, (dex) => {
     const entry = dex.progress[pokemon];
     const here = entry && placeOf(entry);
     if (!entry?.sealed || (here && samePlace(here, to))) {
       return [];
     }
-    dex.progress[pokemon] = movedRecord(entry, to);
+    dex.progress[pokemon] = movedRecord(entry, to, level);
     return [pokemon];
   });
 }

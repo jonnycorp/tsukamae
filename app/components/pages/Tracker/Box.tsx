@@ -12,12 +12,10 @@ import { useThemeContext } from '../../../hooks/contexts/use-local-storage-conte
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture, Dex } from '../../../types';
-import type { Dispatch, SetStateAction } from 'react';
 import type { Locale } from '../../../i18n/translations';
 
 interface Props {
   captures: Capture[];
-  setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
 // reset boxes are "reset:<number>:<prefix>" and restart the numbering under a prefix; `dash`, a theme's own between the
@@ -36,12 +34,11 @@ export function boxTitle (captures: Capture[], dex: Dex, locale: Locale, dash?: 
 }
 
 function sameProps (prev: Props, next: Props): boolean {
-  return prev.setSelectedPokemon === next.setSelectedPokemon &&
-    prev.captures.length === next.captures.length &&
+  return prev.captures.length === next.captures.length &&
     prev.captures.every((capture, i) => capture === next.captures[i]);
 }
 
-export const Box = memo(function Box ({ captures, setSelectedPokemon }: Props) {
+export const Box = memo(function Box ({ captures }: Props) {
   const { activeDex, activeDexView } = useDexContext();
   const { narrow } = useTrackerActions();
   const { locale } = useTranslation();
@@ -67,7 +64,7 @@ export const Box = memo(function Box ({ captures, setSelectedPokemon }: Props) {
       </div>
       <div className="box-container">
         <div className="tile-grid">
-          {captures.map((capture) => <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />)}
+          {captures.map((capture) => <Pokemon capture={capture} key={capture.pokemon.id} />)}
           {Array.from({ length: BOX_SIZE - captures.length }, (_, i) => (
             <div className="pokemon empty" key={`empty-${i}`}>
               <div className="set-captured" />

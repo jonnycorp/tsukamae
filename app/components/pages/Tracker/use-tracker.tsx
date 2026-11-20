@@ -6,6 +6,7 @@ import { deleteCaptures, moveCapture, progressToCaptures, writeCapture } from '.
 import { isDexPlaceId } from '../../../utils/dex-places';
 import { removeEntries } from '../../../utils/free-dex';
 import { locationTint, movedRecord, placeOf, samePlace } from '../../../utils/location-moves';
+import { writeTouches } from '../../../utils/review-confirm';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 
 import type { Capture, Place } from '../../../types';
@@ -81,10 +82,13 @@ interface TrackerState {
   captures: Capture[];
 }
 
-// the move menu for a sealed mon, opened beside its tile (L)
+// the move menu for a sealed mon, opened beside its tile (S or L) or its place in W, at the zoom of what it's over
 export interface MoveTarget {
   pokemon: number;
   anchor: DOMRect;
+  zoom: number;
+  // beside a tile; under (or over) a control, as W's place chip is
+  beside: boolean;
 }
 
 interface TrackerActions {
@@ -92,11 +96,15 @@ interface TrackerActions {
   updateCapture: (payload: UpdateCapturePayload) => void;
   // blanks the tiles and deletes the records; sealed ones are skipped by both
   releaseCaptures: (pokemon: number[]) => void;
-  // a sealed mon moved, the tile and the record alike; an unsealed one is skipped by both
-  moveTo: (pokemon: number, to: Place) => void;
-  openMoveMenu: (pokemon: number, anchor: Element) => void;
+  // a sealed mon moved, the tile and the record alike, with the level it came home at (asksLevel); an unsealed one is
+  // skipped by both
+  moveTo: (pokemon: number, to: Place, level?: number) => void;
+  openMoveMenu: (pokemon: number, anchor: Element, zoom?: number, beside?: boolean) => void;
   // set by the one MoveMenu; read only when the menu's asked for, so opening it renders no tile
   moveMenuHost: MutableRefObject<((target: MoveTarget) => void) | null>;
+  // (lab 10) a marked mon opened by a press on its tile or row: an open record in the review (W) at it, a sealed one's
+  // card (the popover). Set by the dex's page, which holds both
+  openHost: MutableRefObject<((pokemon: number) => void) | null>;
   // a mon about to be brought into view (a locate): the ledger unfolds the group it's in, so there's a row to find
   revealHost: MutableRefObject<((pokemon: number) => void) | null>;
   // a mon a press just marked: kept in a filtered view it no longer matches (useHeldTiles in Dex)
@@ -113,6 +121,7 @@ const TrackerActionsContext = createContext<TrackerActions>({
   moveTo: () => {},
   openMoveMenu: () => {},
   moveMenuHost: { current: null },
+  openHost: { current: null },
   revealHost: { current: null },
   holdHost: { current: null },
   narrow: false,
@@ -160,6 +169,8 @@ export const TrackerContextProvider = ({ children }: Props) => {
 
   const updateCapture = useCallback((payload: UpdateCapturePayload) => writeCapture(dexId, payload), [dexId]);
   const releaseCaptures = useCallback((pokemon: number[]) => {
+    // (lab 10) a released record's touches in W go with it (utils/review-confirm)
+    pokemon.forEach((id) => writeTouches(dexId, id, null));
     // a free-form dex's released mons leave its boxes too
     if (free) {
       editRef.current((state) => removeEntries(state, dexId, pokemon));
@@ -170,24 +181,25 @@ export const TrackerContextProvider = ({ children }: Props) => {
       : cap)));
     deleteCaptures(dexId, pokemon);
   }, [dexId, free]);
-  const moveTo = useCallback((pokemon: number, to: Place) => {
+  const moveTo = useCallback((pokemon: number, to: Place, level?: number) => {
     setCaptures((prev) => prev.map((cap) => {
       const here = placeOf(cap);
-      return cap.pokemon.id === pokemon && cap.sealed && !(here && samePlace(here, to)) ? movedRecord(cap, to) : cap;
+      return cap.pokemon.id === pokemon && cap.sealed && !(here && samePlace(here, to)) ? movedRecord(cap, to, level) : cap;
     }));
-    moveCapture(dexId, pokemon, to);
+    moveCapture(dexId, pokemon, to, level);
   }, [dexId]);
   const moveMenuHost = useRef<((target: MoveTarget) => void) | null>(null);
-  const openMoveMenu = useCallback((pokemon: number, anchor: Element) => {
-    moveMenuHost.current?.({ pokemon, anchor: anchor.getBoundingClientRect() });
+  const openMoveMenu = useCallback((pokemon: number, anchor: Element, zoom = 1, beside = true) => {
+    moveMenuHost.current?.({ pokemon, anchor: anchor.getBoundingClientRect(), zoom, beside });
   }, []);
 
+  const openHost = useRef<((pokemon: number) => void) | null>(null);
   const revealHost = useRef<((pokemon: number) => void) | null>(null);
   const holdHost = useRef<((pokemon: number) => void) | null>(null);
 
   const stateValue = useMemo<TrackerState>(() => ({ captures }), [captures]);
   const actionsValue = useMemo<TrackerActions>(
-    () => ({ setCaptures, updateCapture, releaseCaptures, moveTo, openMoveMenu, moveMenuHost, revealHost, holdHost, narrow }),
+    () => ({ setCaptures, updateCapture, releaseCaptures, moveTo, openMoveMenu, moveMenuHost, openHost, revealHost, holdHost, narrow }),
     [updateCapture, releaseCaptures, moveTo, openMoveMenu, narrow],
   );
 

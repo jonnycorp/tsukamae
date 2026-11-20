@@ -1,6 +1,7 @@
-import { canHold } from './game-reach';
+import { canHold, homeCanSend } from './game-reach';
 import { isDexPlaceId } from './dex-places';
 import { offersChampions } from './champions';
+import { retiredSaves } from './retired-saves';
 import { saveLabel } from './capture-fields';
 import { translate } from '../i18n/translations';
 
@@ -8,8 +9,8 @@ import type { Capture, CaptureLocation, CaptureMetadata, GameSave, Place } from 
 import type { Locale } from '../i18n/translations';
 
 // a sealed mon is the slot's holder for good, but where it is can still change: taken out to a game for raids, into
-// Champions, back to HOME. Its location is the one field a sealed record still edits, from its popover or by L over
-// its tile
+// Champions, back to HOME. Its location is the one field a sealed record still edits, from the move menu (S or L over
+// its tile, or its place under the lens in W)
 
 type Located = Pick<CaptureMetadata, 'location' | 'location_save'>;
 
@@ -28,15 +29,26 @@ export function samePlace (a: Place, b: Place): boolean {
   return a.location === b.location && (a.location === 'champions' || (a.location_save ?? null) === (b.location_save ?? null));
 }
 
-// a sealed record moved; Champions, once it's been there, remembered (been to Champions is for good, as the field is)
-export function movedRecord<T extends Located & Pick<CaptureMetadata, 'been_to_champions'>> (record: T, to: Place): T {
+// a sealed record moved; Champions, once it's been there, remembered (been to Champions is for good, as the field is);
+// the level it came home at (asksLevel) written with it
+export function movedRecord<T extends Located & Pick<CaptureMetadata, 'been_to_champions' | 'level'>> (record: T, to: Place, level?: number): T {
   return {
     ...record,
     location: to.location,
     location_save: inSomewhere(to) ? to.location_save : null,
     been_to_champions: to.location === 'champions' ? true : record.been_to_champions,
+    level: level ?? record.level,
   };
 }
+
+// (lab 10) a HOME dex's sealed mon out in one of your games is still being raised there: its level isn't tracked till
+// it's back (育成中), the last one confirmed kept as a floor
+export const inTraining = (record: Pick<Capture, 'sealed' | 'location'>, homeDex: boolean) => homeDex && record.sealed && record.location === 'game';
+
+// coming home from a game (to HOME, a checklist's boxes in it, or Champions inside it) asks the level it's come back at,
+// at least the floor; one at 100 can't have gone up, so it's asked nothing
+export const asksLevel = (record: Pick<Capture, 'sealed' | 'location' | 'level'>, to: Place, homeDex: boolean) =>
+  inTraining(record, homeDex) && to.location !== 'game' && record.level !== 100;
 
 // a sealed tile's tint for a mon away from where its dex keeps them (HOME in a HOME dex, a game in a game's): gold in
 // Champions, out in one of your games, or in HOME. One where the dex keeps it has none, and wears the plain sealed wash
@@ -63,10 +75,14 @@ export function destinations (saves: GameSave[], champions: boolean, holds: (sav
   ];
 }
 
-// where one mon can be moved, as its popover, the move menu (L) and the review offer it: the games that can hold it
-// (utils/game-reach) and the one it's in, and Champions while it can go there
+// where one mon can be moved, as the move menu (S or L) offers it: the games that can hold it (utils/game-reach; in a
+// HOME dex, only those HOME can send it to, homeCanSend) and aren't retired (My Games' 引退, utils/retired-saves), the one
+// it's in whatever it is, and Champions while it can go there
 export function placesFor (saves: GameSave[], capture: Capture, homeDex: boolean, inDexes: Place[] = []): Place[] {
-  const [home, ...rest] = destinations(saves, offersChampions(capture, homeDex), (save) => save.id === capture.location_save || canHold(save, capture, saves));
+  const retired = retiredSaves();
+  const holds = (save: GameSave) => save.id === capture.location_save ||
+    (!retired.has(save.id) && (homeDex ? homeCanSend(save, capture, saves) : canHold(save, capture, saves)));
+  const [home, ...rest] = destinations(saves, offersChampions(capture, homeDex), holds);
   return [home, ...inDexes, ...rest];
 }
 

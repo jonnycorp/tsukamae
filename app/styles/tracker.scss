@@ -1463,36 +1463,6 @@ $flip-face-width: $search-height;
 }
 
 // the move menu (MoveMenu, L over a sealed tile), a dropdown's list of where the mon can go, each with its mark
-.move-menu {
-  max-height: none;
-
-  .move-menu-icon {
-    flex: none;
-    width: 14px;
-    font-size: 12px;
-    text-align: center;
-  }
-
-  .move-menu-mark {
-    flex: none;
-    width: 14px;
-    height: 14px;
-    object-fit: contain;
-    image-rendering: auto;
-  }
-
-  .origin-mark {
-    flex: none;
-    width: 14px;
-    height: 14px;
-    background-color: currentColor;
-  }
-
-  [aria-disabled='true'] {
-    cursor: default;
-  }
-}
-
 .flip-faces {
   position: absolute;
   top: 0;

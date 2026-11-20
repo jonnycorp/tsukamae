@@ -192,7 +192,6 @@ $card-clear-at: 1.05s;
 // gate's below: an animation shorthand sets the play state too, and the scenes' own run as deep as their selectors do.
 // The almanac's body is its scroller too, so its scrollbar's fade stays beside
 .review-body,
-.review-progress,
 .review-foot {
   transition: opacity .24s ease-out;
 }

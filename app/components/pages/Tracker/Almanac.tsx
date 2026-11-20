@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faCrown, faDumbbell, faGift, faHeart, faLock, faSignature, faWandMagicSparkles, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCrown, faDumbbell, faGift, faHeart, faLock, faSignature, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { BALL_NAMES, LANGUAGE_ABBRS, ORIGIN_GAME_NAMES } from '../../../utils/capture-fields';
@@ -300,6 +300,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
   const recordsRef = useRef<HTMLDivElement>(null);
   const checklist = Boolean(activeDex?.checklist);
   const dex = activeDexView!;
+  const homeDex = dex.game.id === 'home';
   // the grid scaled up to a wider window (use-scene-scale)
   const scale = useSceneScale();
   // its title card as it opens, what's under the bar out of sight (intro) till the card's about to clear
@@ -360,7 +361,8 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
           <Stat at={heroAt} className="seg-missing" label={t('almanac.missing')} value={missing} />
           {!checklist && <Stat at={heroAt} className="almanac-stat-sealed" icon={faLock} label={t('almanac.sealed')} value={all.sealed} />}
           <Stat at={heroAt} className="seg-caught" label={t('status.caught')} value={all.caught} />
-          <Stat at={heroAt} className="seg-temporary" label={t(checklist ? 'status.elsewhere' : 'status.temporary')} value={all.temporary} />
+          {/* (lab 10) none in a HOME dex keeping records */}
+          {(checklist || !homeDex) && <Stat at={heroAt} className="seg-temporary" label={t(checklist ? 'status.elsewhere' : 'status.temporary')} value={all.temporary} />}
           <Stat at={heroAt} className="seg-unobtainable" label={t('status.unobtainable')} value={all.unobtainable} />
         </dl>
       </div>
@@ -619,9 +621,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
         <span className="almanac-logo"><span>{t('almanac.title')}</span></span>
         <h1>{activeDex!.title}</h1>
         <span className="almanac-hint">{t('almanac.hint')}</span>
-        <button aria-label={t('almanac.close')} className="almanac-close" onClick={onClose} title={t('almanac.close')} type="button">
-          <FontAwesomeIcon icon={faXmark} />
-        </button>
+        {/* (lab 10 round 8) no ✕: Esc closes it */}
       </header>
       <div className="almanac-body" data-intro={intro || undefined} tabIndex={-1}>
         <div className="almanac-grid" style={{ zoom: scale }}>{cards}</div>

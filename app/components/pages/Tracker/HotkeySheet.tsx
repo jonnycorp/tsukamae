@@ -16,6 +16,9 @@ interface Shortcut {
   label: TranslationKey | TranslationKey[];
   // only where the dex keeps records: a checklist has no popover, review, timeline, flips or scenes reading records
   records?: boolean;
+  // (lab 10) only outside a HOME dex, or only in one: W's marks differ
+  notHome?: boolean;
+  homeOnly?: boolean;
 }
 
 interface Group {
@@ -59,30 +62,24 @@ const GROUPS: Group[] = [
       { keys: [['Alt', CLICK]], label: 'help.altClick', records: true },
       { keys: [[{ press: 'help.press.rightClick' }]], label: 'help.copyName' },
       { keys: [[{ press: 'help.press.hold' }]], label: 'help.hold' },
-      { keys: [['L']], label: 'help.move', records: true },
+      { keys: [['S'], ['L']], label: 'help.move', records: true },
       { keys: [['Q'], ['E'], ['↑'], ['↓']], label: 'help.movePick', records: true },
+      { keys: [['1–9']], label: 'help.movePickGame', records: true },
       { keys: [['D']], label: 'help.release' },
-    ],
-  },
-  {
-    title: 'help.group.list',
-    shortcuts: [
-      { keys: [['Ctrl', CLICK]], label: 'help.listOne' },
-      { keys: [['Shift', CLICK]], label: 'help.listRun' },
-      { keys: [['Ctrl', 'A']], label: 'help.listAll' },
-      { keys: [['Esc']], label: 'help.listClear' },
     ],
   },
   {
     title: 'help.group.review',
     records: true,
     shortcuts: [
-      { keys: [['1'], ['2'], ['3']], label: ['status.caught', 'status.temporary', 'status.unobtainable'] },
+      { keys: [['1'], ['2'], ['3']], label: ['status.caught', 'status.temporary', 'status.unobtainable'], notHome: true },
+      { keys: [['1'], ['2']], label: ['status.caught', 'status.unobtainable'], homeOnly: true },
       { keys: [['Enter']], label: 'help.reviewNext' },
       { keys: [['Ctrl', 'Enter']], label: 'help.reviewSeal' },
       { keys: [['E'], ['→']], label: 'help.reviewForward' },
       { keys: [['Q'], ['←']], label: 'help.reviewBack' },
-      { keys: [['L']], label: 'help.reviewList' },
+      { keys: [['Space'], ['Shift', 'Space']], label: 'help.reviewSpace' },
+      { keys: [['S']], label: 'help.reviewMove' },
       { keys: [['↓']], label: 'help.reviewRecentDate' },
       { keys: [['Esc']], label: 'help.reviewEscape' },
     ],
@@ -116,13 +113,14 @@ const CAPS: Record<string, string> = { Ctrl: MOD_KEY, Alt: ALT_KEY };
 
 interface Props {
   checklist: boolean;
+  homeDex: boolean;
   onClose: () => void;
 }
 
 // H: every shortcut the dex has, by where it works, each with its keys as caps; H again, Escape or a press outside
 // closes it. A checklist leaves out what it hasn't got (the review, the timeline, the flips, the scenes reading records,
 // the popover)
-export function HotkeySheet ({ checklist, onClose }: Props) {
+export function HotkeySheet ({ checklist, homeDex, onClose }: Props) {
   const { t } = useTranslation();
   const { closing, dismiss } = useDismissable({ onDismissed: onClose });
 
@@ -138,7 +136,7 @@ export function HotkeySheet ({ checklist, onClose }: Props) {
   }, [dismiss]);
 
   const cap = (key: Cap) => (typeof key === 'string' ? CAPS[key] ?? key : t(key.press));
-  const shown = (entry: { records?: boolean }) => !(checklist && entry.records);
+  const shown = (entry: { records?: boolean; notHome?: boolean; homeOnly?: boolean }) => !(checklist && entry.records) && !(homeDex && entry.notHome) && !(!homeDex && entry.homeOnly);
 
   return (
     <ModalShell closing={closing} contentLabel={t('help.title')} onDismiss={dismiss}>

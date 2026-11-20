@@ -10,6 +10,8 @@ import { SlotsLine, flipsName, liftsSprite } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { defaultStatus } from '../../../utils/local-data';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
+import { inTraining } from '../../../utils/location-moves';
+import { CONFIRMABLE_IDS, writeTouches } from '../../../utils/review-confirm';
 import { isDisplaySealed, tileTint, useTrackerActions } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useLongPress } from '../../../hooks/use-long-press';
@@ -17,7 +19,7 @@ import { useMark } from './use-mark';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture, CaptureStatus, PokemonType } from '../../../types';
-import type { CSSProperties, Dispatch, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from 'react';
+import type { CSSProperties, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 // a checklist's status buttons, the only ones a tile has: its Temporary is Elsewhere, a copy held in another dex
@@ -76,14 +78,13 @@ function UnsealRing ({ at }: { at: Point }) {
 
 interface Props {
   capture: Capture;
-  setSelectedPokemon: Dispatch<SetStateAction<number>>;
   // in a free-form dex's box opened to arrange (FreeBoxes, which takes the drop): the mon's grip
   arrange?: boolean;
 }
 
-export const Pokemon = memo(function Pokemon ({ arrange = false, capture, setSelectedPokemon }: Props) {
+export const Pokemon = memo(function Pokemon ({ arrange = false, capture }: Props) {
   const { activeDex, activeDexView } = useDexContext();
-  const { setCaptures, updateCapture, releaseCaptures, holdHost, narrow } = useTrackerActions();
+  const { setCaptures, updateCapture, releaseCaptures, holdHost, openHost, narrow } = useTrackerActions();
   const mark = useMark();
   const { t, locale } = useTranslation();
 
@@ -106,6 +107,8 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture, setSel
       }
       setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === capture.pokemon.id ? { ...cap, sealed: false } : cap)));
       updateCapture({ pokemon: capture.pokemon.id, sealed: false });
+      // (lab 10) its defaulted fields were all touched as it was sealed, and stay so in W (utils/review-confirm)
+      writeTouches(activeDex!.id, capture.pokemon.id, CONFIRMABLE_IDS);
     },
   });
 
@@ -130,7 +133,7 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture, setSel
     };
 
   // a press: an unmarked mon marked (as the dex's default) and nothing more, so a run of them goes one-handed; a marked
-  // one's popover opened, so a second press opens what the first marked (kept where it was in a view it no longer
+  // one opened (lab 10: an open record in the review, W, at it; a sealed one's card), so a second press opens what the first marked (kept where it was in a view it no longer
   // matches, Missing's, useHeldTiles in Dex). Shift never opens (a marked one it leaves be, so a run of Shift+clicks
   // opens nothing); Alt opens it without marking (its links, a look at the mon), which a checklist, having no popover,
   // leaves be
@@ -146,7 +149,7 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture, setSel
       mark(capture.pokemon.id, defaultStatus(activeDex!));
       holdHost.current?.(capture.pokemon.id);
     } else if (!e.shiftKey || e.altKey) {
-      setSelectedPokemon(capture.pokemon.id);
+      openHost.current?.(capture.pokemon.id);
     }
   };
 
@@ -211,7 +214,7 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture, setSel
 
   let numberLine: ReactNode = <p>#{number}</p>;
   if (displaySealed) {
-    numberLine = <div className="number-scroll">{!flips && <SlotsLine capture={capture} number={number} />}</div>;
+    numberLine = <div className="number-scroll">{!flips && <SlotsLine capture={capture} number={number} training={inTraining(capture, dex.game.id === 'home')} />}</div>;
   }
 
   return (

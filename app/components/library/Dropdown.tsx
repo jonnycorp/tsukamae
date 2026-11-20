@@ -3,9 +3,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 
-interface DropdownOption {
+export interface DropdownOption {
   value: string;
   label: string;
   icon?: string;
@@ -20,6 +20,15 @@ interface Props {
   triggerClassName?: string;
   // the menu's edge that lines up with the trigger's, where it's wider: start, or end for a trigger set to the right
   align?: 'start' | 'end';
+  // what the trigger shows for the chosen option (undefined while there's none), and what each option shows, in place
+  // of the label and its icon
+  renderValue?: (option: DropdownOption | undefined) => ReactNode;
+  renderOption?: (option: DropdownOption) => ReactNode;
+  // the menu laid out as a grid this many options across: ← → move along it, ↑ ↓ a row
+  columns?: number;
+  menuClassName?: string;
+  // a taller menu than the usual, for a grid that should open whole
+  maxHeight?: number;
 }
 
 const MENU_MAX_HEIGHT = 240;
@@ -47,7 +56,7 @@ function guardLabels () {
 }
 
 // the menu is position: fixed so no overflow ancestor (modal, popover body) can clip it
-export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, align = 'start' }: Props) {
+export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, align = 'start', renderValue, renderOption, columns = 1, menuClassName, maxHeight = MENU_MAX_HEIGHT }: Props) {
   const [open, setOpen] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -90,15 +99,28 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
     // held by an ancestor (measured off the window's corner), it's clipped by the scroller round that: the room below is
     // to that scroller's foot (the review's main, above its foot bar), else to the window's
     let floor = window.innerHeight;
+    let ceiling = 0;
     if (Math.abs(origin.top) > 0.5 || Math.abs(origin.left) > 0.5) {
       for (let el = menu.parentElement; el; el = el.parentElement) {
         if (/(auto|scroll)/.test(getComputedStyle(el).overflowY)) {
-          floor = Math.min(floor, el.getBoundingClientRect().bottom);
+          const scroller = el.getBoundingClientRect();
+          floor = Math.min(floor, scroller.bottom);
+          ceiling = Math.max(ceiling, scroller.top);
           break;
         }
       }
     }
-    const below = rect.bottom + MENU_MAX_HEIGHT * zoom <= floor - EDGE;
+    // (lab 10) as tall as its options, to its cap: under the trigger where that fits, else over it where that fits, else
+    // on the side with the more room, held to it, so no part of it is ever past the window's edge (W's ball grid, in the
+    // narrow window, went past its top)
+    const tall = Math.min(origin.height, maxHeight * zoom);
+    const roomBelow = floor - EDGE - rect.bottom - GAP * zoom;
+    const roomAbove = rect.top - GAP * zoom - ceiling - EDGE;
+    const below = tall <= roomBelow || (tall > roomAbove && roomBelow >= roomAbove);
+    const room = below ? roomBelow : roomAbove;
+    if (tall > room) {
+      menu.style.maxHeight = `${room / zoom}px`;
+    }
     // the way it unfurls, on the menu itself before the unfurl starts, so it never starts one way and turns
     menu.toggleAttribute('data-up', !below);
     if (below) {
@@ -203,6 +225,15 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       // not a pick: the menu closes, and the page's own Ctrl+Enter (the review's seal) goes ahead
       setOpen(false);
+    } else if (columns > 1 && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      // claimed, so the review's ← → never move on to another mon under an open grid
+      e.preventDefault();
+      keyedRef.current = true;
+      const step = { ArrowDown: columns, ArrowUp: -columns, ArrowLeft: -1, ArrowRight: 1 }[e.key];
+      setActive((index) => {
+        const to = Math.max(0, index) + step;
+        return to < 0 || to >= all.length ? index : to;
+      });
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       keyedRef.current = true;
@@ -245,14 +276,23 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
         ref={triggerRef}
         type="button"
       >
-        <span className="dropdown-value">
-          {selected?.icon && <img alt="" src={`/${selected.icon}`} />}
-          {selected?.label ?? blankLabel ?? ''}
-        </span>
+        {renderValue
+          ? renderValue(selected?.value === '' && blankLabel !== undefined ? undefined : selected)
+          : (
+            <span className="dropdown-value">
+              {selected?.icon && <img alt="" src={`/${selected.icon}`} />}
+              {selected?.label ?? blankLabel ?? ''}
+            </span>
+          )}
         <FontAwesomeIcon className="dropdown-chevron" icon={faChevronDown} />
       </button>
       {open &&
-        <ul className="dropdown-menu" ref={menuRef} role="listbox">
+        <ul
+          className={classNames('dropdown-menu', menuClassName, { 'dropdown-grid': columns > 1 })}
+          ref={menuRef}
+          role="listbox"
+          style={{ maxHeight, ...(columns > 1 ? { gridTemplateColumns: `repeat(${columns}, auto)` } : {}) } as CSSProperties}
+        >
           {all.map((option, index) => (
             <li
               aria-selected={option.value === value}
@@ -267,8 +307,14 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
               }}
               role="option"
             >
-              {option.icon && <img alt="" src={`/${option.icon}`} />}
-              <span>{option.label}</span>
+              {renderOption
+                ? renderOption(option)
+                : (
+                  <>
+                    {option.icon && <img alt="" src={`/${option.icon}`} />}
+                    <span>{option.label}</span>
+                  </>
+                )}
               {option.value === value && <FontAwesomeIcon className="dropdown-check" icon={faCheck} />}
             </li>
           ))}

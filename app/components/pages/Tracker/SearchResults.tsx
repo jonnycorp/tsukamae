@@ -34,14 +34,12 @@ interface ChunkProps {
   padding: number;
   // after the first: its first row draws the line between it and the chunk above (styles/tracker.scss)
   ruled: boolean;
-  setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
 function sameChunk (prev: ChunkProps, next: ChunkProps): boolean {
   return prev.padding === next.padding &&
     prev.ruled === next.ruled &&
     prev.columns === next.columns &&
-    prev.setSelectedPokemon === next.setSelectedPokemon &&
     prev.captures.length === next.captures.length &&
     prev.captures.every((capture, i) => capture === next.captures[i]);
 }
@@ -49,7 +47,7 @@ function sameChunk (prev: ChunkProps, next: ChunkProps): boolean {
 // a box's rows of results drawn as a box is, its title aside, as wide as the row of boxes they stand for: its own seal
 // material under its own grid and flips over it, so a sealed tile looks the same in every view, an offscreen chunk skips its work, and an
 // edit re-renders one chunk, not the list
-const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, ruled, setSelectedPokemon }: ChunkProps) {
+const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, ruled }: ChunkProps) {
   const { activeDex, activeDexView } = useDexContext();
   const { narrow } = useTrackerActions();
   const checklist = Boolean(activeDex!.checklist);
@@ -65,7 +63,7 @@ const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, r
     <div className="results-chunk" style={size}>
       <div className="tile-grid" data-columns={columns}>
         {captures.map((capture) => (
-          <Pokemon capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />
+          <Pokemon capture={capture} key={capture.pokemon.id} />
         ))}
         {Array.from({ length: padding }, (_, i) => (
           <div className="pokemon empty" key={`empty-${i}`}>
@@ -139,10 +137,9 @@ interface Props {
   query: string;
   setFilters: Dispatch<SetStateAction<TrackerFilters>>;
   setQuery: Dispatch<SetStateAction<string>>;
-  setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
-export function SearchResults ({ captures, columns, filters, held, query, setFilters, setQuery, setSelectedPokemon }: Props) {
+export function SearchResults ({ captures, columns, filters, held, query, setFilters, setQuery }: Props) {
   const { activeDexView } = useDexContext();
   const regional = Boolean(activeDexView?.regional);
 
@@ -176,7 +173,6 @@ export function SearchResults ({ captures, columns, filters, held, query, setFil
           key={c}
           padding={c === chunks.length - 1 ? (across - (chunk.length % across)) % across : 0}
           ruled={c > 0}
-          setSelectedPokemon={setSelectedPokemon}
         />
       ))}
     </div>

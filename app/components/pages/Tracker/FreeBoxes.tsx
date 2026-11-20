@@ -15,7 +15,7 @@ import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture } from '../../../types';
-import type { Dispatch, DragEvent, MouseEvent, SetStateAction } from 'react';
+import type { DragEvent, MouseEvent } from 'react';
 import type { FreeSort, SortReach } from '../../../utils/free-dex';
 import type { FreeBox } from '../../../utils/local-data';
 import type { TranslationKey } from '../../../i18n/translations';
@@ -26,7 +26,6 @@ const REACHES: SortReach[] = ['each', 'together'];
 interface Props {
   captures: Capture[];
   columns: number;
-  setSelectedPokemon: Dispatch<SetStateAction<number>>;
 }
 
 // a slot in a box, or (null) the first empty one in it
@@ -50,10 +49,10 @@ const hole = (slot: number): Capture => ({
 // place (and delete an empty one) till Done; and each box's mons, opened with its padlock to drag a mon by its grip to
 // another slot (a mon there trades places) or onto an open box's name, and to sort. An open box's frame marches; a
 // locked one takes no drag and no sort. An empty slot pressed adds a mon there, open or locked
-export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
+export function FreeBoxes ({ captures, columns }: Props) {
   const { activeDex, activeDexView, editDexes } = useDexContext();
   const homeDex = activeDexView!.game.id === 'home';
-  const { narrow } = useTrackerActions();
+  const { narrow, openHost } = useTrackerActions();
   const { t } = useTranslation();
   const dex = activeDex!;
   const boxes = useMemo(() => dex.boxes ?? [], [dex.boxes]);
@@ -93,8 +92,8 @@ export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
   nameNewBoxes((n) => t('free.box', { n }));
   const boxName = (box: FreeBox, i: number) => box.name || t('free.box', { n: i + 1 });
 
-  // the new mon's popover opens once its tile is there, brought into view first where its box is off screen (the
-  // toolbar's Add fills the first box with room, or a new last one): the popover closes itself on a tile out of sight
+  // the new mon opens once its tile is there (openHost: its record in the review), brought into view first where its box
+  // is off screen (the toolbar's Add fills the first box with room, or a new last one)
   const add = (species: number, to: Slot) => {
     let id = 0;
     editDexes((state) => {
@@ -103,7 +102,7 @@ export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
     setPicking(null);
     requestAnimationFrame(() => requestAnimationFrame(() => {
       document.querySelector(`.dex [data-pokemon-id='${id}']`)?.scrollIntoView({ block: 'nearest' });
-      setSelectedPokemon(id);
+      openHost.current?.(id);
     }));
   };
   const pickAt = (to: Slot) => (e: MouseEvent<HTMLElement>) => {
@@ -298,7 +297,7 @@ export function FreeBoxes ({ captures, columns, setSelectedPokemon }: Props) {
               <div className="box-container">
                 <div className="tile-grid" onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOver(null)} onDragOver={dragOver(box, false)} onDrop={drop(box, false)}>
                   {slots.map((capture, slot) => (capture
-                    ? <Pokemon arrange={box.open} capture={capture} key={capture.pokemon.id} setSelectedPokemon={setSelectedPokemon} />
+                    ? <Pokemon arrange={box.open} capture={capture} key={capture.pokemon.id} />
                     // the narrow list shows its mons alone
                     : !narrow && (
                       <button

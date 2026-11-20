@@ -50,6 +50,9 @@ export interface ThemeSeed {
   // how a sealed tile's pages change: slid up, unless it says brushed, a brush's mark laid over the line as its text
   // changes under it (its mark and ink --page-brush and --page-brush-color in styles/themes.scss; page-brush.ts)
   pageChange?: 'brush';
+  // (lab 10) how W comes in as it opens: the mon settling and the plates coming in, unless it says brushed, a stroke of
+  // its brush across each plate, drying as the value shows (styles/review.scss)
+  reviewEntrance?: 'brush';
 }
 
 // Apricot contrasts, and Wisteria with its gold; the rest are waves through a single colour family. Every theme's
@@ -177,6 +180,7 @@ export const THEMES: ThemeSeed[] = [
     rangeDash: { ja: '～' },
     side: 'light',
     pageChange: 'brush',
+    reviewEntrance: 'brush',
     tones: {
       light: {
         paper: { l: 0.928, c: 0.018 }, 'paper-raised': { l: 0.948, c: 0.014 }, 'paper-sunken': { l: 0.903, c: 0.02 }, chip: { l: 0.888, c: 0.02 },

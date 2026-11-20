@@ -11,7 +11,8 @@ $review-ease: cubic-bezier(.2, .9, .3, 1);
 $review-spring: cubic-bezier(.2, 1.5, .4, 1);
 // the list's width, at the scene's scale (--scale)
 $run-width: 268px;
-$lens: 272px;
+// (lab 10) the mon bigger, front and centre: the lens and its sprite a size up
+$lens: 320px;
 // the wires' length, between a side's plates and the mon
 $wire: 30px;
 
@@ -85,6 +86,53 @@ $wire: 30px;
   }
 }
 
+// (lab 10) W's entrance, in place of its title card now it's the main way in: the mon settles, the plates come in top
+// to bottom on both sides, each wire drawn toward the mon, left to right, a quarter second in all
+@keyframes review-settle {
+  from {
+    opacity: 0;
+    transform: translateX(-14px) scale(.97);
+  }
+}
+
+// the plates fade in where they stand, never sliding: a menu opened from one in its first moments would be put beside
+// where it was, and stay there
+@keyframes review-plate-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes review-wire-in {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes review-dot-in {
+  from {
+    opacity: 0;
+  }
+}
+
+// Ink's: a stroke of the brush across each plate, drying as the value shows under it
+@keyframes review-ink-stroke {
+  0% {
+    opacity: .85;
+    transform: scaleX(0);
+  }
+
+  45% {
+    opacity: .85;
+    transform: scaleX(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
 @keyframes review-hold {
   to {
     transform: none;
@@ -103,12 +151,14 @@ $wire: 30px;
   animation: fade-in .15s ease-out;
 }
 
-// the scenes' bar (mixins)
+// the scenes' bar (mixins); (round 9) nothing on it but 「確認」 and the dex's name, the name bigger than the scenes'
 .review-top {
   @include scene-bar;
 
   h1 {
     @include scene-title;
+
+    font-size: 22px;
   }
 }
 
@@ -147,70 +197,13 @@ $wire: 30px;
   }
 }
 
-.review-position {
-  font-size: 14px;
-  font-style: italic;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.review-tally {
-  color: var(--on-chrome-muted);
-  white-space: nowrap;
-
-  @include small-text(11px);
-}
-
-.review-hint {
-  margin-left: auto;
-  overflow: hidden;
-  color: var(--on-chrome-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  @include small-text(11px);
-}
-
-.review-list-toggle,
-.review-close {
-  @include scene-button;
-}
-
-.review-list-toggle {
-  opacity: .6;
-
-  &.on {
-    opacity: 1;
-  }
-}
-
-// how far through the run, a line under the bar
-.review-progress {
-  flex: none;
-  height: 3px;
-  background-color: var(--paper-sunken);
-
-  span {
-    display: block;
-    height: 100%;
-    background-color: var(--accent);
-    transform-origin: left;
-    transition: transform .25s $review-ease;
-  }
-}
-
-// the run's list beside the mon where it's shown, each its own scroll
+// the run's list beside the mon, each its own scroll; (round 8) always there where there's room, never in a narrow window
 .review-body {
   display: grid;
   position: relative;
   flex: 1 1 auto;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: calc(#{$run-width} * var(--scale, 1)) minmax(0, 1fr);
   min-height: 0;
-
-  &.listed {
-    grid-template-columns: calc(#{$run-width} * var(--scale, 1)) minmax(0, 1fr);
-  }
 }
 
 .review-run {
@@ -334,15 +327,26 @@ $wire: 30px;
 }
 
 // zoomed up to a wide window (Review.tsx), its own width what lays it out: the mon between its two sides of plates,
-// then over them, then all in one column
+// then over them. (lab 10) Every plate one size on every mon and every field in a spot of its own, the sizes chosen so a
+// maximized 1440p window and a narrow one-box window (755 by 857) both hold it whole: nothing to scroll, and nothing
+// moves from mon to mon but the values
 .review-stage {
   container-type: inline-size;
 }
 
 .review-grid {
+  // a plate's height, the gap between plates, a picture's size, My Game's bar, a ball sprite's zoom to the picture
+  --plate-h: 68px;
+  --plate-gap: 8px;
+  // (lab 10) the slight break after each side's fourth plate
+  --plate-break: 14px;
+  --vis: 34px;
+  --fill-h: 34px;
+  --ball-zoom: 1.6;
+
   display: grid;
   grid-template-areas: 'left bay right';
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 460px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 440px) minmax(0, 1fr);
   align-items: start;
   column-gap: $wire;
   max-width: 1300px;
@@ -352,8 +356,16 @@ $wire: 30px;
 .review-side {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--plate-gap);
+  position: relative;
 
+  // (lab 10) each side breaks after its fourth: above, what's fixed the day it was caught (where it came from; ball, date,
+  // gender and nature); below, what can come later (a visit to Champions, Max Soup; and the four changed by unsealing).
+  // By field, as the card behind the left's four (round 6) is a child of the side too
+  > [data-field='been_to_champions'],
+  > [data-field='nickname'] {
+    margin-top: var(--plate-break);
+  }
   &.left {
     grid-area: left;
   }
@@ -363,32 +375,8 @@ $wire: 30px;
   }
 }
 
-@container (width < 960px) {
-  .review-grid {
-    grid-template-areas: 'bay bay' 'left right';
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 20px;
-  }
-
-  // nothing beside the mon to wire to it
-  .review-plate::after,
-  .review-plate::before {
-    display: none;
-  }
-}
-
-@container (width < 600px) {
-  .review-grid {
-    grid-template-areas: 'bay' 'left' 'right';
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .review-side.right {
-    margin-top: -14px;
-  }
-}
-
-// the mon: number, lens, name and types, the pips, its marks; in from the side the run moved to
+// ---- the mon: number, lens, then a row each for its name, types, pips, marks (or the unseal), release and a note,
+// every row its own height on every mon; in from the side the run moved to
 .review-bay {
   --wash: var(--wash-seal);
 
@@ -397,11 +385,17 @@ $wire: 30px;
   flex-direction: column;
   align-items: center;
   position: relative;
+  min-width: 0;
   text-align: center;
   animation: review-in-right .3s $review-ease backwards;
 
   &[data-dir='-1'] {
     animation-name: review-in-left;
+  }
+
+  // the first, as the review opens (its entrance, below)
+  &[data-dir='0'] {
+    animation: review-settle .22s $review-ease backwards;
   }
 
   &.loc-home {
@@ -417,15 +411,39 @@ $wire: 30px;
   }
 
   h2 {
-    margin: 12px 0 0;
+    max-width: 100%;
+    height: 40px;
+    margin: 10px 0 0;
+    overflow: hidden;
     font-family: $font-secondary;
     font-size: 26px;
     font-weight: 800;
+    line-height: 40px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 :root[data-plain-seals] .review-bay:is(.loc-home, .loc-champions, .loc-out) {
   --wash: var(--wash-seal);
+}
+
+// the number before the name, where the narrow window has no room to trace it behind the lens
+.review-no {
+  display: none;
+  margin-right: 10px;
+  color: var(--ink-muted);
+  font-size: .62em;
+  font-style: italic;
+  font-weight: 900;
+}
+
+.review-bay-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
 }
 
 // the dex number traced large behind the lens's top
@@ -445,6 +463,7 @@ $wire: 30px;
 .review-lens {
   position: relative;
   z-index: 1;
+  flex: none;
   width: $lens;
   height: $lens;
   padding: 16px;
@@ -511,7 +530,7 @@ $wire: 30px;
 
   // the widest sprite (67px) still inside the glass
   .pkicon {
-    zoom: 3.2;
+    zoom: 3.8;
     animation: review-drop .5s $review-ease .12s backwards;
   }
 }
@@ -541,7 +560,8 @@ $wire: 30px;
 .review-types {
   display: flex;
   gap: 14px;
-  margin: 6px 0 0;
+  height: 24px;
+  margin: 2px 0 0;
 }
 
 .review-type {
@@ -556,12 +576,13 @@ $wire: 30px;
   }
 }
 
-// a pip for each field the seal waits on, lit as it's answered
+// a pip for each field the seal waits on, lit as it's answered; its row held empty for a mon with no record
 .review-pips {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 14px;
+  height: 22px;
+  margin-top: 10px;
 }
 
 .review-pip {
@@ -587,13 +608,25 @@ $wire: 30px;
   font-variant-numeric: tabular-nums;
 }
 
+// the marks or the unseal, then the release: rows of one height whichever they hold, or none
+.review-acts {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: $search-height;
+  margin-top: 8px;
+
+  & + & {
+    height: 32px;
+    margin-top: 2px;
+  }
+}
+
 // its status, by a press or 1 2 3: the one it has filled in its colour
 .review-marks {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
   gap: 5px;
-  margin-top: 16px;
 }
 
 .review-mark {
@@ -634,13 +667,52 @@ $wire: 30px;
     background-color: var(--hover-wash);
   }
 
-  &.on {
+  // the one a mon has; (lab 10) in a HOME dex, the default a mon not yet marked takes (caught)
+  &.on,
+  &.default {
     border-color: var(--mark);
     background-color: color-mix(in srgb, var(--mark) 20%, var(--paper-raised));
   }
 }
 
-// letting go of a mark, or holding a sealed one open again, quietly under the marks
+// (lab 10) a sealed mon's place, in the release's row: its picture and name, a press (or S) opening the move menu
+.review-place {
+  --vis: 24px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 8px 0 3px;
+  border: 1px solid var(--line);
+  background-color: var(--paper-raised);
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+
+  .rv-chip,
+  .rv-glyph {
+    flex: none;
+  }
+
+  kbd {
+    @include key-cap;
+  }
+
+  &:hover {
+    background-color: var(--hover-wash);
+  }
+}
+
+.review-place-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// letting go of a mark, or holding a sealed one open again, quietly
 .review-release,
 .review-unseal {
   @include caps-label(11px);
@@ -649,7 +721,6 @@ $wire: 30px;
   position: relative;
   align-items: center;
   gap: 7px;
-  margin-top: 10px;
   padding: 6px 12px;
   overflow: hidden;
   border: 0;
@@ -677,65 +748,27 @@ $wire: 30px;
   animation: review-hold var(--hold) linear forwards;
 }
 
-.review-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  margin: 12px 0 0;
-  padding: 8px 12px;
-  background-color: var(--paper-sunken);
-  font-size: 14px;
-  text-align: left;
-
-  &.missing .svg-inline--fa {
-    color: var(--accent);
-  }
-
-  &.ready .svg-inline--fa {
-    color: var(--status-caught);
-  }
+// ---- a field's plate: its label over a row of its picture and its value, one size on every mon; wired to the mon,
+// the wire lit once the field's in, dashed in the accent while the seal waits on it. A spot a mon's never asked is an
+// empty one the same size
+.review-plate,
+.review-slot {
+  flex: none;
+  height: var(--plate-h);
 }
 
-// a field's plate, lit in its turn as the mon comes up (--k): only its opacity moves, as a menu inside a transformed
-// box would be placed by it and clipped by the scroll; wired to the mon, the wire lit once the field's in, dashed in
-// the accent while the seal waits on it
 .review-plate {
-  position: relative;
-  padding: 9px 14px 12px;
-  border: 1px solid var(--line);
-  background-color: var(--paper-raised);
-  animation: fade-in .3s ease-out backwards;
-  animation-delay: calc(80ms + var(--k, 0) * 22ms);
-
-  .form-group {
-    margin: 0;
-  }
-
-  label,
-  .review-plate-label {
-    display: block;
-    margin-bottom: 5px;
-    color: var(--ink-muted);
-    font-family: $font-secondary;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-
-    @include small-text(11px);
-  }
-
-  .checkbox label {
-    margin: 0;
-    color: var(--ink);
-  }
-
-  .form-subgroup {
-    margin-top: 8px;
-  }
-
   // its side toward the mon a thicker edge, then a wire across to a dot at the mon's side
   --wire: var(--line);
+
+  display: grid;
+  grid-template-rows: 14px minmax(0, 1fr);
+  row-gap: 4px;
+  position: relative;
+  padding: 7px 12px 8px;
+  border: 1px solid var(--line);
+  background-color: var(--paper-raised);
+  cursor: default;
 
   .left > & {
     border-right: 3px solid var(--wire);
@@ -797,18 +830,40 @@ $wire: 30px;
     --wire: var(--status-caught);
   }
 
-  // its open menu over the plates after it, which are still their own layers while they fade in. The plate itself is
-  // in by then, as one is once it's pressed or focused (Review's showPlate)
+  // (lab 10) a defaulted field still to touch: a press on the plate confirms it (only its box opens its menu). The wash
+  // laid over the plate (a mix with it would take the wash's transparency, the page showing through)
+  &.touchable:hover {
+    background-image: linear-gradient(var(--hover-wash), var(--hover-wash));
+    cursor: pointer;
+  }
+
+  // its open menu over the plates after it
   &:has(.dropdown-menu) {
     z-index: 2;
   }
 }
 
+.review-plate-label {
+  overflow: hidden;
+  padding-right: 20px;
+  color: var(--ink-muted);
+  font-family: $font-secondary;
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @include small-text(11px);
+}
+
 .review-plate-mark {
   position: absolute;
-  top: 8px;
+  top: 7px;
   right: 10px;
   font-size: 12px;
+  line-height: 14px;
 
   .waiting & {
     color: var(--accent);
@@ -823,22 +878,1004 @@ $wire: 30px;
   }
 }
 
-.review-plate-value {
-  min-height: 22px;
-  margin: 0;
-  font-size: 16px;
+.review-plate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 100%;
+
+  // (round 7) a field takes the room its values need, never the row's: a press beside it is a press on the plate
+  > .dropdown,
+  > .rv-number {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  > .rv-date {
+    flex: 1;
+    min-width: 0;
+  }
+
+  > .form-control {
+    flex: none;
+    max-width: 100%;
+  }
+}
+
+// a value as text, after its picture
+.rv-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 17px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   &.blank {
     color: var(--ink-muted);
   }
 }
 
-// a sealed record's ball, its sprite before its name
-.review-ball {
+.rv-lv {
+  margin-right: 3px;
+  color: var(--ink-muted);
+  font-family: $font-secondary;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+// the ID No. a size up and heavy, the sign a My Game pick took (or that a typed one reads right); unset, it reads as any
+// blank does
+.field-tid {
+  .rv-text:not(.blank),
+  .form-control {
+    font-family: $font-secondary;
+    font-size: 25px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    letter-spacing: 3px;
+  }
+
+  .form-control::placeholder {
+    font-family: $font-primary;
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+}
+
+// ---- the pictures, --vis square
+
+.rv-glyph,
+.rv-chip,
+.rv-leaf {
+  flex: none;
+  width: var(--vis);
+  height: var(--vis);
+}
+
+.rv-glyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+  font-size: calc(var(--vis) * .5);
+
+  &.off {
+    opacity: .28;
+
+    .rv-mark {
+      filter: grayscale(1);
+    }
+  }
+}
+
+// a game in its box art's colour, its mark struck into it
+.rv-chip {
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background-color: var(--rv-game, transparent);
+
+  .origin-mark {
+    width: 64%;
+    height: 64%;
+    background-color: color-mix(in oklch, var(--rv-game) 28%, black);
+  }
+
+  .svg-inline--fa {
+    font-size: calc(var(--vis) * .44);
+    color: color-mix(in oklch, var(--rv-game) 28%, black);
+  }
+
+  &.empty {
+    border: 2px dashed color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+}
+
+// the language as the summary tags it
+.rv-lang {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: var(--vis);
+  height: calc(var(--vis) * .66);
+  padding: 0 4px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  font-family: $font-secondary;
+  font-size: calc(var(--vis) * .34);
+  font-weight: 800;
+  letter-spacing: 1px;
+  line-height: 1;
+
+  &.empty {
+    opacity: .28;
+  }
+}
+
+.rv-mark {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.rv-ball {
   @include ball-sprite;
 
-  margin-right: 6px;
-  vertical-align: -4px;
+  zoom: var(--ball-zoom);
+}
+
+.rv-ball-empty {
+  width: 62%;
+  height: 62%;
+  border: 2px dashed color-mix(in srgb, var(--ink) 28%, transparent);
+  border-radius: 50%;
+}
+
+// a calendar's leaf: the month across a red top, the day under it
+.rv-leaf {
+  display: grid;
+  grid-template-rows: 34% minmax(0, 1fr);
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--ink) 55%, transparent);
+  border-radius: 4px;
+  background-color: var(--paper);
+  font-family: $font-secondary;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+
+  .rv-leaf-month {
+    display: grid;
+    place-items: center;
+    background-color: var(--mark-pink);
+    color: var(--paper-raised);
+    font-size: calc(var(--vis) * .24);
+  }
+
+  .rv-leaf-day {
+    display: grid;
+    place-items: center;
+    color: var(--ink);
+    font-size: calc(var(--vis) * .4);
+  }
+
+  &.empty {
+    border-style: dashed;
+    opacity: .35;
+
+    .rv-leaf-month {
+      background: none;
+    }
+  }
+}
+
+// the level, a ring filled as far as it's come to 100
+.rv-ring {
+  width: 100%;
+  height: 100%;
+
+  circle {
+    fill: none;
+    stroke-width: 4px;
+  }
+
+  .rv-ring-track {
+    stroke: color-mix(in srgb, var(--ink) 14%, transparent);
+  }
+
+  .rv-ring-fill {
+    stroke: color-mix(in srgb, var(--ink) 70%, transparent);
+  }
+
+  // (lab 10) a mon out in a game still going up: filled to its floor, the rest of its track broken
+  &.training {
+    .rv-ring-track {
+      stroke-dasharray: 2.6 2.6;
+    }
+
+    .rv-ring-fill {
+      stroke: color-mix(in srgb, var(--ink) 45%, transparent);
+    }
+  }
+}
+
+// training as the tiles' diamond
+.rv-diamond {
+  width: 46%;
+  height: 66%;
+  background-color: color-mix(in srgb, var(--ink) 20%, transparent);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+
+  &.ivs {
+    background-color: var(--mark-blue);
+  }
+
+  &.ev {
+    background-color: var(--mark-pink);
+  }
+
+  &.unset {
+    background-color: color-mix(in srgb, var(--ink) 9%, transparent);
+  }
+}
+
+.rv-heart {
+  color: color-mix(in srgb, var(--ink) 20%, transparent);
+
+  &.favorite {
+    color: var(--mark-blue);
+  }
+
+  &.partner {
+    color: var(--mark-pink);
+  }
+}
+
+.rv-gender {
+  font-size: calc(var(--vis) * .62);
+
+  &.male {
+    color: var(--mark-blue);
+  }
+
+  &.female {
+    color: var(--mark-pink);
+  }
+}
+
+// the nature's own hexagon, as the tiles draw it, in the page's ink
+.rv-hex {
+  .nature-hex {
+    width: 94%;
+    height: 94%;
+  }
+
+  .hex-rim,
+  .hex-mid {
+    stroke: color-mix(in srgb, var(--ink) 34%, transparent);
+  }
+
+  .hex-mid,
+  .hex-spoke {
+    stroke: color-mix(in srgb, var(--ink) 16%, transparent);
+  }
+
+  .hex-shape {
+    fill: color-mix(in srgb, var(--ink) 16%, transparent);
+    stroke: var(--ink);
+  }
+
+  &.empty::before {
+    content: '';
+    width: 66%;
+    height: 74%;
+    background-color: color-mix(in srgb, var(--ink) 9%, transparent);
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  }
+}
+
+// the stats a nature moves: raised red with an up mark, lowered blue with a down one
+.rv-stats {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: 10px;
+  font-family: $font-secondary;
+  font-size: .76em;
+  font-weight: 800;
+  vertical-align: .06em;
+
+  .up {
+    color: var(--mark-pink);
+  }
+
+  .down {
+    color: var(--mark-blue);
+  }
+
+  .svg-inline--fa {
+    margin-left: 2px;
+    font-size: .8em;
+  }
+
+  &.neutral {
+    color: var(--ink-muted);
+  }
+}
+
+// ---- the fields of a record still open. (round 7) One look: a menu's field a box around its value, as wide as its longest
+// value, its grid opening under it; a typed field a line under what's typed, as wide as what it takes, there whether it's
+// pointed at or not
+
+.rv-box {
+  max-width: 100%;
+  height: var(--vis);
+  padding: 0 10px 0 12px;
+  border: 2px solid var(--field-edge);
+  background: none;
+  color: inherit;
+  font: inherit;
+
+  &:hover {
+    background-color: var(--hover-wash);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--field-focus);
+    outline-offset: 2px;
+  }
+
+  // open, its edge the focus colour: the box its grid hangs from
+  &[aria-expanded='true'] {
+    border-color: var(--field-focus);
+  }
+}
+
+// the value shown over every other it can show, unseen in the same cell, so the box is as wide as the longest (and, held
+// to the row, the shown one takes an ellipsis)
+.rv-box-text {
+  display: grid;
+  grid-template-columns: minmax(0, max-content);
+  min-width: 0;
+
+  > .rv-text {
+    grid-area: 1 / 1;
+  }
+}
+
+.rv-box-size {
+  visibility: hidden;
+}
+
+.review-plate-row .form-control {
+  height: var(--vis);
+  padding: 0 2px;
+  border-width: 0 0 2px;
+  border-color: var(--field-edge);
+  background: none;
+  font-size: 17px;
+
+  &::placeholder {
+    color: var(--ink-muted);
+  }
+
+  &:focus {
+    border-color: var(--field-focus);
+  }
+}
+
+// as wide as what each takes (--chars, in the font's digit widths: review-fields.tsx): a name its longest, the ID No. its
+// five or six digits, the level its three; the date its own
+.field-ot .form-control,
+.field-nickname .form-control {
+  width: calc(var(--chars, 12) * 1ch + 8px);
+}
+
+.field-tid .review-plate-row .form-control {
+  width: calc(var(--chars, 6) * (1ch + 3px) + 8px);
+  font-size: 25px;
+}
+
+.rv-number .form-control {
+  width: calc(3ch + 8px);
+}
+
+// the date its ten characters and its calendar's button, in its own face's digits (a theme's wider ones too)
+.review-plate .date-input {
+  flex: none;
+  width: calc(10ch + 32px);
+  font-size: 17px;
+}
+
+.review-plate .date-input-picker {
+  right: 0;
+}
+
+// the catch date's recent date beside its field
+.rv-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+
+  // a recent date shows whole or not at all: one that doesn't fit drops to a second line, out of sight
+  .date-recent {
+    flex: 1;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    column-gap: 0;
+    min-width: 0;
+    height: 24px;
+    margin: 0;
+    overflow: hidden;
+
+    // its clock first, a line tall and of no width, so a date too wide for what's left wraps under it, wholly out of sight,
+    // rather than being cut at the plate's edge (a theme's wider digits)
+    > .svg-inline--fa {
+      flex: none;
+      width: 0;
+      height: 24px;
+      margin: 0;
+      overflow: hidden;
+      visibility: hidden;
+    }
+  }
+
+  .date-recent-pick {
+    flex: none;
+    height: 24px;
+    padding: 0 6px;
+  }
+}
+
+.rv-number {
+  display: flex;
+  align-items: center;
+}
+
+// the Nickname's tag: pressed, it's named
+.rv-toggle {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--field-focus);
+    outline-offset: 2px;
+  }
+
+  &.on .rv-glyph {
+    color: var(--accent);
+  }
+}
+
+// ---- (lab 10 round 6) the cartridge: on a record still open, the four the game's plate starts (game, language, OT, ID
+// No.) held as one card where they're one of your saves', the card drawn behind their four plates, which stand where
+// they always do (so nothing moves as it's sealed) without frames of their own, their wires kept. Its spine down the
+// outer edge in the save's box-art colour; its first row My Game's box, the whole row, the one way the four change; the
+// other three as they'll be sealed, each with a lock after its name. A press anywhere on it but the box touches all it
+// holds. A HOME gift's card holds the trainer alone (the game's row its own picker, My Game at its end); a record with
+// none of the four yet is the card waiting on its box, dashed in the accent
+.review-cartridge {
+  --spine: 6px;
+  --pitch: calc(var(--plate-h) + var(--plate-gap));
+  // a line across each gap between its rows, and the wash over it all as it's pressable
+  --rule: linear-gradient(var(--line), var(--line));
+  --wash: linear-gradient(transparent, transparent);
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: calc(4 * var(--plate-h) + 3 * var(--plate-gap));
+  border: 1px solid var(--line);
+  background:
+    var(--wash),
+    var(--rule) 0 calc(var(--pitch) - var(--plate-gap) / 2 - 1px) / 100% 1px no-repeat,
+    var(--rule) 0 calc(2 * var(--pitch) - var(--plate-gap) / 2 - 1px) / 100% 1px no-repeat,
+    var(--rule) 0 calc(3 * var(--pitch) - var(--plate-gap) / 2 - 1px) / 100% 1px no-repeat,
+    var(--paper-raised);
+  box-shadow: inset var(--spine) 0 0 var(--rv-game, var(--line));
+  pointer-events: none;
+
+  &.mode-empty {
+    border: 1px dashed var(--accent);
+    box-shadow: none;
+  }
+
+  // a HOME gift's holds its trainer, the three under the game's own plate
+  &.mode-gift {
+    top: var(--pitch);
+    height: calc(3 * var(--plate-h) + 2 * var(--plate-gap));
+  }
+}
+
+// pressed anywhere but its box (touchable): the whole card lit, as it's the whole card that's touched
+.review-side.left:has(> .review-plate.fused.touchable:hover) > .review-cartridge {
+  --wash: linear-gradient(var(--hover-wash), var(--hover-wash));
+}
+
+// a row of the card: the plate's own layout kept, its frame the card's, its wire's edge toward the mon its own
+.review-side.left > .review-plate.fused {
+  border-color: transparent var(--wire) transparent transparent;
+  background: none;
+
+  &.touchable:hover {
+    background: none;
+  }
+}
+
+// held: a lock after its name
+.review-plate-lock {
+  margin-left: 7px;
+  color: var(--ink-muted);
+  font-size: 9px;
+  opacity: .8;
+  vertical-align: 1px;
+}
+
+// My Game: a box in both passes (the values pass's bare rule set aside), only it opening its menu
+.rv-soft {
+  .dropdown {
+    height: 100%;
+  }
+
+  .rv-soft-box {
+    min-width: 0;
+    height: 100%;
+    border: 2px solid var(--field-edge);
+    background-color: var(--paper-raised);
+    color: var(--ink);
+    font: inherit;
+
+    &:hover {
+      background-color: var(--hover-wash);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--field-focus);
+      outline-offset: 2px;
+    }
+  }
+
+  .dropdown-chevron {
+    font-size: 11px;
+  }
+}
+
+.rv-soft-face {
+  min-width: 0;
+}
+
+// the card's first row, the whole row one box: its name where the plate's is, the game's chip and name where the game's
+// plate has its own, the chevron down its side
+.review-plate.soft-row {
+  padding: 0;
+}
+
+.rv-soft.card {
+  position: absolute;
+  inset: 3px 3px 3px 9px;
+
+  // the cartridge's label: edged in the save's colour, as its spine is
+  .rv-soft-box {
+    width: 100%;
+    padding: 2px 12px 3px 2px;
+    border-color: color-mix(in oklab, var(--rv-game, var(--field-edge)) 80%, var(--field-edge));
+  }
+
+  .rv-soft-value .rv-text {
+    font-weight: 700;
+  }
+
+  .rv-soft-face {
+    display: grid;
+    flex: 1;
+    grid-template-rows: 14px minmax(0, 1fr);
+    row-gap: 4px;
+    align-self: stretch;
+    padding-top: 2px;
+  }
+
+  .rv-soft-value {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .dropdown-chevron {
+    align-self: center;
+    margin-top: 18px;
+    opacity: .8;
+  }
+
+  // none of the four yet: the box the next thing to press
+  &.mode-empty .rv-soft-box {
+    border-color: var(--accent);
+
+    .rv-text {
+      color: var(--accent);
+      font-weight: 700;
+    }
+  }
+}
+
+.rv-soft-label {
+  @include caps-label(11px);
+
+  overflow: hidden;
+  padding-right: 20px;
+  color: var(--ink-muted);
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// at the end of the game's row: a HOME gift's (its trainer HOME's), a record by hand
+.rv-soft.compact {
+  flex: none;
+  height: var(--vis);
+
+  .rv-soft-box {
+    padding: 0 8px 0 6px;
+  }
+
+  .rv-soft-face {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    --vis: 22px;
+  }
+
+  .rv-soft-name {
+    @include caps-label(10px);
+
+    white-space: nowrap;
+  }
+}
+
+// ---- the pickers: a picture before each option; in the values pass a grid, the balls and the natures as the games
+// lay them out
+.rv-menu {
+  --vis: 24px;
+  --ball-zoom: 1.15;
+
+  li {
+    gap: 10px;
+  }
+
+  .rv-opt-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rv-glyph,
+  .rv-lang {
+    color: var(--on-overlay);
+  }
+
+  .rv-heart:not(.favorite, .partner),
+  .rv-diamond:not(.ivs, .ev) {
+    opacity: .5;
+  }
+
+  // the menus' own ball rule would crop a mark to a ball's 20px
+  li img.rv-mark {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.dropdown-menu.rv-grid {
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+
+  li {
+    position: relative;
+    min-width: 120px;
+    padding: 8px 10px;
+    border: 1px solid var(--overlay-line);
+
+    &.dropdown-selected {
+      border-color: var(--on-overlay);
+    }
+  }
+
+  .dropdown-check {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    margin: 0;
+    font-size: 9px;
+  }
+}
+
+.rv-grid.rv-menu-ball li {
+  --vis: 34px;
+  --ball-zoom: 1.6;
+
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 96px;
+  min-width: 0;
+  height: 78px;
+  padding: 6px 4px;
+  gap: 4px;
+  font-size: 11px;
+  line-break: strict;
+  line-height: 1.2;
+  text-align: center;
+  text-wrap: balance;
+  white-space: normal;
+
+  .rv-opt-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+// the games' grid: each row raises a stat, each column lowers one, the neutral five down the diagonal a shade quieter
+.rv-grid.rv-menu-nature li {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 124px;
+  gap: 3px;
+
+  .rv-stats {
+    margin: 0;
+    font-size: 11px;
+  }
+
+  &:nth-child(6n + 1) {
+    color: color-mix(in srgb, var(--on-overlay) 70%, transparent);
+  }
+}
+
+.rv-grid.rv-menu-origin_game li {
+  width: 196px;
+}
+
+.rv-grid.rv-menu-language li {
+  width: 168px;
+}
+
+.rv-grid.rv-menu-location li {
+  width: 232px;
+}
+
+.rv-menu-saves {
+  li {
+    --vis: 28px;
+  }
+
+  .rv-save {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .rv-save-game {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+
+    .rv-lang {
+      --vis: 22px;
+    }
+  }
+
+  .rv-save-trainer {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    opacity: .75;
+  }
+
+  &.rv-grid li {
+    width: 262px;
+  }
+}
+
+// ---- a narrow window (one box across, 755 by 857): the mon in a band over the plates, its lens at the side, the
+// plates two across in one size smaller
+@container (width < 960px) {
+  .review-grid {
+    --plate-h: 56px;
+    --plate-gap: 6px;
+    --plate-break: 10px;
+    --vis: 28px;
+    --fill-h: 28px;
+    --ball-zoom: 1.3;
+
+    grid-template-areas: 'bay bay' 'left right';
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+  }
+
+  .review-bay {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 16px;
+    text-align: left;
+
+    h2 {
+      height: 30px;
+      margin: 0;
+      font-size: 22px;
+      line-height: 30px;
+    }
+  }
+
+  .review-bay-number {
+    display: none;
+  }
+
+  .review-no {
+    display: inline;
+  }
+
+  .review-lens {
+    width: 152px;
+    height: 152px;
+    padding: 8px;
+  }
+
+  .review-lens-glass .pkicon {
+    zoom: 2;
+  }
+
+  .review-stamp {
+    right: -14px;
+    bottom: 6px;
+    padding: 2px 8px;
+    border-width: 3px;
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .review-bay-info {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'name name' 'types pips' 'acts acts2';
+    align-items: center;
+    row-gap: 6px;
+    column-gap: 14px;
+  }
+
+  .review-bay-info h2 {
+    grid-area: name;
+  }
+
+  .review-types {
+    grid-area: types;
+    height: 22px;
+    margin: 0;
+  }
+
+  .review-pips {
+    grid-area: pips;
+    justify-self: end;
+    height: 22px;
+    margin: 0;
+  }
+
+  .review-acts {
+    grid-area: acts;
+    justify-content: flex-start;
+    height: 32px;
+    margin: 0;
+
+    & + & {
+      grid-area: acts2;
+      justify-content: flex-end;
+      height: 32px;
+      margin: 0;
+    }
+  }
+
+  .review-mark {
+    height: 30px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
+  .review-plate {
+    padding: 6px 10px 6px;
+    row-gap: 3px;
+    grid-template-rows: 13px minmax(0, 1fr);
+  }
+
+  .review-plate-label {
+    line-height: 13px;
+  }
+
+  .rv-soft.card {
+    inset: 3px 3px 3px 8px;
+
+    .rv-soft-face {
+      grid-template-rows: 13px minmax(0, 1fr);
+      row-gap: 3px;
+      padding-top: 1px;
+    }
+
+    .dropdown-chevron {
+      margin-top: 14px;
+    }
+  }
+
+  .rv-soft-label {
+    line-height: 13px;
+  }
+
+  .review-plate-mark {
+    top: 5px;
+  }
+
+  .rv-text {
+    font-size: 15px;
+  }
+
+  .field-tid {
+    .rv-text:not(.blank),
+    .form-control {
+      font-size: 21px;
+      letter-spacing: 2px;
+    }
+  }
+
+  .field-tid .review-plate-row .form-control {
+    font-size: 21px;
+  }
+
+  .field-tid .form-control::placeholder {
+    font-size: 15px;
+  }
+
+
+  // (round 7) the games' grid four across and My Game's three, slimmer, so each opens whole, never scrolled
+  .rv-grid.rv-menu-origin_game li {
+    width: 156px;
+  }
+
+  .rv-menu-saves.rv-grid li {
+    width: 224px;
+  }
+
+  // the ball grid a size down, so it opens whole under its plate (seven across, six down)
+  .rv-grid.rv-menu-ball li {
+    --vis: 30px;
+    --ball-zoom: 1.4;
+
+    height: 70px;
+    padding: 4px;
+  }
+
+  // nothing beside the mon to wire to it
+  .review-plate::after,
+  .review-plate::before {
+    display: none;
+  }
+}
+
+@container (width < 600px) {
+  .review-grid {
+    grid-template-areas: 'bay' 'left' 'right';
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .review-empty {
@@ -861,6 +1898,30 @@ $wire: 30px;
 
 .review-spacer {
   flex: 1;
+}
+
+// (lab 10) the species' pages, quietly beside the way back
+.review-links {
+  display: flex;
+  gap: 14px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ink-muted);
+    font-size: 13px;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--ink);
+      text-decoration: underline;
+    }
+  }
+
+  .svg-inline--fa {
+    font-size: 9px;
+  }
 }
 
 .review-nav,
@@ -895,34 +1956,70 @@ $wire: 30px;
   }
 }
 
-// a narrow window: the run's list over the mon while it's wanted, the bar's keys left to the foot's buttons
+// a narrow window: the mon alone, no list beside it
 @media (width < 1000px) {
-  .review-body.listed {
+  .review-main {
+    padding: 10px 14px;
+  }
+
+  .review-body {
     grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  .review-run {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 3;
-    width: min(300px, 86vw);
-    box-shadow: 0 0 28px rgb(0 0 0 / 22%);
+
+// ---- (lab 10) the entrance, as W opens (data-entering, Review.tsx), the first mon settling in its bay (data-dir 0): the
+// plates fading in row by row (--row) from the top on both sides, each wire then drawn from its plate toward the mon and
+// its dot lit (round 8: the right side's right to left, as the user asked). Only opacity and transform. Held at its start while the first frames go by
+// (data-gate, title-card.scss); still mode lands at once (main.scss's net). A theme can bring its own entrance
+// (ThemeSeed.reviewEntrance)
+.review[data-entering] {
+  .review-plate,
+  .review-cartridge {
+    animation: review-plate-in .14s $review-ease backwards;
+    animation-delay: calc(var(--row, 0) * 10ms + 30ms);
   }
 
-  .review-hint {
-    display: none;
+  .review-plate::after {
+    transform-origin: left;
+    animation: review-wire-in .12s ease-out backwards;
+    animation-delay: calc(var(--row, 0) * 10ms + 90ms);
   }
 
-  .review-list-toggle {
-    margin-left: auto;
+  // (round 8) each wire drawn from its plate toward the mon: the left side's left to right, the right side's right to left
+  .review-side.right > .review-plate::after {
+    transform-origin: right;
+  }
+
+  .review-plate::before {
+    animation: review-dot-in .1s ease-out backwards;
+    animation-delay: calc(var(--row, 0) * 10ms + 150ms);
   }
 }
 
-@media (width < 640px) {
-  .review-tally {
-    display: none;
+// Ink's brushed entrance: a stroke of its brush (its title mark) laid across each plate's value from the left, drying away
+// as the value shows through it; the plates fade rather than slide
+:root[data-review-entrance='brush'] .review[data-entering] {
+  .review-plate,
+  .review-cartridge {
+    animation-name: review-dot-in;
+  }
+
+  .review-plate-row {
+    position: relative;
+
+    // the mark drawn as it is (a black brush stroke, theme-marks.mjs), not as a mask: a mask on each moving stroke cost
+    // frames (entrance-frames.ps1)
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 10% -6px;
+      background: url('/themes/ink/title.png') center / 100% 100% no-repeat;
+      opacity: 0;
+      transform-origin: left;
+      animation: review-ink-stroke .24s cubic-bezier(.3, .7, .3, 1) backwards;
+      animation-delay: calc(var(--row, 0) * 10ms + 20ms);
+      pointer-events: none;
+    }
   }
 }
-

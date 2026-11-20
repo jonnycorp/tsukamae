@@ -1061,8 +1061,8 @@ $saves-table-width: 640px;
   .saves-list-header,
   .saves-list-item {
     display: grid;
-    // the game, its OT, its ID No.
-    grid-template-columns: 1.5fr 1fr .8fr;
+    // the game, its OT, its ID No., (lab 10) whether it's retired
+    grid-template-columns: 1.5fr 1fr .8fr 56px;
     align-items: center;
     gap: 10px;
     text-align: center;
@@ -1094,6 +1094,56 @@ $saves-table-width: 640px;
 
     .saves-list-tid {
       font-variant-numeric: tabular-nums;
+    }
+
+    // (lab 10) a save whose journey is over: its box ticked, the row faded behind it. The forms' checkbox, drawn here
+    // too (it's a form group's alone)
+    .saves-list-retired {
+      display: flex;
+      justify-content: center;
+
+      label {
+        display: flex;
+        cursor: pointer;
+      }
+
+      input[type=checkbox] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        opacity: 0;
+        pointer-events: none;
+
+        &:checked + .checkbox-custom span {
+          opacity: 1;
+        }
+
+        &:focus-visible + .checkbox-custom {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
+        }
+      }
+
+      .checkbox-custom {
+        position: relative;
+        width: 18px;
+        height: 18px;
+        border: 1px solid var(--field-edge);
+        background-color: var(--field);
+
+        > span {
+          position: absolute;
+          inset: 3px;
+          background-color: var(--accent);
+          opacity: 0;
+          transition: opacity .15s ease-out;
+        }
+      }
+    }
+
+    &.retired .saves-list-key {
+      opacity: .45;
     }
 
     .saves-list-controls {

@@ -213,7 +213,7 @@ export function DateInput ({ id, value, onChange, recent = [], onRecentPicked }:
       <div aria-label={t('common.recentDates')} className="date-recent" ref={recentRef} role="group">
         <FontAwesomeIcon icon={faClockRotateLeft} title={t('common.recentDates')} />
         {recent.map((iso) => (
-          <button className="date-recent-pick" key={iso} onClick={(e) => handleRecent(iso, e)} onKeyDown={handleRecentKeyDown} type="button">
+          <button className="date-recent-pick" key={iso} onClick={(e) => handleRecent(iso, e)} onKeyDown={handleRecentKeyDown} tabIndex={-1} type="button">
             {shown(iso)}
           </button>
         ))}

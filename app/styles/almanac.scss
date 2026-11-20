@@ -163,10 +163,6 @@ $tally-count: 15px;
   @include small-text(11px);
 }
 
-.almanac-close {
-  @include scene-button;
-}
-
 .almanac-body {
   @include scrollbar-fade;
 

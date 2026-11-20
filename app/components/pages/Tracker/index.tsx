@@ -111,7 +111,7 @@ function TrackerInner () {
   // the review's run of mons, fixed as it opens
   const [review, setReview] = useState<{ queue: number[]; start: number } | null>(null);
   const { captures } = useTrackerState();
-  const { revealHost } = useTrackerActions();
+  const { revealHost, openHost } = useTrackerActions();
   // the boxes, or the ledger in their place (V); kept across dexes and restarts
   const [layout, setLayout] = useLocalStorage<DexLayout>('dexLayout', 'boxes');
 
@@ -300,7 +300,7 @@ function TrackerInner () {
       handingRef.current = false;
       closes.forEach((close) => close());
       if (tile && locate.select) {
-        setSelectedPokemon(locate.pokemon);
+        openMonRef.current(locate.pokemon);
       }
       setHanding(null);
     };
@@ -309,7 +309,8 @@ function TrackerInner () {
   }, [handing, revealHost]);
 
   // a mon clicked on the timeline (or the almanac's milestones, or a scene): back to the dex, its tile (or ledger row)
-  // brought into view with its popover open, if it's showing
+  // brought into view and opened as a press opens it (openMonRef: a sealed one's card, an open record in the review), if
+  // it's showing
   const handleLocate = useCallback((pokemon: number) => {
     handOff(() => {
       setShowTimeline(false);
@@ -378,18 +379,34 @@ function TrackerInner () {
   useHotkey('v', () => switchLayout(layout === 'boxes' ? 'ledger' : 'boxes'));
 
   // the review (W): the mons the dex shows now, in its order, from the popover's if one's open, else from the one W
-  // was pressed over (a press marks a tile without opening it); closing it comes back to the one it ended on. A
-  // checklist keeps no records to review
-  const handleOpenReview = useCallback((pointed = 0) => {
+  // was pressed over (a press marks a tile without opening it), or (lab 10) the open record pressed; closing it comes
+  // back to the one it ended on. A checklist keeps no records to review
+  const reviewFrom = useCallback((from: number) => {
     const matchesFilters = filterMatcher(filters);
     const matchesQuery = queryMatcher(query, Boolean(activeDexView?.regional));
     // the one it starts from is shown, so it's in, where it stands, though the view only holds it (a press marked it)
-    const from = selectedPokemon || pointed;
     const queue = captures.filter((capture) => capture.pokemon.id === from || (matchesFilters(capture) && matchesQuery(capture))).map((capture) => capture.pokemon.id);
     closingReview.current = false;
     setReview({ queue, start: Math.max(0, queue.indexOf(from)) });
     setSelectedPokemon(0);
-  }, [captures, filters, query, activeDexView, selectedPokemon]);
+  }, [captures, filters, query, activeDexView]);
+  const handleOpenReview = useCallback((pointed = 0) => reviewFrom(selectedPokemon || pointed), [reviewFrom, selectedPokemon]);
+  // (lab 10) a marked mon opened, by a press on its tile or row (openHost) or a pick in a scene: an open record in the
+  // review at it (its run the dex as it's viewed), a sealed one's card. A checklist opens neither
+  const openMonRef = useRef<(pokemon: number) => void>(() => {});
+  openMonRef.current = (pokemon) => {
+    if (captures.find((entry) => entry.pokemon.id === pokemon)?.sealed) {
+      setSelectedPokemon(pokemon);
+    } else if (!activeDex!.checklist) {
+      reviewFrom(pokemon);
+    }
+  };
+  useEffect(() => {
+    openHost.current = (pokemon) => openMonRef.current(pokemon);
+    return () => {
+      openHost.current = null;
+    };
+  }, [openHost]);
   const closingReview = useRef(false);
   const handleCloseReview = useCallback((pokemon: number | null) => {
     if (closingReview.current) {
@@ -494,7 +511,7 @@ function TrackerInner () {
       if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')) {
         return;
       }
-      if (document.querySelector(`${MENU_OR_MODAL}, .pokemon-popover, .facet-panel, .batch-bar`)) {
+      if (document.querySelector(`${MENU_OR_MODAL}, .pokemon-popover, .facet-panel`)) {
         return;
       }
       e.preventDefault();
@@ -604,7 +621,7 @@ function TrackerInner () {
         <TrainerCards back={sceneBack?.scene === 'trainers' ? sceneBack.view : null} onClose={handleCloseScene} onFilter={handleTrainersFilter} />}
       {scene === 'orrery' &&
         <BallOrrery back={sceneBack?.scene === 'orrery' ? sceneBack.view : null} onClose={handleCloseScene} onFilter={handleOrreryFilter} />}
-      {showHelp && <HotkeySheet checklist={Boolean(activeDex!.checklist)} onClose={() => setShowHelp(false)} />}
+      {showHelp && <HotkeySheet checklist={Boolean(activeDex!.checklist)} homeDex={activeDexView?.game.id === 'home'} onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

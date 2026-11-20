@@ -5,8 +5,10 @@ import { useState } from 'react';
 import { ALT_KEY } from '../../utils/platform';
 import { Dropdown } from './Dropdown';
 import { ModalShell } from './ModalShell';
-import { LANGUAGES, ORIGIN_GAMES, idDigits, nameMaxLength, saveLabel } from '../../utils/capture-fields';
+import { LANGUAGES, ORIGIN_GAMES, idDigits, saveLabel } from '../../utils/capture-fields';
+import { idLength, languageAllowed, otMax as otLimit } from '../../utils/game-rules';
 import { gameColor } from '../../utils/game-colors';
+import { setRetired, useRetiredSaves } from '../../utils/retired-saves';
 import { localizeCaptureLanguage, localizeOriginGame } from '../../i18n/names';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../hooks/use-dismissable';
@@ -23,6 +25,8 @@ export function SavesModal ({ onRequestClose }: Props) {
   const { dexes, saves, createSave, updateSave, moveSave, deleteSave } = useDexContext();
   const { t, locale } = useTranslation();
   const { closing, dismiss } = useDismissable({ onDismissed: onRequestClose });
+  // (lab 10) the saves whose journey is over, never offered as a place to move a mon to
+  const retired = useRetiredSaves();
 
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -34,7 +38,9 @@ export function SavesModal ({ onRequestClose }: Props) {
   const [draftOT, setDraftOT] = useState('');
   const [draftTID, setDraftTID] = useState('');
 
-  const otMax = nameMaxLength(draftLanguage);
+  // (lab 10 round 7) as long as the game let an OT be in its language; its ID No. as many digits as the game shows
+  const otMax = otLimit(draftGame, draftLanguage);
+  const tidMax = idLength(draftGame);
 
   // each game a block in its colour, dragged into its place (or moved a place by Alt+↑/↓)
   const { itemProps } = useDragReorder(saves.length, (from, to) => moveSave(saves[from].id, to - from));
@@ -49,9 +55,18 @@ export function SavesModal ({ onRequestClose }: Props) {
       (!tid || !save.tid || save.tid === tid)));
   const canAdd = Boolean(draftGame && draftLanguage && draftOT.trim()) && !duplicate;
 
+  // (lab 10 round 7) a game in a language it never came in loses it, and its OT and ID No. are held to its limits
+  const handleGameChange = (next: string) => {
+    setDraftGame(next);
+    const language = draftLanguage && languageAllowed(next, draftLanguage) ? draftLanguage : '';
+    setDraftLanguage(language);
+    setDraftOT((prev) => prev.slice(0, otLimit(next, language)));
+    setDraftTID((prev) => idDigits(prev).slice(0, idLength(next)));
+  };
+
   const handleLanguageChange = (next: string) => {
     setDraftLanguage(next);
-    setDraftOT((prev) => prev.slice(0, nameMaxLength(next)));
+    setDraftOT((prev) => prev.slice(0, otLimit(draftGame, next)));
   };
 
   // the form emptied and put away: after an add or an edit, or the delete of the game it was changing
@@ -115,12 +130,13 @@ export function SavesModal ({ onRequestClose }: Props) {
               <span>{t('saves.game')}</span>
               <span>{t('saves.ot')}</span>
               <span>{t('saves.tid')}</span>
+              <span title={t('saves.retiredHint')}>{t('saves.retired')}</span>
             </li>
             {saves.map((save, index) => (
               <li
                 {...itemProps(index)}
                 aria-roledescription={t('landing.dragHint', { alt: ALT_KEY })}
-                className="saves-list-item"
+                className={retired.has(save.id) ? 'saves-list-item retired' : 'saves-list-item'}
                 key={save.id}
                 style={{ '--spine': gameColor(save.game) } as CSSProperties}
                 tabIndex={0}
@@ -129,6 +145,20 @@ export function SavesModal ({ onRequestClose }: Props) {
                 <div className="saves-list-key">{saveLabel(save, locale)}</div>
                 <div className="saves-list-key">{save.ot}</div>
                 <div className="saves-list-key saves-list-tid">{save.tid || '—'}</div>
+                {/* (lab 10) 引退: a save you can't reach anymore. A HOME entry is a trainer, never a place, so it has none */}
+                <div className="saves-list-retired" title={t('saves.retiredHint')}>
+                  {save.game !== 'home' &&
+                    <label>
+                      <input
+                        aria-label={t('saves.retired')}
+                        checked={retired.has(save.id)}
+                        onChange={(e) => setRetired(save.id, e.target.checked)}
+                        type="checkbox"
+                      />
+                      <span className="checkbox-custom"><span /></span>
+                    </label>
+                  }
+                </div>
                 {editing &&
                   <div className="saves-list-controls">
                     <button
@@ -164,7 +194,7 @@ export function SavesModal ({ onRequestClose }: Props) {
                 <Dropdown
                   blankLabel={t('common.unspecified')}
                   id="save_game"
-                  onSelect={setDraftGame}
+                  onSelect={handleGameChange}
                   options={ORIGIN_GAMES.map((game) => ({ value: game.id, label: localizeOriginGame(locale, game.id, game.name) }))}
                   value={draftGame}
                 />
@@ -175,7 +205,7 @@ export function SavesModal ({ onRequestClose }: Props) {
                   blankLabel={t('common.unspecified')}
                   id="save_language"
                   onSelect={handleLanguageChange}
-                  options={LANGUAGES.map((language) => ({ value: language.id, label: localizeCaptureLanguage(locale, language.id, language.name) }))}
+                  options={LANGUAGES.filter((language) => languageAllowed(draftGame, language.id)).map((language) => ({ value: language.id, label: localizeCaptureLanguage(locale, language.id, language.name) }))}
                   value={draftLanguage}
                 />
               </div>
@@ -197,8 +227,9 @@ export function SavesModal ({ onRequestClose }: Props) {
                   className="form-control"
                   id="save_tid"
                   inputMode="numeric"
-                  onChange={(e) => setDraftTID((e.nativeEvent as InputEvent).isComposing ? e.target.value : idDigits(e.target.value))}
-                  onCompositionEnd={(e) => setDraftTID(idDigits(e.currentTarget.value))}
+                  maxLength={tidMax}
+                  onChange={(e) => setDraftTID((e.nativeEvent as InputEvent).isComposing ? e.target.value : idDigits(e.target.value).slice(0, tidMax))}
+                  onCompositionEnd={(e) => setDraftTID(idDigits(e.currentTarget.value).slice(0, tidMax))}
                   placeholder={t('saves.tidPlaceholder')}
                   type="text"
                   value={draftTID}

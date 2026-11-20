@@ -132,14 +132,14 @@ export function CatchDateLine ({ capture }: Props) {
   );
 }
 
-export function SlotsLine ({ capture, number }: Props & { number: string }) {
+export function SlotsLine ({ capture, number, training = false }: Props & { number: string; training?: boolean }) {
   const langAbbr = capture.language ? LANGUAGE_ABBRS.get(capture.language) : null;
 
   return (
     <p className="number-line-slots">
       <span className="slot-lang">{langAbbr && <span className="language-tag">{langAbbr}</span>}</span>
       <span>#{number}</span>
-      <span className="slot-level">{typeof capture.level === 'number' && `Lv.${capture.level}`}</span>
+      <span className="slot-level">{training ? `Lv.${capture.level ?? '?'}+` : typeof capture.level === 'number' && `Lv.${capture.level}`}</span>
     </p>
   );
 }
