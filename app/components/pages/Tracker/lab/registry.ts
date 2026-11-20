@@ -3,6 +3,7 @@ import { CatchCalendar } from './CatchCalendar';
 import { ChampionsRoster } from './ChampionsRoster';
 import { DexMosaic } from './DexMosaic';
 import { KanaBoard } from './KanaBoard';
+import { NatureGrid } from './NatureGrid';
 
 import type { ComponentType } from 'react';
 import type { LabKey } from './lab-i18n';
@@ -27,6 +28,7 @@ export const LAB_SKETCHES: LabSketch[] = [
   { id: 'champions', title: 'champions.title', blurb: 'champions.blurb', glyph: '覧', records: false, component: ChampionsRoster },
   { id: 'kana', title: 'kana.title', blurb: 'kana.blurb', glyph: 'あ', records: false, component: KanaBoard },
   { id: 'mosaic', title: 'mosaic.title', blurb: 'mosaic.blurb', glyph: '壁', records: false, component: DexMosaic },
+  { id: 'nature', title: 'nature.title', blurb: 'nature.blurb', glyph: '性', records: true, component: NatureGrid },
 ];
 
 export type LabSceneId = 'lab' | `lab:${string}`;
