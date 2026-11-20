@@ -1,0 +1,291 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the review sheet (lab/ReviewSheet.tsx): a batch to a catch day, a table each, a row to a mon and a column to a
+// field; a field given by the dex and still to confirm in the accent, one left empty a mark, one the record check
+// doubts underlined in red. The cursor's mon at the right in the galaxy's glass, the batches stepping aside for it
+$ls-doubt: oklch(.66 .17 28);
+
+.ls-page {
+  max-width: 1500px;
+  margin: 0 auto;
+  transition: margin-right .3s cubic-bezier(.2, .9, .3, 1);
+
+  &.aside {
+    margin-right: 330px;
+  }
+}
+
+.ls-head {
+  display: flex;
+  position: sticky;
+  top: -26px;
+  z-index: 2;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 22px;
+  margin: -26px -28px 14px;
+  padding: 18px 28px 12px;
+  background: linear-gradient(180deg, var(--paper) 80%, transparent);
+}
+
+.ls-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  color: var(--ink-muted);
+
+  @include small-text(12px);
+
+  b {
+    margin-right: 4px;
+    color: var(--ink);
+    font-family: $font-secondary;
+    font-size: 26px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .given b {
+    color: var(--accent);
+  }
+
+  .flag b {
+    color: $ls-doubt;
+  }
+}
+
+// the switches, airy as the galaxy's
+.ls-switches {
+  display: flex;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 99px;
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  backdrop-filter: blur(6px);
+
+  button {
+    padding: 4px 12px;
+    border: 0;
+    border-radius: 99px;
+    background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: background-color .25s, color .25s;
+
+    @include small-text(12px);
+
+    &:hover {
+      color: var(--ink);
+    }
+
+    &.on {
+      background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+      color: var(--ink);
+    }
+  }
+}
+
+.ls-empty {
+  margin-top: 60px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.ls-batch {
+  margin-bottom: 26px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+
+  h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 8px;
+    font-size: inherit;
+    font-weight: 400;
+
+    b {
+      font-family: $font-secondary;
+      font-size: 20px;
+      font-weight: 300;
+      letter-spacing: .03em;
+    }
+
+    small {
+      color: var(--ink-muted);
+
+      @include small-text(12px);
+    }
+
+    button {
+      margin-left: auto;
+      padding: 2px 0;
+      border: 0;
+      background: none;
+      color: var(--ink-muted);
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      text-underline-offset: 3px;
+
+      @include small-text(12px);
+
+      &:hover {
+        color: var(--ink);
+      }
+    }
+  }
+}
+
+.ls-scroll {
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--paper-raised) 35%, transparent);
+}
+
+.ls-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    padding: 8px 10px 6px;
+    color: var(--ink-muted);
+    font-weight: 400;
+    text-align: left;
+    white-space: nowrap;
+    transition: color .2s;
+
+    @include small-text(11px);
+
+    &.at {
+      color: var(--accent);
+    }
+  }
+
+  tbody tr {
+    border-top: 1px solid color-mix(in srgb, var(--line) 35%, transparent);
+    transition: background-color .2s;
+
+    &.at {
+      background-color: color-mix(in srgb, var(--accent) 6%, transparent);
+    }
+
+    &.ready th small {
+      color: var(--accent);
+    }
+  }
+
+  tbody th {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 170px;
+    padding: 0 10px 0 4px;
+    font-weight: 400;
+    text-align: left;
+    white-space: nowrap;
+    cursor: default;
+
+    span {
+      flex: 1 1 auto;
+    }
+
+    small {
+      color: var(--ink-muted);
+
+      @include small-text(11px);
+    }
+  }
+
+  td {
+    max-width: 150px;
+    padding: 6px 10px;
+    overflow: hidden;
+    border-radius: 6px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .15s, box-shadow .15s;
+
+    &:hover {
+      background-color: color-mix(in srgb, var(--ink) 5%, transparent);
+    }
+
+    &.st-given {
+      color: var(--accent);
+    }
+
+    &.st-missing {
+      color: var(--ink-muted);
+      text-align: center;
+    }
+
+    &.st-done {
+      color: var(--ink);
+    }
+
+    &.flag {
+      text-decoration: underline wavy $ls-doubt;
+      text-underline-offset: 4px;
+    }
+
+    &.at {
+      box-shadow: inset 0 0 0 1.5px var(--accent);
+    }
+  }
+}
+
+// the cursor's mon, its field and its doubts, in the galaxy's glass
+.ls-panel {
+  position: fixed;
+  top: 110px;
+  right: 26px;
+  z-index: 3;
+}
+
+.ls-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+
+  b {
+    font-size: 20px;
+    font-weight: 400;
+    word-break: break-all;
+  }
+
+  em {
+    color: var(--ink-muted);
+    font-style: normal;
+
+    @include small-text(12px);
+  }
+
+  &.st-given b {
+    color: var(--accent);
+  }
+}
+
+.ls-doubt {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 2px solid $ls-doubt;
+  border-radius: 0 8px 8px 0;
+  background-color: color-mix(in srgb, #{$ls-doubt} 10%, transparent);
+
+  @include small-text(12px);
+}

@@ -5,6 +5,7 @@ import { DexMosaic } from './DexMosaic';
 import { NameQuiz } from './NameQuiz';
 import { NatureGrid } from './NatureGrid';
 import { RecordCheck } from './RecordCheck';
+import { ReviewSheet } from './ReviewSheet';
 
 import type { ComponentType } from 'react';
 import type { LabKey } from './lab-i18n';
@@ -30,6 +31,7 @@ export const LAB_SKETCHES: LabSketch[] = [
   { id: 'days', title: 'days.title', blurb: 'days.blurb', glyph: '日', records: true, component: CatchDays },
   { id: 'quiz', title: 'quiz.title', blurb: 'quiz.blurb', glyph: '名', records: false, component: NameQuiz },
   { id: 'check', title: 'check.title', blurb: 'check.blurb', glyph: '検', records: true, component: RecordCheck },
+  { id: 'sheet', title: 'sheet.title', blurb: 'sheet.blurb', glyph: '表', records: true, component: ReviewSheet },
   { id: 'nature', title: 'nature.title', blurb: 'nature.blurb', glyph: '性', records: true, component: NatureGrid },
 ];
 
