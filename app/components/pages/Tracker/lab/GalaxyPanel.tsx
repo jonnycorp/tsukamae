@@ -21,13 +21,17 @@ interface Props {
   onPick?: (record: LabRecord) => void;
   onLocate?: () => void;
   onFilterBall?: () => void;
+  // a word under the name in place of the ball (a mon not caught: 未捕獲)
+  note?: string;
+  // the Q / E hint, where the keys step
+  keys?: boolean;
 }
 
 const natureName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
 
 // a picked star's official art as a hologram: tinted in the accent, lined like a projection, flickering on as it's
 // picked; its sprite where the art isn't saved (yarn sprites:art)
-function Hologram ({ record, large = false }: { record: LabRecord; large?: boolean }) {
+export function Hologram ({ record, large = false }: { record: LabRecord; large?: boolean }) {
   const [missing, setMissing] = useState(false);
   const { pokemon } = record.capture;
   return (
@@ -42,7 +46,7 @@ function Hologram ({ record, large = false }: { record: LabRecord; large?: boole
 // what a picked star in the galaxy shows. The constellation's: a panel at the right, airy, the hologram over the mon's
 // own record. The day's: a narrower one at the left, the day's whole catch under the hologram, each pressed to pick it.
 // The backdrop's: the hologram alone, large, behind the galaxy. Going to the dex is only ever a press here
-export function GalaxyPanel ({ kind, record, scale = 1, ballName, day = [], onPick, onLocate, onFilterBall }: Props) {
+export function GalaxyPanel ({ kind, record, scale = 1, ballName, day = [], onPick, onLocate, onFilterBall, note, keys = true }: Props) {
   const { lt, locale } = useLabText();
   const { capture } = record;
 
@@ -52,6 +56,7 @@ export function GalaxyPanel ({ kind, record, scale = 1, ballName, day = [], onPi
 
   const name = displayName(capture.pokemon.name, capture.pokemon.name_ja, locale);
   const facts: [string, string | null][] = [
+    [lt('galaxy.f.date'), capture.captured ? capture.catch_date : null],
     [lt('galaxy.f.game'), capture.origin_game ? localizeOriginGame(locale, capture.origin_game, ORIGIN_GAME_NAMES.get(capture.origin_game) ?? capture.origin_game) : null],
     [lt('galaxy.f.ot'), capture.ot ? `${capture.ot}${capture.tid ? `  ${capture.tid}` : ''}` : null],
     [lt('galaxy.f.nickname'), capture.has_nickname ? capture.nickname : null],
@@ -66,10 +71,14 @@ export function GalaxyPanel ({ kind, record, scale = 1, ballName, day = [], onPi
         <small>No.{String(capture.pokemon.national_id).padStart(4, '0')}</small>
         <strong>{name}</strong>
       </div>
-      <p className="lg-panel-ball">
-        <img alt="" height={26} src={`/balls/${capture.ball}.png`} width={26} />
-        {ballName}
-      </p>
+      {note
+        ? <p className="lg-panel-ball">{note}</p>
+        : capture.ball && capture.ball !== 'unknown' && (
+          <p className="lg-panel-ball">
+            <img alt="" height={26} src={`/balls/${capture.ball}.png`} width={26} />
+            {ballName}
+          </p>
+        )}
       {kind === 'constellation' && (
         <dl className="lg-panel-facts">
           {facts.filter(([, value]) => value).map(([label, value]) => (
@@ -91,9 +100,9 @@ export function GalaxyPanel ({ kind, record, scale = 1, ballName, day = [], onPi
       )}
       <div className="lg-panel-links">
         {record.here && <button onClick={onLocate} type="button">{lt('galaxy.locate')}</button>}
-        {record.here && <button onClick={onFilterBall} type="button">{lt('galaxy.filterBall', { ball: ballName ?? '' })}</button>}
+        {record.here && onFilterBall && capture.ball && capture.ball !== 'unknown' && <button onClick={onFilterBall} type="button">{lt('galaxy.filterBall', { ball: ballName ?? '' })}</button>}
       </div>
-      <small className="lg-panel-keys">{lt('galaxy.keys')}</small>
+      {keys && <small className="lg-panel-keys">{lt('galaxy.keys')}</small>}
     </aside>
   );
 }

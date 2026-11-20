@@ -2,19 +2,23 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { ORIGIN_GAME_NAMES } from '../../../../utils/capture-fields';
-import { LabTip } from './LabTip';
-import { SceneMon } from '../Scene';
+import { BALL_NAMES, ORIGIN_GAME_NAMES } from '../../../../utils/capture-fields';
+import { GalaxyPanel, Hologram } from './GalaxyPanel';
 import { cssColor, easeOut, fitCanvas, useFrameLoop, useKeys } from './lab-kit';
 import { displayName } from '../../../library/PokemonName';
 import { gameColor } from '../../../../utils/game-colors';
-import { localizeOriginGame } from '../../../../i18n/names';
+import { iconClass } from '../../../../utils/pokemon';
+import { localizeBall, localizeOriginGame } from '../../../../i18n/names';
+import { spriteCuts, spriteShadow, spriteSheet } from './sprite-atlas';
+import { useDexContext } from '../../../../hooks/contexts/use-dex-context';
 import { useLabText } from './lab-i18n';
 import { useThemeContext } from '../../../../hooks/contexts/use-local-storage-context';
 
 import type { CSSProperties, PointerEvent } from 'react';
 import type { Capture } from '../../../../types';
+import type { LabProps } from './lab-kit';
 import type { LabRecord } from './LabScope';
+import type { SpriteCut } from './sprite-atlas';
 
 // the run: a catch to so many ms, the whole of it held between these, so a few catches don't flash by and a thousand
 // don't drag; the gaps between days aren't drawn out, only the order
@@ -27,6 +31,8 @@ const LAND = 10;
 const BAND_GAP = 0.7;
 // the games named under the wall, most first
 const KEY_GAMES = 10;
+// the art at the side changes no faster than this while the run plays, each one given time to come on
+const STAGE_MS = 700;
 
 export type MosaicState = 'caught' | 'missing' | 'unobtainable';
 
@@ -38,6 +44,8 @@ interface Cell {
   y: number;
   // its turn in the catch order, or null for a mon not caught
   rank: number | null;
+  // its box sprite's cut of the sheet
+  cut: SpriteCut | null;
 }
 
 // the size of tile that fits every band (each starting a row of its own) into w by h, and the columns that gives
@@ -58,21 +66,31 @@ interface Props {
   scale: number;
   calm: boolean;
   onBack: () => void;
-  onLocate: (pokemon: number) => void;
+  onLocate: LabProps['onLocate'];
+  onFilter: LabProps['onFilter'];
 }
 
-// the mosaic in catch order: every shown mon at once, the wall fitted to the screen in tiles too small for sprites, each
-// lit in its game's colour on its turn as the day it was caught leads above, the mon itself beside it, and the games
-// counted up below as they come in. Scrubbed, or played again; a tile pointed at shows its mon, pressed goes to it
-export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
+// the mosaic in catch order: every shown mon at once, the wall fitted beside a stage, each mon its own sprite, a faint
+// shadow till its turn and then lit on its game's colour as the day it was caught leads above; the art of the latest
+// one held up on the stage as a hologram, and the games counted up below as they come in. Scrubbed, or played again. A
+// tile pointed at is named beside it; pressed, the run stops on it and the stage shows its record, Q and E stepping on
+// through the order from there
+export function CatchOrder ({ records, scale, calm, onBack, onLocate, onFilter }: Props) {
   const { lt, locale } = useLabText();
   const { theme } = useThemeContext();
+  const { activeDexView } = useDexContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cells = useRef<{ list: Cell[]; labels: { x: number; y: number; generation: number }[]; size: number; w: number; h: number }>({ list: [], labels: [], size: 0, w: 0, h: 0 });
+  const cells = useRef<{ list: Cell[]; labels: { x: number; y: number; generation: number }[]; size: number; w: number; h: number; from: unknown }>({ list: [], labels: [], size: 0, w: 0, h: 0, from: null });
   const cursor = useRef(calm ? Infinity : 0);
+  const hover = useRef<Cell | null>(null);
+  const staged = useRef({ at: -1, time: 0 });
   const [shown, setShown] = useState(0);
+  const [stage, setStage] = useState(-1);
+  const [focus, setFocus] = useState<number | null>(null);
   const [playing, setPlaying] = useState(!calm);
-  const [hot, setHot] = useState<{ cell: Cell; x: number; y: number } | null>(null);
+  const [pointing, setPointing] = useState(false);
+  const [, setSheetIn] = useState(false);
+  const sheet = spriteSheet(() => setSheetIn(true));
 
   // the caught in the order they were caught (undated ones last), and each one's turn
   const ordered = useMemo(() => records.filter(({ capture }) => mosaicState(capture) === 'caught')
@@ -80,6 +98,14 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
   const rank = useMemo(() => new Map(ordered.map((record, i) => [record.key, i])), [ordered]);
   const total = ordered.length;
   const duration = Math.min(MAX_MS, Math.max(MIN_MS, total * STEP_MS));
+  const picked = focus !== null ? ordered[focus] ?? null : null;
+
+  // each mon's sprite cut, measured once for the lot
+  const cutOf = useMemo(() => {
+    const classes = records.map(({ capture }) => iconClass(capture.pokemon, activeDexView!));
+    const found = spriteCuts(classes);
+    return new Map(records.map((record, i) => [record.key, found.get(classes[i]) ?? null]));
+  }, [records, activeDexView]);
 
   // the bands as the wall has them: a dex's generations in turn
   const bands = useMemo(() => {
@@ -106,9 +132,8 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
     }
     return {
       games,
+      ink: cssColor('var(--ink)'),
       none: cssColor('var(--ink-muted)'),
-      sunken: cssColor('var(--paper-sunken)'),
-      line: cssColor('var(--line)'),
       accent: cssColor('var(--accent)'),
     };
   }, [ordered, theme]); // theme: the tokens change with it
@@ -127,6 +152,7 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
         x: left + (i % columns) * size,
         y: (row + Math.floor(i / columns)) * size,
         rank: rank.get(record.key) ?? null,
+        cut: cutOf.get(record.key) ?? null,
       }));
       row += Math.ceil(band.length / columns) + BAND_GAP;
     }
@@ -134,7 +160,7 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
     for (const spot of [...list, ...labels]) {
       spot.y += (h - height) / 2;
     }
-    cells.current = { list, labels, size, w, h };
+    cells.current = { list, labels, size, w, h, from: cutOf };
   };
 
   const draw = (dt: number) => {
@@ -153,67 +179,132 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
     if (reached !== shown) {
       setShown(reached);
     }
+    // the stage a beat behind the run, so each mon's art has the time to come on
+    const now = performance.now();
+    if (reached - 1 !== staged.current.at && (!playing || now - staged.current.time > STAGE_MS)) {
+      staged.current = { at: reached - 1, time: now };
+      setStage(reached - 1);
+    }
     const ctx = fitCanvas(canvas);
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    if (cells.current.w !== w || cells.current.h !== h || cells.current.list.length !== records.length) {
+    if (cells.current.w !== w || cells.current.h !== h || cells.current.from !== cutOf) {
       lay(w, h);
     }
     const { list, labels, size } = cells.current;
-    const pad = Math.max(0.5, size * 0.09);
+    const pad = Math.max(0.5, size * 0.08);
     const inner = size - pad * 2;
-    const radius = size * 0.2;
+    const radius = size * 0.22;
+    const shadow = spriteShadow(colors.ink);
+    const day = picked?.capture.catch_date;
     ctx.clearRect(0, 0, w, h);
     // each band's generation, beside its first row where there's room
     if (labels[0]?.x > size) {
       ctx.fillStyle = colors.none;
-      ctx.font = `${Math.round(Math.max(10, size * 0.55))}px sans-serif`;
+      ctx.globalAlpha = 0.6;
+      ctx.font = `${Math.round(Math.max(10, size * 0.5))}px sans-serif`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       for (const label of labels) {
         ctx.fillText(String(label.generation), label.x, label.y);
       }
     }
+    // a sprite into its tile, as large as fits without going past twice its own size, crisp where it's grown
+    const sprite = (source: HTMLImageElement | HTMLCanvasElement, cut: SpriteCut, x: number, y: number, grow = 1) => {
+      const fit = Math.min(inner / cut.w, inner / cut.h, 2) * grow;
+      const dw = cut.w * fit;
+      const dh = cut.h * fit;
+      ctx.imageSmoothingEnabled = fit < 1;
+      ctx.drawImage(source, cut.x, cut.y, cut.w, cut.h, x + size / 2 - dw / 2, y + size / 2 - dh / 2, dw, dh);
+    };
     let latest: Cell | null = null;
+    const lifted: { cell: Cell; age: number }[] = [];
     for (const cell of list) {
       const lit = cell.rank !== null && cell.rank < at;
-      ctx.globalAlpha = lit ? 1 : cell.rank === null ? (mosaicState(cell.record.capture) === 'missing' ? 0.45 : 0.2) : 0.9;
-      ctx.fillStyle = colors.sunken;
-      if (lit) {
-        ctx.fillStyle = (cell.record.capture.origin_game && colors.games.get(cell.record.capture.origin_game)) || colors.none;
-      }
-      ctx.beginPath();
-      ctx.roundRect(cell.x + pad, cell.y + pad, inner, inner, radius);
-      ctx.fill();
+      // a pick dims all but its own day
+      const dim = picked && !(cell.record.capture.catch_date === day && day) ? 0.35 : 1;
       if (cell.rank !== null && reached > 0 && cell.rank === reached - 1) {
         latest = cell;
       }
-      // landing: from larger and fainter onto its place
-      const age = cell.rank === null ? Infinity : at - cell.rank;
-      if (lit && age < LAND) {
-        const p = easeOut(age / LAND);
-        const grow = size * 1.4 * (1 - p);
-        ctx.globalAlpha = 0.5 * (1 - p);
+      if (lit) {
+        const age = at - cell.rank!;
+        if (age < LAND) {
+          lifted.push({ cell, age });
+          continue;
+        }
+        ctx.globalAlpha = 0.3 * dim;
+        ctx.fillStyle = (cell.record.capture.origin_game && colors.games.get(cell.record.capture.origin_game)) || colors.none;
         ctx.beginPath();
-        ctx.roundRect(cell.x + pad - grow / 2, cell.y + pad - grow / 2, inner + grow, inner + grow, radius + grow / 3);
+        ctx.roundRect(cell.x + pad, cell.y + pad, inner, inner, radius);
         ctx.fill();
+        if (cell.cut && sheet.complete) {
+          ctx.globalAlpha = dim;
+          sprite(sheet, cell.cut, cell.x, cell.y);
+        }
+      } else if (cell.cut && shadow) {
+        // still to come, its shadow; not caught, fainter; out of reach, all but gone
+        ctx.globalAlpha = (cell.rank !== null ? 0.16 : mosaicState(cell.record.capture) === 'missing' ? 0.08 : 0.03) * dim;
+        sprite(shadow, cell.cut, cell.x, cell.y);
       }
     }
-    // the latest caught, ringed in the accent while the run goes
-    if (latest && reached < total) {
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = colors.accent;
-      ctx.lineWidth = Math.max(1.5, size * 0.1);
+    // the ones landing, over the rest: from larger and fainter, a ring of their game's colour going out round them
+    lifted.sort((a, b) => b.age - a.age);
+    for (const { cell, age } of lifted) {
+      const p = easeOut(age / LAND);
+      const color = (cell.record.capture.origin_game && colors.games.get(cell.record.capture.origin_game)) || colors.none;
+      ctx.globalAlpha = 0.3 * p;
+      ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.roundRect(latest.x + pad / 2, latest.y + pad / 2, size - pad, size - pad, radius);
+      ctx.roundRect(cell.x + pad, cell.y + pad, inner, inner, radius);
+      ctx.fill();
+      ctx.globalAlpha = 0.6 * (1 - p);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1, size * 0.08);
+      ctx.beginPath();
+      ctx.arc(cell.x + size / 2, cell.y + size / 2, size * (0.5 + p * 0.9), 0, Math.PI * 2);
       ctx.stroke();
+      if (cell.cut && sheet.complete) {
+        ctx.globalAlpha = 0.4 + 0.6 * p;
+        sprite(sheet, cell.cut, cell.x, cell.y, 1 + 0.8 * (1 - p));
+      }
+    }
+    // the latest caught ringed while the run goes; the pick ringed and breathing
+    const ring = (cell: Cell, strength: number) => {
+      ctx.globalAlpha = strength;
+      ctx.strokeStyle = colors.accent;
+      ctx.lineWidth = Math.max(1.5, size * 0.08);
+      ctx.beginPath();
+      ctx.roundRect(cell.x + pad / 2, cell.y + pad / 2, size - pad, size - pad, radius);
+      ctx.stroke();
+    };
+    if (latest && reached < total && !picked) {
+      ring(latest, 1);
+    }
+    const pickedCell = picked && list.find((cell) => cell.record === picked);
+    if (pickedCell) {
+      ring(pickedCell, 0.7 + 0.3 * Math.sin(now / 300));
+    }
+    // what's pointed at, named in a whisper beside it
+    const pointed = hover.current;
+    if (pointed) {
+      ring(pointed, 0.5);
+      const { capture } = pointed.record;
+      const label = [displayName(capture.pokemon.name, capture.pokemon.name_ja, locale), capture.captured ? capture.catch_date : lt(`mosaic.state.${mosaicState(capture)}`)].filter(Boolean).join('  ');
+      ctx.font = '12px sans-serif';
+      ctx.textBaseline = 'middle';
+      const width = ctx.measureText(label).width;
+      const right = pointed.x + size + 8 + width < w;
+      ctx.textAlign = right ? 'left' : 'right';
+      ctx.fillStyle = colors.ink;
+      ctx.globalAlpha = 0.85;
+      ctx.fillText(label, right ? pointed.x + size + 8 : pointed.x - 8, pointed.y + size / 2);
     }
     ctx.globalAlpha = 1;
   };
 
-  // drawn every frame only while the run plays (its last tiles landed, it stops); paused, finished or still, drawn as
-  // it changes: on each render (a scrub, a pointer) and as the window resizes it
-  const animating = !calm && playing;
+  // drawn every frame while the run plays or a pick breathes; otherwise as it changes: on each render (a scrub, a
+  // pointer) and as the window resizes it
+  const animating = !calm && (playing || picked !== null);
   const drawRef = useRef(draw);
   drawRef.current = draw;
   useFrameLoop((_t, dt) => draw(dt), animating);
@@ -228,16 +319,25 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
     return () => observer.disconnect();
   }, []);
 
-  // Space plays and pauses; Escape goes back to the wall rather than closing the scene. Added once, on mount, so it's
-  // ahead of the scene's own Escape
+  // Space plays and pauses; Q and E step a pick through the order as far as the run has come; Escape lets a pick go,
+  // then goes back to the wall rather than closing the scene. Added once, on mount, so it's ahead of the scene's Escape
   useKeys((e) => {
-    if (e.defaultPrevented) {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) {
       return;
     }
-    if (e.key === ' ') {
+    const key = e.key.toLowerCase();
+    if (key === ' ') {
       toggle();
-    } else if (e.key === 'Escape') {
-      onBack();
+    } else if ((key === 'q' || key === 'e') && shown > 0) {
+      setPlaying(false);
+      const from = focus ?? (key === 'q' ? shown : -1);
+      setFocus(Math.max(0, Math.min(shown - 1, from + (key === 'q' ? -1 : 1))));
+    } else if (key === 'escape') {
+      if (focus !== null) {
+        setFocus(null);
+      } else {
+        onBack();
+      }
     } else {
       return;
     }
@@ -251,6 +351,7 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
     if (!playing && cursor.current >= total) {
       cursor.current = 0;
     }
+    setFocus(null);
     setPlaying(!playing);
   };
 
@@ -263,14 +364,21 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
   };
   const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
     const cell = cellAt(e);
-    const rect = e.currentTarget.getBoundingClientRect();
-    setHot(cell ? { cell, x: rect.left + cell.x + cells.current.size, y: rect.top + cell.y + cells.current.size / 2 } : null);
+    if (cell !== hover.current) {
+      hover.current = cell;
+      setPointing(cell?.rank !== null && cell?.rank !== undefined && cell.rank < shown);
+      if (!animating) {
+        draw(0);
+      }
+    }
   };
 
   const tag = locale === 'ja' ? 'ja-JP' : 'en-US';
   const dateLabel = (iso: string) => new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(`${iso}T00:00:00`));
   const gameName = (game: string) => localizeOriginGame(locale, game, ORIGIN_GAME_NAMES.get(game) ?? game);
-  const current = shown > 0 ? ordered[shown - 1] : null;
+  const ballName = (ball: string) => localizeBall(locale, ball, BALL_NAMES.get(ball) ?? ball);
+  const current = (picked ?? (shown > 0 ? ordered[shown - 1] : null));
+  const onStage = stage >= 0 ? ordered[Math.min(stage, total - 1)] : null;
 
   // the games as far as the run has come, the most at its end first
   const games = useMemo(() => {
@@ -295,32 +403,52 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
         <button className="lco-back" onClick={onBack} type="button"><FontAwesomeIcon icon={faArrowLeft} /> {lt('mosaic.wall')}</button>
         <div className="lco-date">
           <b>{current ? (current.capture.catch_date ? dateLabel(current.capture.catch_date) : lt('mosaic.undated')) : '—'}</b>
-          <span>{lt('mosaic.count', { n: shown, total })}</span>
-        </div>
-        <div className="lco-mon">
-          {current && (
-            <>
-              <span className="lco-sprite" key={current.key}><SceneMon pokemon={current.capture.pokemon} zoom={1.6} /></span>
-              <span>
-                <strong>{displayName(current.capture.pokemon.name, current.capture.pokemon.name_ja, locale)}</strong>
-                {current.capture.origin_game && <small>{gameName(current.capture.origin_game)}</small>}
-              </span>
-            </>
-          )}
+          <span>{picked ? lt('galaxy.nth', { n: focus! + 1, total }) : lt('mosaic.count', { n: shown, total })}</span>
         </div>
       </header>
-      <canvas
-        className="lco-canvas"
-        onClick={() => {
-          if (hot?.cell.record.here) {
-            onLocate(hot.cell.record.capture.pokemon.id);
-          }
-        }}
-        onPointerLeave={() => setHot(null)}
-        onPointerMove={onPointerMove}
-        ref={canvasRef}
-        style={{ cursor: hot?.cell.record.here ? 'pointer' : 'default' }}
-      />
+      <div className="lco-main">
+        <div className="lco-stage" style={{ zoom: scale }}>
+          {picked
+            ? (
+              <GalaxyPanel
+                ballName={picked.capture.ball ? ballName(picked.capture.ball) : undefined}
+                kind="constellation"
+                onFilterBall={() => onFilter({ view: 'all', facets: { ball: [picked.capture.ball ?? ''] } }, { scroll: 0 })}
+                onLocate={() => onLocate(picked.capture.pokemon.id)}
+                record={picked}
+              />
+            )
+            : onStage && (
+              <div className="lco-show" key={onStage.key}>
+                <Hologram record={onStage} />
+                <strong>{displayName(onStage.capture.pokemon.name, onStage.capture.pokemon.name_ja, locale)}</strong>
+                {onStage.capture.origin_game && <small>{gameName(onStage.capture.origin_game)}</small>}
+              </div>
+            )}
+        </div>
+        <canvas
+          className="lco-canvas"
+          onClick={() => {
+            const cell = hover.current;
+            if (cell?.rank !== null && cell?.rank !== undefined && cell.rank < shown) {
+              setPlaying(false);
+              setFocus(cell.rank === focus ? null : cell.rank);
+            } else {
+              setFocus(null);
+            }
+          }}
+          onPointerLeave={() => {
+            hover.current = null;
+            setPointing(false);
+            if (!animating) {
+              draw(0);
+            }
+          }}
+          onPointerMove={onPointerMove}
+          ref={canvasRef}
+          style={{ cursor: pointing ? 'pointer' : 'default' }}
+        />
+      </div>
       <footer className="lco-foot" style={{ zoom: scale }}>
         <div className="lco-games">
           {games.map((game) => (
@@ -339,6 +467,7 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
             min={0}
             onChange={(e) => {
               setPlaying(false);
+              setFocus(null);
               cursor.current = Number(e.target.value);
               setShown(cursor.current);
             }}
@@ -348,18 +477,6 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
           />
         </div>
       </footer>
-      {hot && (
-        <LabTip scale={scale} x={hot.x} y={hot.y}>
-          <strong>{displayName(hot.cell.record.capture.pokemon.name, hot.cell.record.capture.pokemon.name_ja, locale)}</strong>
-          <small>
-            {hot.cell.rank !== null
-              ? [hot.cell.record.capture.catch_date && dateLabel(hot.cell.record.capture.catch_date), lt('mosaic.nth', { n: hot.cell.rank + 1 })].filter(Boolean).join(' · ')
-              : lt(`mosaic.state.${mosaicState(hot.cell.record.capture)}`)}
-          </small>
-          {hot.cell.record.capture.origin_game && hot.cell.rank !== null && <small>{gameName(hot.cell.record.capture.origin_game)}</small>}
-          {hot.cell.record.here && <em>{lt('mosaic.press')}</em>}
-        </LabTip>
-      )}
     </div>
   );
 }

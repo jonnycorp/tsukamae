@@ -1,18 +1,17 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay } from '@fortawesome/free-solid-svg-icons';
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { BALL_NAMES, ORIGIN_GAME_NAMES } from '../../../../utils/capture-fields';
 import { CatchOrder, mosaicState } from './CatchOrder';
-import { LabTip } from './LabTip';
+import { GalaxyPanel } from './GalaxyPanel';
 import { Scene, sceneScroll, useScrollBack } from '../Scene';
 import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
-import { displayName } from '../../../library/PokemonName';
 import { gameColor } from '../../../../utils/game-colors';
 import { iconClass } from '../../../../utils/pokemon';
 import { localizeBall, localizeOriginGame } from '../../../../i18n/names';
-import { useCalm } from './lab-kit';
+import { useCalm, useKeys } from './lab-kit';
 import { useDexContext } from '../../../../hooks/contexts/use-dex-context';
 import { useLabText } from './lab-i18n';
 import { useLocalStorage } from '../../../../hooks/use-local-storage';
@@ -38,17 +37,12 @@ const stepZoom = (zoom: number, by: number) => {
   return ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, at + by))];
 };
 
-// the tiles, apart from the tip so pointing at one re-renders none of them; a tile found by its key from the wall's own
-// pointer (one handler for the lot)
-const Wall = memo(function Wall ({ walls, labelled, onPoint }: { walls: MosaicWall[]; labelled: boolean; onPoint: (key: string | null, el?: Element) => void }) {
+// the tiles, apart from the panel, so a pick re-renders none of them
+const Wall = memo(function Wall ({ walls, labelled }: { walls: MosaicWall[]; labelled: boolean }) {
   const { activeDexView } = useDexContext();
   const { lt } = useLabText();
-  const point = (e: { target: EventTarget }) => {
-    const tile = (e.target as Element).closest('.lm-tile');
-    onPoint(tile?.getAttribute('data-key') ?? null, tile ?? undefined);
-  };
   return (
-    <div className="lm-wall" onBlur={() => onPoint(null)} onFocus={point} onPointerLeave={() => onPoint(null)} onPointerOver={point}>
+    <div className="lm-wall">
       {walls.map(({ dex, bands }) => (
         <section className="lm-dex" key={dex.id}>
           {labelled && <h2>{dex.title}{dex.shiny ? ' ✦' : ''}</h2>}
@@ -99,7 +93,7 @@ export function DexMosaic ({ back, onClose, onFilter, onLocate }: LabProps) {
   const [zoom, setZoom] = useLocalStorage('labMosaic.zoom', 1);
   const [gens, setGens] = useState<number[]>([]);
   const [order, setOrder] = useState(false);
-  const [hot, setHot] = useState<{ record: LabRecord; x: number; y: number } | null>(null);
+  const [picked, setPicked] = useState<LabRecord | null>(null);
   // where a zoom was asked from, to keep under the pointer once the wall has its new size
   const anchor = useRef<{ y: number; content: number; from: number } | null>(null);
   const leftAt = useRef(0);
@@ -209,32 +203,28 @@ export function DexMosaic ({ back, onClose, onFilter, onLocate }: LabProps) {
     }
   }, [order]);
 
-  const onPoint = useCallback((key: string | null, el?: Element) => {
-    const record = key ? byKey.get(key) : undefined;
-    if (!record || !el) {
-      setHot(null);
-      return;
+  // Escape lets a pick go before it closes the scene
+  useKeys((e) => {
+    if (e.key === 'Escape' && picked && !order && !e.defaultPrevented) {
+      setPicked(null);
+      e.preventDefault();
     }
-    const rect = el.getBoundingClientRect();
-    setHot({ record, x: rect.right, y: rect.top + rect.height / 2 });
-  }, [byKey]);
+  });
 
   const toggleGen = (generation: number) => setGens(gens.includes(generation) ? gens.filter((g) => g !== generation) : [...gens, generation]);
   const openOrder = () => {
     leftAt.current = sceneScroll(pageRef.current);
-    setHot(null);
+    setPicked(null);
     setOrder(true);
   };
-  const tag = locale === 'ja' ? 'ja-JP' : 'en-US';
-  const dateLabel = (iso: string) => new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(`${iso}T00:00:00`));
   const gameName = (game: string) => localizeOriginGame(locale, game, ORIGIN_GAME_NAMES.get(game) ?? game);
 
   return (
     <Scene hint={lt('mosaic.hint')} name="lab-mosaic" onClose={onClose} quiet={Boolean(back)} title={lt('mosaic.title')}>
       {({ scale }) => (order
-        ? <CatchOrder calm={calm} onBack={() => setOrder(false)} onLocate={onLocate} records={shown} scale={scale} />
+        ? <CatchOrder calm={calm} onBack={() => setOrder(false)} onFilter={onFilter} onLocate={onLocate} records={shown} scale={scale} />
         : (
-          <div className="lm-page" ref={pageRef} style={{ zoom: scale }}>
+          <div className={classNames('lm-page', { picking: picked })} ref={pageRef} style={{ zoom: scale }}>
             <header className="lm-head">
               <div className="lm-figures">
                 <b>{caught.length}</b>
@@ -271,31 +261,25 @@ export function DexMosaic ({ back, onClose, onFilter, onLocate }: LabProps) {
             <div
               className="lm-zoom"
               onClick={(e) => {
-                const record = byKey.get((e.target as Element).closest('.lm-tile')?.getAttribute('data-key') ?? '');
-                if (record?.here) {
-                  onLocate(record.capture.pokemon.id);
-                }
+                const record = byKey.get((e.target as Element).closest('.lm-tile')?.getAttribute('data-key') ?? '') ?? null;
+                setPicked(record === picked ? null : record);
               }}
               style={{ '--size': zoom } as CSSProperties}
             >
-              <Wall labelled={walls.length > 1} onPoint={onPoint} walls={walls} />
+              <Wall labelled={walls.length > 1} walls={walls} />
             </div>
 
-            {hot && (
-              <LabTip scale={scale} x={hot.x} y={hot.y}>
-                <strong>{displayName(hot.record.capture.pokemon.name, hot.record.capture.pokemon.name_ja, locale)}</strong>
-                <small>{lt(`mosaic.state.${mosaicState(hot.record.capture)}`)}{walls.length > 1 ? ` · ${hot.record.dex.title}` : ''}</small>
-                {hot.record.capture.captured && (
-                  <small>
-                    {[
-                      hot.record.capture.catch_date && dateLabel(hot.record.capture.catch_date),
-                      hot.record.capture.origin_game && gameName(hot.record.capture.origin_game),
-                      hot.record.capture.ball && hot.record.capture.ball !== 'unknown' && localizeBall(locale, hot.record.capture.ball, BALL_NAMES.get(hot.record.capture.ball) ?? hot.record.capture.ball),
-                    ].filter(Boolean).join(' · ')}
-                  </small>
-                )}
-                {hot.record.here && <em>{lt('mosaic.press')}</em>}
-              </LabTip>
+            {picked && (
+              <GalaxyPanel
+                ballName={picked.capture.ball ? localizeBall(locale, picked.capture.ball, BALL_NAMES.get(picked.capture.ball) ?? picked.capture.ball) : undefined}
+                key={picked.key}
+                keys={false}
+                kind="constellation"
+                note={mosaicState(picked.capture) === 'caught' ? undefined : lt(`mosaic.state.${mosaicState(picked.capture)}`)}
+                onFilterBall={() => onFilter({ view: 'all', facets: { ball: [picked.capture.ball ?? ''] } }, { scroll: sceneScroll(pageRef.current) })}
+                onLocate={() => onLocate(picked.capture.pokemon.id)}
+                record={picked}
+              />
             )}
           </div>
         ))}

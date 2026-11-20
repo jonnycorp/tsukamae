@@ -14,16 +14,14 @@ $lm-ease: cubic-bezier(.2, .9, .3, 1);
   }
 }
 
-@keyframes lco-mon-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(.9);
-  }
-}
-
 .lm-page {
   max-width: 1320px;
   margin: 0 auto;
+
+  // a pick's panel at the right: the wall steps aside for it rather than going under it
+  &.picking {
+    margin-right: 330px;
+  }
 }
 
 .lm-head {
@@ -264,6 +262,8 @@ $lm-ease: cubic-bezier(.2, .9, .3, 1);
 .lco-head {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
+  position: relative;
+  z-index: 1;
   align-items: center;
   gap: 20px;
   padding: 18px 28px 6px;
@@ -274,15 +274,20 @@ $lm-ease: cubic-bezier(.2, .9, .3, 1);
   align-items: center;
   gap: 8px;
   justify-self: start;
-  padding: 7px 14px;
-  border: 1px solid var(--line);
+  padding: 5px 14px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
   border-radius: 99px;
-  background: none;
-  color: var(--ink);
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  color: var(--ink-muted);
   cursor: pointer;
+  transition: color .25s, border-color .25s;
+  backdrop-filter: blur(6px);
+
+  @include small-text(12px);
 
   &:hover {
-    border-color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    color: var(--ink);
   }
 }
 
@@ -310,17 +315,46 @@ $lm-ease: cubic-bezier(.2, .9, .3, 1);
   }
 }
 
-// the mon just caught
-.lco-mon {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-self: end;
-  min-height: 60px;
+// the stage at the left, the wall beside it
+.lco-main {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  min-height: 0;
+}
 
-  > span:last-child {
-    display: flex;
-    flex-direction: column;
+.lco-stage {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 0 0 0 22px;
+
+  // the pick's record, in the galaxy's glass, standing in the stage rather than over the wall
+  .lg-panel {
+    position: static;
+    width: auto;
+  }
+}
+
+// the latest caught as the run plays: its art as a hologram, its name under it
+.lco-show {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+
+  .lg-holo {
+    width: 100%;
+    height: 240px;
+  }
+
+  strong {
+    font-family: $font-secondary;
+    font-size: 24px;
+    font-weight: 300;
+    letter-spacing: .04em;
+    animation: lco-name-in .4s ease-out both;
   }
 
   small {
@@ -330,14 +364,42 @@ $lm-ease: cubic-bezier(.2, .9, .3, 1);
   }
 }
 
-.lco-sprite {
-  animation: lco-mon-in .3s ease-out both;
+@keyframes lco-name-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 .lco-canvas {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.lab-mosaic .lco .lab-scrub button {
+  border-color: color-mix(in srgb, var(--line) 55%, transparent);
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+// a narrow window: the stage gives its room to the wall
+@media (width < 900px) {
+  .lco-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lco-stage {
+    display: none;
+  }
+}
+
+// the wall's pick, its record at the right over the scene, held still as the wall scrolls under it
+.lm-page .lg-panel {
+  position: fixed;
+  top: 110px;
+  right: 26px;
+  z-index: 3;
 }
 
 .lco-foot {
