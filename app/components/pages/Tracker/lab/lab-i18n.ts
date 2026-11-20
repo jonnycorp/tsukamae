@@ -104,6 +104,15 @@ const ja = {
   'nature.neutral': '補正なし',
   'nature.count': '{n}匹',
   'nature.press': '押すとこのせいかくで図鑑を絞り込み',
+  'lanes.title': 'ソフトの足あと',
+  'lanes.blurb': '出身ソフトごとに一本のレーン。いつどのソフトで捕まえていたかを時系列で',
+  'lanes.hint': '点に合わせるとそのポケモン、押すと図鑑へ。ドラッグで期間を選ぶと確認でまとめて表示',
+  'lanes.empty': '出身ソフトと捕まえた日が入った記録がまだありません。',
+  'lanes.count': '{n}匹',
+  'lanes.review': '確認で見る',
+  'lanes.clear': '選択を解除',
+  'lanes.note': 'レーンは最初に捕まえた順。帯はそのソフトで最初に捕まえた日から最後の日まで。',
+  'lanes.press': '押すと図鑑でこのポケモンへ',
 };
 
 type LabStrings = Record<keyof typeof ja, string>;
@@ -207,6 +216,15 @@ const en: LabStrings = {
   'nature.neutral': 'Neutral',
   'nature.count': '{n} Pokémon',
   'nature.press': 'Press to filter the dex to this nature',
+  'lanes.title': 'Game Lanes',
+  'lanes.blurb': 'A lane per game your mons came from, every catch on its day: when you were playing what',
+  'lanes.hint': 'Point at a dot to see its mon, press it to go to it; drag across the plot to take a stretch of days to the review',
+  'lanes.empty': 'No record has both an origin game and a catch date yet.',
+  'lanes.count': '{n} Pokémon',
+  'lanes.review': 'Go Through Them',
+  'lanes.clear': 'Clear',
+  'lanes.note': 'The lanes run in the order you first caught in each game; a lane\'s band runs from its first catch to its last.',
+  'lanes.press': 'Press to go to this mon in the dex',
 };
 
 const STRINGS: Record<Locale, LabStrings> = { ja, en };

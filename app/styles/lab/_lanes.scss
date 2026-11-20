@@ -1,0 +1,210 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the game lanes (lab/GameLanes.tsx): a lane per origin game in its colour, its playthrough's span as a soft band and
+// its catches as dots, which sweep in left to right as the scene opens; a dragged stretch is a band over every lane
+$lgl-ease: cubic-bezier(.2, .9, .3, 1);
+
+@keyframes lgl-dot {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes lgl-span {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes lgl-name {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+.lgl-page {
+  max-width: 1260px;
+  margin: 0 auto;
+}
+
+.lgl-empty {
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.lgl-chart {
+  display: flex;
+  padding: 16px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background-color: var(--paper-raised);
+}
+
+.lgl-names {
+  flex: none;
+}
+
+.lgl-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 12px;
+  animation: lgl-name .45s $lgl-ease both;
+  animation-delay: calc(var(--l) * 50ms);
+
+  i {
+    flex: none;
+    width: 6px;
+    height: 70%;
+    border-radius: 3px;
+    background-color: var(--game);
+  }
+
+  span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include small-text(13px);
+  }
+
+  small {
+    overflow: hidden;
+    color: var(--ink-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include small-text(11px);
+  }
+}
+
+.lgl-plot {
+  overflow: visible;
+  cursor: crosshair;
+  user-select: none;
+  touch-action: none;
+}
+
+.lgl-tick {
+  line {
+    stroke: var(--line-soft);
+  }
+
+  text {
+    fill: var(--ink-muted);
+    font-family: $font-secondary;
+    font-size: 10px;
+  }
+
+  &.year {
+    line {
+      stroke: var(--line);
+    }
+
+    text {
+      fill: var(--ink);
+      font-weight: 700;
+    }
+  }
+}
+
+.lgl-lane {
+  fill: transparent;
+
+  g:nth-child(even of :has(.lgl-lane)) > & {
+    fill: var(--hover-wash);
+  }
+}
+
+.lgl-span {
+  fill: color-mix(in oklab, var(--game) 28%, transparent);
+  transform-box: fill-box;
+  transform-origin: left;
+  animation: lgl-span .9s $lgl-ease both;
+  animation-delay: calc(150ms + var(--l) * 50ms);
+}
+
+.lgl-dot {
+  fill: var(--game);
+  stroke: var(--paper-raised);
+  stroke-width: 1px;
+  cursor: pointer;
+  transition: r .15s;
+  animation: lgl-dot .5s $lgl-ease both;
+  animation-delay: calc(300ms + var(--x) * 1100ms);
+
+  &:hover {
+    stroke: var(--ink);
+    stroke-width: 2px;
+  }
+}
+
+.lgl-brush {
+  fill: color-mix(in oklab, var(--accent) 18%, transparent);
+  stroke: var(--accent);
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.lgl-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background-color: var(--paper-raised);
+  animation: lgl-name .3s $lgl-ease both;
+
+  .lab-tip-mons {
+    max-width: none;
+  }
+}
+
+.lgl-pick-acts {
+  display: flex;
+  gap: 8px;
+
+  button {
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+
+    &:first-child {
+      border-color: var(--accent);
+      background-color: var(--accent);
+      color: var(--on-accent);
+    }
+
+    &:disabled {
+      opacity: .4;
+    }
+  }
+}
+
+.lgl-note {
+  margin-top: 14px;
+  color: var(--ink-muted);
+  text-align: center;
+
+  @include small-text(12px);
+}
+
+.lgl-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
