@@ -1,0 +1,87 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the review's art lens (lab/LabLensArt.tsx): the official artwork standing over the glass, out past its rim, its
+// silhouette cast down and right behind it. As a mon comes up the art rises into place and the shadow slides out from
+// under it a beat later, so it reads as lifting off the page; nothing moves after
+$art-ease: cubic-bezier(.2, .9, .25, 1);
+
+@keyframes lab-art-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(.9);
+  }
+}
+
+@keyframes lab-art-cast {
+  from {
+    opacity: 0;
+    transform: translate(0, 0) scale(.9);
+  }
+}
+
+.lab-art {
+  position: absolute;
+  inset: -6%;
+  pointer-events: none;
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    -webkit-user-drag: none;
+  }
+}
+
+.lab-art-shadow {
+  filter: brightness(0);
+  opacity: .24;
+  transform: translate(14px, 12px);
+  animation: lab-art-cast .7s $art-ease .12s both;
+
+  [data-mode='dark'] & {
+    opacity: .5;
+  }
+}
+
+.lab-art-img {
+  filter: drop-shadow(0 2px 0 color-mix(in srgb, var(--paper) 60%, transparent));
+  animation: lab-art-rise .55s $art-ease both;
+
+  .state-unmarked & {
+    filter: grayscale(1);
+    opacity: .55;
+  }
+}
+
+.lab-art-switch {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  z-index: 2;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background-color: var(--paper-raised);
+  color: var(--ink-muted);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity .2s, color .2s, border-color .2s;
+
+  @include small-text(11px);
+
+  .review-lens:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+}

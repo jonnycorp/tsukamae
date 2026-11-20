@@ -52,6 +52,8 @@ const ja = {
   'champions.beenShort': '参加済み',
   'champions.noCopies': 'どの図鑑にもまだいません',
   'champions.press': '押すと図鑑でこのポケモンへ',
+  'art.toSprite': 'ドット絵に',
+  'art.toArt': '公式イラストに',
 };
 
 type LabStrings = Record<keyof typeof ja, string>;
@@ -103,6 +105,8 @@ const en: LabStrings = {
   'champions.beenShort': 'been',
   'champions.noCopies': 'In none of your dexes yet',
   'champions.press': 'Press to go to this mon in the dex',
+  'art.toSprite': 'Show Sprite',
+  'art.toArt': 'Show Artwork',
 };
 
 const STRINGS: Record<Locale, LabStrings> = { ja, en };

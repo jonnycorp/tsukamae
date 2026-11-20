@@ -14,3 +14,6 @@ tsukamae-progress*.json
 dex_data.json
 captures.json
 *.tracker-export.json
+
+# the official artwork (yarn sprites:art), fetched locally and never committed
+public/artwork/
