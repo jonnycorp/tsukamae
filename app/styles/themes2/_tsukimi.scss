@@ -1,0 +1,175 @@
+@use '../variables' as *;
+
+// Wisteria 3: tsukimi, a moon-viewing night (theme-scene/tsukimi.ts). Every box is a shōji screen in a dark wooden
+// frame, its tiles the panes between the kumiko: a missing mon's pane unlit, the night blurred through its paper; a
+// caught one's lit warm from inside; a sealed one's the brightest, the lamp's light pooled in it and the paper's fibres
+// showing, in the light of where it is (lamplight at home, a red lantern's out in a game, gold in Champions, the moon's
+// own cool white in HOME). A finished box is a house with every light on, its warmth spilling onto the night. The one
+// motion in the boxes is the lamplight shifting slowly up through the lit panes
+:root[data-theme='wisteria-3'] {
+  --wood: #2a1b11;
+  --wood-light: #4a3222;
+  --lamp: rgb(255 196 120);
+  --line-solid: var(--wood);
+
+  nav {
+    background: rgb(5 9 22 / 55%);
+    backdrop-filter: blur(16px);
+  }
+
+  .dex-search-bar {
+    background: linear-gradient(rgb(8 13 30 / 75%), rgb(8 13 30 / 55%));
+    backdrop-filter: blur(16px) saturate(1.2);
+    box-shadow: 0 1px 0 rgb(220 230 255 / 7%);
+  }
+
+  // the meter: a long shōji lit to where the marks reach
+  .dex-meter-bar {
+    border: 0;
+    outline: 3px solid var(--wood);
+    background: rgb(12 18 36 / 70%);
+  }
+
+  .dex-meter-fill {
+    background:
+      linear-gradient(90deg, var(--wood) 0 3px, transparent 3px) 0 0 / 46px 100%,
+      var(--tsukimi-fibres) 0 0 / 384px,
+      linear-gradient(rgb(255 225 170 / 30%), transparent 45%, rgb(80 40 10 / 25%)),
+      linear-gradient(90deg, #6e4a20, #b98444 60%, #f0c27e);
+    box-shadow: 0 0 26px rgb(255 190 110 / 30%);
+  }
+
+  .dex-meter-water {
+    display: none;
+  }
+
+  .dex-meter-edge {
+    background-color: var(--wood);
+    width: 4px;
+  }
+
+  .dex-meter-figure {
+    background: linear-gradient(160deg, #f6f1e2, #cfd6ea);
+    color: #141a2e;
+
+    span {
+      color: #141a2e;
+      text-shadow: none;
+    }
+  }
+
+  // a box's range in moonlight
+  .box-header h1 {
+    color: #e8ecf6;
+    text-shadow: 0 0 14px rgb(190 205 255 / 35%), 0 2px 0 rgb(0 0 0 / 50%);
+  }
+
+  // the screen: its frame, and the paper's night blurred through it
+  .box-container {
+    outline: 5px solid var(--wood);
+    background: rgb(12 18 38 / 58%);
+    box-shadow: 0 0 0 6px rgb(255 255 255 / 4%), 0 30px 50px -20px rgb(0 0 0 / 80%);
+    backdrop-filter: blur(10px) brightness(1.1);
+  }
+
+  .box-container > .tile-grid {
+    border-color: var(--wood);
+
+    > .pokemon {
+      border-color: var(--wood);
+    }
+  }
+
+  // the kumiko between the panes, a little heavier than a line
+  .tile-grid > .pokemon {
+    background-image:
+      linear-gradient(90deg, var(--wood) 1.5px, transparent 1.5px),
+      linear-gradient(var(--wood) 1.5px, transparent 1.5px),
+      linear-gradient(270deg, var(--wood) 1px, transparent 1px),
+      linear-gradient(0deg, var(--wood) 1px, transparent 1px);
+  }
+
+  .pokemon.captured {
+    background-color: transparent;
+  }
+
+  // lit from inside: the lamp's glow pooled low in the pane, the paper's fibres in it
+  .pokemon.captured.caught {
+    background-color: rgb(120 82 40 / 55%);
+    background-image:
+      linear-gradient(90deg, var(--wood) 1.5px, transparent 1.5px),
+      linear-gradient(var(--wood) 1.5px, transparent 1.5px),
+      linear-gradient(270deg, var(--wood) 1px, transparent 1px),
+      linear-gradient(0deg, var(--wood) 1px, transparent 1px),
+      radial-gradient(ellipse at 50% 70%, rgb(255 190 110 / 28%), transparent 70%);
+  }
+
+  .pokemon.captured.unobtainable {
+    background-color: rgb(4 6 14 / 60%);
+  }
+
+  .pokemon.captured.temporary {
+    background-color: rgb(140 60 50 / 45%);
+  }
+
+  .pokemon.captured.sealed {
+    background-color: transparent;
+  }
+
+  // a sealed pane: the brightest, lit through, the paper's fibres showing in the light
+  .seal-material {
+    --light: var(--lamp);
+
+    background:
+      var(--tsukimi-fibres) 0 0 / 384px,
+      radial-gradient(ellipse 60% 55% at 50% 58%, color-mix(in srgb, var(--light) 42%, transparent), color-mix(in srgb, var(--light) 8%, transparent) 80%) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      linear-gradient(transparent 55%, rgb(20 10 4 / 30%)) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      color-mix(in srgb, var(--light) 26%, rgb(44 26 12));
+  }
+
+  &:not([data-plain-seals]) {
+    .seal-material[data-tint] {
+      display: block;
+    }
+
+    .seal-material[data-tint='champions'] {
+      --light: rgb(255 214 110);
+    }
+
+    .seal-material[data-tint='out'] {
+      --light: rgb(235 92 64);
+    }
+
+    .seal-material[data-tint='home'] {
+      --light: rgb(190 210 255);
+    }
+  }
+
+  .seal-flow {
+    --flow-y: -#{$pokemon-box-size * 5};
+    --flow-time: 34s;
+
+    display: block;
+    background: linear-gradient(to top, transparent, rgb(255 230 180 / 10%) 50%, transparent) 0 0 / 100% #{$pokemon-box-size * 5};
+  }
+
+  // every light on: the frame warmed, the glow spilling onto the night round it
+  .box-complete .box-container {
+    outline-color: var(--wood-light);
+    box-shadow: 0 0 0 6px rgb(255 200 130 / 10%), 0 0 60px rgb(255 180 90 / 22%), 0 30px 50px -20px rgb(0 0 0 / 80%);
+  }
+
+  .box-complete .box-container > .tile-grid {
+    outline: 0;
+  }
+}
+
+:root[data-typefaces][data-theme='wisteria-3'] :is(.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name) {
+  font-family: $font-theme-serif;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+:root[data-theme='wisteria-3'] .dex-meter-figure span {
+  transform: none;
+}

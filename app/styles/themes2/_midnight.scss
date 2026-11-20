@@ -1,0 +1,165 @@
+@use '../variables' as *;
+
+// Midnight 2: vaporwave as one night (theme-scene/midnight.ts) rather than parts laid on a page. The bar and the header
+// are dark glass the sky shows through; the boxes float over the grid floor as panes of smoked glass, the sky blurred
+// through them, so the sun and its grid are there everywhere without a line of them crossing a tile. Tiles are calm:
+// no lattice, a sealed tile's place told by the neon its foot glows in (pink at home, the sun's gold in Champions,
+// cyan out in a game, lavender in HOME), as a sign's light lies on wet glass. The one motion in the boxes is that glow
+// breathing very slowly through the sealed tiles; the rest is the scene's
+:root[data-theme='midnight-2'] {
+  --neon-pink: #ff5bd6;
+  --neon-sun: #ffb35c;
+  --neon-lavender: #b99bff;
+  --neon-cyan: #6ff3ff;
+  --glass: rgb(16 8 38 / 62%);
+  --glass-edge: rgb(255 220 250 / 14%);
+  --glass-line: rgb(255 220 250 / 7%);
+  --line-neon: var(--neon-pink);
+  --line-solid: rgb(46 34 78);
+
+  nav {
+    background: rgb(8 3 26 / 55%);
+    backdrop-filter: blur(18px) saturate(1.3);
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgb(255 91 214 / 55%) 30%, rgb(185 155 255 / 55%) 60%, transparent);
+      pointer-events: none;
+    }
+  }
+
+  .dex-search-bar {
+    background: linear-gradient(rgb(12 5 32 / 72%), rgb(12 5 32 / 52%));
+    backdrop-filter: blur(16px) saturate(1.25);
+    box-shadow: 0 1px 0 rgb(255 220 250 / 8%);
+  }
+
+  // the meter a slot of glass, its filled length the sunset itself: rose at its start to the sun's gold at the post,
+  // a soft bloom at its head, and the sky's grid faint through the rest
+  .dex-meter-bar {
+    border: 1px solid rgb(255 220 250 / 18%);
+    border-left: 0;
+    background: rgb(10 4 28 / 55%);
+    box-shadow: inset 0 0 18px rgb(0 0 0 / 45%);
+  }
+
+  .dex-meter-fill {
+    background:
+      linear-gradient(rgb(255 255 255 / 22%), transparent 40%, rgb(0 0 0 / 12%)),
+      linear-gradient(90deg, #6b1a8c, #e0389e 55%, #ff9a5c 92%, #ffd27a);
+    box-shadow: 8px 0 22px rgb(255 160 90 / 45%);
+  }
+
+  .dex-meter-water {
+    display: none;
+  }
+
+  .dex-meter-edge {
+    background-color: #fff3d6;
+    box-shadow: 0 0 10px 2px rgb(255 200 120 / 70%);
+  }
+
+  .dex-meter-figure {
+    background: linear-gradient(100deg, #2fd9e6, #6ff3ff 60%, #b8fbff);
+    box-shadow: 0 0 24px rgb(111 243 255 / 35%);
+
+    span {
+      text-shadow: 0 1px 0 rgb(255 255 255 / 40%);
+    }
+  }
+
+  // a box's title in chrome: the sky's cyan through white to the sunset's pink, a glow behind it, no tube
+  .box-header h1 {
+    background: linear-gradient(180deg, #d9fbff 0%, #8fe9ff 38%, #fdf3ff 52%, #ff8fd9 70%, #ffc2ec 100%);
+    color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 10px rgb(255 91 214 / 35%)) drop-shadow(0 2px 0 rgb(40 8 60 / 80%));
+  }
+
+  // the pane: smoked glass, the sky blurred through it, lit along its top edge, standing off the floor in a shadow
+  .box-container {
+    background: var(--glass);
+    box-shadow: 0 30px 60px -20px rgb(0 0 0 / 70%);
+    backdrop-filter: blur(14px) saturate(1.35);
+  }
+
+  .box-container > .tile-grid {
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+
+    > .pokemon {
+      border-color: var(--glass-line);
+    }
+  }
+
+  // tiles: what's caught a little lighter in the glass, what's unobtainable deeper, the temporary in the cyan's
+  // shade with its stripes faint
+  .pokemon.captured {
+    background-color: rgb(255 255 255 / 3%);
+  }
+
+  .pokemon.captured.caught {
+    background-color: rgb(140 110 255 / 9%);
+  }
+
+  .pokemon.captured.unobtainable {
+    background-color: rgb(0 0 0 / 28%);
+  }
+
+  .pokemon.captured.temporary {
+    background-color: rgb(60 220 230 / 10%);
+    background-image: repeating-linear-gradient(45deg, transparent 0 8px, rgb(60 220 230 / 7%) 8px 16px);
+  }
+
+  .pokemon.captured.sealed {
+    background-image: none;
+  }
+
+  // a finished box's pane edged in the pink, its light spilling onto the glass round it
+  .box-complete .box-container > .tile-grid {
+    border-color: rgb(255 140 225 / 55%);
+    outline: 0;
+    box-shadow: 0 0 0 1px rgb(255 91 214 / 18%), 0 0 26px rgb(255 91 214 / 28%), 0 30px 60px -20px rgb(0 0 0 / 70%), inset 0 0 30px rgb(255 91 214 / 10%);
+  }
+
+  // a sealed tile: the neon of its place glowing up from its foot, the glass above it clear. The material is one sheet
+  // down the display; its glow is laid per tile by a background the tile's size, so every sealed tile is lit alike
+  .seal-material {
+    background:
+      linear-gradient(to top, color-mix(in srgb, var(--line-neon) 34%, transparent), color-mix(in srgb, var(--line-neon) 8%, transparent) 45%, transparent 75%) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      linear-gradient(to top, color-mix(in srgb, var(--line-neon) 85%, white) 0 1.5px, transparent 1.5px) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      rgb(30 12 60 / 35%);
+  }
+
+  &:not([data-plain-seals]) {
+    .seal-material[data-tint] {
+      display: block;
+    }
+
+    .seal-material[data-tint='champions'] {
+      --line-neon: var(--neon-sun);
+    }
+
+    .seal-material[data-tint='out'] {
+      --line-neon: var(--neon-cyan);
+    }
+
+    .seal-material[data-tint='home'] {
+      --line-neon: var(--neon-lavender);
+    }
+  }
+
+  // the glow breathing: a soft light, a tile's height, rising slowly through the sealed tiles, never a line
+  .seal-flow {
+    --flow-y: -#{$pokemon-box-size * 4};
+    --flow-time: 26s;
+
+    display: block;
+    background: linear-gradient(to top, transparent, color-mix(in srgb, var(--line-neon) 10%, transparent) 50%, transparent) 0 0 / 100% #{$pokemon-box-size * 4};
+  }
+}

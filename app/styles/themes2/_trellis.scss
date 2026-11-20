@@ -1,0 +1,192 @@
+@use '../variables' as *;
+
+// Wisteria 2: the original's violet and gold taken into a scene, a night under a wisteria trellis
+// (theme-scene/trellis.ts). The racemes hang over the header, which is lacquered glass they show through; every box is
+// a lacquer panel set in a gold frame whose leaf catches the light along its length, a second hairline of gold inside
+// it on a finished box. A sealed tile is lacquered deeper in the colour of where it is (violet at home, indigo in HOME,
+// amber in Champions, peony out in a game) with gold dust (nashiji) sown in it, drifting very slowly as the original's
+// waves did; its range is lettered in gold leaf above it
+:root[data-theme='wisteria-2'] {
+  --gold-leaf: linear-gradient(115deg, #7a5a22 0%, #e9cd84 16%, #a37b33 32%, #f6e3a6 50%, #b48a3f 68%, #e3c47a 84%, #7e5c24 100%);
+  --gold: #e0c27a;
+  --lacquer: rgb(26 12 34 / 82%);
+  --glaze: #5b2a7e;
+  --line-solid: rgb(224 194 122 / 14%);
+
+  nav {
+    background: rgb(14 6 20 / 50%);
+    backdrop-filter: blur(16px) saturate(1.2);
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 1px;
+      background: var(--gold-leaf);
+      opacity: .55;
+      pointer-events: none;
+    }
+  }
+
+  .dex-search-bar {
+    background: linear-gradient(rgb(20 9 28 / 70%), rgb(20 9 28 / 50%));
+    backdrop-filter: blur(14px) saturate(1.25);
+  }
+
+  // the meter: a lacquered slot in a gold frame, its fill the colourway in lacquer with the gold dust in it
+  .dex-meter-bar {
+    border: 0;
+    background: rgb(14 6 20 / 70%);
+    box-shadow: inset 0 0 0 1px rgb(224 194 122 / 45%), inset 0 0 14px rgb(0 0 0 / 50%);
+  }
+
+  .dex-meter-fill {
+    background:
+      linear-gradient(rgb(255 255 255 / 18%), transparent 45%, rgb(0 0 0 / 18%)),
+      linear-gradient(90deg, #4a2068, #7d3aa0 45%, #b25aa8 80%, #d77aa6);
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gold);
+      mask: var(--trellis-nashiji) 0 0 / 256px;
+      opacity: .7;
+    }
+  }
+
+  .dex-meter-water {
+    display: none;
+  }
+
+  .dex-meter-edge {
+    background: var(--gold-leaf);
+    box-shadow: 0 0 10px rgb(240 210 140 / 50%);
+  }
+
+  .dex-meter-figure {
+    background: var(--gold-leaf);
+    background-size: 200% 100%;
+
+    span {
+      color: #2a1406;
+      text-shadow: 0 1px 0 rgb(255 240 200 / 50%);
+    }
+  }
+
+  // a box's range in gold leaf
+  .box-header h1 {
+    background: var(--gold-leaf);
+    background-size: 140% 100%;
+    color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 2px 2px rgb(0 0 0 / 60%));
+  }
+
+  // the panel: lacquer over the night, the racemes' colours blurred deep in it
+  .box-container {
+    background:
+      linear-gradient(160deg, rgb(255 255 255 / 5%), transparent 30%),
+      var(--lacquer);
+    box-shadow: 0 0 0 4px rgb(0 0 0 / 0%), 0 30px 50px -18px rgb(0 0 0 / 75%), 0 0 0 5px rgb(0 0 0 / 35%);
+    backdrop-filter: blur(16px) saturate(1.4);
+
+    // its gold frame, the leaf's light running along it
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      z-index: 2;
+      padding: 3px;
+      background: var(--gold-leaf);
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+      pointer-events: none;
+    }
+  }
+
+  .box-container > .tile-grid {
+    border-color: transparent;
+
+    > .pokemon {
+      border-color: var(--line-solid);
+    }
+  }
+
+  .pokemon.captured {
+    background-color: transparent;
+  }
+
+  .pokemon.captured.caught {
+    background-color: rgb(150 90 200 / 14%);
+  }
+
+  .pokemon.captured.unobtainable {
+    background-color: rgb(0 0 0 / 30%);
+  }
+
+  .pokemon.captured.temporary {
+    background-color: rgb(220 110 160 / 12%);
+    background-image: repeating-linear-gradient(45deg, transparent 0 8px, rgb(220 110 160 / 8%) 8px 16px);
+  }
+
+  .pokemon.captured.sealed {
+    background-image: none;
+  }
+
+  // a sealed tile: deeper lacquer in its place's colour, lit from its top as a glaze is
+  .seal-material {
+    background:
+      linear-gradient(rgb(255 255 255 / 9%), transparent 40%, rgb(0 0 0 / 20%)) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      color-mix(in srgb, var(--glaze) 70%, transparent);
+  }
+
+  &:not([data-plain-seals]) {
+    .seal-material[data-tint] {
+      display: block;
+    }
+
+    .seal-material[data-tint='champions'] {
+      --glaze: #8a5a1c;
+    }
+
+    .seal-material[data-tint='out'] {
+      --glaze: #9a3466;
+    }
+
+    .seal-material[data-tint='home'] {
+      --glaze: #2c3478;
+    }
+  }
+
+  // the gold dust in it, drifting right as the dex reads
+  .seal-flow {
+    --flow-x: 256px;
+    --flow-time: 70s;
+
+    display: block;
+    background-color: var(--gold);
+    opacity: .55;
+    mask: var(--trellis-nashiji) var(--seal-x) var(--seal-y) / 256px;
+  }
+
+  // a finished box: a second hairline of gold just inside the first, and the leaf glowing
+  .box-complete .box-container {
+    box-shadow: inset 0 0 0 4px rgb(14 6 20 / 60%), inset 0 0 0 5px rgb(224 194 122 / 55%), 0 0 30px rgb(224 194 122 / 18%), 0 30px 50px -18px rgb(0 0 0 / 75%);
+  }
+
+  .box-complete .box-container > .tile-grid {
+    outline: 0;
+  }
+}
+
+:root[data-typefaces][data-theme='wisteria-2'] :is(.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name) {
+  font-family: $font-theme-serif;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+:root[data-theme='wisteria-2'] .dex-meter-figure span {
+  transform: none;
+}

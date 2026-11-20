@@ -17,6 +17,7 @@ import { SceneBanner } from './SceneBanner';
 import { SearchBar } from './SearchBar';
 import { Timeline } from './Timeline';
 import { ZoomIndicator } from './ZoomIndicator';
+import { ThemeScene } from './theme-scene/ThemeScene';
 import { LabHost, labTitle } from './lab/LabHost';
 import { isLabScene } from './lab/registry';
 import { spotlight } from './lab/spotlight';
@@ -571,6 +572,7 @@ function TrackerInner () {
 
   return (
     <div className="tracker-container" onAnimationStart={syncLoops} ref={containerRef}>
+      <ThemeScene />
       <div className="tracker" ref={areaRef}>
         <div
           className="dex-wrapper"
