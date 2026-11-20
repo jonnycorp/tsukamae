@@ -42,22 +42,27 @@ const tally = (values: (string | null)[]) => {
 function DayNote ({ value, onSave }: { value: string; onSave: (note: string) => void }) {
   const { lt } = useLabText();
   const [draft, setDraft] = useState<string | null>(null);
+  const cancelled = useRef(false);
   return (
     <label className="ld-note">
       <FontAwesomeIcon icon={faPen} />
       <input
         onBlur={() => {
-          if (draft !== null) {
+          if (cancelled.current) {
+            cancelled.current = false;
+            setDraft(null);
+          } else if (draft !== null) {
             onSave(draft.trim());
             setDraft(null);
           }
         }}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') {
+          // Enter keeps it and Escape puts it back, either leaving the field; typing here is the note's, not the scene's
+          cancelled.current = e.key === 'Escape';
+          if (e.key === 'Enter' || e.key === 'Escape') {
             e.currentTarget.blur();
           }
-          // typing here is the note's, not the scene's
           e.stopPropagation();
         }}
         placeholder={lt('days.note')}
@@ -100,9 +105,9 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: LabProps) {
 
   const dated = days.filter(({ date }) => date);
   const busiest = Math.max(1, ...dated.map(({ mons }) => mons.length));
-  const shown = days
+  const shown = useMemo(() => days
   .filter(({ date }) => show === 'all' || (show === 'noted' ? Boolean(notes[date]) : Boolean(date && yearly[date.slice(5)])))
-  .sort((a, b) => (!a.date ? 1 : !b.date ? -1 : oldest ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)));
+  .sort((a, b) => (!a.date ? 1 : !b.date ? -1 : oldest ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date))), [days, show, notes, yearly, oldest]);
 
   useScrollBack(pageRef, back, true);
 
@@ -134,7 +139,81 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: LabProps) {
     setYearly(next);
   };
 
-  let lastYear = '';
+  // the cards, apart from the tip, so pointing at a mon re-renders none of them
+  const cards = useMemo(() => {
+    let lastYear = '';
+    return shown.map((day) => {
+      const year = day.date.slice(0, 4);
+      const divider = year !== lastYear;
+      lastYear = year;
+      const mark = day.date ? yearly[day.date.slice(5)] : undefined;
+      const here = day.mons.filter((record) => record.here);
+      return (
+        <div className="ld-run" key={day.date || 'undated'}>
+          {divider && <h2 className="ld-year">{day.date ? year : lt('days.undated')}</h2>}
+          <article className={classNames('ld-day', { marked: mark !== undefined })}>
+            <div className="ld-when">
+              {day.date
+                ? (
+                  <>
+                    <b>{Number(day.date.slice(8))}</b>
+                    <span>{fmt(day.date, { year: 'numeric', month: 'long' })}</span>
+                    <small>{fmt(day.date, { weekday: 'long' })}</small>
+                  </>
+                )
+                : <b className="ld-undated">—</b>}
+              {mark !== undefined && <em className="ld-mark"><FontAwesomeIcon icon={faHeart} /> {mark}</em>}
+            </div>
+            <div className="ld-what">
+              <div className="ld-line">
+                <span className="ld-count" style={{ '--f': day.mons.length / busiest } as CSSProperties}>
+                  <b>{lt('days.count', { n: day.mons.length })}</b><i />
+                </span>
+                <span className="ld-games">
+                  {day.games.map(([game, n]) => (
+                    <span key={game} style={{ '--ground': gameColor(game) } as CSSProperties}><i />{gameName(game)}<b>{n}</b></span>
+                  ))}
+                </span>
+                <span className="ld-balls">
+                  {day.balls.map(([ball, n]) => (
+                    <span key={ball} title={`${ballName(ball)} ×${n}`}><img alt={ballName(ball)} height={30} src={`/balls/${ball}.png`} width={30} />{n > 1 && <b>{n}</b>}</span>
+                  ))}
+                </span>
+              </div>
+              <div className="ld-mons" onPointerLeave={() => setHot(null)}>
+                {day.mons.map((record, i) => (
+                  <button
+                    className={classNames('ld-mon', { away: !record.here })}
+                    key={record.key}
+                    onClick={() => record.here && onLocate(record.capture.pokemon.id)}
+                    onPointerEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setHot({ record, x: rect.right, y: rect.top + rect.height / 2 });
+                    }}
+                    style={{ '--i': Math.min(i, 30) } as CSSProperties}
+                    type="button"
+                  >
+                    <SceneMon pokemon={record.capture.pokemon} />
+                  </button>
+                ))}
+              </div>
+              {day.date && (
+                <div className="ld-foot">
+                  <DayNote onSave={(note) => saveNote(day.date, note)} value={notes[day.date] ?? ''} />
+                  <button aria-pressed={mark !== undefined} className={classNames('ld-yearly', { on: mark !== undefined })} onClick={() => toggleYearly(day.date)} type="button">
+                    <FontAwesomeIcon icon={faHeart} /> {lt('days.yearly')}
+                  </button>
+                  <button className="ld-review" disabled={here.length === 0} onClick={() => onReview(here.map(({ capture }) => capture.pokemon.id))} type="button">
+                    {lt('days.review', { n: here.length })}
+                  </button>
+                </div>
+              )}
+            </div>
+          </article>
+        </div>
+      );
+    });
+  }, [shown, notes, yearly, busiest, locale, onLocate, onReview]); // the rest follow from these
 
   return (
     <Scene hint={lt('days.hint')} name="lab-days" onClose={onClose} quiet={Boolean(back)} title={lt('days.title')}>
@@ -161,77 +240,7 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: LabProps) {
 
           {shown.length === 0 && <p className="ld-empty">{lt('days.empty')}</p>}
 
-          {shown.map((day) => {
-            const year = day.date.slice(0, 4);
-            const divider = year !== lastYear;
-            lastYear = year;
-            const mark = day.date ? yearly[day.date.slice(5)] : undefined;
-            const here = day.mons.filter((record) => record.here);
-            return (
-              <div className="ld-run" key={day.date || 'undated'}>
-                {divider && <h2 className="ld-year">{day.date ? year : lt('days.undated')}</h2>}
-                <article className={classNames('ld-day', { marked: mark !== undefined })}>
-                  <div className="ld-when">
-                    {day.date
-                      ? (
-                        <>
-                          <b>{Number(day.date.slice(8))}</b>
-                          <span>{fmt(day.date, { year: 'numeric', month: 'long' })}</span>
-                          <small>{fmt(day.date, { weekday: 'long' })}</small>
-                        </>
-                      )
-                      : <b className="ld-undated">—</b>}
-                    {mark !== undefined && <em className="ld-mark"><FontAwesomeIcon icon={faHeart} /> {mark}</em>}
-                  </div>
-                  <div className="ld-what">
-                    <div className="ld-line">
-                      <span className="ld-count" style={{ '--f': day.mons.length / busiest } as CSSProperties}>
-                        <b>{lt('days.count', { n: day.mons.length })}</b><i />
-                      </span>
-                      <span className="ld-games">
-                        {day.games.map(([game, n]) => (
-                          <span key={game} style={{ '--ground': gameColor(game) } as CSSProperties}><i />{gameName(game)}<b>{n}</b></span>
-                        ))}
-                      </span>
-                      <span className="ld-balls">
-                        {day.balls.map(([ball, n]) => (
-                          <span key={ball} title={`${ballName(ball)} ×${n}`}><img alt={ballName(ball)} height={30} src={`/balls/${ball}.png`} width={30} />{n > 1 && <b>{n}</b>}</span>
-                        ))}
-                      </span>
-                    </div>
-                    <div className="ld-mons" onPointerLeave={() => setHot(null)}>
-                      {day.mons.map((record, i) => (
-                        <button
-                          className={classNames('ld-mon', { away: !record.here })}
-                          key={record.key}
-                          onClick={() => record.here && onLocate(record.capture.pokemon.id)}
-                          onPointerEnter={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHot({ record, x: rect.right, y: rect.top + rect.height / 2 });
-                          }}
-                          style={{ '--i': Math.min(i, 30) } as CSSProperties}
-                          type="button"
-                        >
-                          <SceneMon pokemon={record.capture.pokemon} />
-                        </button>
-                      ))}
-                    </div>
-                    {day.date && (
-                      <div className="ld-foot">
-                        <DayNote onSave={(note) => saveNote(day.date, note)} value={notes[day.date] ?? ''} />
-                        <button aria-pressed={mark !== undefined} className={classNames('ld-yearly', { on: mark !== undefined })} onClick={() => toggleYearly(day.date)} type="button">
-                          <FontAwesomeIcon icon={faHeart} /> {lt('days.yearly')}
-                        </button>
-                        <button className="ld-review" disabled={here.length === 0} onClick={() => onReview(here.map(({ capture }) => capture.pokemon.id))} type="button">
-                          {lt('days.review', { n: here.length })}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              </div>
-            );
-          })}
+          {cards}
 
           {hot && (
             <LabTip scale={scale} x={hot.x} y={hot.y}>

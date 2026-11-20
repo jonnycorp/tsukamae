@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ORIGIN_GAME_NAMES } from '../../../../utils/capture-fields';
 import { LabTip } from './LabTip';
 import { SceneMon } from '../Scene';
-import { cssColor, easeOut, fitCanvas, useFrameLoop } from './lab-kit';
+import { cssColor, easeOut, fitCanvas, useFrameLoop, useKeys } from './lab-kit';
 import { displayName } from '../../../library/PokemonName';
 import { gameColor } from '../../../../utils/game-colors';
 import { localizeOriginGame } from '../../../../i18n/names';
@@ -211,28 +211,37 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
     ctx.globalAlpha = 1;
   };
 
-  useFrameLoop((_t, dt) => draw(dt), !calm);
-  // still: the whole of it, drawn once and again as the window or the scrub changes it
+  // drawn every frame only while the run plays (its last tiles landed, it stops); paused, finished or still, drawn as
+  // it changes: on each render (a scrub, a pointer) and as the window resizes it
+  const animating = !calm && playing;
+  const drawRef = useRef(draw);
+  drawRef.current = draw;
+  useFrameLoop((_t, dt) => draw(dt), animating);
   useEffect(() => {
-    if (!calm) {
-      return undefined;
+    if (!animating) {
+      draw(0);
     }
-    draw(0);
-    const observer = new ResizeObserver(() => draw(0));
+  });
+  useEffect(() => {
+    const observer = new ResizeObserver(() => drawRef.current(0));
     observer.observe(canvasRef.current!);
     return () => observer.disconnect();
-  });
+  }, []);
 
-  // Space plays and pauses
-  useEffect(() => {
-    const handle = (e: KeyboardEvent) => {
-      if (e.key === ' ' && !e.defaultPrevented) {
-        e.preventDefault();
-        toggle();
-      }
-    };
-    document.addEventListener('keydown', handle);
-    return () => document.removeEventListener('keydown', handle);
+  // Space plays and pauses; Escape goes back to the wall rather than closing the scene. Added once, on mount, so it's
+  // ahead of the scene's own Escape
+  useKeys((e) => {
+    if (e.defaultPrevented) {
+      return;
+    }
+    if (e.key === ' ') {
+      toggle();
+    } else if (e.key === 'Escape') {
+      onBack();
+    } else {
+      return;
+    }
+    e.preventDefault();
   });
 
   const toggle = () => {
@@ -331,9 +340,7 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate }: Props) {
             onChange={(e) => {
               setPlaying(false);
               cursor.current = Number(e.target.value);
-              if (calm) {
-                setShown(cursor.current);
-              }
+              setShown(cursor.current);
             }}
             step={1}
             type="range"

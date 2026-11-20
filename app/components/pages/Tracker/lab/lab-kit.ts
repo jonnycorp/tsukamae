@@ -54,6 +54,23 @@ export function useFrameLoop (draw: (t: number, dt: number) => void, running = t
   }, [running]);
 }
 
+// a sketch's keys: one document listener for its life, in the capture phase so it's ahead of the scene's own (an
+// Escape a sketch takes for itself never closes the scene), calling the latest `handle`, so a sketch that re-renders
+// every frame isn't adding and removing it every frame. A key typed into a field is the field's
+export function useKeys (handle: (e: KeyboardEvent) => void) {
+  const ref = useRef(handle);
+  ref.current = handle;
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => {
+      if (!(e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]'))) {
+        ref.current(e);
+      }
+    };
+    document.addEventListener('keydown', listener, true);
+    return () => document.removeEventListener('keydown', listener, true);
+  }, []);
+}
+
 // a theme token's colour as the root has it now, for a canvas, which can't read var()
 export function token (name: string, fallback = '#888'): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
@@ -90,3 +107,6 @@ export function cssColor (value: string): string {
   probe.remove();
   return color;
 }
+
+// today, or another day, as yyyy-mm-dd where you are (not UTC's, which is tomorrow by evening in the Americas)
+export const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

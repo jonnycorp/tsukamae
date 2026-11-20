@@ -80,10 +80,10 @@ $lab-ease: cubic-bezier(.2, .9, .3, 1);
 
 .lab-card-glyph {
   position: absolute;
-  top: -18px;
-  left: 6px;
+  top: 10px;
+  right: 48px;
   color: var(--accent);
-  font-size: 150px;
+  font-size: 88px;
   font-weight: 900;
   line-height: 1;
   opacity: .14;

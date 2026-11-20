@@ -247,8 +247,7 @@ $lch-ease: cubic-bezier(.2, .9, .3, 1);
   }
 
   &:hover,
-  &:focus-visible,
-  &.hot {
+  &:focus-visible {
     border-color: var(--st);
     box-shadow: 0 10px 22px -14px var(--paper-shadow);
     outline: none;

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { LAB_SKETCHES, labSketch } from './registry';
 import { Scene } from '../Scene';
@@ -37,7 +37,7 @@ function unlean (e: PointerEvent<HTMLButtonElement>) {
 }
 
 // the lab (X): a deck of the sketches, each opening over the dex as any scene does
-function LabDeck ({ checklist, onClose, onOpen }: Pick<Props, 'checklist' | 'onClose' | 'onOpen'>) {
+function LabDeck ({ checklist, quiet, onClose, onOpen }: Pick<Props, 'checklist' | 'onClose' | 'onOpen'> & { quiet: boolean }) {
   const { lt } = useLabText();
   const sketches = LAB_SKETCHES.filter((sketch) => !checklist || !sketch.records);
 
@@ -55,7 +55,7 @@ function LabDeck ({ checklist, onClose, onOpen }: Pick<Props, 'checklist' | 'onC
   }, [sketches, onOpen]);
 
   return (
-    <Scene hint={lt('lab.hint')} name="lab-deck" onClose={onClose} title={lt('lab.title')}>
+    <Scene hint={lt('lab.hint')} name="lab-deck" onClose={onClose} quiet={quiet} title={lt('lab.title')}>
       {({ scale }) => (
         <div className="lab-deck-page" style={{ zoom: scale }}>
           <div className="lab-cards">
@@ -83,17 +83,22 @@ function LabDeck ({ checklist, onClose, onOpen }: Pick<Props, 'checklist' | 'onC
   );
 }
 
-// the deck, or the sketch it opened
+// the deck, or the sketch it opened; a sketch closed goes back to the deck, there at once (no title card again), and the
+// deck closed goes back to the dex
 export function LabHost ({ scene, checklist, back, onOpen, onClose, onFilter, onLocate, onReview }: Props) {
+  const [returned, setReturned] = useState(false);
   const sketch = labSketch(scene);
   if (!sketch) {
-    return <LabDeck checklist={checklist} onClose={onClose} onOpen={onOpen} />;
+    return <LabDeck checklist={checklist} onClose={onClose} onOpen={onOpen} quiet={returned} />;
   }
   const Sketch = sketch.component;
   return (
     <Sketch
       back={back}
-      onClose={onClose}
+      onClose={() => {
+        setReturned(true);
+        onOpen('lab');
+      }}
       onFilter={(filters, view) => onFilter(filters, view, scene)}
       onLocate={onLocate}
       onReview={onReview}

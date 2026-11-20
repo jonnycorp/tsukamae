@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Scene, SceneMon } from '../Scene';
 import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
 import { intervalMs, review } from './fsrs';
+import { localDay, useKeys } from './lab-kit';
 import { useLabText } from './lab-i18n';
 import { useLocalStorage } from '../../../../hooks/use-local-storage';
 
@@ -41,8 +42,6 @@ interface Today {
   done: number;
   right: number;
 }
-
-const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 function shuffle<T> (list: T[]): T[] {
   const out = [...list];
@@ -91,7 +90,7 @@ export function NameQuiz ({ onClose }: LabProps) {
   const [answer, setAnswer] = useState<{ picked: string; ms: number } | null>(null);
   const [lastKey, setLastKey] = useState<string | null>(null);
 
-  const date = isoDay(new Date());
+  const date = localDay();
   const today: Today = storedToday?.date === date ? storedToday : { date, fresh: 0, extra: 0, done: 0, right: 0 };
 
   // one card a name, its own mons' catch days kept for the order new ones come in
@@ -158,25 +157,21 @@ export function NameQuiz ({ onClose }: LabProps) {
     setQuestion(null);
   };
 
-  useEffect(() => {
-    const handle = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.repeat) {
-        return;
-      }
-      const n = Number(e.key);
-      if (!answer && question && n >= 1 && n <= question.choices.length) {
-        pick(question.choices[n - 1]);
-      } else if (answer && (e.key === ' ' || e.key === 'Enter')) {
-        grade(suggested);
-      } else if (answer && right && n >= 1 && n <= 4) {
-        grade(n as Grade);
-      } else {
-        return;
-      }
-      e.preventDefault();
-    };
-    document.addEventListener('keydown', handle);
-    return () => document.removeEventListener('keydown', handle);
+  useKeys((e) => {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.repeat) {
+      return;
+    }
+    const n = Number(e.key);
+    if (!answer && question && n >= 1 && n <= question.choices.length) {
+      pick(question.choices[n - 1]);
+    } else if (answer && (e.key === ' ' || e.key === 'Enter')) {
+      grade(suggested);
+    } else if (answer && right && n >= 1 && n <= 4) {
+      grade(n as Grade);
+    } else {
+      return;
+    }
+    e.preventDefault();
   });
 
   // each generation's names known, learning and not yet met

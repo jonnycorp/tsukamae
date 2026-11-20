@@ -11,6 +11,7 @@ import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
 import { closedGameHas, debutOf, gameDexes, lineOf, sameId } from '../../../../utils/game-reach';
 import { displayName } from '../../../library/PokemonName';
 import { localizeOriginGame } from '../../../../i18n/names';
+import { localDay } from './lab-kit';
 import { useLabText } from './lab-i18n';
 
 import type { CSSProperties } from 'react';
@@ -46,7 +47,7 @@ export function RecordCheck ({ back, onClose, onReview }: LabProps) {
   const gameName = (game: string) => localizeOriginGame(locale, game, ORIGIN_GAME_NAMES.get(game) ?? game);
 
   const { flags, caught } = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDay();
     const out = new Map<Check, Flag[]>(CHECKS.map((check) => [check, []]));
     const add = (check: Check, record: LabRecord, why: string) => out.get(check)!.push({ record, why });
     const held = records.filter(({ capture }) => capture.captured && capture.status !== 'unobtainable');
@@ -114,6 +115,48 @@ export function RecordCheck ({ back, onClose, onReview }: LabProps) {
   const queueOf = (list: Flag[]) => [...new Set(list.filter(({ record }) => record.here).map(({ record }) => record.capture.pokemon.id))];
   const everything = queueOf([...flags.values()].flat());
 
+  // the cards, apart from the tip, so pointing at a mon re-renders none of them
+  const checks = useMemo(() => (
+    <div className="lc-checks">
+      {CHECKS.map((check, i) => {
+        const list = flags.get(check)!;
+        const queue = queueOf(list);
+        return (
+          <section className={classNames('lc-check', { ok: list.length === 0 })} key={check} style={{ '--i': i } as CSSProperties}>
+            <div className="lc-check-head">
+              <span className="lc-badge">{list.length === 0 ? <FontAwesomeIcon icon={faCheck} /> : list.length}</span>
+              <div>
+                <h3>{lt(`check.${check}` as LabKey)}</h3>
+                <p>{lt(`check.${check}.about` as LabKey)}</p>
+              </div>
+              {queue.length > 0 && (
+                <button className="lc-review" onClick={() => onReview(queue)} type="button">{lt('check.review', { n: queue.length })}</button>
+              )}
+            </div>
+            {list.length > 0 && (
+              <div className="lc-mons" onPointerLeave={() => setHot(null)}>
+                {list.map((flag) => (
+                  <button
+                    className={classNames('lc-mon', { away: !flag.record.here })}
+                    key={flag.record.key}
+                    onClick={() => flag.record.here && onReview([flag.record.capture.pokemon.id])}
+                    onPointerEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setHot({ flag, x: rect.right, y: rect.top + rect.height / 2 });
+                    }}
+                    type="button"
+                  >
+                    <SceneMon pokemon={flag.record.capture.pokemon} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  ), [flags, locale, onReview]); // the rest follow from these
+
   return (
     <Scene hint={lt('check.hint')} name="lab-check" onClose={onClose} quiet={Boolean(back)} title={lt('check.title')}>
       {({ scale }) => (
@@ -132,44 +175,7 @@ export function RecordCheck ({ back, onClose, onReview }: LabProps) {
             <ScopeSwitch onChange={setScope} scope={scope} />
           </header>
 
-          <div className="lc-checks">
-            {CHECKS.map((check, i) => {
-              const list = flags.get(check)!;
-              const queue = queueOf(list);
-              return (
-                <section className={classNames('lc-check', { ok: list.length === 0 })} key={check} style={{ '--i': i } as CSSProperties}>
-                  <div className="lc-check-head">
-                    <span className="lc-badge">{list.length === 0 ? <FontAwesomeIcon icon={faCheck} /> : list.length}</span>
-                    <div>
-                      <h3>{lt(`check.${check}` as LabKey)}</h3>
-                      <p>{lt(`check.${check}.about` as LabKey)}</p>
-                    </div>
-                    {queue.length > 0 && (
-                      <button className="lc-review" onClick={() => onReview(queue)} type="button">{lt('check.review', { n: queue.length })}</button>
-                    )}
-                  </div>
-                  {list.length > 0 && (
-                    <div className="lc-mons" onPointerLeave={() => setHot(null)}>
-                      {list.map((flag) => (
-                        <button
-                          className={classNames('lc-mon', { away: !flag.record.here })}
-                          key={flag.record.key}
-                          onClick={() => flag.record.here && onReview([flag.record.capture.pokemon.id])}
-                          onPointerEnter={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHot({ flag, x: rect.right, y: rect.top + rect.height / 2 });
-                          }}
-                          type="button"
-                        >
-                          <SceneMon pokemon={flag.record.capture.pokemon} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-          </div>
+          {checks}
 
           {hot && (
             <LabTip scale={scale} x={hot.x} y={hot.y}>

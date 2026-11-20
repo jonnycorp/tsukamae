@@ -37,6 +37,13 @@ $lm-ease: cubic-bezier(.2, .9, .3, 1);
   margin: -26px -28px 10px;
   padding: 18px 28px 12px;
   background: linear-gradient(180deg, var(--paper) 80%, transparent);
+
+  // out to the scene body's narrower padding there (scene.scss)
+  @media (width < 900px) {
+    top: -20px;
+    margin: -20px -14px 10px;
+    padding: 14px 14px 12px;
+  }
 }
 
 .lm-figures {

@@ -114,6 +114,14 @@
   right: 26px;
 }
 
+// a narrow window: the switch to the left, clear of the date in the middle
+@media (width < 1100px) {
+  .lg-scope {
+    right: auto;
+    left: 20px;
+  }
+}
+
 .lg-foot {
   display: flex;
   position: absolute;

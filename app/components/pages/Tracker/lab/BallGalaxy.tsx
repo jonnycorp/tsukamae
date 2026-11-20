@@ -7,7 +7,7 @@ import { LabTip } from './LabTip';
 import { Scene, SceneMon } from '../Scene';
 import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
 import { displayName } from '../../../library/PokemonName';
-import { alpha, easeOut, fitCanvas, token, useCalm, useFrameLoop } from './lab-kit';
+import { alpha, easeOut, fitCanvas, token, useCalm, useFrameLoop, useKeys } from './lab-kit';
 import { localizeBall } from '../../../../i18n/names';
 import { useLabText } from './lab-i18n';
 
@@ -151,12 +151,18 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
   // how many catches the replay has shown, and whether it's playing; opened from the dex, or calm, it starts at the end
   const [cursor, setCursor] = useState(() => (back || calm ? total : 0));
   const [playing, setPlaying] = useState(() => !back && !calm && total > 0);
+  // the replay's place to the fraction, which the canvas draws from every frame; the state above moves only as a whole
+  // catch is reached, so the page around the canvas re-renders a catch at a time rather than every frame
   const cursorRef = useRef(cursor);
-  cursorRef.current = cursor;
+  const moveCursor = (to: number) => {
+    cursorRef.current = to;
+    setCursor(to);
+  };
   // a scope switched starts the galaxy over, whole
   const [shownScope, setShownScope] = useState(scope);
   if (shownScope !== scope) {
     setShownScope(scope);
+    cursorRef.current = total;
     setCursor(total);
     setPlaying(false);
   }
@@ -207,7 +213,10 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     if (reached) {
       setArrival({ ball: reached.ball, at: performance.now() });
     }
-    setCursor(next);
+    cursorRef.current = next;
+    if (Math.floor(next) !== before || next >= total) {
+      setCursor(next);
+    }
     if (next >= total) {
       setPlaying(false);
     }
@@ -437,15 +446,11 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
   };
 
   // Space plays or pauses the replay
-  useEffect(() => {
-    const handle = (e: KeyboardEvent) => {
-      if (e.key === ' ' && !e.repeat) {
-        e.preventDefault();
-        toggle();
-      }
-    };
-    document.addEventListener('keydown', handle);
-    return () => document.removeEventListener('keydown', handle);
+  useKeys((e) => {
+    if (e.key === ' ' && !e.repeat && !e.defaultPrevented) {
+      e.preventDefault();
+      toggle();
+    }
   });
 
   const toggle = () => {
@@ -456,7 +461,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
     if (cursor >= total) {
       revealed.current.clear();
       ballsShown.current.clear();
-      setCursor(0);
+      moveCursor(0);
     }
     follow.current = true;
     setPlaying(true);
@@ -523,7 +528,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
                   min={1}
                   onChange={(e) => {
                     setPlaying(false);
-                    setCursor(Number(e.target.value));
+                    moveCursor(Number(e.target.value));
                   }}
                   step={1}
                   type="range"

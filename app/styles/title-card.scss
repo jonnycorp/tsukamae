@@ -48,6 +48,8 @@ $card-clear-at: 1.05s;
   right: 0;
   bottom: 50%;
   left: 0;
+  // room above the name for a tall glyph or an accent (é), which the clip would otherwise shave
+  padding-top: .3em;
   padding-bottom: 14px;
   overflow: hidden;
   text-align: center;

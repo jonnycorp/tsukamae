@@ -123,6 +123,42 @@ export function ChampionsRoster ({ back, onClose, onLocate }: LabProps) {
     const rect = e.currentTarget.getBoundingClientRect();
     setHot({ slot, x: rect.right, y: rect.top + rect.height / 2 });
   };
+  // the cards, apart from the tip, so pointing at one re-renders none of them
+  const cards = useMemo(() => generations.map(([generation, group], g) => (
+    <section className="lch-gen" key={generation}>
+      <h3>{lt('champions.gen', { n: generation })}<span>{group.length}</span></h3>
+      <div className="lch-cards">
+        {group.map((slot, i) => (
+          <button
+            className={`lch-card st-${slot.standing}`}
+            key={slot.key}
+            onBlur={() => setHot(null)}
+            onClick={() => {
+              const capture = inOpenDex(slot);
+              if (capture) {
+                onLocate(capture.pokemon.id);
+              }
+            }}
+            onFocus={show(slot)}
+            onPointerEnter={show(slot)}
+            onPointerLeave={() => setHot(null)}
+            style={{ '--i': Math.min(40, i + g * 4) } as CSSProperties}
+            type="button"
+          >
+            <span className="lch-mon"><SceneMon pokemon={slot.pokemon} zoom={1.4} /></span>
+            <span className="lch-name">{displayName(slot.pokemon.name, slot.pokemon.name_ja, locale)}</span>
+            {slot.copies.length > 0 && (
+              <span className="lch-badges">
+                {slot.copies.length > 1 && <b>×{slot.copies.length}</b>}
+                {slot.shiny > 0 && <b className="lch-shiny">✦{slot.shiny > 1 ? slot.shiny : ''}</b>}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </section>
+  )), [generations, captures, locale, onLocate]); // the rest follow from these
+
   const placeName = (capture: Capture) => (capture.location === 'champions'
     ? lt('champions.atChampions')
     : capture.location === 'home' ? 'HOME' : lt('champions.inGame'));
@@ -182,40 +218,7 @@ export function ChampionsRoster ({ back, onClose, onLocate }: LabProps) {
             </div>
           </header>
 
-          {generations.map(([generation, group], g) => (
-            <section className="lch-gen" key={generation}>
-              <h3>{lt('champions.gen', { n: generation })}<span>{group.length}</span></h3>
-              <div className="lch-cards">
-                {group.map((slot, i) => (
-                  <button
-                    className={classNames('lch-card', `st-${slot.standing}`, { hot: hot?.slot.key === slot.key })}
-                    key={slot.key}
-                    onBlur={() => setHot(null)}
-                    onClick={() => {
-                      const capture = inOpenDex(slot);
-                      if (capture) {
-                        onLocate(capture.pokemon.id);
-                      }
-                    }}
-                    onFocus={show(slot)}
-                    onPointerEnter={show(slot)}
-                    onPointerLeave={() => setHot(null)}
-                    style={{ '--i': Math.min(40, i + g * 4) } as CSSProperties}
-                    type="button"
-                  >
-                    <span className="lch-mon"><SceneMon pokemon={slot.pokemon} zoom={1.4} /></span>
-                    <span className="lch-name">{displayName(slot.pokemon.name, slot.pokemon.name_ja, locale)}</span>
-                    {slot.copies.length > 0 && (
-                      <span className="lch-badges">
-                        {slot.copies.length > 1 && <b>×{slot.copies.length}</b>}
-                        {slot.shiny > 0 && <b className="lch-shiny">✦{slot.shiny > 1 ? slot.shiny : ''}</b>}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </section>
-          ))}
+          {cards}
 
           {hot && (
             <LabTip scale={scale} x={hot.x} y={hot.y}>
