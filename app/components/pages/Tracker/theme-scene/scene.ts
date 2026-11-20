@@ -5,11 +5,7 @@ export interface Scene {
   dispose: () => void;
 }
 
-export interface SceneMaker {
-  (back: HTMLCanvasElement, front: HTMLDivElement | null): Scene;
-  // a layer over the dex as well, the scene's to fill
-  front?: boolean;
-}
+export type SceneMaker = (back: HTMLCanvasElement) => Scene;
 
 // a full-window fragment shader: its uniforms the size in device pixels (u_res), the clock (u_time) and the device
 // pixel ratio (u_dpr)

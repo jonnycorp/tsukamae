@@ -208,12 +208,11 @@ export const THEMES: ThemeSeed[] = [
   // styles/themes2), beside the originals they grew from
   // Ink 2: shodō, a calligrapher's desk. Hanshi on a felt underlay, the tiles the creases a student folds into the sheet
   // as a guide, the titles written in sumi that bleeds into the paper, a finished box signed with a cinnabar seal; the
-  // only motion the shadow of leaves outside the window, moving on the paper
+  // only motion the window's light drifting over the felt
   {
     name: 'Ink 2', hue: 80, ink: 33, unobtainable: 250, temporary: 33, caught: 60, chroma: 0.05, statusChroma: 0.6, unobtainableChroma: 0.05, lineAlpha: 0.2,
     rangeDash: { ja: '～' },
     side: 'light',
-    reviewEntrance: 'brush',
     tones: {
       light: {
         paper: { l: 0.94, c: 0.016 }, 'paper-raised': { l: 0.962, c: 0.012 }, 'paper-sunken': { l: 0.915, c: 0.018 }, chip: { l: 0.9, c: 0.018 },
@@ -262,21 +261,85 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // Wisteria 3: tsukimi, a moon-viewing night, Japanese without the wisteria. An indigo sky, the full moon in its halo,
-  // thin clouds crossing it, pampas grass (susuki) along the foot of the window in the wind; every box a shōji screen,
-  // the dex's mons its lit panes: a caught mon's pane lit warm from inside, a sealed one's the brightest, glowing, a
-  // missing one dark, so the boxes read as a row of houses with their lights on
+  // Ukiyo: a woodblock print. Prussian blue waves rolling slowly under a cream sky graded in blue at its top
+  // (bokashi), a small far mountain; every box a print's cartouche, framed in the key block's indigo line, its range on
+  // a title slip in red, a sealed tile printed in the blue's gradation
   {
-    name: 'Wisteria 3', hue: 262, ink: 70, unobtainable: 250, temporary: 20, caught: 72, chroma: 1, statusChroma: 1, unobtainableChroma: 0.4,
+    name: 'Ukiyo', hue: 80, ink: 255, unobtainable: 60, temporary: 25, caught: 240, chroma: 0.7, statusChroma: 1, unobtainableChroma: 0.4,
+    side: 'light',
+    tones: {
+      light: {
+        paper: { l: 0.93, c: 0.03 }, 'paper-raised': { l: 0.955, c: 0.025 }, 'paper-sunken': { l: 0.905, c: 0.032 }, chip: { l: 0.89, c: 0.032 },
+        chrome: { l: 0.3, c: 0.09, source: 'ink' }, 'chrome-hover': { l: 0.36, c: 0.09, source: 'ink' }, 'chrome-active': { l: 0.41, c: 0.09, source: 'ink' }, 'chrome-pattern': { l: 0.26, c: 0.08, source: 'ink' },
+        meter: { l: 0.88, c: 0.03 }, 'meter-edge': { l: 0.3, c: 0.09, source: 'ink' },
+        accent: { l: 0.52, c: 0.17, source: 'temporary' }, 'accent-hover': { l: 0.46, c: 0.16, source: 'temporary' },
+        overlay: { l: 0.28, c: 0.08, source: 'ink' }, 'overlay-deep': { l: 0.24, c: 0.075, source: 'ink' }, 'overlay-deeper': { l: 0.21, c: 0.07, source: 'ink' }, 'overlay-edge': { l: 0.52, c: 0.17, source: 'temporary' },
+        field: { l: 0.96, c: 0.02 }, 'field-edge': { l: 0.3, c: 0.09, source: 'ink' }, 'field-focus': { l: 0.52, c: 0.17, source: 'temporary' },
+        'tile-caught': { l: 0.86, c: 0.04 }, 'tile-unobtainable': { l: 0.84, c: 0.03 }, 'tile-temporary': { l: 0.9, c: 0.05 }, 'tile-temporary-stripe': { l: 0.86, c: 0.06 },
+      },
+    },
+  },
+  // Koi: a garden pond at dusk seen through a glass floor. Koi glide slowly under the boxes over dark water, the light
+  // on the surface shifting; the boxes panes of the floor in a cedar frame
+  {
+    name: 'Koi', hue: 190, ink: 40, unobtainable: 220, temporary: 20, caught: 175, chroma: 0.8,
     tones: {
       dark: {
-        paper: { l: 0.19, c: 0.04 }, 'paper-raised': { l: 0.24, c: 0.045 }, 'paper-sunken': { l: 0.16, c: 0.035 }, chip: { l: 0.16, c: 0.035 },
-        chrome: { l: 0.14, c: 0.04 }, 'chrome-hover': { l: 0.19, c: 0.045 }, 'chrome-active': { l: 0.23, c: 0.05 }, 'chrome-pattern': { l: 0.12, c: 0.035 },
-        meter: { l: 0.22, c: 0.045 }, 'meter-edge': { l: 0.82, c: 0.08, source: 'caught' },
-        accent: { l: 0.84, c: 0.1, source: 'caught' }, 'accent-hover': { l: 0.89, c: 0.08, source: 'caught' },
-        overlay: { l: 0.17, c: 0.045 }, 'overlay-deep': { l: 0.21, c: 0.05 }, 'overlay-deeper': { l: 0.25, c: 0.055 }, 'overlay-edge': { l: 0.82, c: 0.08, source: 'caught' },
-        field: { l: 0.16, c: 0.035 }, 'field-edge': { l: 0.45, c: 0.05 }, 'field-focus': { l: 0.84, c: 0.1, source: 'caught' },
-        'tile-caught': { l: 0.4, c: 0.07 }, 'tile-unobtainable': { l: 0.25, c: 0.012 }, 'tile-temporary': { l: 0.33, c: 0.06 }, 'tile-temporary-stripe': { l: 0.37, c: 0.075 },
+        paper: { l: 0.2, c: 0.035 }, 'paper-raised': { l: 0.24, c: 0.04 }, 'paper-sunken': { l: 0.17, c: 0.03 }, chip: { l: 0.17, c: 0.03 },
+        chrome: { l: 0.14, c: 0.03 }, 'chrome-hover': { l: 0.19, c: 0.035 }, 'chrome-active': { l: 0.23, c: 0.04 }, 'chrome-pattern': { l: 0.12, c: 0.03 },
+        meter: { l: 0.22, c: 0.04 }, 'meter-edge': { l: 0.7, c: 0.12, source: 'temporary' },
+        accent: { l: 0.74, c: 0.14, source: 'temporary' }, 'accent-hover': { l: 0.79, c: 0.12, source: 'temporary' },
+        overlay: { l: 0.17, c: 0.035 }, 'overlay-deep': { l: 0.21, c: 0.04 }, 'overlay-deeper': { l: 0.25, c: 0.045 }, 'overlay-edge': { l: 0.7, c: 0.12, source: 'temporary' },
+        field: { l: 0.17, c: 0.03 }, 'field-edge': { l: 0.45, c: 0.05 }, 'field-focus': { l: 0.74, c: 0.14, source: 'temporary' },
+        'tile-caught': { l: 0.32, c: 0.05 }, 'tile-unobtainable': { l: 0.26, c: 0.03 }, 'tile-temporary': { l: 0.29, c: 0.06 }, 'tile-temporary-stripe': { l: 0.33, c: 0.075 },
+      },
+    },
+  },
+  // Kintsugi: a broken bowl mended with gold. Dark raku glaze, its cracks filled with gold that catches a light moving
+  // slowly over it; a sealed tile mended with gold too, every one along its own cracks
+  {
+    name: 'Kintsugi', hue: 55, ink: 75, unobtainable: 40, temporary: 30, caught: 80, chroma: 0.5, statusChroma: 0.9,
+    tones: {
+      dark: {
+        paper: { l: 0.19, c: 0.012 }, 'paper-raised': { l: 0.23, c: 0.014 }, 'paper-sunken': { l: 0.16, c: 0.01 }, chip: { l: 0.16, c: 0.01 },
+        chrome: { l: 0.13, c: 0.01 }, 'chrome-hover': { l: 0.18, c: 0.012 }, 'chrome-active': { l: 0.22, c: 0.014 }, 'chrome-pattern': { l: 0.11, c: 0.01 },
+        meter: { l: 0.21, c: 0.012 }, 'meter-edge': { l: 0.78, c: 0.12 },
+        accent: { l: 0.8, c: 0.12, source: 'caught' }, 'accent-hover': { l: 0.85, c: 0.1, source: 'caught' },
+        overlay: { l: 0.16, c: 0.012 }, 'overlay-deep': { l: 0.2, c: 0.014 }, 'overlay-deeper': { l: 0.24, c: 0.016 }, 'overlay-edge': { l: 0.78, c: 0.12, source: 'caught' },
+        field: { l: 0.16, c: 0.01 }, 'field-edge': { l: 0.45, c: 0.03 }, 'field-focus': { l: 0.8, c: 0.12, source: 'caught' },
+        'tile-caught': { l: 0.3, c: 0.025 }, 'tile-unobtainable': { l: 0.245, c: 0.02 }, 'tile-temporary': { l: 0.28, c: 0.04 }, 'tile-temporary-stripe': { l: 0.32, c: 0.05 },
+      },
+    },
+  },
+  // Yozakura: cherry blossom at night, lit from below by paper lanterns (bonbori) along the path; petals drifting
+  // down slowly behind the boxes
+  {
+    name: 'Yozakura', hue: 300, ink: 350, unobtainable: 260, temporary: 25, caught: 350, chroma: 0.8,
+    tones: {
+      dark: {
+        paper: { l: 0.18, c: 0.035 }, 'paper-raised': { l: 0.22, c: 0.04 }, 'paper-sunken': { l: 0.15, c: 0.03 }, chip: { l: 0.15, c: 0.03 },
+        chrome: { l: 0.12, c: 0.03 }, 'chrome-hover': { l: 0.17, c: 0.035 }, 'chrome-active': { l: 0.21, c: 0.04 }, 'chrome-pattern': { l: 0.1, c: 0.03 },
+        meter: { l: 0.2, c: 0.04 }, 'meter-edge': { l: 0.8, c: 0.08 },
+        accent: { l: 0.82, c: 0.09 }, 'accent-hover': { l: 0.87, c: 0.07 },
+        overlay: { l: 0.16, c: 0.035 }, 'overlay-deep': { l: 0.2, c: 0.04 }, 'overlay-deeper': { l: 0.24, c: 0.045 }, 'overlay-edge': { l: 0.8, c: 0.08 },
+        field: { l: 0.15, c: 0.03 }, 'field-edge': { l: 0.45, c: 0.05 }, 'field-focus': { l: 0.82, c: 0.09 },
+        'tile-caught': { l: 0.32, c: 0.06 }, 'tile-unobtainable': { l: 0.235, c: 0.03 }, 'tile-temporary': { l: 0.28, c: 0.06 }, 'tile-temporary-stripe': { l: 0.32, c: 0.075 },
+      },
+    },
+  },
+  // Neon Rain: a Tokyo side street at night in the rain, its signs blurred through the wet; the boxes glass the rain
+  // runs down behind, the signs' colours pooled on the street below
+  {
+    name: 'Neon Rain', hue: 265, ink: 200, unobtainable: 60, temporary: 330, caught: 200, chroma: 1, statusChroma: 1.2,
+    tones: {
+      dark: {
+        paper: { l: 0.16, c: 0.03 }, 'paper-raised': { l: 0.2, c: 0.035 }, 'paper-sunken': { l: 0.13, c: 0.025 }, chip: { l: 0.13, c: 0.025 },
+        chrome: { l: 0.1, c: 0.025 }, 'chrome-hover': { l: 0.15, c: 0.03 }, 'chrome-active': { l: 0.19, c: 0.035 }, 'chrome-pattern': { l: 0.09, c: 0.025 },
+        meter: { l: 0.19, c: 0.035 }, 'meter-edge': { l: 0.7, c: 0.15, source: 'ink' },
+        accent: { l: 0.78, c: 0.13, source: 'ink' }, 'accent-hover': { l: 0.83, c: 0.11, source: 'ink' },
+        overlay: { l: 0.14, c: 0.03 }, 'overlay-deep': { l: 0.18, c: 0.035 }, 'overlay-deeper': { l: 0.22, c: 0.04 }, 'overlay-edge': { l: 0.7, c: 0.15, source: 'ink' },
+        field: { l: 0.13, c: 0.025 }, 'field-edge': { l: 0.45, c: 0.06 }, 'field-focus': { l: 0.78, c: 0.13, source: 'ink' },
+        'tile-caught': { l: 0.28, c: 0.05 }, 'tile-unobtainable': { l: 0.2, c: 0.02 }, 'tile-temporary': { l: 0.27, c: 0.07 }, 'tile-temporary-stripe': { l: 0.31, c: 0.09 },
       },
     },
   },

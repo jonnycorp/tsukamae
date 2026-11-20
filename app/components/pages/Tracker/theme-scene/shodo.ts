@@ -2,10 +2,8 @@ import { canvas, fbm, rng, toProperty } from './texture';
 
 import type { SceneMaker } from './scene';
 
-// Ink 2's desk: a calligrapher's black felt (mōsen) under the sheets of hanshi the boxes are, lit from a window at the
-// top left; over everything, the shadow of bamboo leaves outside that window, moving a little in the air. The felt is
-// drawn once and holds still; the leaves are three sprays, each drawn once and swayed by the compositor alone
-// (styles/themes2/_shodo.scss), so a frame costs nothing. It also makes the paper and the ink the stylesheet lays on:
+// Ink 2's desk: a calligrapher's black felt (mōsen) under the sheets of hanshi the boxes are, the window's light
+// drifting slowly across it. The felt is drawn once. It also makes the paper and the ink the stylesheet lays on:
 // the hanshi's fibres (--shodo-washi), a diluted-ink wash for a sealed tile (--shodo-wash), a dry brush's streaks for
 // the meter (--shodo-kasure) and the grain a seal leaves on paper (--shodo-stamp)
 
@@ -126,73 +124,43 @@ function felt (ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillRect(0, 0, w, h);
 }
 
-// a spray of bamboo: a cane's thin twig with its long narrow leaves, drawn in black, soft as a shadow cast from a few
-// feet away
-function spray (seed: number, w: number, h: number): HTMLCanvasElement {
-  const [c, ctx] = canvas(w, h);
-  const random = rng(seed);
-  ctx.filter = 'blur(7px)';
-  ctx.fillStyle = '#000';
-  ctx.strokeStyle = '#000';
-  const twigs = 3 + Math.floor(random() * 2);
-  for (let t = 0; t < twigs; t++) {
-    let x = w * (0.75 + random() * 0.25);
-    let y = h * (random() * 0.2);
-    const dir = Math.PI * (0.62 + random() * 0.25);
-    ctx.lineWidth = 3;
-    const steps = 5 + Math.floor(random() * 3);
-    for (let s = 0; s < steps; s++) {
-      const len = 50 + random() * 40;
-      const nx = x + Math.cos(dir + (random() - 0.5) * 0.3) * len;
-      const ny = y + Math.sin(dir + (random() - 0.5) * 0.3) * len;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(nx, ny);
-      ctx.stroke();
-      x = nx;
-      y = ny;
-      // leaves fanning from a node
-      const leaves = 2 + Math.floor(random() * 3);
-      for (let l = 0; l < leaves; l++) {
-        const a = dir + (random() - 0.3) * 1.6;
-        const ll = 90 + random() * 80;
-        const lw = 9 + random() * 7;
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(a);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.bezierCurveTo(ll * 0.25, -lw, ll * 0.7, -lw * 0.8, ll, 0);
-        ctx.bezierCurveTo(ll * 0.7, lw * 0.5, ll * 0.25, lw * 0.7, 0, 0);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-  }
-  return c;
-}
-
-export const shodoScene: SceneMaker = (back, front) => {
+export const shodoScene: SceneMaker = (back) => {
   const ctx = back.getContext('2d')!;
   const props = [toProperty('--shodo-washi', washi()), toProperty('--shodo-wash', wash()), toProperty('--shodo-kasure', kasure()), toProperty('--shodo-stamp', stamp())];
-  const sprays = [spray(3, 700, 620), spray(9, 560, 520), spray(17, 640, 560)].map((c, i) => {
-    c.className = `shodo-leaves shodo-leaves-${i + 1}`;
-    front?.append(c);
-    return c;
-  });
+  let desk: HTMLCanvasElement | null = null;
+  let w = 0;
+  let h = 0;
+  let scale = 1;
 
   return {
     resize (width, height, dpr) {
+      w = width;
+      h = height;
+      scale = dpr;
       back.width = Math.round(width * dpr);
       back.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      felt(ctx, width, height);
+      const [d, dctx] = canvas(back.width, back.height);
+      dctx.scale(dpr, dpr);
+      felt(dctx, width, height);
+      desk = d;
     },
-    draw () {},
+    // the window's light lying on the felt, drifting very slowly as the afternoon goes, never a shape
+    draw (t) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (desk) {
+        ctx.drawImage(desk, 0, 0);
+      }
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      const x = w * (0.3 + 0.25 * Math.sin(t * 0.021));
+      const y = h * (0.25 + 0.15 * Math.sin(t * 0.013 + 1));
+      const light = ctx.createRadialGradient(x, y, 0, x, y, Math.max(w, h) * 0.55);
+      light.addColorStop(0, 'rgba(255, 232, 190, 0.07)');
+      light.addColorStop(1, 'rgba(255, 232, 190, 0)');
+      ctx.fillStyle = light;
+      ctx.fillRect(0, 0, w, h);
+    },
     dispose () {
       props.forEach((off) => off());
-      sprays.forEach((c) => c.remove());
     },
   };
 };
-shodoScene.front = true;

@@ -6,7 +6,7 @@
 // brush on a slip of the same paper above it, each slip laid a little differently, and a finished box is stamped
 // beside it with a cinnabar seal (済). A sealed mon's tile takes a wash of diluted ink, every one a different part of
 // the same bloom, in the ink of where it is: sumi at home, indigo in HOME, ochre in Champions, vermilion out in a
-// game. The only motion is the light: the shadow of bamboo outside the window moving on the desk and the paper
+// game. The only motion is the window's light drifting slowly over the felt
 :root[data-theme='ink-2'] {
   --sumi: #1d1a17;
   --shu: #c23a22;
@@ -178,46 +178,6 @@
   .box-complete .box-container > .tile-grid {
     outline: 0;
   }
-
-  // the bamboo's shadow, over the desk and the paper alike
-  .theme-scene-front {
-    mix-blend-mode: multiply;
-    overflow: hidden;
-  }
-
-  .shodo-leaves {
-    position: absolute;
-    opacity: .13;
-    animation: shodo-sway 11s ease-in-out infinite alternate;
-  }
-
-  .shodo-leaves-1 {
-    top: -80px;
-    right: -60px;
-    transform-origin: 100% 0;
-  }
-
-  .shodo-leaves-2 {
-    top: -140px;
-    right: 360px;
-    opacity: .09;
-    transform-origin: 80% 0;
-    animation-duration: 15s;
-    animation-delay: -4s;
-  }
-
-  .shodo-leaves-3 {
-    top: 300px;
-    right: -170px;
-    opacity: .1;
-    transform-origin: 100% 20%;
-    animation-duration: 18s;
-    animation-delay: -9s;
-  }
-}
-
-:root[data-theme='ink-2'][data-still] .shodo-leaves {
-  animation: none;
 }
 
 :root[data-typefaces][data-theme='ink-2'] :is(.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name) {
@@ -228,14 +188,4 @@
 
 :root[data-theme='ink-2'] .dex-meter-figure span {
   transform: none;
-}
-
-@keyframes shodo-sway {
-  from {
-    transform: rotate(-1.4deg) translate(0, 0);
-  }
-
-  to {
-    transform: rotate(1.6deg) translate(-10px, 6px);
-  }
 }

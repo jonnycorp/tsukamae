@@ -45,8 +45,10 @@ void main () {
   float sv = clamp((uv.y - (sc.y - sr)) / (2.0 * sr), 0.0, 1.0);
   vec3 sunCol = mix(vec3(1.0, 0.18, 0.52), vec3(1.0, 0.86, 0.38), smoothstep(0.1, 0.95, sv));
   float below = clamp((sc.y + 0.02 - uv.y) / (sr + 0.02), 0.0, 1.0);
-  float slat = fract((uv.y - t * 0.006) * 38.0);
-  float cut = step(slat, below * 0.62);
+  float slat = fract((uv.y - t * 0.0025) * 38.0);
+  // each slat's edges a pixel soft, so they glide rather than step
+  float aa = 38.0 * u_dpr / h;
+  float cut = smoothstep(below * 0.62 + aa, below * 0.62 - aa, slat) * smoothstep(0.0, aa, slat) * step(0.001, below);
   float disc = smoothstep(sr + 0.0025, sr - 0.0025, sd) * (1.0 - cut);
   vec3 col = sky;
   col += sunCol * exp(-max(sd - sr, 0.0) * 9.0) * 0.32;
@@ -70,8 +72,11 @@ void main () {
   if (uv.y < horizon) {
     float y = horizon - uv.y;
     float z = 0.09 / y;
-    float wx = uv.x * z * 7.0;
-    float wz = z + t * 0.16;
+    // the camera drifts slowly from side to side rather than driving on, so no row ever runs past a gap between the
+    // boxes; the floor's lines only swing a little about the sun
+    float drift = sin(t * 0.045) * 0.35 + sin(t * 0.017 + 1.3) * 0.2;
+    float wx = (uv.x * z + drift) * 7.0;
+    float wz = z;
     // each line's distance in screen pixels, for a crisp core and a soft glow round it
     float dx = (0.5 - abs(fract(wx) - 0.5)) * h / (z * 7.0 * u_dpr);
     float dz = (0.5 - abs(fract(wz) - 0.5)) * h * y * y / (0.09 * u_dpr);

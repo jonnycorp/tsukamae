@@ -1,0 +1,54 @@
+@use '../variables' as *;
+
+// Ukiyo: a woodblock print (theme-scene/ukiyo.ts). Every box is a print's cartouche: cream stock framed in the key
+// block's indigo line, a second line inside it, its range on a red title slip as a print's title is; a sealed tile
+// printed in the Prussian blue's gradation (bokashi), lightest at its foot, in its place's colour (blue at home, the
+// sun's red out in a game, ochre in Champions, grey-green in HOME)
+:root[data-theme='ukiyo'] {
+  --key: #1e2234;
+  --prussian: #1a3a6c;
+  --w-nav: rgb(30 34 52 / 82%);
+  --w-hairline: var(--key);
+  --w-header: rgb(240 230 206 / 82%);
+  --w-slot: rgb(235 224 196 / 80%);
+  --w-edge: var(--key);
+  --w-fill: linear-gradient(rgb(255 255 255 / 0%), rgb(255 255 255 / 30%)), linear-gradient(90deg, #6d93bd, var(--prussian));
+  --w-post: var(--key);
+  --w-figure: #c8382a;
+  --w-figure-ink: #f7efdc;
+  --w-title: #f7efdc;
+  --w-panel: #efe5cc;
+  --w-panel-shadow: 0 0 0 2px var(--key), 0 0 0 6px #efe5cc, 0 0 0 7px var(--key), 0 18px 30px -12px rgb(20 20 40 / 45%);
+  --w-blur: 0px;
+  --w-line: rgb(30 34 52 / 30%);
+  --w-caught: rgb(26 58 108 / 8%);
+  --w-unobtainable: rgb(120 100 70 / 16%);
+  --w-temporary: rgb(200 56 42 / 8%);
+  --w-temporary-stripe: rgb(200 56 42 / 10%);
+  --w-complete: 0 0 0 2px var(--key), 0 0 0 6px #e7c96a, 0 0 0 7px var(--key), 0 18px 30px -12px rgb(20 20 40 / 45%);
+  --line-solid: var(--w-line);
+
+  .box-header h1 {
+    padding: 0 16px;
+    background: #c8382a;
+    box-shadow: inset 0 0 0 1.5px var(--key), inset 0 0 0 4px #c8382a, inset 0 0 0 5px rgb(247 239 220 / 60%);
+  }
+
+  .seal-material {
+    --ink: var(--prussian);
+
+    background: linear-gradient(color-mix(in srgb, var(--ink) 46%, transparent), color-mix(in srgb, var(--ink) 8%, transparent)) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size};
+  }
+
+  .seal-material[data-tint='champions'] {
+    --ink: #b8862a;
+  }
+
+  .seal-material[data-tint='out'] {
+    --ink: #c8382a;
+  }
+
+  .seal-material[data-tint='home'] {
+    --ink: #5c7a68;
+  }
+}

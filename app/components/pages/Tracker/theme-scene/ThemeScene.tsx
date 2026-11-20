@@ -1,22 +1,29 @@
 import { useEffect, useRef } from 'react';
 
+import { kintsugiScene } from './kintsugi';
+import { koiScene } from './koi';
+import { kumoScene } from './kumo';
 import { midnightScene } from './midnight';
+import { neonRainScene } from './neon-rain';
 import { shodoScene } from './shodo';
-import { trellisScene } from './trellis';
-import { tsukimiScene } from './tsukimi';
+import { ukiyoScene } from './ukiyo';
+import { yozakuraScene } from './yozakura';
 import { themeSlug } from '../../../../palette/themes';
 import { useThemeContext } from '../../../../hooks/contexts/use-local-storage-context';
 
 import type { Scene, SceneMaker } from './scene';
 
-// a second-version theme's world, the boxes floating over it (styles/themes2): one canvas behind the dex, and for a
-// theme that lights the page from outside it (Ink 2's leaf shadow) one over it, blended and never in the pointer's way.
-// It moves slowly, at most 30 frames a second, and stops in still mode, a hidden window, or once the theme changes
+// a second-version theme's world, the boxes floating over it (styles/themes2): one canvas behind the dex. It moves
+// slowly, at most 30 frames a second, and stops in still mode, a hidden window, or once the theme changes
 const SCENES: Record<string, SceneMaker> = {
   'midnight-2': midnightScene,
   'ink-2': shodoScene,
-  'wisteria-2': trellisScene,
-  'wisteria-3': tsukimiScene,
+  'wisteria-2': kumoScene,
+  ukiyo: ukiyoScene,
+  koi: koiScene,
+  kintsugi: kintsugiScene,
+  yozakura: yozakuraScene,
+  'neon-rain': neonRainScene,
 };
 
 const FRAME_MS = 1000 / 30;
@@ -26,7 +33,6 @@ export function ThemeScene () {
   const slug = themeSlug(theme);
   const make = SCENES[slug];
   const backRef = useRef<HTMLCanvasElement>(null);
-  const frontRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const back = backRef.current;
@@ -35,7 +41,7 @@ export function ThemeScene () {
     }
     let scene: Scene | null = null;
     try {
-      scene = make(back, frontRef.current);
+      scene = make(back);
     } catch {
       return undefined;
     }
@@ -81,9 +87,6 @@ export function ThemeScene () {
     return null;
   }
   return (
-    <>
-      <canvas aria-hidden className="theme-scene theme-scene-back" key={`back-${slug}`} ref={backRef} />
-      {make.front && <div aria-hidden className="theme-scene theme-scene-front" key={`front-${slug}`} ref={frontRef} />}
-    </>
+    <canvas aria-hidden className="theme-scene" key={slug} ref={backRef} />
   );
 }

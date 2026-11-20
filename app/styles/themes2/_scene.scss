@@ -1,24 +1,16 @@
-// the scene's canvases, fixed to the window: one behind everything in the tracker, and one over it (Ink 2's light)
-// that never takes the pointer
+// the scene's canvas, fixed to the window behind everything in the tracker
 .theme-scene {
   display: block;
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
+  z-index: 0;
   pointer-events: none;
 }
 
-.theme-scene-back {
-  z-index: 0;
-}
-
-.theme-scene-front {
-  z-index: 15;
-}
-
 // a scene's theme lets it show: the tracker over it, the page it scrolled on cleared
-:root:is([data-theme='midnight-2'], [data-theme='ink-2'], [data-theme='wisteria-2'], [data-theme='wisteria-3']) {
+:root:is([data-theme='midnight-2'], [data-theme='ink-2'], [data-theme='wisteria-2'], [data-theme='ukiyo'], [data-theme='koi'], [data-theme='kintsugi'], [data-theme='yozakura'], [data-theme='neon-rain']) {
   .tracker {
     z-index: 1;
   }
