@@ -1,0 +1,65 @@
+import { useCallback } from 'react';
+
+import { useTranslation } from '../../../../hooks/use-translation';
+
+import type { Locale } from '../../../../i18n/translations';
+
+// the lab's own strings, apart from i18n/translations.ts so a sketch comes out with its file: each sketch's keys under
+// its own prefix. Japanese first, as the app leans
+const ja = {
+  'lab.title': 'ラボ',
+  'lab.hint': '試作中のビュー。押すか数字キーで開く',
+  'lab.note': 'どれも試作品です。気に入ったものだけ残して、ほかは消してください。',
+  'calendar.title': '捕獲カレンダー',
+  'calendar.blurb': '捕まえた日ごとに一年を一枚に。日を押すとその日のポケモンを確認',
+  'calendar.hint': '日に合わせるとその日のポケモン、押すと確認で順に表示',
+  'calendar.dated': '日付つきの記録',
+  'calendar.activeDays': '捕まえた日数',
+  'calendar.streak': '最長連続日数',
+  'calendar.until': '{date}まで',
+  'calendar.busiest': '一日の最多',
+  'calendar.first': '最初の記録',
+  'calendar.onThisDay': '過去の今日',
+  'calendar.yearsAgo': '{n}年前',
+  'calendar.empty': '捕まえた日が入った記録がまだありません。',
+  'calendar.count': '{n}匹',
+  'calendar.none': 'この日はなし',
+  'calendar.press': '押すとこの日のポケモンを確認',
+};
+
+type LabStrings = Record<keyof typeof ja, string>;
+export type LabKey = keyof typeof ja;
+
+const en: LabStrings = {
+  'lab.title': 'Lab',
+  'lab.hint': 'Views in the works; press one, or its number, to open it',
+  'lab.note': 'Every one of these is a sketch. Keep the ones you like and delete the rest.',
+  'calendar.title': 'Catch Calendar',
+  'calendar.blurb': 'A year to a sheet, every mon on the day you caught it; press a day to go through its mons',
+  'calendar.hint': 'Point at a day to see its mons; press it to go through them in the review',
+  'calendar.dated': 'dated records',
+  'calendar.activeDays': 'days with a catch',
+  'calendar.streak': 'longest streak (days)',
+  'calendar.until': 'ending {date}',
+  'calendar.busiest': 'most in a day',
+  'calendar.first': 'first record',
+  'calendar.onThisDay': 'On This Day',
+  'calendar.yearsAgo': '{n}y ago',
+  'calendar.empty': 'No record has a catch date yet.',
+  'calendar.count': '{n} Pokémon',
+  'calendar.none': 'Nothing this day',
+  'calendar.press': 'Press to go through this day\'s mons',
+};
+
+const STRINGS: Record<Locale, LabStrings> = { ja, en };
+
+export function labText (locale: Locale, key: LabKey, params?: Record<string, string | number>): string {
+  const template = STRINGS[locale][key] ?? STRINGS.ja[key];
+  return params ? template.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match)) : template;
+}
+
+export function useLabText () {
+  const { locale } = useTranslation();
+  const lt = useCallback((key: LabKey, params?: Record<string, string | number>) => labText(locale, key, params), [locale]);
+  return { lt, locale };
+}

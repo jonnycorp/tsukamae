@@ -17,6 +17,8 @@ import { SceneBanner } from './SceneBanner';
 import { SearchBar } from './SearchBar';
 import { Timeline } from './Timeline';
 import { ZoomIndicator } from './ZoomIndicator';
+import { LabHost, labTitle } from './lab/LabHost';
+import { isLabScene } from './lab/registry';
 import { DISPLAY_MODES } from '../../../utils/display-modes';
 import { EMPTY_FILTERS, filterMatcher, queryMatcher } from './filters';
 import { MENU_OR_MODAL, useHotkey } from '../../../hooks/use-hotkey';
@@ -37,6 +39,7 @@ import type { FacetId, TrackerFilters } from './filters';
 import type { JourneysView } from './Journeys';
 import type { LabScene, SceneView } from './Scene';
 import type { OrreryView } from './BallOrrery';
+import type { LabSceneId } from './lab/registry';
 
 // frames a located mon is looked for before it's taken as filtered out, beyond those the boxes are still going in for
 const LOCATE_FRAMES = 30;
@@ -56,7 +59,8 @@ interface HandOff {
 type SceneBack =
   | { scene: 'journeys'; view: JourneysView }
   | { scene: 'trainers'; view: SceneView }
-  | { scene: 'orrery'; view: OrreryView };
+  | { scene: 'orrery'; view: OrreryView }
+  | { scene: LabSceneId; view: SceneView };
 
 // the name on the tab in the filters' row that goes back to it (FilterBar)
 const LAYER_TITLES = { journeys: 'journeys.title', trainers: 'trainers.title', orrery: 'orrery.title' } as const;
@@ -98,7 +102,7 @@ function TrackerInner () {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { activeDex, activeDexView } = useDexContext();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -452,10 +456,10 @@ function TrackerInner () {
 
   // the scenes on the shared shell, one up at a time (Scene.tsx): each opened by its key; what's pressed in one filters
   // the dex, goes to a mon's tile, or runs the review through a list of mons, as the scene closes
-  const [scene, setScene] = useState<LabScene | null>(null);
+  const [scene, setScene] = useState<LabScene | LabSceneId | null>(null);
   // a scene come back to from the dex, quietly and as it was left (null when it's opened)
   const [sceneBack, setSceneBack] = useState<SceneBack | null>(null);
-  const handleOpenScene = useCallback((next: LabScene) => {
+  const handleOpenScene = useCallback((next: LabScene | LabSceneId) => {
     setSelectedPokemon(0);
     setSceneBack(null);
     setScene(next);
@@ -498,6 +502,9 @@ function TrackerInner () {
   const handleOrreryFilter = useCallback((next: TrackerFilters, view: OrreryView) => {
     handleLayerFilter(next, { scene: 'orrery', view });
   }, [handleLayerFilter]);
+  const handleLabFilter = useCallback((next: TrackerFilters, view: SceneView, from: LabSceneId) => {
+    handleLayerFilter(next, { scene: from, view });
+  }, [handleLayerFilter]);
   // first of every listener, so the key is read before anything acts on it: an open popover, menu or panel, or a field
   // being typed in, keeps it
   useEffect(() => {
@@ -521,7 +528,7 @@ function TrackerInner () {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [layerStands, handleLayerBack]);
   // a scene reading the records (records) has nothing to show in a checklist, which keeps none
-  const sceneKey = (next: LabScene, records = false) => () => {
+  const sceneKey = (next: LabScene | LabSceneId, records = false) => () => {
     if (!document.querySelector('.facet-panel') && !(records && activeDex!.checklist)) {
       handleOpenScene(next);
     }
@@ -541,6 +548,8 @@ function TrackerInner () {
   useHotkey('g', sceneKey('atlas'));
   useHotkey('c', sceneKey('trainers', true));
   useHotkey('b', sceneKey('orrery', true));
+  // the lab's deck of sketches (lab/)
+  useHotkey('x', sceneKey('lab'));
 
   return (
     <div className="tracker-container" onAnimationStart={syncLoops} ref={containerRef}>
@@ -569,7 +578,7 @@ function TrackerInner () {
             query={query}
             setFilters={setFilters}
             setQuery={setQuery}
-            source={layerStands ? { title: t(LAYER_TITLES[layer.from.scene]), onBack: handleLayerBack } : undefined}
+            source={layerStands ? { title: isLabScene(layer.from.scene) ? labTitle(locale, layer.from.scene) : t(LAYER_TITLES[layer.from.scene]), onBack: handleLayerBack } : undefined}
             width={headerWidth}
           />
           <div className="dex-column" data-veil={(curtain && !curtain.revealed) || undefined} ref={columnRef}>
@@ -621,6 +630,17 @@ function TrackerInner () {
         <TrainerCards back={sceneBack?.scene === 'trainers' ? sceneBack.view : null} onClose={handleCloseScene} onFilter={handleTrainersFilter} />}
       {scene === 'orrery' &&
         <BallOrrery back={sceneBack?.scene === 'orrery' ? sceneBack.view : null} onClose={handleCloseScene} onFilter={handleOrreryFilter} />}
+      {isLabScene(scene) &&
+        <LabHost
+          back={sceneBack && sceneBack.scene === scene ? sceneBack.view : null}
+          checklist={Boolean(activeDex!.checklist)}
+          onClose={handleCloseScene}
+          onFilter={handleLabFilter}
+          onLocate={handleSceneLocate}
+          onOpen={handleOpenScene}
+          onReview={handleSceneReview}
+          scene={scene}
+        />}
       {showHelp && <HotkeySheet checklist={Boolean(activeDex!.checklist)} homeDex={activeDexView?.game.id === 'home'} onClose={() => setShowHelp(false)} />}
     </div>
   );

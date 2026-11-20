@@ -1,0 +1,154 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the lab's shell: the deck (X), a card per sketch, its glyph large and faint behind its name, leaning a little toward
+// the pointer; and the loupe every sketch shares (LabTip)
+$lab-ease: cubic-bezier(.2, .9, .3, 1);
+
+@keyframes lab-deal {
+  from {
+    opacity: 0;
+    transform: translateY(26px) rotate(-2deg) scale(.96);
+  }
+}
+
+.lab-deck {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.lab-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 22px;
+  perspective: 900px;
+}
+
+.lab-card {
+  --lx: 0;
+  --ly: 0;
+
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 190px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 90% at calc(50% + var(--lx) * 80%) calc(50% + var(--ly) * 80%), var(--hover-wash), transparent 70%),
+    var(--paper-raised);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transform: rotateX(calc(var(--ly) * -6deg)) rotateY(calc(var(--lx) * 8deg));
+  transition: transform .35s $lab-ease, border-color .2s, box-shadow .35s $lab-ease;
+  animation: lab-deal .55s $lab-ease both;
+  animation-delay: calc(80ms + var(--i) * 60ms);
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 18px 40px -22px var(--paper-shadow);
+    outline: none;
+  }
+
+  strong {
+    position: relative;
+    margin-top: auto;
+    font-family: $font-secondary;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  small {
+    position: relative;
+    color: var(--ink-muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  kbd {
+    @include key-cap;
+
+    position: absolute;
+    top: 14px;
+    right: 14px;
+  }
+}
+
+.lab-card-glyph {
+  position: absolute;
+  top: -18px;
+  left: 6px;
+  color: var(--accent);
+  font-size: 150px;
+  font-weight: 900;
+  line-height: 1;
+  opacity: .14;
+  pointer-events: none;
+  transform: translate(calc(var(--lx) * -14px), calc(var(--ly) * -10px));
+  transition: transform .35s $lab-ease, opacity .3s;
+
+  .lab-card:hover & {
+    opacity: .24;
+  }
+}
+
+.lab-note {
+  margin-top: 28px;
+  color: var(--ink-muted);
+  text-align: center;
+
+  @include small-text(12px);
+}
+
+.lab-tip-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  pointer-events: none;
+}
+
+@keyframes lab-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(.97);
+  }
+}
+
+.lab-tip {
+  display: flex;
+  position: fixed;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+  max-width: 340px;
+  padding: 10px 12px;
+  border: 1px solid var(--overlay-edge);
+  border-radius: 6px;
+  background-color: var(--overlay);
+  color: var(--on-overlay);
+  box-shadow: 0 14px 34px -14px var(--paper-shadow);
+  animation: lab-tip-in .16s ease-out both;
+
+  @include small-text(12px);
+
+  strong {
+    font-size: 15px;
+  }
+
+  em,
+  small {
+    color: var(--on-overlay-muted);
+    font-style: normal;
+  }
+}
+
+// a row of sprites in a loupe, wrapping
+.lab-tip-mons {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 316px;
+}
