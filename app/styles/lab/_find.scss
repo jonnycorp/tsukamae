@@ -1,0 +1,254 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the search (lab/FindSketch.tsx): one box of glass at the top, the chips inside it, the suggestions and the mons under
+// it in a column, the one picked at the right in the galaxy's glass, the column stepping aside for it
+.lf-page {
+  max-width: 820px;
+  margin: 0 auto;
+
+  // the pick's panel at the right: the column steps aside for it (by its margin: a transform would hold the fixed
+  // panel to the column)
+  &.aside {
+    margin-right: 340px;
+  }
+}
+
+.lf-box {
+  display: flex;
+  position: sticky;
+  top: -10px;
+  z-index: 2;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 12px 18px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 18px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--paper-raised) 70%, transparent), color-mix(in srgb, var(--paper) 60%, transparent));
+  box-shadow: 0 18px 40px -24px var(--paper-shadow);
+  cursor: text;
+  backdrop-filter: blur(10px);
+
+  > svg {
+    color: var(--ink-muted);
+  }
+
+  input {
+    flex: 1 1 200px;
+    min-width: 120px;
+    padding: 4px 0;
+    border: 0;
+    outline: none;
+    background: none;
+    color: var(--ink);
+    font-size: 22px;
+    font-weight: 300;
+
+    &::placeholder {
+      color: color-mix(in srgb, var(--ink-muted) 70%, transparent);
+    }
+  }
+}
+
+// what the romaji reads as, faint at the box's end
+.lf-kana {
+  color: var(--accent);
+  font-size: 18px;
+  font-style: normal;
+  opacity: .8;
+}
+
+.lf-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 99px;
+  background-color: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--ink);
+  cursor: pointer;
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(11px);
+  }
+
+  svg {
+    opacity: .5;
+  }
+
+  &:hover svg {
+    opacity: 1;
+  }
+}
+
+.lf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lf-suggest {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+  border-radius: 14px;
+  background-color: color-mix(in srgb, var(--paper-raised) 30%, transparent);
+
+  button {
+    display: grid;
+    grid-template-columns: 110px auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+
+    small {
+      color: var(--ink-muted);
+
+      @include small-text(11px);
+    }
+
+    img {
+      image-rendering: pixelated;
+    }
+
+    b {
+      color: var(--ink-muted);
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &.at {
+      background-color: color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+  }
+}
+
+.lf-count {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 4px 4px 8px;
+  color: var(--ink-muted);
+
+  @include small-text(12px);
+
+  button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    text-underline-offset: 3px;
+
+    &:hover {
+      color: var(--ink);
+    }
+  }
+}
+
+.lf-tips {
+  margin-top: 40px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.lf-mon {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto 160px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .15s, border-color .15s;
+
+  // a mon not caught yet, its sprite a shadow
+  &:not(.caught) .scene-mon {
+    filter: brightness(0);
+    opacity: .3;
+  }
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--ink) 4%, transparent);
+  }
+
+  &.at {
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+}
+
+.lf-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    font-size: 18px;
+    font-weight: 400;
+  }
+
+  small {
+    overflow: hidden;
+    color: var(--ink-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include small-text(11px);
+  }
+}
+
+.lf-ball {
+  image-rendering: pixelated;
+}
+
+// where it's filed: the box, its title, its row and column
+.lf-place {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 8px;
+
+  b {
+    font-family: $font-secondary;
+    font-weight: 400;
+  }
+
+  small,
+  i {
+    color: var(--ink-muted);
+    font-style: normal;
+
+    @include small-text(11px);
+  }
+
+  i {
+    grid-column: 1 / -1;
+  }
+}
+
+.lf-page .lg-panel {
+  position: fixed;
+  top: 110px;
+  right: 26px;
+  z-index: 3;
+}

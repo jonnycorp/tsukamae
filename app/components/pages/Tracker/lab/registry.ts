@@ -2,6 +2,7 @@ import { BallGalaxy } from './BallGalaxy';
 import { CatchDays } from './CatchDays';
 import { ChampionsRoster } from './ChampionsRoster';
 import { DexMosaic } from './DexMosaic';
+import { FindSketch } from './FindSketch';
 import { NameQuiz } from './NameQuiz';
 import { NatureGrid } from './NatureGrid';
 import { RecordCheck } from './RecordCheck';
@@ -32,6 +33,7 @@ export const LAB_SKETCHES: LabSketch[] = [
   { id: 'quiz', title: 'quiz.title', blurb: 'quiz.blurb', glyph: '名', records: false, component: NameQuiz },
   { id: 'check', title: 'check.title', blurb: 'check.blurb', glyph: '検', records: true, component: RecordCheck },
   { id: 'sheet', title: 'sheet.title', blurb: 'sheet.blurb', glyph: '表', records: true, component: ReviewSheet },
+  { id: 'find', title: 'find.title', blurb: 'find.blurb', glyph: '探', records: false, component: FindSketch },
   { id: 'nature', title: 'nature.title', blurb: 'nature.blurb', glyph: '性', records: true, component: NatureGrid },
 ];
 
