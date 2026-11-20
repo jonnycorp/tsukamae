@@ -1,0 +1,280 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the dex mosaic (lab/DexMosaic.tsx): a band per generation, a tile per mon on a ground of its standing (or its game's
+// colour, or its type's), a missing one as its shadow. The replay puts every caught tile back to its shadow and lights
+// each on its turn (--at), a little bloom as it comes up
+$lm-tile: 44px;
+$lm-ease: cubic-bezier(.2, .9, .3, 1);
+$lm-gilt: #e2b84a;
+
+@keyframes lm-light {
+  0% {
+    filter: brightness(0);
+    opacity: .3;
+    transform: scale(1);
+  }
+
+  45% {
+    filter: brightness(1.8);
+    opacity: 1;
+    transform: scale(1.35);
+  }
+
+  100% {
+    filter: none;
+    transform: scale(1);
+  }
+}
+
+// the ground and the gilt held back too (a gradient doesn't tween, so it switches as the tile lights)
+@keyframes lm-ground {
+  from {
+    background: var(--paper-sunken);
+    box-shadow: none;
+  }
+}
+
+@keyframes lm-bar {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.lm-page {
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.lm-head {
+  display: flex;
+  position: sticky;
+  top: -26px;
+  z-index: 2;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: -26px -28px 18px;
+  padding: 18px 28px 14px;
+  background: linear-gradient(180deg, var(--paper) 75%, transparent);
+}
+
+.lm-figures {
+  display: flex;
+  gap: 26px;
+
+  span {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--ink-muted);
+  }
+
+  b {
+    color: var(--ink);
+    font-family: $font-secondary;
+    font-size: 28px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    margin-left: 4px;
+
+    @include small-text(12px);
+  }
+}
+
+.lm-ticker b {
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.lm-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  input {
+    width: 110px;
+    accent-color: var(--accent);
+  }
+}
+
+.lm-segment {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+
+  button {
+    padding: 5px 12px;
+    border: 0;
+    border-radius: 99px;
+    background: none;
+    color: var(--ink-muted);
+    cursor: pointer;
+
+    &.on {
+      background-color: var(--accent);
+      color: var(--on-accent);
+    }
+  }
+}
+
+.lm-replay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 99px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    opacity: .4;
+  }
+
+  &:not(:disabled):hover {
+    background-color: var(--hover-wash);
+  }
+}
+
+.lm-band {
+  margin-bottom: 18px;
+
+  h3 {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 8px;
+    font-family: $font-secondary;
+    font-size: 13px;
+    font-weight: 800;
+
+    i {
+      height: 3px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent) calc(var(--f) * 100%), var(--line) 0);
+      transform-origin: left;
+      animation: lm-bar .9s $lm-ease .2s both;
+    }
+
+    small {
+      color: var(--ink-muted);
+      font-weight: 400;
+    }
+  }
+}
+
+.lm-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.lm-tile {
+  --ground: var(--paper-raised);
+
+  display: grid;
+  position: relative;
+  width: calc(#{$lm-tile} * var(--size));
+  height: calc(#{$lm-tile} * var(--size));
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 6px;
+  background-color: var(--ground);
+  cursor: pointer;
+  place-items: center;
+  transition: transform .18s $lm-ease, box-shadow .18s;
+
+  .scene-mon {
+    zoom: var(--size);
+  }
+
+  &.st-missing {
+    --ground: var(--paper-sunken);
+
+    .scene-mon {
+      filter: brightness(0);
+      opacity: .25;
+    }
+  }
+
+  &.st-unobtainable {
+    opacity: .35;
+  }
+
+  &.st-temporary {
+    background: repeating-linear-gradient(45deg, var(--tile-temporary) 0 6px, var(--tile-temporary-stripe) 6px 12px);
+  }
+
+  .tint-state &.st-sealed {
+    background: linear-gradient(160deg, color-mix(in oklab, $lm-gilt 45%, var(--paper-raised)), var(--paper-raised) 75%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, $lm-gilt 60%, transparent);
+  }
+
+  .tint-origin &:not(.st-missing),
+  .tint-type &:not(.st-missing) {
+    background-color: color-mix(in oklab, var(--ground) 55%, var(--paper-raised));
+  }
+
+  &:hover,
+  &:focus-visible,
+  &.hot {
+    z-index: 1;
+    box-shadow: 0 8px 18px -8px var(--paper-shadow), 0 0 0 2px var(--accent);
+    outline: none;
+    transform: scale(1.5);
+  }
+}
+
+// the replay: a caught tile dark until its turn, then lit
+.replaying .lm-tile:not(.st-missing, .st-unobtainable) {
+  animation: lm-ground .3s linear var(--at) both;
+
+  .scene-mon {
+    animation: lm-light .6s $lm-ease var(--at) both;
+  }
+}
+
+// the origin tint's key: a chip per game, most first; pressed, the dex filtered to it
+.lm-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--ground);
+    }
+  }
+
+  i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background-color: var(--ground);
+  }
+
+  b {
+    color: var(--ink-muted);
+    font-weight: 400;
+  }
+}
