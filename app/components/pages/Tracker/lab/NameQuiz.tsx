@@ -1,7 +1,9 @@
 import classNames from 'classnames';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { ArtHologram } from './GalaxyPanel';
 import { Scene, SceneMon } from '../Scene';
+import { displayName } from '../../../library/PokemonName';
 import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
 import { intervalMs, review } from './fsrs';
 import { localDay, useKeys } from './lab-kit';
@@ -210,6 +212,13 @@ export function NameQuiz ({ onClose }: LabProps) {
               <section className={classNames('lq-card', { answered: Boolean(answer), right, wrong: answer && !right })} key={`${question.entry.key}-${question.at}`}>
                 <span className="lq-tag">{card ? lt('quiz.review') : lt('quiz.fresh')}</span>
                 <h2 className="lq-name">{question.entry.name}</h2>
+                {/* answered: the mon the name is, its art held up beside the name, its English under it */}
+                {answer && (
+                  <div className="lq-reveal">
+                    <ArtHologram pokemon={question.entry.pokemon} />
+                    <small>No.{String(question.entry.pokemon.national_id).padStart(4, '0')} · {displayName(question.entry.pokemon.name, null, 'en')}</small>
+                  </div>
+                )}
                 <div className="lq-choices">
                   {question.choices.map((choice, i) => (
                     <button

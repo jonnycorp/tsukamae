@@ -71,16 +71,41 @@ $lq-ease: cubic-bezier(.2, .9, .3, 1);
   flex-direction: column;
   align-items: center;
   gap: 22px;
+  position: relative;
   padding: 30px 30px 26px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 20px;
   background:
     radial-gradient(70% 60% at 50% 0, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
-    var(--paper-raised);
+    linear-gradient(160deg, color-mix(in srgb, var(--paper-raised) 45%, transparent), color-mix(in srgb, var(--paper) 15%, transparent));
   animation: lq-in .35s $lq-ease both;
 
   &.wrong .lq-name {
     animation: lq-shake .3s ease-in-out;
+  }
+}
+
+// answered: the mon the name is, held up at the card's side as a hologram, its number and English under it
+.lq-reveal {
+  display: flex;
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  flex-direction: column;
+  align-items: center;
+  width: 170px;
+  pointer-events: none;
+
+  .lg-holo {
+    width: 100%;
+    height: 150px;
+  }
+
+  small {
+    color: var(--ink-muted);
+    white-space: nowrap;
+
+    @include small-text(11px);
   }
 }
 
@@ -115,9 +140,9 @@ $lq-ease: cubic-bezier(.2, .9, .3, 1);
   justify-content: center;
   gap: 6px;
   height: 150px;
-  border: 2px solid var(--line);
+  border: 1.5px solid color-mix(in srgb, var(--line) 60%, transparent);
   border-radius: 14px;
-  background-color: var(--paper);
+  background-color: color-mix(in srgb, var(--paper) 40%, transparent);
   color: var(--ink);
   cursor: pointer;
   transition: border-color .2s, transform .2s $lq-ease, opacity .25s, background-color .2s;
@@ -286,5 +311,22 @@ $lq-ease: cubic-bezier(.2, .9, .3, 1);
     background: none;
     color: var(--ink);
     font: inherit;
+  }
+}
+
+// the quiz's switches airy, as the galaxy's
+.lq-head .lab-scope {
+  padding: 2px;
+  border-color: color-mix(in srgb, var(--line) 55%, transparent);
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  backdrop-filter: blur(6px);
+
+  button {
+    padding: 4px 12px;
+
+    &.on {
+      background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+      color: var(--ink);
+    }
   }
 }

@@ -2,12 +2,12 @@ import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faPen } from '@fortawesome/free-solid-svg-icons';
 import { useMemo, useRef, useState } from 'react';
+import { useKeys } from './lab-kit';
 
 import { BALL_NAMES, ORIGIN_GAME_NAMES } from '../../../../utils/capture-fields';
-import { LabTip } from './LabTip';
+import { GalaxyPanel } from './GalaxyPanel';
 import { Scene, SceneMon, useScrollBack } from '../Scene';
 import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
-import { displayName } from '../../../library/PokemonName';
 import { gameColor } from '../../../../utils/game-colors';
 import { localizeBall, localizeOriginGame } from '../../../../i18n/names';
 import { useLabText } from './lab-i18n';
@@ -85,7 +85,7 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: LabProps) {
   const [yearly, setYearly] = useLocalStorage<Record<string, string>>('labDays.yearly', {});
   const [show, setShow] = useState<Show>('all');
   const [oldest, setOldest] = useState(false);
-  const [hot, setHot] = useState<{ record: LabRecord; x: number; y: number } | null>(null);
+  const [picked, setPicked] = useState<{ record: LabRecord; day: LabRecord[] } | null>(null);
 
   const days = useMemo(() => {
     const byDate = new Map<string, LabRecord[]>();
@@ -110,6 +110,14 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: LabProps) {
   .sort((a, b) => (!a.date ? 1 : !b.date ? -1 : oldest ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date))), [days, show, notes, yearly, oldest]);
 
   useScrollBack(pageRef, back, true);
+
+  // Escape lets a pick go before it closes the scene
+  useKeys((e) => {
+    if (e.key === 'Escape' && picked && !e.defaultPrevented) {
+      setPicked(null);
+      e.preventDefault();
+    }
+  });
 
   const tag = locale === 'ja' ? 'ja-JP' : 'en-US';
   const fmt = (iso: string, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(tag, options).format(new Date(`${iso}T00:00:00`));
@@ -180,16 +188,12 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: LabProps) {
                   ))}
                 </span>
               </div>
-              <div className="ld-mons" onPointerLeave={() => setHot(null)}>
+              <div className="ld-mons">
                 {day.mons.map((record, i) => (
                   <button
                     className={classNames('ld-mon', { away: !record.here })}
                     key={record.key}
-                    onClick={() => record.here && onLocate(record.capture.pokemon.id)}
-                    onPointerEnter={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setHot({ record, x: rect.right, y: rect.top + rect.height / 2 });
-                    }}
+                    onClick={() => setPicked({ record, day: day.mons })}
                     style={{ '--i': Math.min(i, 30) } as CSSProperties}
                     type="button"
                   >
@@ -213,12 +217,12 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: LabProps) {
         </div>
       );
     });
-  }, [shown, notes, yearly, busiest, locale, onLocate, onReview]); // the rest follow from these
+  }, [shown, notes, yearly, busiest, locale, onReview]); // the rest follow from these
 
   return (
     <Scene hint={lt('days.hint')} name="lab-days" onClose={onClose} quiet={Boolean(back)} title={lt('days.title')}>
       {({ scale }) => (
-        <div className="ld-page" ref={pageRef} style={{ zoom: scale }}>
+        <div className={classNames('ld-page', { aside: picked })} ref={pageRef} style={{ zoom: scale }}>
           <header className="ld-head">
             <div className="ld-figure"><b>{dated.length}</b><small>{lt('days.days')}</small></div>
             {dated.length > 0 && (() => {
@@ -242,18 +246,17 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: LabProps) {
 
           {cards}
 
-          {hot && (
-            <LabTip scale={scale} x={hot.x} y={hot.y}>
-              <strong>{displayName(hot.record.capture.pokemon.name, hot.record.capture.pokemon.name_ja, locale)}</strong>
-              <small>
-                {[
-                  hot.record.capture.origin_game && gameName(hot.record.capture.origin_game),
-                  hot.record.capture.ball && hot.record.capture.ball !== 'unknown' && ballName(hot.record.capture.ball),
-                  scope === 'all' && hot.record.dex.title,
-                ].filter(Boolean).join(' · ')}
-              </small>
-              {hot.record.here && <em>{lt('days.press')}</em>}
-            </LabTip>
+          {picked && (
+            <GalaxyPanel
+              ballName={picked.record.capture.ball ? ballName(picked.record.capture.ball) : undefined}
+              day={picked.day}
+              key={picked.record.key}
+              keys={false}
+              kind="day"
+              onLocate={() => onLocate(picked.record.capture.pokemon.id)}
+              onPick={(record) => setPicked({ ...picked, record })}
+              record={picked.record}
+            />
           )}
         </div>
       )}

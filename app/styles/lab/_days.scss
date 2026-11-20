@@ -23,6 +23,34 @@ $ld-ease: cubic-bezier(.2, .9, .3, 1);
 .ld-page {
   max-width: 1080px;
   margin: 0 auto;
+
+  // a pick's day at the left (the galaxy's day panel): the journal steps aside for it
+  &.aside {
+    margin-left: 300px;
+  }
+
+  .lg-panel {
+    position: fixed;
+    top: 110px;
+    z-index: 3;
+  }
+}
+
+// the journal's switches airy, as the galaxy's
+.ld-head .lab-scope {
+  padding: 2px;
+  border-color: color-mix(in srgb, var(--line) 55%, transparent);
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  backdrop-filter: blur(6px);
+
+  button {
+    padding: 4px 12px;
+
+    &.on {
+      background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+      color: var(--ink);
+    }
+  }
 }
 
 .ld-head {
@@ -60,10 +88,10 @@ $ld-ease: cubic-bezier(.2, .9, .3, 1);
 }
 
 .ld-order {
-  padding: 6px 12px;
-  border: 1px solid var(--line);
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
   border-radius: 99px;
-  background: none;
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
   color: var(--ink-muted);
   cursor: pointer;
 
@@ -109,15 +137,15 @@ $ld-ease: cubic-bezier(.2, .9, .3, 1);
   gap: 22px;
   margin-bottom: 12px;
   padding: 16px 20px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background-color: var(--paper-raised);
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 16px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--paper-raised) 45%, transparent), color-mix(in srgb, var(--paper) 15%, transparent));
 
   &.marked {
-    border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
     background:
-      radial-gradient(120% 90% at 0 0, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
-      var(--paper-raised);
+      radial-gradient(120% 90% at 0 0, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+      linear-gradient(160deg, color-mix(in srgb, var(--paper-raised) 45%, transparent), color-mix(in srgb, var(--paper) 15%, transparent));
   }
 
   @supports (animation-timeline: view()) {
@@ -321,10 +349,10 @@ $ld-ease: cubic-bezier(.2, .9, .3, 1);
 
 .ld-yearly,
 .ld-review {
-  padding: 5px 12px;
-  border: 1px solid var(--line);
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
   border-radius: 99px;
-  background: none;
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
   color: var(--ink-muted);
   cursor: pointer;
 
@@ -347,6 +375,6 @@ $ld-ease: cubic-bezier(.2, .9, .3, 1);
 }
 
 .ld-review {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   color: var(--ink);
 }

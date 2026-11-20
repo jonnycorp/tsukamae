@@ -8,6 +8,7 @@ import { displayName } from '../../../library/PokemonName';
 import { localizeNature, localizeOriginGame } from '../../../../i18n/names';
 import { useLabText } from './lab-i18n';
 
+import type { CapturePokemon } from '../../../../types';
 import type { GalaxyMode } from './BallGalaxy';
 import type { LabRecord } from './LabScope';
 
@@ -29,19 +30,23 @@ interface Props {
 
 const natureName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
 
-// a picked star's official art as a hologram: tinted in the accent, lined like a projection, flickering on as it's
-// picked; its sprite where the art isn't saved (yarn sprites:art)
-export function Hologram ({ record, large = false }: { record: LabRecord; large?: boolean }) {
+// a mon's official art as a hologram: tinted in the accent, lined like a projection, flickering on as it comes; its
+// sprite where the art isn't saved (yarn sprites:art)
+export function ArtHologram ({ pokemon, shiny = false, gmax = false, large = false }: { pokemon: CapturePokemon; shiny?: boolean; gmax?: boolean; large?: boolean }) {
   const [missing, setMissing] = useState(false);
-  const { pokemon } = record.capture;
   return (
     <div className={classNames('lg-holo', { large })}>
       {missing
         ? <SceneMon pokemon={pokemon} zoom={large ? 6 : 3} />
-        : <img alt="" draggable={false} onError={() => setMissing(true)} src={artSrc(pokemon, record.dex.shiny, record.capture.gigantamax ? 'gmax' : null)} />}
+        : <img alt="" draggable={false} onError={() => setMissing(true)} src={artSrc(pokemon, shiny, gmax ? 'gmax' : null)} />}
     </div>
   );
 }
+
+// a record's: in its dex's colours, its giant form where it says Gigantamax
+export const Hologram = ({ record, large = false }: { record: LabRecord; large?: boolean }) => (
+  <ArtHologram gmax={Boolean(record.capture.gigantamax)} large={large} pokemon={record.capture.pokemon} shiny={record.dex.shiny} />
+);
 
 // what a picked star in the galaxy shows. The constellation's: a panel at the right, airy, the hologram over the mon's
 // own record. The day's: a narrower one at the left, the day's whole catch under the hologram, each pressed to pick it.
