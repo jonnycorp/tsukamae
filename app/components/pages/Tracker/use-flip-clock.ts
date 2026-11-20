@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DISPLAY_PAGES } from '../../../utils/display-modes';
 import { MENU_OR_MODAL } from '../../../hooks/use-hotkey';
+import { useLocalStorage } from '../../../hooks/use-local-storage';
 
 import type { DisplayMode, FacePage } from '../../../utils/display-modes';
 import type { RefObject } from 'react';
@@ -265,9 +266,13 @@ export interface FlipPause {
 // usual. While they're held, 1 2 3 pick the face as the picker does, in its order. Still mode holds them: frozen as it
 // comes on, as Space would (the picker open on the face that shows), let go as it goes, and neither Space nor the pause
 // button lets them go in between. A dex opened in it is held from its first frame, on its first face, with no press for
-// the indicator to flash
+// the indicator to flash. Held is the default, on the first face, 1 2 3 turning them by hand; Space sets them flipping on
+// their own, which is kept (flipAuto) till Space holds them again
 export function useFlipClock (ref: RefObject<HTMLElement>, still: boolean, display: DisplayMode): FlipPause {
-  const [state, setState] = useState({ paused: still, face: 0, presses: 0 });
+  const [auto, setAuto] = useLocalStorage('flipAuto', false);
+  const autoRef = useRef(auto);
+  autoRef.current = auto;
+  const [state, setState] = useState({ paused: still || !auto, face: 0, presses: 0 });
   const clockRef = useRef<ReturnType<typeof createFlipClock> | null>(null);
   const stillRef = useRef(still);
   stillRef.current = still;
@@ -281,13 +286,18 @@ export function useFlipClock (ref: RefObject<HTMLElement>, still: boolean, displ
     if (clock) {
       const { paused, face } = clock.toggle();
       setState((prev) => ({ paused, face, presses: prev.presses + 1 }));
+      return paused;
     }
+    return null;
   }, []);
   const toggle = useCallback(() => {
     if (!(stillRef.current && pausedRef.current)) {
-      flip();
+      const paused = flip();
+      if (paused !== null && !stillRef.current) {
+        setAuto(!paused);
+      }
     }
-  }, [flip]);
+  }, [flip, setAuto]);
 
   const pick = useCallback((face: number) => {
     if (clockRef.current?.pick(face)) {
@@ -347,7 +357,8 @@ export function useFlipClock (ref: RefObject<HTMLElement>, still: boolean, displ
     if (still) {
       clockRef.current?.settle();
     }
-    if (clockRef.current && still !== pausedRef.current) {
+    // still mode let go: they flip on only if they were set to
+    if (clockRef.current && (still || !autoRef.current) !== pausedRef.current) {
       flip();
     }
   }, [still, flip]);
