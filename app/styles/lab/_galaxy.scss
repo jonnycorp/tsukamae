@@ -129,7 +129,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 4px;
+  gap: 0;
 
   img {
     filter: brightness(0);
@@ -145,35 +145,6 @@
   }
 }
 
-.lg-scrub {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-
-  button {
-    display: grid;
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--line);
-    border-radius: 50%;
-    background-color: var(--paper-raised);
-    color: var(--ink);
-    cursor: pointer;
-    place-items: center;
-    transition: border-color .2s, transform .2s;
-
-    &:hover {
-      border-color: var(--accent);
-      transform: scale(1.06);
-    }
-  }
-
-  input {
-    width: 100%;
-    accent-color: var(--accent);
-  }
-}
 
 .lg-legend {
   color: var(--ink-muted);

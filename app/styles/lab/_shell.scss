@@ -184,3 +184,39 @@ $lab-ease: cubic-bezier(.2, .9, .3, 1);
     }
   }
 }
+
+// a sketch's run: play or pause, and a scrub along it (the galaxy's, the mosaic's catch order)
+.lab-scrub {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+
+  button {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background-color: var(--paper-raised);
+    color: var(--ink);
+    cursor: pointer;
+    place-items: center;
+    transition: border-color .2s, transform .2s;
+
+    &:not(:disabled):hover {
+      border-color: var(--accent);
+      transform: scale(1.06);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: .4;
+    }
+  }
+
+  input {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+}

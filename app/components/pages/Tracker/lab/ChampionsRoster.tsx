@@ -3,12 +3,12 @@ import { useMemo, useRef, useState } from 'react';
 
 import rosterJson from '../../../../../data/champions.json';
 import { LabTip } from './LabTip';
+import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
 import { Scene, SceneMon, useScrollBack } from '../Scene';
 import { displayName } from '../../../library/PokemonName';
-import { everyDex, isCopy } from '../../../../utils/copies';
+import { isCopy } from '../../../../utils/copies';
 import { getCatalogDex } from '../../../../utils/local-data';
 import { slotKey } from '../../../../utils/champions';
-import { useDexContext } from '../../../../hooks/contexts/use-dex-context';
 import { useLabText } from './lab-i18n';
 import { useTrackerState } from '../use-tracker';
 
@@ -65,12 +65,13 @@ function standingOf (copies: Copy[]): Standing {
 }
 
 // the Champions roster (一覧): every mon this season's roster takes, by generation, each card showing how far it's got
-// with you across all your dexes: there now, been, held but never gone, or none yet, with how many copies (and shiny
+// with you in the open dex (its living-dex specimen alone) or, switched, across all your dexes: there now, been, held but never gone, or none yet, with how many copies (and shiny
 // ones) you have. A ring at the top counts them; the chips under it narrow the cards to one standing. A card's mon is
 // gone to in the open dex when it lists it. The roster itself is data/champions.json, added to as seasons bring more
 export function ChampionsRoster ({ back, onClose, onLocate }: LabProps) {
   const { captures } = useTrackerState();
-  const { dexes, activeDex } = useDexContext();
+  const [scope, setScope] = useLabScope('champions');
+  const records = useScopedRecords(scope);
   const { lt, locale } = useLabText();
   const pageRef = useRef<HTMLDivElement>(null);
   const [only, setOnly] = useState<Standing | null>(null);
@@ -79,12 +80,10 @@ export function ChampionsRoster ({ back, onClose, onLocate }: LabProps) {
   const slots = useMemo(() => {
     const catalog = getCatalogDex('home-national').pokemonList;
     const copies = new Map<string, Copy[]>();
-    for (const { dex, captures: held } of everyDex(dexes ?? [], activeDex!.id, captures)) {
-      for (const capture of held) {
-        if (isCopy(capture, dex)) {
-          const key = slotKey(capture.pokemon.national_id, capture.pokemon.form);
-          copies.set(key, [...(copies.get(key) ?? []), { dex, capture }]);
-        }
+    for (const { dex, capture } of records) {
+      if (isCopy(capture, dex)) {
+        const key = slotKey(capture.pokemon.national_id, capture.pokemon.form);
+        copies.set(key, [...(copies.get(key) ?? []), { dex, capture }]);
       }
     }
     return ROSTER.pokemon.flatMap((entry): Slot[] => {
@@ -96,7 +95,7 @@ export function ChampionsRoster ({ back, onClose, onLocate }: LabProps) {
       const mine = copies.get(key) ?? [];
       return [{ key, pokemon, copies: mine, standing: standingOf(mine), shiny: mine.filter(({ dex }) => dex.shiny).length }];
     });
-  }, [dexes, activeDex, captures]);
+  }, [records]);
 
   const counts = useMemo(() => {
     const by = new Map<Standing, number>(STANDINGS.map((standing) => [standing, 0]));
@@ -160,7 +159,10 @@ export function ChampionsRoster ({ back, onClose, onLocate }: LabProps) {
               <span>{lt('champions.reached')}</span>
             </div>
             <div className="lch-season">
-              <h2>{ROSTER.season}</h2>
+              <div className="lch-season-top">
+                <h2>{ROSTER.season}</h2>
+                <ScopeSwitch onChange={setScope} scope={scope} />
+              </div>
               <span>{lt('champions.updated', { date: ROSTER.updated })}</span>
               <div className="lch-chips">
                 {STANDINGS.map((standing) => (

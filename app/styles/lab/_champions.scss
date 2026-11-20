@@ -132,6 +132,13 @@ $lch-ease: cubic-bezier(.2, .9, .3, 1);
   }
 }
 
+.lch-season-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+}
+
 .lch-chips {
   display: flex;
   flex-wrap: wrap;

@@ -5,14 +5,14 @@ import { HEX_ORDER, natureStats } from '../../../../utils/display-modes';
 import { LabTip } from './LabTip';
 import { NATURES } from '../../../../utils/capture-fields';
 import { Scene, SceneMon, sceneScroll, useScrollBack } from '../Scene';
+import { ScopeSwitch, useLabScope, useScopedRecords } from './LabScope';
 import { localizeNature } from '../../../../i18n/names';
 import { useLabText } from './lab-i18n';
-import { useTrackerState } from '../use-tracker';
 
-import type { Capture } from '../../../../types';
 import type { CSSProperties, FocusEvent, PointerEvent } from 'react';
 import type { LabKey } from './lab-i18n';
 import type { LabProps } from './lab-kit';
+import type { LabRecord } from './LabScope';
 import type { StatLetter } from '../../../../utils/display-modes';
 
 // NATURES runs a row per stat raised and a column per stat lowered, in this order
@@ -22,37 +22,47 @@ const STAT_KEYS: Record<StatLetter, LabKey> = {
 };
 const HEX_R = 120;
 const TIP_MONS = 24;
+// the latest caught of a nature, fanned across its cell
+const PILE = 5;
 
 const natureName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
 
 // the natures grid: the 25 natures as the table players draw them, a row for the stat each raises and a column for the
-// one it lowers, the neutral five down the diagonal; each nature's circle as big as the mons that have it. Beside it,
+// one it lowers, the neutral five down the diagonal. Each stat has a colour; a cell is washed in its raised stat's
+// running into its lowered one's, as deep as its share of your mons, the latest few of them fanned across it. Beside it,
 // the stats' lean: how much your natures have raised and lowered each, on the summary's hexagon. Pointed at, a nature
 // shows its mons; pressed, it filters the dex to them
 export function NatureGrid ({ back, onClose, onFilter }: LabProps) {
-  const { captures } = useTrackerState();
   const { lt, locale } = useLabText();
+  const [scope, setScope] = useLabScope('nature');
+  const records = useScopedRecords(scope);
   const pageRef = useRef<HTMLDivElement>(null);
   const [hot, setHot] = useState<{ nature: string; x: number; y: number } | null>(null);
 
   const { byNature, most, lean, total } = useMemo(() => {
-    const map = new Map<string, Capture[]>(NATURES.map((nature) => [nature, []]));
+    const map = new Map<string, LabRecord[]>(NATURES.map((nature) => [nature, []]));
     const net = new Map<StatLetter, { up: number; down: number }>(HEX_ORDER.map((stat) => [stat, { up: 0, down: 0 }]));
     let counted = 0;
-    for (const capture of captures) {
+    for (const record of records) {
+      const { capture } = record;
       if (!capture.captured || capture.status === 'unobtainable' || !capture.nature || !map.has(capture.nature)) {
         continue;
       }
       counted++;
-      map.get(capture.nature)!.push(capture);
+      map.get(capture.nature)!.push(record);
       const stats = natureStats(capture.nature);
       if (stats && stats !== 'neutral') {
         net.get(stats.up)!.up++;
         net.get(stats.down)!.down++;
       }
     }
+    // each nature's latest caught first
+    for (const list of map.values()) {
+      list.sort((a, b) => (b.capture.catch_date ?? '').localeCompare(a.capture.catch_date ?? ''));
+    }
     return { byNature: map, most: Math.max(1, ...[...map.values()].map((list) => list.length)), lean: net, total: counted };
-  }, [captures]);
+  }, [records]);
+  const top = NATURES.reduce((best, nature) => (byNature.get(nature)!.length > byNature.get(best)!.length ? nature : best), NATURES[0]);
 
   useScrollBack(pageRef, back, true);
 
@@ -76,54 +86,64 @@ export function NatureGrid ({ back, onClose, onFilter }: LabProps) {
     <Scene hint={lt('nature.hint')} name="lab-nature" onClose={onClose} quiet={Boolean(back)} title={lt('nature.title')}>
       {({ scale }) => (
         <div className="ln-page" ref={pageRef} style={{ zoom: scale }}>
-          <div className="ln-table">
-            <span className="ln-corner"><small>{lt('nature.up')} ↓ / {lt('nature.down')} →</small></span>
-            {AXIS.map((stat) => <span className="ln-axis down" key={stat}>{lt(STAT_KEYS[stat])}<b>{stat}</b></span>)}
-            {AXIS.map((up, row) => (
-              <div className="ln-row" key={up}>
-                <span className="ln-axis up">{lt(STAT_KEYS[up])}<b>{up}</b></span>
-                {AXIS.map((down, col) => {
-                  const nature = NATURES[row * 5 + col];
-                  const mons = byNature.get(nature)!;
-                  return (
-                    <button
-                      className={classNames('ln-cell', { neutral: row === col, empty: mons.length === 0, hot: hot?.nature === nature })}
-                      disabled={mons.length === 0}
-                      key={down}
-                      onBlur={() => setHot(null)}
-                      onClick={() => onFilter({ view: 'all', facets: { nature: [nature] } }, { scroll: sceneScroll(pageRef.current) })}
-                      onFocus={show(nature)}
-                      onPointerEnter={show(nature)}
-                      onPointerLeave={() => setHot(null)}
-                      style={{ '--f': Math.sqrt(mons.length / most), '--i': row * 5 + col } as CSSProperties}
-                      type="button"
-                    >
-                      <i className="ln-disc" />
-                      <span className="ln-name">{name(nature)}</span>
-                      <b className="ln-n">{mons.length}</b>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-
-          <aside className="ln-lean">
-            <h2>{lt('nature.lean')}</h2>
-            <svg aria-hidden="true" height={HEX_R * 2 + 70} viewBox={`${-HEX_R - 35} ${-HEX_R - 35} ${HEX_R * 2 + 70} ${HEX_R * 2 + 70}`} width={HEX_R * 2 + 70}>
-              {[1, 0.66, 0.33].map((f) => (
-                <polygon className="ln-hex-ring" key={f} points={HEX_ORDER.map((_, k) => corner(k, HEX_R * f).map((v) => v.toFixed(1)).join(',')).join(' ')} />
+          <header className="ln-head">
+            <div className="ln-figure"><b>{total}</b><small>{lt('nature.total')}</small></div>
+            {total > 0 && <div className="ln-figure"><b>{name(top)}</b><small>{lt('nature.top', { n: byNature.get(top)!.length })}</small></div>}
+            <ScopeSwitch onChange={setScope} scope={scope} />
+          </header>
+          <div className="ln-body">
+            <div className="ln-table">
+              <span className="ln-corner"><small>{lt('nature.up')} ↓ / {lt('nature.down')} →</small></span>
+              {AXIS.map((stat) => <span className="ln-axis down" key={stat} style={{ '--stat': `var(--ln-${stat})` } as CSSProperties}>{lt(STAT_KEYS[stat])}<b>{stat}</b></span>)}
+              {AXIS.map((up, row) => (
+                <div className="ln-row" key={up}>
+                  <span className="ln-axis up" style={{ '--stat': `var(--ln-${up})` } as CSSProperties}>{lt(STAT_KEYS[up])}<b>{up}</b></span>
+                  {AXIS.map((down, col) => {
+                    const nature = NATURES[row * 5 + col];
+                    const mons = byNature.get(nature)!;
+                    return (
+                      <button
+                        className={classNames('ln-cell', { neutral: row === col, empty: mons.length === 0, hot: hot?.nature === nature })}
+                        disabled={mons.length === 0}
+                        key={down}
+                        onBlur={() => setHot(null)}
+                        onClick={() => onFilter({ view: 'all', facets: { nature: [nature] } }, { scroll: sceneScroll(pageRef.current) })}
+                        onFocus={show(nature)}
+                        onPointerEnter={show(nature)}
+                        onPointerLeave={() => setHot(null)}
+                        style={{ '--f': mons.length / most, '--i': row * 5 + col, '--up': `var(--ln-${up})`, '--down': `var(--ln-${down})` } as CSSProperties}
+                        type="button"
+                      >
+                        <span className="ln-name">{name(nature)}</span>
+                        <b className="ln-n">{mons.length}</b>
+                        <span className="ln-pile">
+                          {mons.slice(0, PILE).map(({ key, capture }, k) => (
+                            <span key={key} style={{ '--k': k } as CSSProperties}><SceneMon pokemon={capture.pokemon} /></span>
+                          ))}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               ))}
-              <polygon className="ln-hex-down" points={shape('down')} />
-              <polygon className="ln-hex-up" points={shape('up')} />
-              {HEX_ORDER.map((stat, k) => {
-                const [x, y] = corner(k, HEX_R + 20);
-                return <text className="ln-hex-label" key={stat} textAnchor="middle" x={x} y={y + 4}>{stat}</text>;
-              })}
-            </svg>
-            <p className="ln-legend"><i className="up" />{lt('nature.raised')}<i className="down" />{lt('nature.lowered')}</p>
-            <p className="ln-total">{lt('nature.total', { n: total })}</p>
-          </aside>
+            </div>
+
+            <aside className="ln-lean">
+              <h2>{lt('nature.lean')}</h2>
+              <svg aria-hidden="true" height={HEX_R * 2 + 70} viewBox={`${-HEX_R - 35} ${-HEX_R - 35} ${HEX_R * 2 + 70} ${HEX_R * 2 + 70}`} width={HEX_R * 2 + 70}>
+                {[1, 0.66, 0.33].map((f) => (
+                  <polygon className="ln-hex-ring" key={f} points={HEX_ORDER.map((_, k) => corner(k, HEX_R * f).map((v) => v.toFixed(1)).join(',')).join(' ')} />
+                ))}
+                <polygon className="ln-hex-down" points={shape('down')} />
+                <polygon className="ln-hex-up" points={shape('up')} />
+                {HEX_ORDER.map((stat, k) => {
+                  const [x, y] = corner(k, HEX_R + 20);
+                  return <text className="ln-hex-label" key={stat} style={{ fill: `var(--ln-${stat})` }} textAnchor="middle" x={x} y={y + 4}>{stat}</text>;
+                })}
+              </svg>
+              <p className="ln-legend"><i className="up" />{lt('nature.raised')}<i className="down" />{lt('nature.lowered')}</p>
+            </aside>
+          </div>
 
           {hot && (
             <LabTip scale={scale} x={hot.x} y={hot.y}>
@@ -133,7 +153,7 @@ export function NatureGrid ({ back, onClose, onFilter }: LabProps) {
                 return stats === 'neutral' || !stats ? lt('nature.neutral') : `${stats.up}↑ ${stats.down}↓`;
               })()} · {lt('nature.count', { n: hotMons.length })}</small>
               <span className="lab-tip-mons">
-                {hotMons.slice(0, TIP_MONS).map((capture) => <SceneMon key={capture.pokemon.id} pokemon={capture.pokemon} />)}
+                {hotMons.slice(0, TIP_MONS).map(({ key, capture }) => <SceneMon key={key} pokemon={capture.pokemon} />)}
               </span>
               <em>{lt('nature.press')}</em>
             </LabTip>

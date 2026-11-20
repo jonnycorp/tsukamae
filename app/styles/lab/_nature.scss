@@ -1,18 +1,14 @@
 @use '../variables' as *;
 @use '../mixins' as *;
 
-// the nature table (lab/NatureGrid.tsx): a 5×5 table, each nature a disc grown to its share, the neutral diagonal
-// hatched; and the stats' lean as two shapes on the summary's hexagon, raised over lowered
-$ln-cell: 118px;
+// the nature table (lab/NatureGrid.tsx): a 5×5 table, each stat a colour (its hue fixed, its lightness and chroma the
+// page's, as a game's are), each cell washed from its raised stat's colour into its lowered one's as deep as its share,
+// its latest mons fanned along its foot, the neutral diagonal hatched; and the stats' lean as two shapes on the
+// summary's hexagon, raised over lowered
+$ln-cell: 124px;
 $ln-ease: cubic-bezier(.2, 1.3, .4, 1);
 $ln-up: #e0645a;
 $ln-down: #5a8fe0;
-
-@keyframes ln-grow {
-  from {
-    transform: scale(0);
-  }
-}
 
 @keyframes ln-draw {
   from {
@@ -21,7 +17,61 @@ $ln-down: #5a8fe0;
   }
 }
 
+@keyframes ln-wash {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ln-fan {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 .ln-page {
+  --ln-H: oklch(var(--game-l) var(--game-c) 25);
+  --ln-A: oklch(var(--game-l) var(--game-c) 40);
+  --ln-B: oklch(var(--game-l) var(--game-c) 90);
+  --ln-S: oklch(var(--game-l) var(--game-c) 350);
+  --ln-C: oklch(var(--game-l) var(--game-c) 255);
+  --ln-D: oklch(var(--game-l) var(--game-c) 150);
+
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.ln-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  margin-bottom: 22px;
+
+  .lab-scope {
+    margin-left: auto;
+  }
+}
+
+.ln-figure {
+  display: flex;
+  flex-direction: column;
+
+  b {
+    font-family: $font-secondary;
+    font-size: 30px;
+    font-weight: 300;
+    line-height: 1.1;
+  }
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+}
+
+.ln-body {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -56,7 +106,7 @@ $ln-down: #5a8fe0;
   @include small-text(12px);
 
   b {
-    color: var(--ink);
+    color: var(--stat);
     font-family: $font-secondary;
     font-size: 16px;
   }
@@ -64,31 +114,42 @@ $ln-down: #5a8fe0;
   &.down {
     align-items: center;
     padding-bottom: 4px;
-    border-bottom: 2px solid $ln-down;
+    border-bottom: 3px solid var(--stat);
   }
 
   &.up {
     align-items: flex-end;
     padding-right: 10px;
-    border-right: 2px solid $ln-up;
+    border-right: 3px solid var(--stat);
   }
 }
 
 .ln-cell {
-  display: grid;
   position: relative;
   height: $ln-cell;
   padding: 0;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 10px;
   background-color: var(--paper-raised);
   color: var(--ink);
   cursor: pointer;
-  place-items: center;
-  transition: transform .2s, border-color .2s;
+  transition: transform .2s, border-color .2s, box-shadow .2s;
 
-  &.neutral {
-    background: repeating-linear-gradient(-45deg, var(--paper-raised) 0 8px, var(--paper-sunken) 8px 9px);
+  // the wash: raised into lowered, as deep as the share
+  &::before {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--up) 15%, var(--down) 85%);
+    opacity: calc(.12 + var(--f) * .5);
+    content: '';
+    animation: ln-wash .8s ease-out both;
+    animation-delay: calc(120ms + var(--i) * 18ms);
+  }
+
+  &.neutral::before {
+    background: repeating-linear-gradient(-45deg, var(--up) 0 2px, transparent 2px 9px);
+    opacity: calc(.15 + var(--f) * .35);
   }
 
   &.empty {
@@ -102,36 +163,48 @@ $ln-down: #5a8fe0;
     z-index: 1;
     border-color: var(--accent);
     outline: none;
-    transform: scale(1.05);
+    box-shadow: 0 10px 22px -12px var(--paper-shadow);
+    transform: translateY(-2px);
+
+    .ln-pile > span {
+      transform: translateX(calc(var(--k) * 4px));
+    }
   }
 }
 
-.ln-disc {
-  position: absolute;
-  width: calc(var(--f) * 92%);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--accent) 70%, white), var(--accent));
-  opacity: .55;
-  animation: ln-grow .7s $ln-ease both;
-  animation-delay: calc(150ms + var(--i) * 22ms);
-}
-
 .ln-name {
-  position: relative;
+  position: absolute;
+  top: 9px;
+  left: 10px;
   font-weight: 700;
 
-  @include small-text(14px);
+  @include small-text(13px);
 }
 
 .ln-n {
   position: absolute;
-  right: 8px;
-  bottom: 5px;
-  color: var(--ink-muted);
+  top: 26px;
+  left: 10px;
+  line-height: 1;
+  font-family: $font-secondary;
+  font-size: 26px;
+  font-weight: 200;
   font-variant-numeric: tabular-nums;
+}
 
-  @include small-text(11px);
+// the latest few, overlapping along the foot
+.ln-pile {
+  display: flex;
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+
+  > span {
+    margin-right: -14px;
+    transition: transform .25s $ln-ease;
+    animation: ln-fan .5s ease-out both;
+    animation-delay: calc(300ms + var(--i) * 18ms + var(--k) * 40ms);
+  }
 }
 
 .ln-lean {
@@ -205,11 +278,4 @@ $ln-down: #5a8fe0;
       background-color: $ln-down;
     }
   }
-}
-
-.ln-total {
-  margin: 0;
-  color: var(--ink-muted);
-
-  @include small-text(12px);
 }

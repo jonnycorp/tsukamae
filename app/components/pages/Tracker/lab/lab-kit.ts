@@ -81,9 +81,12 @@ export function fitCanvas (canvas: HTMLCanvasElement): CanvasRenderingContext2D 
   return ctx;
 }
 
-// yyyy-mm-dd of a local date
-export function isoDay (date: Date): string {
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${m}-${d}`;
+// a CSS colour (one with var() in it, as a game's is) as the root resolves it now, for a canvas
+export function cssColor (value: string): string {
+  const probe = document.createElement('i');
+  probe.style.color = value;
+  document.body.append(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return color;
 }

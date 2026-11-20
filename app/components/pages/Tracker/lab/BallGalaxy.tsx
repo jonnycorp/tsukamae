@@ -505,15 +505,15 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: LabProps) {
                   <img
                     alt={ballName(body.ball)}
                     className={body.firstIndex < shown ? 'on' : undefined}
-                    height={26}
+                    height={34}
                     key={body.ball}
                     src={`/balls/${body.ball}.png`}
                     title={ballName(body.ball)}
-                    width={26}
+                    width={34}
                   />
                 ))}
               </div>
-              <div className="lg-scrub">
+              <div className="lab-scrub">
                 <button aria-label={lt(playing ? 'galaxy.pause' : 'galaxy.play')} onClick={toggle} type="button">
                   <FontAwesomeIcon icon={playing ? faPause : faPlay} />
                 </button>
