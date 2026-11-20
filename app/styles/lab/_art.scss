@@ -85,3 +85,48 @@ $art-ease: cubic-bezier(.2, .9, .25, 1);
     color: var(--ink);
   }
 }
+
+// the species' other forms, over the lens while it's pointed at
+.lab-art-forms {
+  display: flex;
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  z-index: 2;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px;
+  width: max-content;
+  max-width: 260px;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity .2s;
+
+  .review-lens:hover &,
+  &:focus-within {
+    opacity: 1;
+  }
+
+  button {
+    padding: 2px 8px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    background-color: color-mix(in srgb, var(--paper-raised) 85%, transparent);
+    color: var(--ink-muted);
+    font: inherit;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+
+    @include small-text(10px);
+
+    &:hover {
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
+    &.on {
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+  }
+}

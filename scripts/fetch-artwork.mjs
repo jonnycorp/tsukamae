@@ -2,8 +2,10 @@
 
 // dev-only, and never committed (public/artwork/ is ignored): the official artwork for every mon the dexes list, from
 // PokéAPI's sprites repository, for the review's art lens (lab/LabLensArt.tsx). Saved as public/artwork/<national>.png,
-// a regional form as <national>-<form>.png; with --shiny, the shiny artwork too, under public/artwork/shiny/. A file
-// already there is kept, so a run after a new season or generation fetches only what's new
+// a regional form as <national>-<form>.png; with --shiny, the shiny artwork too, under public/artwork/shiny/. Every
+// other variety of those species too (megas, Gigantamax, the rest), as <national>-<variety>.png (6-mega-x, 6-gmax),
+// listed by species in public/artwork/forms.json. A file already there is kept, so a run after a new season or
+// generation fetches only what's new
 
 import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -54,7 +56,36 @@ for (const entry of await readdir(DEXES_DIR, { withFileTypes: true })) {
   }
 }
 
+// a variety's own part of its name, past what it shares with its species' default (charizard-mega-x: mega-x)
+function suffixOf (variety, base) {
+  const own = variety.identifier.split('-');
+  const shared = base.identifier.split('-');
+  let i = 0;
+  while (i < own.length && own[i] === shared[i]) {
+    i++;
+  }
+  return own.slice(Math.max(1, i)).join('-');
+}
+
 const jobs = [];
+for (const national of new Set([...wanted.values()].map((mon) => mon.national))) {
+  const list = varieties.filter((variety) => variety.species_id === String(national));
+  const base = list.find((variety) => variety.is_default === '1');
+  for (const variety of list) {
+    if (variety === base) {
+      continue;
+    }
+    const form = suffixOf(variety, base);
+    if (REGIONAL.has(form)) {
+      continue;
+    }
+    const job = { url: `${ART}/${variety.id}.png`, path: join(OUT_DIR, `${national}-${form}.png`), national, form };
+    jobs.push(job);
+    if (SHINY) {
+      jobs.push({ url: `${ART}/shiny/${variety.id}.png`, path: join(OUT_DIR, 'shiny', `${national}-${form}.png`) });
+    }
+  }
+}
 for (const [name, mon] of wanted) {
   const variety = varietyOf(mon.national, mon.form);
   if (!variety) {
@@ -94,6 +125,15 @@ async function worker () {
   }
 }
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+// the forms list: every other variety whose art is here
+const forms = {};
+for (const job of jobs) {
+  if (job.form && (await exists(job.path))) {
+    (forms[job.national] ??= []).push(job.form);
+  }
+}
+await writeFile(join(OUT_DIR, 'forms.json'), JSON.stringify(forms));
 
 console.log(`Done: ${todo.length - failed.length} saved to public/artwork/.`);
 if (failed.length > 0) {

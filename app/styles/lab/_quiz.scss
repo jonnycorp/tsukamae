@@ -1,0 +1,290 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the name quiz (lab/NameQuiz.tsx): the figures across the top, the card in the middle (the name large, four sprites
+// under it, the grades under them once answered), each generation's names known along the foot. A right answer rings
+// green and a miss red, both from the theme's own marks
+$lq-ease: cubic-bezier(.2, .9, .3, 1);
+
+@keyframes lq-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes lq-shake {
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.lq-page {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.lq-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 36px;
+
+  .lab-scope {
+    margin-left: auto;
+  }
+}
+
+.lq-figure {
+  display: flex;
+  flex-direction: column;
+
+  b {
+    font-family: $font-secondary;
+    font-size: 28px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+
+    span {
+      color: var(--ink-muted);
+      font-size: 16px;
+    }
+  }
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+}
+
+.lq-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 30px 30px 26px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    radial-gradient(70% 60% at 50% 0, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    var(--paper-raised);
+  animation: lq-in .35s $lq-ease both;
+
+  &.wrong .lq-name {
+    animation: lq-shake .3s ease-in-out;
+  }
+}
+
+.lq-tag {
+  color: var(--ink-muted);
+  letter-spacing: .3em;
+  text-transform: uppercase;
+
+  @include small-text(11px);
+}
+
+.lq-name {
+  margin: -10px 0 0;
+  font-family: $font-secondary;
+  font-size: 64px;
+  font-weight: 300;
+  letter-spacing: .08em;
+  line-height: 1.1;
+}
+
+.lq-choices {
+  display: grid;
+  grid-template-columns: repeat(4, 150px);
+  gap: 14px;
+}
+
+.lq-choice {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 150px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background-color: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .2s, transform .2s $lq-ease, opacity .25s, background-color .2s;
+  animation: lq-in .35s $lq-ease both;
+  animation-delay: calc(60ms + var(--i) * 40ms);
+
+  kbd {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    color: var(--ink-muted);
+    font-family: inherit;
+
+    @include small-text(11px);
+  }
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+
+  &:not(:disabled):hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  .answered &:not(.correct, .picked) {
+    opacity: .4;
+  }
+
+  &.correct {
+    border-color: var(--type-grass);
+    background-color: color-mix(in srgb, var(--type-grass) 14%, var(--paper));
+
+    small {
+      color: var(--ink);
+      font-weight: 700;
+    }
+  }
+
+  &.picked:not(.correct) {
+    border-color: var(--danger);
+    background-color: color-mix(in srgb, var(--danger) 12%, var(--paper));
+  }
+}
+
+.lq-grades {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.lq-prompt {
+  color: var(--ink-muted);
+}
+
+.lq-grade {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  animation: lq-in .25s $lq-ease both;
+
+  kbd {
+    color: var(--ink-muted);
+    font-family: inherit;
+
+    @include small-text(11px);
+  }
+
+  small {
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+
+    @include small-text(11px);
+  }
+
+  &:hover,
+  &.on {
+    border-color: var(--accent);
+  }
+
+  &.on {
+    background-color: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+}
+
+.lq-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 50px 30px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  text-align: center;
+
+  h2 {
+    margin: 0;
+    font-family: $font-secondary;
+    font-size: 32px;
+    font-weight: 300;
+  }
+
+  p {
+    margin: 0 0 12px;
+    color: var(--ink-muted);
+  }
+}
+
+// each generation's names: met (faint) and known (the accent) as two lengths of one bar
+.lq-gens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px 22px;
+}
+
+.lq-gen {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+
+  span,
+  small {
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+
+    @include small-text(11px);
+  }
+
+  i {
+    height: 4px;
+    border-radius: 2px;
+    background:
+      linear-gradient(90deg, var(--accent) calc(var(--known) * 100%), transparent 0),
+      linear-gradient(90deg, color-mix(in srgb, var(--accent) 35%, var(--line)) calc(var(--seen) * 100%), var(--line) 0);
+  }
+}
+
+.lq-per-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+
+  @include small-text(12px);
+
+  input {
+    width: 56px;
+    padding: 3px 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+  }
+}
