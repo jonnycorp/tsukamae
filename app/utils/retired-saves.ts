@@ -1,9 +1,8 @@
 import { useSyncExternalStore } from 'react';
 
-// (lab 10) My Games' 引退: a save you can't reach anymore, its journey over (a cartridge gone, a file deleted). It's never
+// My Games' 引退: a save you can't reach anymore, its journey over (a cartridge gone, a file deleted). It's never
 // offered as a place to move a mon to (the move menu), though records still name it as where they came from, and one
-// still in it stays where it is. Kept in this window's storage in the lab, so it's safe on 本番; ported, it would be part
-// of each save in the collection
+// still in it stays where it is. Kept in this window's storage, not in the collection's saves
 const KEY = 'retiredSaves';
 const listeners = new Set<() => void>();
 let cache: Set<string> | null = null;

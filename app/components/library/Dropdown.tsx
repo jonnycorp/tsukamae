@@ -74,7 +74,7 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
 
   // under the trigger, or over it where there's no room below; as wide as its widest option, so none is cut off, and
   // never narrower than the trigger, kept inside the window. Placed by where it lands: what holds a fixed element isn't
-  // always the window (an ancestor with a transform or a container's containment is: the batch bar, the review's
+  // always the window (an ancestor with a transform or a container's containment is: the review's
   // stage), nor are its pixels always the screen's (a zoomed ancestor scales them: the dex, a scene), so it's measured
   // at 0, 0, unfurl held, and moved
   useLayoutEffect(() => {
@@ -110,7 +110,7 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
         }
       }
     }
-    // (lab 10) as tall as its options, to its cap: under the trigger where that fits, else over it where that fits, else
+    // as tall as its options, to its cap: under the trigger where that fits, else over it where that fits, else
     // on the side with the more room, held to it, so no part of it is ever past the window's edge (W's ball grid, in the
     // narrow window, went past its top)
     const tall = Math.min(origin.height, maxHeight * zoom);

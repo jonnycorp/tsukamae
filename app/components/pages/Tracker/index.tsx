@@ -379,7 +379,7 @@ function TrackerInner () {
   useHotkey('v', () => switchLayout(layout === 'boxes' ? 'ledger' : 'boxes'));
 
   // the review (W): the mons the dex shows now, in its order, from the popover's if one's open, else from the one W
-  // was pressed over (a press marks a tile without opening it), or (lab 10) the open record pressed; closing it comes
+  // was pressed over (a press marks a tile without opening it), or the open record pressed; closing it comes
   // back to the one it ended on. A checklist keeps no records to review
   const reviewFrom = useCallback((from: number) => {
     const matchesFilters = filterMatcher(filters);
@@ -391,7 +391,7 @@ function TrackerInner () {
     setSelectedPokemon(0);
   }, [captures, filters, query, activeDexView]);
   const handleOpenReview = useCallback((pointed = 0) => reviewFrom(selectedPokemon || pointed), [reviewFrom, selectedPokemon]);
-  // (lab 10) a marked mon opened, by a press on its tile or row (openHost) or a pick in a scene: an open record in the
+  // a marked mon opened, by a press on its tile or row (openHost) or a pick in a scene: an open record in the
   // review at it (its run the dex as it's viewed), a sealed one's card. A checklist opens neither
   const openMonRef = useRef<(pokemon: number) => void>(() => {});
   openMonRef.current = (pokemon) => {
@@ -498,8 +498,8 @@ function TrackerInner () {
   const handleOrreryFilter = useCallback((next: TrackerFilters, view: OrreryView) => {
     handleLayerFilter(next, { scene: 'orrery', view });
   }, [handleLayerFilter]);
-  // first of every listener, so the key is read before anything acts on it: an open popover, menu, panel or
-  // selection (the ledger's), or a field being typed in, keeps it
+  // first of every listener, so the key is read before anything acts on it: an open popover, menu or panel, or a field
+  // being typed in, keeps it
   useEffect(() => {
     if (!layerStands) {
       return undefined;

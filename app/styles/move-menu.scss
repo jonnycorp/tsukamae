@@ -1,7 +1,7 @@
 @use 'variables' as *;
 @use 'mixins' as *;
 
-// (lab 10) the move menu (components/pages/Tracker/MoveMenu.tsx), S or L over a sealed tile or at its place under W's
+// the move menu (components/pages/Tracker/MoveMenu.tsx), S or L over a sealed tile or at its place under W's
 // lens: the mon and where it is, HOME and Champions large, a free-form dex's checklist boxes, then your games as W's
 // chips with their number keys; coming home from a game, the level it's back at. In the menus' overlay colours, at the
 // zoom of what it opened over (the panel's own zoom)

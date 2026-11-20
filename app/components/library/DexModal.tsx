@@ -63,7 +63,7 @@ export function DexModal ({ dex, onRequestClose }: Props) {
     const stored = dex?.captureDefaults?.status;
     return stored && STATUSES.includes(stored) ? stored : 'caught';
   });
-  // (lab 10) a HOME dex keeping records has no Temporary: a stored one shows, and saves, as caught
+  // a HOME dex keeping records has no Temporary: a stored one shows, and saves, as caught
   const homeRecords = gameId === 'home' && !checklist;
   const shownStatus = homeRecords && defaultStatus === 'temporary' ? 'caught' : defaultStatus;
   const [defaults, setDefaults] = useState<Partial<CaptureMetadata>>(() => withBaselines({ ...dex?.captureDefaults }, DEFAULTABLE_BASELINES));

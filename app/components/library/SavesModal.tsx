@@ -25,7 +25,7 @@ export function SavesModal ({ onRequestClose }: Props) {
   const { dexes, saves, createSave, updateSave, moveSave, deleteSave } = useDexContext();
   const { t, locale } = useTranslation();
   const { closing, dismiss } = useDismissable({ onDismissed: onRequestClose });
-  // (lab 10) the saves whose journey is over, never offered as a place to move a mon to
+  // the saves whose journey is over, never offered as a place to move a mon to
   const retired = useRetiredSaves();
 
   const [adding, setAdding] = useState(false);
@@ -38,7 +38,7 @@ export function SavesModal ({ onRequestClose }: Props) {
   const [draftOT, setDraftOT] = useState('');
   const [draftTID, setDraftTID] = useState('');
 
-  // (lab 10 round 7) as long as the game let an OT be in its language; its ID No. as many digits as the game shows
+  // as long as the game let an OT be in its language; its ID No. as many digits as the game shows
   const otMax = otLimit(draftGame, draftLanguage);
   const tidMax = idLength(draftGame);
 
@@ -55,7 +55,7 @@ export function SavesModal ({ onRequestClose }: Props) {
       (!tid || !save.tid || save.tid === tid)));
   const canAdd = Boolean(draftGame && draftLanguage && draftOT.trim()) && !duplicate;
 
-  // (lab 10 round 7) a game in a language it never came in loses it, and its OT and ID No. are held to its limits
+  // a game in a language it never came in loses it, and its OT and ID No. are held to its limits
   const handleGameChange = (next: string) => {
     setDraftGame(next);
     const language = draftLanguage && languageAllowed(next, draftLanguage) ? draftLanguage : '';
@@ -145,7 +145,7 @@ export function SavesModal ({ onRequestClose }: Props) {
                 <div className="saves-list-key">{saveLabel(save, locale)}</div>
                 <div className="saves-list-key">{save.ot}</div>
                 <div className="saves-list-key saves-list-tid">{save.tid || '—'}</div>
-                {/* (lab 10) 引退: a save you can't reach anymore. A HOME entry is a trainer, never a place, so it has none */}
+                {/* 引退: a save you can't reach anymore. A HOME entry is a trainer, never a place, so it has none */}
                 <div className="saves-list-retired" title={t('saves.retiredHint')}>
                   {save.game !== 'home' &&
                     <label>

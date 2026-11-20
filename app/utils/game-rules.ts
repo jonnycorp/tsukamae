@@ -1,4 +1,4 @@
-// (lab 10 round 7) what a mon's origin game makes possible, so a record is only ever offered what one from there can hold:
+// what a mon's origin game makes possible, so a record is only ever offered what one from there can hold:
 // - the balls it could have been caught, hatched or given in there;
 // - the languages the game was made in;
 // - how many digits its ID No. has (five to Gen 6, 0 to 65535; six from Gen 7);
@@ -92,27 +92,22 @@ export function idLength (game: string | null | undefined): number {
 }
 
 export function idAllowed (game: string | null | undefined, tid: string): boolean {
-  if (!/^\d+$/.test(tid) || tid.length > idLength(game)) {
-    return false;
-  }
-  return idLength(game) === 6 || Number(tid) <= 65535;
+  const length = idLength(game);
+  return /^\d+$/.test(tid) && tid.length <= length && (length === 6 || Number(tid) <= 65535);
 }
 
 // ---- names: an OT is set the day it's caught, so its game's limit holds (Gen 3 to 5: 5 in Japanese or Korean, 7 in
 // the rest; from Gen 6, 6 and 12). A nickname takes its language's from Gen 6 whatever the game: a Gen 3 to 5 mon that came
 // over without one can be given its first in Sword, Shield, Scarlet or Violet
 
-const CJK = ['japanese', 'korean', 'chinese_simplified', 'chinese_traditional'];
+export const CJK = new Set(['japanese', 'korean', 'chinese_simplified', 'chinese_traditional']);
 export function otMax (game: string | null | undefined, language: string | null | undefined): number {
   const generation = generationOf(game) ?? 9;
-  const cjk = CJK.includes(language ?? '');
+  const cjk = CJK.has(language ?? '');
   if (generation <= 5) {
     return cjk ? 5 : 7;
   }
   return cjk ? 6 : 12;
 }
 
-export function nicknameMax (game: string | null | undefined, language: string | null | undefined): number {
-  const cjk = CJK.includes(language ?? '');
-  return cjk ? 6 : 12;
-}
+export const nicknameMax = (language: string | null | undefined): number => (CJK.has(language ?? '') ? 6 : 12);

@@ -107,7 +107,7 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture }: Prop
       }
       setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === capture.pokemon.id ? { ...cap, sealed: false } : cap)));
       updateCapture({ pokemon: capture.pokemon.id, sealed: false });
-      // (lab 10) its defaulted fields were all touched as it was sealed, and stay so in W (utils/review-confirm)
+      // its defaulted fields were all touched as it was sealed, and stay so in W (utils/review-confirm)
       writeTouches(activeDex!.id, capture.pokemon.id, CONFIRMABLE_IDS);
     },
   });
@@ -133,8 +133,8 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture }: Prop
     };
 
   // a press: an unmarked mon marked (as the dex's default) and nothing more, so a run of them goes one-handed; a marked
-  // one opened (lab 10: an open record in the review, W, at it; a sealed one's card), so a second press opens what the first marked (kept where it was in a view it no longer
-  // matches, Missing's, useHeldTiles in Dex). Shift never opens (a marked one it leaves be, so a run of Shift+clicks
+  // one opened (an open record in the review, W, at it; a sealed one's card), so a second press opens what the first
+  // marked (kept where it was in a view it no longer matches, Missing's, useHeldTiles in Dex). Shift never opens (a marked one it leaves be, so a run of Shift+clicks
   // opens nothing); Alt opens it without marking (its links, a look at the mon), which a checklist, having no popover,
   // leaves be
   const handleTileClick = (e: MouseEvent<HTMLDivElement>) => {

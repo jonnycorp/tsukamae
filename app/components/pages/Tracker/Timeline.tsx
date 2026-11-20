@@ -626,7 +626,6 @@ export function Timeline ({ onClose, onLocate }: Props) {
             <FontAwesomeIcon icon={faRotateRight} />
           </button>
         }
-        {/* (lab 10 round 8) no ✕: Esc closes it */}
       </div>
 
       <div

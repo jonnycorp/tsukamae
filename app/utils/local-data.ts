@@ -437,7 +437,7 @@ export function freeCaptures (dex: PersonalDex): Capture[] {
   });
 }
 
-// (lab 10) a HOME dex that keeps records (not a checklist, whose Temporary is Elsewhere) has no Temporary: an open record
+// a HOME dex that keeps records (not a checklist, whose Temporary is Elsewhere) has no Temporary: an open record
 // there already is one. A stored Temporary, an old mark, reads as caught, and nothing offers it
 export const noTemporary = (dex: Pick<PersonalDex, 'checklist' | 'catalogKey'>) => !dex.checklist && getCatalogDex(dex.catalogKey).game.id === 'home';
 const statusIn = (dex: Pick<PersonalDex, 'checklist' | 'catalogKey'>, status: CaptureStatus | null | undefined) =>
@@ -523,7 +523,7 @@ export function freshEntry (dex: PersonalDex, saves: GameSave[], species: number
   return withBaselines({ ...newEntryMetadata(dex, saves, species), status: 'caught', sealed: false });
 }
 
-// what a click marks; a checklist always checks as caught, and so does a default this version doesn't know, or (lab 10) a
+// what a click marks; a checklist always checks as caught, and so does a default this version doesn't know, or a
 // Temporary in a HOME dex
 export function defaultStatus (dex: Pick<PersonalDex, 'checklist' | 'captureDefaults' | 'catalogKey'>): CaptureStatus {
   const status = !dex.checklist && dex.captureDefaults?.status;

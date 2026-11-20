@@ -41,7 +41,7 @@ export function movedRecord<T extends Located & Pick<CaptureMetadata, 'been_to_c
   };
 }
 
-// (lab 10) a HOME dex's sealed mon out in one of your games is still being raised there: its level isn't tracked till
+// a HOME dex's sealed mon out in one of your games is still being raised there: its level isn't tracked till
 // it's back (育成中), the last one confirmed kept as a floor
 export const inTraining = (record: Pick<Capture, 'sealed' | 'location'>, homeDex: boolean) => homeDex && record.sealed && record.location === 'game';
 

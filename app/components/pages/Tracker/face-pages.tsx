@@ -26,7 +26,7 @@ function LangTag ({ capture }: Props) {
   return abbr ? <span className="language-tag">{abbr}</span> : null;
 }
 
-// (lab 10) a mon out in a game (inTraining) is still going up: its floor, with a plus
+// a mon out in a game (inTraining) is still going up: its floor, with a plus
 function Level ({ capture, training }: Props & { training: boolean }) {
   if (training) {
     return <span className="page-level">Lv.{capture.level ?? '?'}+</span>;
@@ -69,7 +69,7 @@ function hexPoint (letter: StatLetter, r: number): [number, number] {
   return [Math.round(r * Math.cos(angle) * 100) / 100, Math.round(r * Math.sin(angle) * 100) / 100];
 }
 
-// also drawn larger by CSS on the review's nature plate (lab 10), its viewBox scaling every line with it
+// also drawn larger by CSS on the review's nature plate, its viewBox scaling every line with it
 export function NatureHex ({ capture }: Props) {
   const r = 7;
   const stats = natureStats(capture.nature);

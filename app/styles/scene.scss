@@ -44,7 +44,7 @@ $scene-spring: cubic-bezier(.2, 1.4, .4, 1);
 
   box-shadow: inset 0 -2px var(--accent);
 
-  // the dex's name takes the bar's free room, so the hint and the close keep to its right end with or without the hint
+  // the dex's name takes the bar's free room, so the hint keeps to its right end
   h1 {
     @include scene-title;
 

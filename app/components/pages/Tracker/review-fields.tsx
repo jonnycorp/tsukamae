@@ -7,6 +7,7 @@ import { DraftInput } from '../../library/DraftInput';
 import { Dropdown } from '../../library/Dropdown';
 import { LANGUAGE_ABBRS, NAME_MAX_FALLBACK, NATURES, ORIGIN_GAME_NAMES, ballOptions, favoriteOptions, formatFieldValue, genderOptions, languageOptions, locationOptions, nameLang, readFavorite, saveLabel } from '../../../utils/capture-fields';
 import { MY_GAME_IDS, softFields } from '../../../utils/review-confirm';
+import { CJK } from '../../../utils/game-rules';
 import { NatureHex } from './face-pages';
 import { OriginMark } from './seal-faces';
 import { gameColor } from '../../../utils/game-colors';
@@ -22,9 +23,8 @@ import type { DropdownOption } from '../../library/Dropdown';
 import type { OriginMode } from '../../../utils/review-confirm';
 import type { RecordPatch } from './use-patch';
 
-// lab 10: the review's plates, each field in a spot of its own with a picture of its value beside it, so a wrong one
-// shows at a glance; a menu's field opens a grid of pictures (balls, natures, games) right where it is. (round 7) One look:
-// the two passes, values and boxes, made one
+// the review's plates, each field in a spot of its own with a picture of its value beside it, so a wrong one
+// shows at a glance; a menu's field opens a grid of pictures (balls, natures, games) right where it is
 
 const NOT_MINE = 'not-my-game';
 // a place in the one location picker: a game's save, or a checklist dex's HOME boxes (free-form dexes)
@@ -253,19 +253,18 @@ const GRID: Partial<Record<CaptureField['id'], { columns: number; maxHeight?: nu
   gigantamax: { columns: 2 },
 };
 // a narrow window's grids: a column fewer where a whole one wouldn't fit across it, the games' four slimmer ones, so
-// every grid opens whole, never scrolled (round 7)
+// every grid opens whole, never scrolled
 const NARROW_COLUMNS: Partial<Record<CaptureField['id'], number>> = { ball: 7 };
 
-// ---- the controls of a record still open. (lab 10 round 7) One look, the values' pictures and grids, every field a field
+// ---- the controls of a record still open. One look, the values' pictures and grids, every field a field
 // of its own: a menu's field is a box around its value beside its picture, as wide as its longest value, so it never moves
 // as the value changes and a press beside it is a press on the plate, never on the box; a typed field is a line under
 // what's typed, as wide as what it takes, there whether it's pointed at or not
 
-// (round 7) how wide a typed field is, in the font's digit widths: its longest, an ID No.'s five or six digits, a name's
+// how wide a typed field is, in the font's digit widths: its longest, an ID No.'s five or six digits, a name's
 // letters, a Japanese, Korean or Chinese one's characters twice as wide
-const WIDE_SCRIPTS = new Set(['japanese', 'korean', 'chinese_simplified', 'chinese_traditional']);
 const fieldChars = (field: CaptureField, capture: Capture) => (field.maxLength?.(capture) ?? NAME_MAX_FALLBACK) *
-  (field.id !== 'tid' && WIDE_SCRIPTS.has(capture.language ?? '') ? 2 : 1);
+  (field.id !== 'tid' && CJK.has(capture.language ?? '') ? 2 : 1);
 
 // a box's text: the value shown, and every value it can show laid unseen under it, so the box is as wide as the longest
 function BoxText ({ shown, blank, sizes }: { shown: ReactNode; blank: boolean; sizes: ReactNode[] }) {
@@ -343,7 +342,7 @@ export function FieldControl ({ field, capture, saves, homeDex, canVisitChampion
       if (field.id === 'gender') {
         options = genderOptions(locale, capture.pokemon.gender_lock);
       } else if (field.id === 'ball') {
-        // (round 7) the balls its origin game holds
+        // the balls its origin game holds
         options = ballOptions(locale, capture);
       } else if (field.id === 'language') {
         options = languageOptions(locale, capture);
@@ -508,7 +507,7 @@ export function FieldControl ({ field, capture, saves, homeDex, canVisitChampion
   }
 }
 
-// ---- (lab 10 round 6) My Game, the soft: only a way in, never part of the record, and the one way the four it fills
+// ---- My Game, the soft: only a way in, never part of the record, and the one way the four it fills
 // change while they're its. A pick of one of your saves fills the game, the language, the OT and the ID No. at once (the
 // ID No., large in its row, the sign it took); a HOME entry fills its trainer alone, the game the mark's, kept where the
 // record has one and asked where it hasn't; Not my game clears what a save filled and leaves the four to the hand. Drawn

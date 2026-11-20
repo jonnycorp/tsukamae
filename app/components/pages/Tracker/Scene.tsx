@@ -61,8 +61,8 @@ interface Props {
   children: (view: { scale: number }) => ReactNode;
 }
 
-// a scene: over the window as the almanac is, under the same bar (its name in the accent, the dex's beside it, a hint;
-// lab 10 round 8: no close button), opening on its title card. Escape closes it, unless something in it (a menu) has
+// a scene: over the window as the almanac is, under the same bar (its name in the accent, the dex's beside it, a hint),
+// opening on its title card. Escape closes it, unless something in it (a menu) has
 // claimed the key first
 export function Scene ({ name, title, hint, onClose, quiet = false, children }: Props) {
   const { activeDex } = useDexContext();
@@ -113,7 +113,6 @@ export function Scene ({ name, title, hint, onClose, quiet = false, children }: 
         <span className="scene-logo"><span>{title}</span></span>
         <h1>{activeDex!.title}</h1>
         <span className="scene-hint">{hint}</span>
-        {/* (lab 10 round 8) no ✕: Esc closes it */}
       </header>
       <div className="scene-body" data-intro={intro || undefined} ref={bodyRef} tabIndex={-1}>
         {children({ scale })}

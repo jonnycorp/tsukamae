@@ -37,8 +37,8 @@ export function resolvePatch (capture: Capture, changes: RecordPatch, env: Patch
   return resolved;
 }
 
-// one change written to several marked records (the popover's one, the ledger's selection): each resolved against its
-// own record, mirrored into the tracker with writeCapture's baseline fill, and stored. Checklists never get here
+// one change written to marked records (the review's): each resolved against its own record, mirrored into the
+// tracker with writeCapture's baseline fill, and stored. Checklists never get here
 export function usePatchRecords (): (targets: Capture[], changes: RecordPatch) => void {
   const { activeDex, activeDexView, saves } = useDexContext();
   const { setCaptures, updateCapture } = useTrackerActions();

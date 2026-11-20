@@ -11,7 +11,7 @@ $review-ease: cubic-bezier(.2, .9, .3, 1);
 $review-spring: cubic-bezier(.2, 1.5, .4, 1);
 // the list's width, at the scene's scale (--scale)
 $run-width: 268px;
-// (lab 10) the mon bigger, front and centre: the lens and its sprite a size up
+// the mon bigger, front and centre: the lens and its sprite a size up
 $lens: 320px;
 // the wires' length, between a side's plates and the mon
 $wire: 30px;
@@ -86,7 +86,7 @@ $wire: 30px;
   }
 }
 
-// (lab 10) W's entrance, in place of its title card now it's the main way in: the mon settles, the plates come in top
+// W's entrance, in place of a title card: the mon settles, the plates come in top
 // to bottom on both sides, each wire drawn toward the mon, left to right, a quarter second in all
 @keyframes review-settle {
   from {
@@ -151,7 +151,7 @@ $wire: 30px;
   animation: fade-in .15s ease-out;
 }
 
-// the scenes' bar (mixins); (round 9) nothing on it but 「確認」 and the dex's name, the name bigger than the scenes'
+// the scenes' bar (mixins); nothing on it but 「確認」 and the dex's name, the name bigger than the scenes'
 .review-top {
   @include scene-bar;
 
@@ -197,7 +197,7 @@ $wire: 30px;
   }
 }
 
-// the run's list beside the mon, each its own scroll; (round 8) always there where there's room, never in a narrow window
+// the run's list beside the mon, each its own scroll; always there where there's room, never in a narrow window
 .review-body {
   display: grid;
   position: relative;
@@ -327,7 +327,7 @@ $wire: 30px;
 }
 
 // zoomed up to a wide window (Review.tsx), its own width what lays it out: the mon between its two sides of plates,
-// then over them. (lab 10) Every plate one size on every mon and every field in a spot of its own, the sizes chosen so a
+// then over them. Every plate one size on every mon and every field in a spot of its own, the sizes chosen so a
 // maximized 1440p window and a narrow one-box window (755 by 857) both hold it whole: nothing to scroll, and nothing
 // moves from mon to mon but the values
 .review-stage {
@@ -338,7 +338,7 @@ $wire: 30px;
   // a plate's height, the gap between plates, a picture's size, My Game's bar, a ball sprite's zoom to the picture
   --plate-h: 68px;
   --plate-gap: 8px;
-  // (lab 10) the slight break after each side's fourth plate
+  // the slight break after each side's fourth plate
   --plate-break: 14px;
   --vis: 34px;
   --fill-h: 34px;
@@ -359,9 +359,9 @@ $wire: 30px;
   gap: var(--plate-gap);
   position: relative;
 
-  // (lab 10) each side breaks after its fourth: above, what's fixed the day it was caught (where it came from; ball, date,
+  // each side breaks after its fourth: above, what's fixed the day it was caught (where it came from; ball, date,
   // gender and nature); below, what can come later (a visit to Champions, Max Soup; and the four changed by unsealing).
-  // By field, as the card behind the left's four (round 6) is a child of the side too
+  // By field, as the card behind the left's four is a child of the side too
   > [data-field='been_to_champions'],
   > [data-field='nickname'] {
     margin-top: var(--plate-break);
@@ -667,7 +667,7 @@ $wire: 30px;
     background-color: var(--hover-wash);
   }
 
-  // the one a mon has; (lab 10) in a HOME dex, the default a mon not yet marked takes (caught)
+  // the one a mon has; in a HOME dex, the default a mon not yet marked takes (caught)
   &.on,
   &.default {
     border-color: var(--mark);
@@ -675,7 +675,7 @@ $wire: 30px;
   }
 }
 
-// (lab 10) a sealed mon's place, in the release's row: its picture and name, a press (or S) opening the move menu
+// a sealed mon's place, in the release's row: its picture and name, a press (or S) opening the move menu
 .review-place {
   --vis: 24px;
 
@@ -830,7 +830,7 @@ $wire: 30px;
     --wire: var(--status-caught);
   }
 
-  // (lab 10) a defaulted field still to touch: a press on the plate confirms it (only its box opens its menu). The wash
+  // a defaulted field still to touch: a press on the plate confirms it (only its box opens its menu). The wash
   // laid over the plate (a mix with it would take the wash's transparency, the page showing through)
   &.touchable:hover {
     background-image: linear-gradient(var(--hover-wash), var(--hover-wash));
@@ -885,7 +885,7 @@ $wire: 30px;
   min-width: 0;
   height: 100%;
 
-  // (round 7) a field takes the room its values need, never the row's: a press beside it is a press on the plate
+  // a field takes the room its values need, never the row's: a press beside it is a press on the plate
   > .dropdown,
   > .rv-number {
     flex: 0 1 auto;
@@ -1091,7 +1091,7 @@ $wire: 30px;
     stroke: color-mix(in srgb, var(--ink) 70%, transparent);
   }
 
-  // (lab 10) a mon out in a game still going up: filled to its floor, the rest of its track broken
+  // a mon out in a game still going up: filled to its floor, the rest of its track broken
   &.training {
     .rv-ring-track {
       stroke-dasharray: 2.6 2.6;
@@ -1206,7 +1206,7 @@ $wire: 30px;
   }
 }
 
-// ---- the fields of a record still open. (round 7) One look: a menu's field a box around its value, as wide as its longest
+// ---- the fields of a record still open. One look: a menu's field a box around its value, as wide as its longest
 // value, its grid opening under it; a typed field a line under what's typed, as wide as what it takes, there whether it's
 // pointed at or not
 
@@ -1354,7 +1354,7 @@ $wire: 30px;
   }
 }
 
-// ---- (lab 10 round 6) the cartridge: on a record still open, the four the game's plate starts (game, language, OT, ID
+// ---- the cartridge: on a record still open, the four the game's plate starts (game, language, OT, ID
 // No.) held as one card where they're one of your saves', the card drawn behind their four plates, which stand where
 // they always do (so nothing moves as it's sealed) without frames of their own, their wires kept. Its spine down the
 // outer edge in the save's box-art colour; its first row My Game's box, the whole row, the one way the four change; the
@@ -1846,7 +1846,7 @@ $wire: 30px;
   }
 
 
-  // (round 7) the games' grid four across and My Game's three, slimmer, so each opens whole, never scrolled
+  // the games' grid four across and My Game's three, slimmer, so each opens whole, never scrolled
   .rv-grid.rv-menu-origin_game li {
     width: 156px;
   }
@@ -1900,7 +1900,7 @@ $wire: 30px;
   flex: 1;
 }
 
-// (lab 10) the species' pages, quietly beside the way back
+// the species' pages, quietly beside the way back
 .review-links {
   display: flex;
   gap: 14px;
@@ -1968,9 +1968,9 @@ $wire: 30px;
 }
 
 
-// ---- (lab 10) the entrance, as W opens (data-entering, Review.tsx), the first mon settling in its bay (data-dir 0): the
+// ---- the entrance, as W opens (data-entering, Review.tsx), the first mon settling in its bay (data-dir 0): the
 // plates fading in row by row (--row) from the top on both sides, each wire then drawn from its plate toward the mon and
-// its dot lit (round 8: the right side's right to left, as the user asked). Only opacity and transform. Held at its start while the first frames go by
+// its dot lit (the right side's right to left). Only opacity and transform. Held at its start while the first frames go by
 // (data-gate, title-card.scss); still mode lands at once (main.scss's net). A theme can bring its own entrance
 // (ThemeSeed.reviewEntrance)
 .review[data-entering] {
@@ -1986,7 +1986,7 @@ $wire: 30px;
     animation-delay: calc(var(--row, 0) * 10ms + 90ms);
   }
 
-  // (round 8) each wire drawn from its plate toward the mon: the left side's left to right, the right side's right to left
+  // each wire drawn from its plate toward the mon: the left side's left to right, the right side's right to left
   .review-side.right > .review-plate::after {
     transform-origin: right;
   }

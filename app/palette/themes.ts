@@ -50,7 +50,7 @@ export interface ThemeSeed {
   // how a sealed tile's pages change: slid up, unless it says brushed, a brush's mark laid over the line as its text
   // changes under it (its mark and ink --page-brush and --page-brush-color in styles/themes.scss; page-brush.ts)
   pageChange?: 'brush';
-  // (lab 10) how W comes in as it opens: the mon settling and the plates coming in, unless it says brushed, a stroke of
+  // how W comes in as it opens: the mon settling and the plates coming in, unless it says brushed, a stroke of
   // its brush across each plate, drying as the value shows (styles/review.scss)
   reviewEntrance?: 'brush';
 }

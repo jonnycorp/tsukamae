@@ -16,7 +16,7 @@ interface Shortcut {
   label: TranslationKey | TranslationKey[];
   // only where the dex keeps records: a checklist has no popover, review, timeline, flips or scenes reading records
   records?: boolean;
-  // (lab 10) only outside a HOME dex, or only in one: W's marks differ
+  // only outside a HOME dex, or only in one: W's marks differ
   notHome?: boolean;
   homeOnly?: boolean;
 }

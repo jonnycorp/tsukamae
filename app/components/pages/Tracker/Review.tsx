@@ -35,9 +35,9 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { OriginMode } from '../../../utils/review-confirm';
 import type { RecordPatch } from './use-patch';
 
-// (lab 10) the plates either side of the mon, every field in a spot of its own that's the same on every mon, so going
+// the plates either side of the mon, every field in a spot of its own that's the same on every mon, so going
 // from one to the next changes values and never places: on the left where it came from (on a record still open, held in
-// one card with My Game's box where it's one of your saves', round 6), then the two only some mons are asked, an empty
+// one card with My Game's box where it's one of your saves'), then the two only some mons are asked, an empty
 // spot on the rest; on the right what it is.
 // Each side breaks after its fourth: above, what's fixed the day it was caught; below, what can come later (a visit to
 // Champions, Max Soup, and the four on the right changed by unsealing). Where it is isn't a plate in a HOME dex: it's a
@@ -58,7 +58,7 @@ const HOME_GATES = HOME_FLOW.filter((field) => field.gatesSeal);
 const GAME_GATES = GAME_FLOW.filter((field) => field.gatesSeal);
 // a field answered from a menu goes on to the next still to fill; one typed into goes on with Enter
 const MENU_KINDS = new Set(['select', 'yesno', 'save', 'location']);
-// too narrow for the list beside the mon: (round 8) there it isn't shown
+// too narrow for the list beside the mon: there it isn't shown
 const NARROW_QUERY = '(width < 1000px)';
 
 const MARKS: { status: CaptureStatus; icon: IconDefinition; key: string }[] = [
@@ -66,7 +66,7 @@ const MARKS: { status: CaptureStatus; icon: IconDefinition; key: string }[] = [
   { status: 'temporary', icon: faClock, key: '2' },
   { status: 'unobtainable', icon: faBan, key: '3' },
 ];
-// (lab 10) a HOME dex's, for a mon not yet marked alone: caught, the default (as a press in the dex marks), or
+// a HOME dex's, for a mon not yet marked alone: caught, the default (as a press in the dex marks), or
 // unobtainable. A record there has no Temporary, and an open one is already one
 const HOME_MARKS: { status: CaptureStatus; icon: IconDefinition; key: string }[] = [
   { status: 'caught', icon: faCheck, key: '1' },
@@ -89,7 +89,7 @@ function toFill (capture: Capture, homeDex: boolean): number {
 }
 
 // the control a field still waits on, if it waits: a game's own pick under In a game, the name under a ticked
-// nickname box; (round 6) My Game for the fields its card holds (soft: a save's four, or the trainer of a HOME gift)
+// nickname box; My Game for the fields its card holds (soft: a save's four, or the trainer of a HOME gift)
 function waitingControl (capture: Capture, field: CaptureField, missing: Set<string>, soft: string[]): string | null {
   if (field.id === 'save') {
     return soft.some((id) => missing.has(id)) ? 'review-save' : null;
@@ -124,9 +124,9 @@ function nextToFill (capture: Capture, after: string | null, from: string | null
   return null;
 }
 
-// how many recent dates the date plate offers: (lab 10) one, so none is ever out of sight
+// how many recent dates the date plate offers: one, so none is ever out of sight
 const RECENT_DATES = 1;
-// (lab 10) the entrance's length, its last wire's dot landed, in step with styles/review.scss's (Ink's brush the longest)
+// the entrance's length, its last wire's dot landed, in step with styles/review.scss's (Ink's brush the longest)
 const ENTRANCE_MS = 420;
 
 interface RowProps {
@@ -255,7 +255,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   const [flow, setFlow] = useState<{ after: string | null; from?: string | null } | null>(null);
   // the mon just sealed here, its stamp slammed down as it was (not as it comes up sealed)
   const [stamping, setStamping] = useState<number | null>(null);
-  // (lab 10) its entrance as it opens, in place of a title card (styles/review.scss): held at its start while the first
+  // its entrance as it opens, in place of a title card (styles/review.scss): held at its start while the first
   // frames go by (gate, useCalmStart), so it never starts in a stall, and let go once it's played (entering). Keys and
   // presses work from the first frame; still mode lands at once
   const { still } = useThemeContext();
@@ -275,7 +275,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   const pointedRef = useRef(false);
   const dex = activeDexView!;
   const homeDex = dex.game.id === 'home';
-  // (lab 10) the defaulted fields touched here, by mon (utils/review-confirm), kept in this window's storage
+  // the defaulted fields touched here, by mon (utils/review-confirm), kept in this window's storage
   const dexId = activeDex!.id;
   const [touches, setTouches] = useState(() => readTouches(dexId));
   const touch = useCallback((pokemon: number, fields: string[] | null, untouch: string[] = []) => setTouches(writeTouches(dexId, pokemon, fields, untouch)), [dexId]);
@@ -303,7 +303,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
       mainRef.current.scrollTop = 0;
     }
   }, [shownId]);
-  // what the seal waits on: a field to answer, and (lab 10) a defaulted one still to touch
+  // what the seal waits on: a field to answer, and a defaulted one still to touch
   const toTouch = capture ? untouched(capture, touches[capture.pokemon.id], given) : [];
   const missing = capture?.captured && capture.status !== 'unobtainable' ? [...gateOf(capture, homeDex), ...toTouch] : [];
   const missingIds = new Set<string>(missing.map((field) => field.id));
@@ -311,7 +311,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   const last = index >= queue.length - 1;
   // a record still open, its fields taking answers
   const answering = Boolean(capture?.captured && !capture.sealed && capture.status !== 'unobtainable');
-  // (round 6) where the four the game's plate starts came from (originMode): one of your saves, held in one card that only
+  // where the four the game's plate starts came from (originMode): one of your saves, held in one card that only
   // My Game changes; a HOME entry's trainer, held so, the game picked apart; by hand; or none yet, the card waiting on a pick
   const origin: { mode: OriginMode; save?: GameSave } = capture && answering ? originMode(capture, saves, touches[capture.pokemon.id]) : { mode: 'manual' };
   const soft = softFields(origin.mode);
@@ -358,7 +358,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
 
   const close = useCallback(() => onClose(queue[index] ?? null), [onClose, queue, index]);
 
-  // (lab 10) a sealed mon's place moved from the move menu, opened at its chip under the lens (S, or a press on it)
+  // a sealed mon's place moved from the move menu, opened at its chip under the lens (S, or a press on it)
   const openPlace = useCallback(() => {
     const chip = document.getElementById('review-place');
     if (capture?.sealed && chip) {
@@ -459,8 +459,8 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         }
         go(e.key === 'ArrowRight' ? 1 : -1);
       } else if (e.key === ' ' && !typing && bare) {
-        // (lab 10) Space walks the run as E does, Shift+Space back as Q, held to run on: from anywhere but a field typed
-        // into or a button of its own (Previous and Next press again as they're focused, as before). A menu's button or
+        // Space walks the run as E does, Shift+Space back as Q, held to run on: from anywhere but a field typed
+        // into or a button of its own (Previous and Next press again as they're focused). A menu's button or
         // the Nickname box, left focused by the pointer's last answer, gives the key up rather than opening or toggling
         const button = target?.closest('button');
         if (!button || button.classList.contains('dropdown-trigger') || button.classList.contains('rv-toggle') || button.classList.contains('review-place') || field) {
@@ -526,7 +526,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
 
   // an answer picked by the keyboard from a menu to a field still to fill goes on: to the field's next control (In a
   // game, on to which game, though the place was answered before it) or the next field
-  // (round 6) My Game's pick (pick): the fields it touches, and whether the record's by hand from now on
+  // My Game's pick (pick): the fields it touches, and whether the record's by hand from now on
   const change = (field: CaptureField, changes: RecordPatch, pick?: { touched: string[]; manual: boolean }) => {
     if (capture) {
       // a pick is a touch (My Game's, of what it fills); a field a rule changed along with it (a nickname or a gift
@@ -619,13 +619,18 @@ export function Review ({ queue: opened, start, onClose }: Props) {
       <FontAwesomeIcon icon={faTrash} />{t('info.release')}
     </button>
   );
+  // each listed mon's defaulted fields still to touch, counted again only as a record or a touch changes
+  const runTouches = useMemo(() => new Map(queue.map((id) => {
+    const entry = byId.get(id);
+    return [id, entry ? untouched(entry, touches[id], given).length : 0];
+  })), [queue, byId, touches, given]);
   const checklists = useMemo(() => (dexes ?? []).filter((entry) => entry.checklist).map((entry) => ({ id: entry.id, title: entry.title })), [dexes]);
 
-  // (round 6) My Game's pick, as the card's box or the game's row's
+  // My Game's pick, as the card's box or the game's row's
   const pickSoft = (changes: RecordPatch, touched: string[], manual: boolean) => change(FIELD.get('save')!, changes, { touched, manual });
 
   // a field's plate, in its spot on every mon: its label, its picture and its value (a control while the record's open,
-  // the value once sealed, a dash till the mon's marked). (lab 10) Lit once it's in, every field alike: answered, and a
+  // the value once sealed, a dash till the mon's marked). Lit once it's in, every field alike: answered, and a
   // defaulted one touched; a sealed mon's all lit. On an open record its corner says so too, ! still to do and a tick
   // done; a sealed one's carries none. A field this mon is never asked (Been to Champions for a mon that can't go there,
   // Gigantamax for one with no giant form), or a mon with no record, keeps its spot empty, so no plate moves from mon to
@@ -638,21 +643,17 @@ export function Review ({ queue: opened, start, onClose }: Props) {
       return <div aria-hidden="true" className="review-slot" data-field={field.id} key={field.id} style={rowStyle} />;
     }
     const waiting = !capture.sealed && missingIds.has(field.id);
-    // (round 6) a row of the card, held: shown as it'll be sealed, a press anywhere on the card touching all it holds;
+    // a row of the card, held: shown as it'll be sealed, a press anywhere on the card touching all it holds;
     // the game's row the box itself where the four are (or wait on) a save's
     const fused = answering && soft.includes(field.id);
     const boxRow = fused && field.id === 'origin_game';
     // a defaulted field still at the value it was given: a press on its plate confirms it (on the card's, the card's)
     const touchable = fused ? !boxRow && cardTouch.length > 0 : toTouch.includes(field);
     let row;
-    if (!capture.captured) {
+    if (!capture.captured || (fused && origin.mode === 'empty')) {
       row = <span className="rv-text blank">—</span>;
-    } else if (capture.sealed) {
+    } else if (capture.sealed || fused) {
       row = <><FieldVisual capture={capture} field={field} homeDex={homeDex} saves={saves} /><FieldText capture={capture} field={field} homeDex={homeDex} saves={saves} /></>;
-    } else if (fused) {
-      row = origin.mode === 'empty'
-        ? <span className="rv-text blank">—</span>
-        : <><FieldVisual capture={capture} field={field} homeDex={homeDex} saves={saves} /><FieldText capture={capture} field={field} homeDex={homeDex} saves={saves} /></>;
     } else {
       row = (
         <>
@@ -681,7 +682,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         className={classNames('review-plate', `field-${field.id}`, { waiting, touchable, fused, 'soft-row': boxRow, done: capture.captured && !missingIds.has(field.id) })}
         data-field={field.id}
         key={field.id}
-        // (lab 10) a press on the plate never opens its menu or takes the caret: only its box does. On a defaulted field
+        // a press on the plate never opens its menu or takes the caret: only its box does. On a defaulted field
         // still to touch, it confirms the value it was given
         onClick={touchable
           ? (e) => {
@@ -714,7 +715,6 @@ export function Review ({ queue: opened, start, onClose }: Props) {
       <header className="review-top">
         <span className="review-logo"><span>{t('review.title')}</span></span>
         <h1>{activeDex!.title}</h1>
-        {/* (round 9) nothing else on the bar: no numbers, no hints; the keys are the H sheet's, and Esc closes */}
       </header>
       <div className="review-body">
         {!narrow &&
@@ -722,7 +722,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
             <ol style={{ zoom: scale }}>
               {queue.map((id, i) => {
                 const entry = byId.get(id);
-                return entry ? <RunRow capture={entry} current={i === index} dex={dex} index={i} key={id} onPick={pickFromList} toTouch={untouched(entry, touches[id], given).length} /> : null;
+                return entry ? <RunRow capture={entry} current={i === index} dex={dex} index={i} key={id} onPick={pickFromList} toTouch={runTouches.get(id) ?? 0} /> : null;
               })}
             </ol>
           </aside>
@@ -741,7 +741,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
                       <span className="review-lens-glass"><i className={iconClass(capture.pokemon, dex)} /></span>
                       {capture.sealed && <span className={classNames('review-stamp', { slam: stamping === capture.pokemon.id })}>{t('review.stamp')}</span>}
                     </div>
-                    {/* (lab 10) a row each, every one its own height on every mon, filled or not */}
+                    {/* a row each, every one its own height on every mon, filled or not */}
                     <div className="review-bay-info">
                       {/* the number before the name where the narrow window has no room to trace it behind the lens */}
                       <h2><span className="review-no">{dexNumber(capture.pokemon, dex)}</span><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></h2>
@@ -761,7 +761,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
                           </>
                         }
                       </div>
-                      {/* (lab 10) a sealed mon's unseal; an open record's release; in a HOME dex, a mon not yet marked its two
+                      {/* a sealed mon's unseal; an open record's release; in a HOME dex, a mon not yet marked its two
                           marks (an open record there is already temporary, and unobtainable can't be set on one with data) */}
                       <div className="review-acts">
                         {capture.sealed &&
@@ -803,7 +803,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
                       </div>
                       <div className="review-acts">
                         {!homeDex && releaseButton}
-                        {/* (lab 10) a sealed mon's place: its picture and name, moved from the menu a press (or S) opens */}
+                        {/* a sealed mon's place: its picture and name, moved from the menu a press (or S) opens */}
                         {capture.sealed &&
                           <button
                             className="review-place"
@@ -823,7 +823,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
                   {/* kept from mon to mon, so a field's value changes where it stands and nothing comes in again */}
                   {sides.map((fields, side) => (
                     <div className={classNames('review-side', side === 0 ? 'left' : 'right')} key={`side-${side}`}>
-                      {/* (round 6) the card the four origin plates stand in where they're a save's (or a HOME entry's
+                      {/* the card the four origin plates stand in where they're a save's (or a HOME entry's
                           trainer, or wait on a pick), behind them, its spine the save's colour */}
                       {side === 0 && soft.length > 0 &&
                         <div
@@ -845,7 +845,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         <button className="review-nav" disabled={index === 0} onClick={() => go(-1)} type="button">
           <FontAwesomeIcon icon={faArrowLeft} />{t('review.prev')}<kbd>Q</kbd>
         </button>
-        {/* (lab 10) the species' pages, as the open record's popover had them */}
+        {/* the species' pages */}
         {links &&
           <span className="review-links">
             <a href={links.bulbapedia} rel="noopener noreferrer" target="_blank">Bulbapedia<FontAwesomeIcon icon={faArrowUpRightFromSquare} /></a>

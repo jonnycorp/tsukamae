@@ -361,7 +361,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
           <Stat at={heroAt} className="seg-missing" label={t('almanac.missing')} value={missing} />
           {!checklist && <Stat at={heroAt} className="almanac-stat-sealed" icon={faLock} label={t('almanac.sealed')} value={all.sealed} />}
           <Stat at={heroAt} className="seg-caught" label={t('status.caught')} value={all.caught} />
-          {/* (lab 10) none in a HOME dex keeping records */}
+          {/* none in a HOME dex keeping records */}
           {(checklist || !homeDex) && <Stat at={heroAt} className="seg-temporary" label={t(checklist ? 'status.elsewhere' : 'status.temporary')} value={all.temporary} />}
           <Stat at={heroAt} className="seg-unobtainable" label={t('status.unobtainable')} value={all.unobtainable} />
         </dl>
@@ -621,7 +621,6 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
         <span className="almanac-logo"><span>{t('almanac.title')}</span></span>
         <h1>{activeDex!.title}</h1>
         <span className="almanac-hint">{t('almanac.hint')}</span>
-        {/* (lab 10 round 8) no ✕: Esc closes it */}
       </header>
       <div className="almanac-body" data-intro={intro || undefined} tabIndex={-1}>
         <div className="almanac-grid" style={{ zoom: scale }}>{cards}</div>

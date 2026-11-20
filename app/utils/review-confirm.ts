@@ -6,7 +6,7 @@ import { asksGigantamax } from './gigantamax';
 import type { Capture, CaptureMetadata, GameSave } from '../types';
 import type { CaptureField } from './capture-fields';
 
-// (lab 10) the plate fields a record can be given a value in without you. As it's marked:
+// the plate fields a record can be given a value in without you. As it's marked:
 // - its baselines: no Champions, no G-Max, no nickname, untrained, no heart;
 // - the dex's defaults: the game and its language, the OT and ID No. of the save they name, the ball, the training;
 // - a gender its species is locked to.
@@ -102,7 +102,7 @@ export function untouched (capture: Capture, touched: string[] | undefined, give
     !touched?.includes(field.id));
 }
 
-// (lab 10 round 6) where an open record's four origin fields came from, as W's left side shows them:
+// where an open record's four origin fields came from, as W's left side shows them:
 // - save: one of your saves, the four held as one card (the cartridge) and changed only by picking another;
 // - gift: a HOME entry's trainer (language, OT, ID No.) held so, the mark's game picked apart;
 // - manual: by hand, the four plates as before;

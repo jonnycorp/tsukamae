@@ -30,7 +30,6 @@ $dex-grid-gap: 40px;
 // keep in sync with FADE_MS in hooks/use-dismissable.ts
 $fade-duration: .15s;
 
-$space-xs: 6px;
 $space-sm: 12px;
 $space-field: 24px;
 $space-section: 40px;
@@ -43,8 +42,8 @@ $filter-control: 36px;
 $search-height: 42px;
 // the header's meter, its centerpiece: taller than the controls around it
 $meter-height: 46px;
-// every field (a text box, a date, a menu's button) wherever it's filled in: a form, a popover, the review, the batch
-// bar; this tall with its border, its words this size
+// every field (a text box, a date, a menu's button) wherever it's filled in: a form, the review, the move menu;
+// this tall with its border, its words this size
 $field-height: 36px;
 $field-font: 15px;
 // what a menu or a panel opening over the page casts: the dropdowns, the nav's and the dex's menus, the Filters panel

@@ -159,7 +159,7 @@ const CELLS: Record<LedgerColumnId, (capture: Capture, ctx: RowContext, state: L
   ot: (capture) => (capture.ot ? <span className="ledger-text">{capture.ot}</span> : blank),
   nickname: (capture) => (capture.has_nickname && capture.nickname ? <span className="ledger-text">{capture.nickname}</span> : blank),
   date: (capture) => (capture.catch_date ? capture.catch_date.replaceAll('-', '/') : blank),
-  // (lab 10) a mon out in a game still going up (inTraining): its floor, with a plus
+  // a mon out in a game still going up (inTraining): its floor, with a plus
   level: (capture, ctx) => (inTraining(capture, ctx.homeDex)
     ? <span title={ctx.t('level.training')}>{`${capture.level ?? '?'}+`}</span>
     : capture.level ?? blank),
@@ -171,9 +171,8 @@ interface RowProps {
   onPick: (capture: Capture, e: MouseEvent) => void;
 }
 
-// one mon across the columns; an edit (or a change to whether it's selected) re-renders its own row only. Pressed, an
-// unmarked mon is marked, as its tile's press marks it, and a marked one's popover opens beside it. Its box (or Ctrl,
-// or Shift for the run from the last one) selects it instead, or lets it go
+// one mon across the columns; an edit re-renders its own row only. Pressed, an unmarked mon is marked, as its tile's
+// press marks it, and a marked one opened (handlePick)
 const LedgerRow = memo(function LedgerRow ({ capture, ctx, onPick }: RowProps) {
   const state = stateOf(capture, ctx.checklist);
   const recorded = capture.captured && capture.status !== 'unobtainable';
@@ -337,7 +336,7 @@ export function Ledger ({ captures, filters, held, query, setFilters, setQuery }
   let mounted = 0;
 
   // a row pressed, as a tile is (Pokemon.tsx): an unmarked mon marked and nothing more, held where it was drawn, so a
-  // second press opens what the first marked: (lab 10) an open record in the review (W), a sealed one's card. Alt opens
+  // second press opens what the first marked: an open record in the review (W), a sealed one's card. Alt opens
   // it without marking; Shift never opens one, as on the tiles. A checklist, keeping no records, opens none
   const handlePick = useCallback((capture: Capture, e: MouseEvent) => {
     if (e.altKey) {

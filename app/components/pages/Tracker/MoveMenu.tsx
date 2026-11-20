@@ -38,7 +38,7 @@ function PlacePicture ({ place, saves }: { place: Place; saves: GameSave[] }) {
   return <GameChip game={saves.find((save) => save.id === place.location_save)?.game} />;
 }
 
-// (lab 10) where a sealed mon can be moved, a menu at its tile (S, or L, over it) or at its place under W's lens: the mon
+// where a sealed mon can be moved, a menu at its tile (S, or L, over it) or at its place under W's lens: the mon
 // and where it is, then HOME and Champions large, a free-form dex's checklist boxes, and your games as W's chips (box
 // art, mark, name, language), each its number; where it is ticked. Coming home from a game (asksLevel) asks the level
 // it's back at first, at least the floor it kept. Q E (or the arrows) move, Space or Enter picks, 1 to 9 a game; S or L
@@ -76,11 +76,9 @@ export function MoveMenu () {
   const places = useMemo(() => (open && capture
     ? placesFor(saves, capture, homeDex, dexPlacesFor(activeDex, dexes ?? []))
     : []), [open, capture, saves, homeDex, activeDex, dexes]);
+  const [big, boxes, games] = useMemo(() => [places.filter(isBig), places.filter(isBox), places.filter(isGame)], [places]);
   // the order the keys walk them in, as they stand
-  const order = useMemo(() => [...places.filter(isBig), ...places.filter(isBox), ...places.filter(isGame)], [places]);
-  const big = order.filter(isBig);
-  const boxes = order.filter(isBox);
-  const games = order.filter(isGame);
+  const order = useMemo(() => [...big, ...boxes, ...games], [big, boxes, games]);
   const floor = capture?.level ?? null;
   const typed = Number(draft);
   const levelOk = draft !== '' && Number.isInteger(typed) && typed >= (floor ?? 1) && typed <= MAX_LEVEL;

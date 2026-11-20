@@ -210,26 +210,6 @@ $centred-gutter: var(--scrollbar-size, 0px);
   }
 }
 
-// a panel's action button (the popover's seal and release, the batch bar's): small capitals in the secondary face, as
-// tall as the filters' row's controls; its icon the words' size, before them
-@mixin action-button {
-  @include caps-label(11px);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: $filter-control;
-  padding: 0 12px;
-  border: 0;
-  white-space: nowrap;
-  cursor: pointer;
-
-  .svg-inline--fa {
-    font-size: 11px;
-  }
-}
-
 // a list's items as flat tiles stacked flush into one raised block (the dexes, My Games), no gap between them and no
 // blur anywhere: a hard edge round the stack, a seam across between two tiles, and under it all the stack's drop, a
 // tight hard shadow down its right side and along its foot. Every line is an inset shadow or a side border, so the

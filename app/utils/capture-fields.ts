@@ -19,12 +19,11 @@ interface OriginGame {
 export const ORIGIN_GAMES = originGamesJson as OriginGame[];
 export const ORIGIN_GAME_NAMES = new Map(ORIGIN_GAMES.map((game) => [game.id, game.name]));
 
-// abbr is the in-game three-letter tag; name_max was both names' cap, the origin game's limits since lab 10 round 7 (game-rules.ts)
+// abbr is the in-game three-letter tag; the names' length limits are the origin game's (game-rules.ts)
 interface Language {
   id: string;
   name: string;
   abbr: string;
-  name_max: number;
 }
 export const LANGUAGES = languagesJson as Language[];
 export const LANGUAGE_ABBRS = new Map(LANGUAGES.map((language) => [language.id, language.abbr]));
@@ -73,7 +72,7 @@ export const STATUSES: CaptureStatus[] = ['caught', 'temporary', 'unobtainable']
 // a status's name: a checklist's Temporary is Elsewhere, a mon you have that another dex represents
 export const statusKey = (status: CaptureStatus, checklist: boolean): TranslationKey => (checklist && status === 'temporary' ? 'status.elsewhere' : `status.${status}`);
 
-// (lab 10) a HOME dex's (noTemporary) without Temporary
+// a HOME dex's (noTemporary) without Temporary
 export function statusOptions (locale: Locale, noTemporary = false): CaptureFieldOption[] {
   return STATUSES.filter((status) => !noTemporary || status !== 'temporary').map((status) => ({ value: status, label: translate(locale, `status.${status}`) }));
 }
@@ -117,7 +116,7 @@ export function stampedSave (saves: GameSave[], meta: Partial<CaptureMetadata>):
 }
 
 // an ID No. as a trainer card shows it, at most six digits; typed with an IME it comes full-width, so it's folded first
-export const ID_MAX = 6;
+const ID_MAX = 6;
 export const idDigits = (raw: string) => raw.normalize('NFKC').replace(/\D/g, '').slice(0, ID_MAX);
 
 type CaptureFieldId =
@@ -213,7 +212,7 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     keys: ['ot'],
     gatesSeal: true,
     defaultable: false,
-    // (lab 10 round 7) as long as its game let it be, in its language
+    // as long as its game let it be, in its language
     maxLength: (meta) => otMax(meta.origin_game, meta.language),
     isAnswered: (meta) => filled(meta.ot),
   },
@@ -226,7 +225,7 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     gatesSeal: true,
     defaultable: false,
     numeric: true,
-    // (lab 10 round 7) five digits to Gen 6, six from Gen 7
+    // five digits to Gen 6, six from Gen 7
     maxLength: (meta) => idLength(meta.origin_game),
     normalize: idDigits,
     isAnswered: (meta) => filled(meta.tid),
@@ -276,7 +275,7 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     keys: ['ball'],
     gatesSeal: true,
     defaultable: true,
-    // (lab 10 round 7) never a ball no mon is ever in (the Strange Ball, the Park Ball, 不明: game-rules.ts); a record's own
+    // never a ball no mon is ever in (the Strange Ball, the Park Ball, 不明: game-rules.ts); a record's own
     // are its origin's (ballOptions)
     options: (locale) => BALLS.filter((ball) => !NEVER_BALLS.has(ball.id)).map((ball) => ({
       value: ball.id,
@@ -327,7 +326,7 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     gatesSeal: true,
     defaultable: false,
     baseline: { has_nickname: false },
-    maxLength: (meta) => nicknameMax(meta.origin_game, meta.language),
+    maxLength: (meta) => nicknameMax(meta.language),
     isAnswered: (meta) => meta.has_nickname !== true || filled(meta.nickname),
   },
   {
@@ -522,7 +521,7 @@ export function favoriteOptions (locale: Locale, meta: Partial<CaptureMetadata>)
   return floored ? all.filter((option) => option.value !== 'no') : all;
 }
 
-// (lab 10 round 7) a record's balls and languages: those its origin game holds
+// a record's balls and languages: those its origin game holds
 export function ballOptions (locale: Locale, meta: Partial<CaptureMetadata>): CaptureFieldOption[] {
   return CAPTURE_FIELDS.find((field) => field.id === 'ball')!.options!(locale).filter((option) => ballAllowed(meta.origin_game, option.value));
 }
@@ -565,7 +564,7 @@ export function withFieldInvariants (
 
   const merged = { ...current, ...next };
 
-  // (lab 10 round 7) what a game (or its language) can't hold goes as it changes, to be answered again: a ball, a language,
+  // what a game (or its language) can't hold goes as it changes, to be answered again: a ball, a language,
   // an ID No. too long for it
   if ('origin_game' in patch || 'language' in patch) {
     if (merged.ball && !ballAllowed(merged.origin_game, merged.ball)) {
@@ -585,7 +584,7 @@ export function withFieldInvariants (
   if (wasFloored !== isFloored && merged.favorite !== 'partner') {
     next.favorite = isFloored ? 'favorite' : 'no';
   }
-  // and whoever writes the heart (a batch's Favorite: No over a nicknamed mon) can't set one 'no'; only a write to it,
+  // and whoever writes the heart (a Favorite: No over a nicknamed mon) can't set one 'no'; only a write to it,
   // so a legacy 'no' already stored stays till it's edited
   if (patch.favorite === 'no' && isFloored) {
     next.favorite = 'favorite';
@@ -635,7 +634,7 @@ function writable (field: CaptureField, meta: Partial<CaptureMetadata>, genderLo
       if (field.id === 'gender') {
         return genderOptions('en', genderLock).some((option) => option.value === value);
       }
-      // (lab 10 round 7) a ball or a language its origin game holds
+      // a ball or a language its origin game holds
       if (field.id === 'ball') {
         return offers(field, value) && ballAllowed(meta.origin_game, value as string);
       }
@@ -644,7 +643,7 @@ function writable (field: CaptureField, meta: Partial<CaptureMetadata>, genderLo
       }
       return offers(field, value);
     case 'text':
-      // (lab 10 round 7) an ID No. its game could show
+      // an ID No. its game could show
       return field.id !== 'tid' || idAllowed(meta.origin_game, String(value));
     case 'location':
       return offers(field, value) && (value !== 'champions' || meta.been_to_champions === true);
@@ -670,7 +669,7 @@ export function isRecordComplete (meta: Partial<CaptureMetadata>, genderLock: Ge
   return unansweredFields(meta, genderLock, placed).length === 0;
 }
 
-// (lab 10) whether a record is asked where it is: in a HOME dex that's a sealed mon's alone, as an open record starts in
+// whether a record is asked where it is: in a HOME dex that's a sealed mon's alone, as an open record starts in
 // HOME and sealing gives HOME to one with no place (sealedPlace); elsewhere (a game's dex) an open one's too
 export const asksPlace = (record: { sealed: boolean }, homeDex: boolean) => record.sealed || !homeDex;
 

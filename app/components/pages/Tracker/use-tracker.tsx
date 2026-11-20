@@ -102,7 +102,7 @@ interface TrackerActions {
   openMoveMenu: (pokemon: number, anchor: Element, zoom?: number, beside?: boolean) => void;
   // set by the one MoveMenu; read only when the menu's asked for, so opening it renders no tile
   moveMenuHost: MutableRefObject<((target: MoveTarget) => void) | null>;
-  // (lab 10) a marked mon opened by a press on its tile or row: an open record in the review (W) at it, a sealed one's
+  // a marked mon opened by a press on its tile or row: an open record in the review (W) at it, a sealed one's
   // card (the popover). Set by the dex's page, which holds both
   openHost: MutableRefObject<((pokemon: number) => void) | null>;
   // a mon about to be brought into view (a locate): the ledger unfolds the group it's in, so there's a row to find
@@ -169,7 +169,7 @@ export const TrackerContextProvider = ({ children }: Props) => {
 
   const updateCapture = useCallback((payload: UpdateCapturePayload) => writeCapture(dexId, payload), [dexId]);
   const releaseCaptures = useCallback((pokemon: number[]) => {
-    // (lab 10) a released record's touches in W go with it (utils/review-confirm)
+    // a released record's touches in W go with it (utils/review-confirm)
     pokemon.forEach((id) => writeTouches(dexId, id, null));
     // a free-form dex's released mons leave its boxes too
     if (free) {

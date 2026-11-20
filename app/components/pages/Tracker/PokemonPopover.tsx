@@ -6,16 +6,13 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } fr
 import { CAPTURE_FIELDS, formatFieldValue, unansweredFields } from '../../../utils/capture-fields';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { dexNumber, iconClass } from '../../../utils/pokemon';
-import { asksChampions } from '../../../utils/champions';
-import { asksGigantamax } from '../../../utils/gigantamax';
+import { asksField } from '../../../utils/review-confirm';
 import { inTraining } from '../../../utils/location-moves';
 import { levelText } from './review-fields';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDismissable } from '../../../hooks/use-dismissable';
 import { useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
-
-import type { CaptureField } from '../../../utils/capture-fields';
 
 const GAP = 8;
 const DOCK_GAP = 12;
@@ -31,7 +28,7 @@ interface Props {
   selectedPokemon: number;
 }
 
-// (lab 10) a sealed mon's card, read only: its record as it stands, where it is among it (moved by S or L over the
+// a sealed mon's card, read only: its record as it stands, where it is among it (moved by S or L over the
 // tile). An open record has none: a press opens it in the review (W), where it's filled in
 export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   const { activeDexView, saves } = useDexContext();
@@ -188,9 +185,6 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   const { pokemon } = capture;
   const dexView = activeDexView!;
   const stale = new Set(missing.map((field) => field.id));
-  // Been to Champions only for a mon that can go there (utils/champions)
-  const shown = (field: CaptureField) => (field.id !== 'been_to_champions' || asksChampions(capture)) &&
-    (field.id !== 'gigantamax' || asksGigantamax(capture));
   // a mon out in a game still going up: 育成中, at least the level it left at
   const training = inTraining(capture, dexView.game.id === 'home');
 
@@ -223,7 +217,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
                     <dd>{t('seal.sealed')}</dd>
                   </div>
                 }
-                {column.filter(shown).map((field) => (
+                {column.filter((field) => asksField(capture, field)).map((field) => (
                   <div className={classNames('popover-record-row', { stale: stale.has(field.id) })} key={field.id}>
                     <dt>{t(field.labelKey)}</dt>
                     <dd>

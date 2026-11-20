@@ -1061,7 +1061,7 @@ $saves-table-width: 640px;
   .saves-list-header,
   .saves-list-item {
     display: grid;
-    // the game, its OT, its ID No., (lab 10) whether it's retired
+    // the game, its OT, its ID No., whether it's retired
     grid-template-columns: 1.5fr 1fr .8fr 56px;
     align-items: center;
     gap: 10px;
@@ -1096,7 +1096,7 @@ $saves-table-width: 640px;
       font-variant-numeric: tabular-nums;
     }
 
-    // (lab 10) a save whose journey is over: its box ticked, the row faded behind it. The forms' checkbox, drawn here
+    // a save whose journey is over: its box ticked, the row faded behind it. The forms' checkbox, drawn here
     // too (it's a form group's alone)
     .saves-list-retired {
       display: flex;

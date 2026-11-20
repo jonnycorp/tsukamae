@@ -74,7 +74,7 @@ export function CaptureFieldControl ({ field, value, onChange, defaultsMode = fa
           />,
         );
       }
-      // (lab 10 round 7) a ball or a language its origin game holds
+      // a ball or a language its origin game holds
       const options = field.id === 'gender' ? genderOptions(locale, genderLock)
         : field.id === 'ball' ? ballOptions(locale, value)
           : field.id === 'language' ? languageOptions(locale, value) : field.options!(locale);

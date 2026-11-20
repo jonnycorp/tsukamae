@@ -188,7 +188,7 @@ export function originOf (capture: Pick<Capture, 'tid' | 'origin_game'>, saves: 
   return homeFileOf(capture, saves) ? 'home' : capture.origin_game;
 }
 
-// (lab 10) what HOME can send each of the Switch games that take from it, by species and regional form: Sword and
+// what HOME can send each of the Switch games that take from it, by species and regional form: Sword and
 // Shield's and Scarlet and Violet's catalogues as Showdown has them (data/home-catalogs.json,
 // scripts/fetch-home-catalogs.mjs), Legends: Z-A's its two dexes, and the closed games theirs (closedGameHas)
 const SWSH = new Set(['sword', 'shield']);
@@ -210,7 +210,7 @@ function catalogOf (game: string): Set<string> | null {
   return game === 'legends_za' ? catalogs.za : null;
 }
 
-// (lab 10) where a HOME dex's mon (a living dex kept in HOME) can be checked out to: only one of the Switch games HOME
+// where a HOME dex's mon (a living dex kept in HOME) can be checked out to: only one of the Switch games HOME
 // sends to (nothing before Sword and Shield, nor Let's Go or GO, which HOME sends nothing back to; nor one of HOME's own
 // entries, a trainer), only a species and form its catalogue has (so no Gen 9 in a Gen 8 game), and a mon born in
 // Legends: Z-A only back to Z-A

@@ -172,29 +172,6 @@ $seal-chunk-rise: $box-rows * math.div($pokemon-box-size, 1px);
     min-height: 0;
     // its fields as far from each edge: the bar's room on the right matched on the left
     padding: 12px 14px 2px calc(14px + #{$centred-gutter});
-
-    .form-group {
-      margin-bottom: 12px;
-
-      label {
-        margin-bottom: 5px;
-      }
-
-      .checkbox {
-        margin: 0 0 0 7px;
-
-        label {
-          margin-bottom: 0;
-          font-size: 14px;
-        }
-      }
-    }
-
-    .popover-uncaught-note {
-      margin: 0 0 12px;
-      font-size: 15px;
-      opacity: .7;
-    }
   }
 
   .popover-columns {
@@ -236,65 +213,6 @@ $seal-chunk-rise: $box-rows * math.div($pokemon-box-size, 1px);
         margin-right: 6px;
         font-size: 11px;
       }
-    }
-
-    // a sealed record's location, the one thing it still changes: its value in the row's own type, in line with the
-    // values around it, and a chevron that brightens on hover (and turns while the menu's open, as every field's does)
-    .popover-move {
-      max-width: 100%;
-      padding: 0;
-      border: 0;
-      background: none;
-      color: inherit;
-      font: inherit;
-
-      .dropdown-chevron {
-        margin-left: -2px;
-      }
-
-      &:hover .dropdown-chevron,
-      &[aria-expanded='true'] .dropdown-chevron {
-        opacity: 1;
-      }
-    }
-  }
-
-  .form-subgroup {
-    margin-top: $space-xs;
-    padding-left: 10px;
-    border-left: 2px solid var(--overlay-line);
-  }
-
-  .popover-footer {
-    display: flex;
-    flex: 0 0 auto;
-    border-top: 2px solid var(--overlay-edge);
-
-    .popover-seal,
-    .popover-release {
-      @include action-button;
-
-      flex: 1;
-      background-color: var(--overlay-deep);
-      color: var(--on-overlay-muted);
-      transition: background-color .1s ease-out, color .1s ease-out, opacity .1s ease-out;
-    }
-
-    .popover-seal {
-      &:hover:not(:disabled) {
-        background-color: var(--status-caught);
-        color: var(--on-status);
-      }
-
-      &:disabled {
-        opacity: .4;
-        cursor: not-allowed;
-      }
-    }
-
-    .popover-release:hover {
-      background-color: var(--danger);
-      color: var(--on-danger);
     }
   }
 }

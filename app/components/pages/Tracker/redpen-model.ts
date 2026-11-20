@@ -81,7 +81,7 @@ export interface RedPenData {
 
 const LETS_GO_BALLS = new Set(['poke_ball', 'great_ball', 'ultra_ball', 'master_ball', 'premier_ball']);
 // Legends: Arceus's own balls: the Hisuian Poké, Great, Ultra and Heavy Balls and the six it brought. It throws no
-// others (not even a Master Ball: lab 10 round 7, from PKHeX's tables), and nothing else has them
+// others (not even a Master Ball, by PKHeX's tables), and nothing else has them
 const HISUI_BALLS = new Set([
   'hisuian_poke_ball', 'hisuian_great_ball', 'hisuian_ultra_ball', 'hisuian_heavy_ball',
   'feather_ball', 'wing_ball', 'jet_ball', 'leaden_ball', 'gigaton_ball', 'origin_ball',
@@ -248,8 +248,8 @@ function read (capture: Capture, saves: GameSave[], now: string): Finding[] {
   }
 
   if (language && gen !== undefined) {
-    // (lab 10 round 7) the limits W types to (utils/game-rules.ts): an OT its game's, a nickname its language's
-    const limits = { ot: otMax(origin, language), nickname: nicknameMax(origin, language) };
+    // the limits W types to (utils/game-rules.ts): an OT its game's, a nickname its language's
+    const limits = { ot: otMax(origin, language), nickname: nicknameMax(language) };
     if (ot && length(ot) > limits.ot) {
       add('otTooLong', 'wrong', ['ot', 'language'], { max: limits.ot, length: length(ot) });
     }
