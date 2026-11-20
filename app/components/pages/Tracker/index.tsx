@@ -19,6 +19,7 @@ import { Timeline } from './Timeline';
 import { ZoomIndicator } from './ZoomIndicator';
 import { LabHost, labTitle } from './lab/LabHost';
 import { isLabScene } from './lab/registry';
+import { spotlight } from './lab/spotlight';
 import { DISPLAY_MODES } from '../../../utils/display-modes';
 import { EMPTY_FILTERS, filterMatcher, queryMatcher } from './filters';
 import { MENU_OR_MODAL, useHotkey } from '../../../hooks/use-hotkey';
@@ -272,6 +273,8 @@ function TrackerInner () {
     }
   }, []);
 
+  // the mon a lab sketch's spot is handing off to (handleSceneSpot)
+  const spotRef = useRef<number | null>(null);
   const handOff = useCallback((close: () => void, locate: HandOff['locate'] = null) => {
     handingRef.current = true;
     setHanding((prev) => ({ closes: [...(prev?.closes ?? []), close], locate: locate ?? prev?.locate ?? null }));
@@ -301,6 +304,11 @@ function TrackerInner () {
         return;
       }
       tile?.scrollIntoView({ block: 'center' });
+      // a lab sketch's spot: shown where it's filed rather than opened (lab/spotlight.ts)
+      if (tile && spotRef.current === locate.pokemon) {
+        spotlight(tile, locale);
+      }
+      spotRef.current = null;
       handingRef.current = false;
       closes.forEach((close) => close());
       if (tile && locate.select) {
@@ -310,7 +318,7 @@ function TrackerInner () {
     };
     step();
     return () => cancelAnimationFrame(frame);
-  }, [handing, revealHost]);
+  }, [handing, revealHost, locale]);
 
   // a mon clicked on the timeline (or the almanac's milestones, or a scene): back to the dex, its tile (or ledger row)
   // brought into view and opened as a press opens it (openMonRef: a sealed one's card, an open record in the review), if
@@ -537,6 +545,16 @@ function TrackerInner () {
     handOff(() => setScene(null));
     handleReveal(pokemon);
   }, [handOff, handleReveal]);
+  // a lab sketch's mon shown in the boxes where it's filed, the dex let go of what hides it, nothing opened
+  const handleSceneSpot = useCallback((pokemon: number) => {
+    const capture = captures.find((entry) => entry.pokemon.id === pokemon);
+    if (capture && !(filterMatcher(filters)(capture) && queryMatcher(query, regional)(capture))) {
+      setFilters(EMPTY_FILTERS);
+      setQuery('');
+    }
+    spotRef.current = pokemon;
+    handOff(() => setScene(null), { pokemon, select: false });
+  }, [captures, filters, query, regional, handOff]);
   const handleSceneReview = useCallback((queue: number[], start?: number) => {
     setScene(null);
     setSelectedPokemon(0);
@@ -639,6 +657,7 @@ function TrackerInner () {
           onLocate={handleSceneLocate}
           onOpen={handleOpenScene}
           onReview={handleSceneReview}
+          onSpot={handleSceneSpot}
           scene={scene}
         />}
       {showHelp && <HotkeySheet checklist={Boolean(activeDex!.checklist)} homeDex={activeDexView?.game.id === 'home'} onClose={() => setShowHelp(false)} />}

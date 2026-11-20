@@ -64,8 +64,9 @@ function rangeOf (text: string): [number, number] | null {
 // number or a range of them (1-151); and as it's typed, the dex's own values it could mean (a ball, a game, an OT, a
 // nature, a type) offered under it, each taken as a chip, the chips narrowing together. The results are the mons
 // themselves with where each sits in the boxes, to file it; the one picked at the side in the galaxy's glass. Enter
-// goes to it in the dex; with chips, Shift+Enter filters the dex to them, a set and never one mon
-export function FindSketch ({ back, onClose, onFilter, onLocate }: LabProps) {
+// shows it in the boxes where it's filed (lab/spotlight.ts), its panel's link opens it; with chips, Shift+Enter
+// filters the dex to them, a set and never one mon
+export function FindSketch ({ back, onClose, onFilter, onLocate, onSpot }: LabProps) {
   const { lt, locale } = useLabText();
   const { activeDexView } = useDexContext();
   const records = useScopedRecords('dex');
@@ -187,7 +188,7 @@ export function FindSketch ({ back, onClose, onFilter, onLocate }: LabProps) {
       if (at < suggestions.length) {
         take(suggestions[at]);
       } else if (picked?.here) {
-        onLocate(picked.capture.pokemon.id);
+        onSpot(picked.capture.pokemon.id);
       }
     } else if (e.key === 'Backspace' && !text && chips.length > 0) {
       setChips(chips.slice(0, -1));
@@ -256,7 +257,7 @@ export function FindSketch ({ back, onClose, onFilter, onLocate }: LabProps) {
                 <button
                   className={classNames('lf-mon', { at: at === n, caught: capture.captured, sealed: capture.sealed })}
                   key={record.key}
-                  onClick={() => (at === n && record.here ? onLocate(capture.pokemon.id) : setAt(n))}
+                  onClick={() => (at === n && record.here ? onSpot(capture.pokemon.id) : setAt(n))}
                   type="button"
                 >
                   <SceneMon pokemon={capture.pokemon} />

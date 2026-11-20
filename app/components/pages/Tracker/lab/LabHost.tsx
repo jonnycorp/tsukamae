@@ -85,7 +85,7 @@ function LabDeck ({ checklist, quiet, onClose, onOpen }: Pick<Props, 'checklist'
 
 // the deck, or the sketch it opened; a sketch closed goes back to the deck, there at once (no title card again), and the
 // deck closed goes back to the dex
-export function LabHost ({ scene, checklist, back, onOpen, onClose, onFilter, onLocate, onReview }: Props) {
+export function LabHost ({ scene, checklist, back, onOpen, onClose, onFilter, onLocate, onReview, onSpot }: Props) {
   const [returned, setReturned] = useState(false);
   const sketch = labSketch(scene);
   if (!sketch) {
@@ -102,6 +102,7 @@ export function LabHost ({ scene, checklist, back, onOpen, onClose, onFilter, on
       onFilter={(filters, view) => onFilter(filters, view, scene)}
       onLocate={onLocate}
       onReview={onReview}
+      onSpot={onSpot}
     />
   );
 }

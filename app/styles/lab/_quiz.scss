@@ -85,7 +85,7 @@ $lq-ease: cubic-bezier(.2, .9, .3, 1);
   }
 }
 
-// answered: the mon the name is, held up at the card's side as a hologram, its number and English under it
+// answered: the mon the name is, held up at the card's side as a hologram
 .lq-reveal {
   display: flex;
   position: absolute;
@@ -99,13 +99,6 @@ $lq-ease: cubic-bezier(.2, .9, .3, 1);
   .lg-holo {
     width: 100%;
     height: 150px;
-  }
-
-  small {
-    color: var(--ink-muted);
-    white-space: nowrap;
-
-    @include small-text(11px);
   }
 }
 

@@ -12,6 +12,8 @@ export interface LabProps {
   onClose: () => void;
   onFilter: (filters: TrackerFilters, view: SceneView) => void;
   onLocate: (pokemon: number) => void;
+  // shows a mon where it's filed in the boxes, without opening it (lab/spotlight.ts)
+  onSpot: (pokemon: number) => void;
   onReview: (queue: number[], start?: number) => void;
 }
 

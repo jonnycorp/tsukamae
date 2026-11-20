@@ -252,3 +252,55 @@
   right: 26px;
   z-index: 3;
 }
+
+// a mon shown where it's filed (lab/spotlight.ts): over the page, following its tile; the room dimmed round it a
+// moment, then a ring of the accent alone, breathing twice, its place named under it
+@keyframes lab-spot-in {
+  from {
+    opacity: 0;
+    scale: 1.6;
+  }
+}
+
+@keyframes lab-spot-breathe {
+  50% {
+    outline-offset: 7px;
+  }
+}
+
+.lab-spot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  border-radius: 12px;
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 200vmax color-mix(in srgb, black 40%, transparent), 0 0 26px 4px color-mix(in srgb, var(--accent) 45%, transparent);
+  pointer-events: none;
+  transition: box-shadow .8s ease-out, opacity .3s;
+  animation: lab-spot-in .45s cubic-bezier(.2, .9, .3, 1) both, lab-spot-breathe 1.4s ease-in-out .5s 2;
+
+  &.lifted {
+    box-shadow: 0 0 0 200vmax transparent, 0 0 22px 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+
+  &.gone {
+    opacity: 0;
+  }
+
+  span {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    padding: 4px 12px;
+    border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    border-radius: 99px;
+    background-color: color-mix(in srgb, var(--paper) 70%, transparent);
+    color: var(--ink);
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+
+    @include small-text(12px);
+  }
+}
