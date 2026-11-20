@@ -1,9 +1,11 @@
-import homeCatalogs from '../../data/home-catalogs.json';
+import homeCatalogsJson from '../../data/home-catalogs.json';
 import { GAME_FACTS } from './game-facts';
 import { REGIONAL_FORMS, slotKey } from './champions';
 import { getCatalogDex } from './local-data';
 
 import type { Capture, GameSave } from '../types';
+
+const homeCatalogs = homeCatalogsJson as { sword_shield: string[]; scarlet_violet: string[] };
 
 // what could have been caught where, and what a game's file can hold: read by the red pen (Red Pen's rules) and by the
 // places a sealed mon can be moved to
