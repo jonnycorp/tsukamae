@@ -59,6 +59,11 @@ export function token (name: string, fallback = '#888'): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
+// a hex colour at an opacity, for a canvas gradient's stops; any other colour as it is
+export function alpha (color: string, a: number): string {
+  return /^#[0-9a-f]{6}$/i.test(color) ? `${color}${Math.round(a * 255).toString(16).padStart(2, '0')}` : color;
+}
+
 // ease out, cubic
 export const easeOut = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
 

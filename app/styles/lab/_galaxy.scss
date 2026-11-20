@@ -1,0 +1,107 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the ball galaxy (lab/BallGalaxy.tsx): the canvas fills the scene, the day and the scrubber laid over its foot
+.lab-galaxy .scene-body {
+  padding: 0;
+  overflow: hidden;
+}
+
+.lg-page {
+  position: relative;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 45%, var(--paper-raised), var(--paper) 70%);
+}
+
+.lg-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.lg-empty {
+  position: absolute;
+  top: 40%;
+  width: 100%;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.lg-readout {
+  display: flex;
+  position: absolute;
+  top: 20px;
+  left: 26px;
+  flex-direction: column;
+  pointer-events: none;
+
+  b {
+    font-family: $font-secondary;
+    font-size: 30px;
+    font-weight: 200;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  span {
+    color: var(--ink-muted);
+
+    @include small-text(13px);
+  }
+}
+
+.lg-scrub {
+  display: grid;
+  position: absolute;
+  right: 26px;
+  bottom: 18px;
+  left: 26px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 14px;
+
+  button {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background-color: var(--paper-raised);
+    color: var(--ink);
+    cursor: pointer;
+    place-items: center;
+    transition: border-color .2s, transform .2s;
+
+    &:hover {
+      border-color: var(--accent);
+      transform: scale(1.06);
+    }
+  }
+
+  input {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+
+  span {
+    grid-column: 2;
+    color: var(--ink-muted);
+
+    @include small-text(11px);
+  }
+}
+
+.lg-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  img {
+    image-rendering: pixelated;
+  }
+}

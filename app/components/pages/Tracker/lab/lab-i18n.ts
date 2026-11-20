@@ -25,6 +25,18 @@ const ja = {
   'calendar.count': '{n}匹',
   'calendar.none': 'この日はなし',
   'calendar.press': '押すとこの日のポケモンを確認',
+  'galaxy.title': 'ボール銀河',
+  'galaxy.blurb': '初めて使った順にボールが渦を巻く銀河。開くと歴史を再生',
+  'galaxy.hint': 'ドラッグで移動、ホイールで拡大。ボールを押すと図鑑を絞り込み、近づくと一匹ずつ選べる',
+  'galaxy.empty': 'ボールと捕まえた日が入った記録がまだありません。',
+  'galaxy.readout': '{mons}匹・ボール{balls}種',
+  'galaxy.play': '再生',
+  'galaxy.pause': '一時停止',
+  'galaxy.scrub': '日付',
+  'galaxy.legend': '中心が最初に使ったボール。外へいくほど新しく、点は一匹ずつ（色は一つめのタイプ）',
+  'galaxy.ballFacts': '{n}匹・{first}〜{last}',
+  'galaxy.press': '押すとこのボールで図鑑を絞り込み',
+  'galaxy.pressMon': '押すと図鑑でこのポケモンへ',
 };
 
 type LabStrings = Record<keyof typeof ja, string>;
@@ -49,6 +61,18 @@ const en: LabStrings = {
   'calendar.count': '{n} Pokémon',
   'calendar.none': 'Nothing this day',
   'calendar.press': 'Press to go through this day\'s mons',
+  'galaxy.title': 'Ball Galaxy',
+  'galaxy.blurb': 'Your balls as a spiral galaxy in the order you first used them; it opens by replaying your history',
+  'galaxy.hint': 'Drag to look around, wheel to zoom; press a ball to filter the dex, or zoom in to pick a single mon',
+  'galaxy.empty': 'No record has both a ball and a catch date yet.',
+  'galaxy.readout': '{mons} Pokémon · {balls} balls',
+  'galaxy.play': 'Play',
+  'galaxy.pause': 'Pause',
+  'galaxy.scrub': 'Date',
+  'galaxy.legend': 'The first ball you used is at the heart, each newer one further out; every mote is a mon, in its first type\'s colour',
+  'galaxy.ballFacts': '{n} Pokémon · {first} to {last}',
+  'galaxy.press': 'Press to filter the dex to this ball',
+  'galaxy.pressMon': 'Press to go to this mon in the dex',
 };
 
 const STRINGS: Record<Locale, LabStrings> = { ja, en };
