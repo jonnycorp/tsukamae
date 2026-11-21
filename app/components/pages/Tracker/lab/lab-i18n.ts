@@ -9,7 +9,6 @@ import type { Locale } from '../../../../i18n/translations';
 const ja = {
   'lab.title': 'ラボ',
   'lab.hint': '試作中のビュー。押すか数字キーで開く',
-  'lab.note': 'どれも試作品です。気に入ったものだけ残して、ほかは消してください。',
   'scope.dex': 'この図鑑',
   'scope.all': 'すべての図鑑',
   'galaxy.title': 'ボール銀河',
@@ -189,7 +188,6 @@ export type LabKey = keyof typeof ja;
 const en: LabStrings = {
   'lab.title': 'Lab',
   'lab.hint': 'Views in the works; press one, or its number, to open it',
-  'lab.note': 'Every one of these is a sketch. Keep the ones you like and delete the rest.',
   'scope.dex': 'This Dex',
   'scope.all': 'All Dexes',
   'galaxy.title': 'Ball Galaxy',

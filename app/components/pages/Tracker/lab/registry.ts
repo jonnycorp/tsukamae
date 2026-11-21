@@ -22,13 +22,15 @@ export interface LabSketch {
   glyph: string;
   // reads the records, so a checklist (which keeps none) doesn't offer it
   records: boolean;
+  // its own key from the dex (index.tsx), beside its number in the deck
+  hotkey?: string;
   component: ComponentType<LabProps>;
 }
 
 export const LAB_SKETCHES: LabSketch[] = [
-  { id: 'galaxy', title: 'galaxy.title', blurb: 'galaxy.blurb', glyph: '球', records: true, component: BallGalaxy },
+  { id: 'galaxy', title: 'galaxy.title', blurb: 'galaxy.blurb', glyph: '球', records: true, hotkey: 'U', component: BallGalaxy },
   { id: 'champions', title: 'champions.title', blurb: 'champions.blurb', glyph: '覧', records: false, component: ChampionsRoster },
-  { id: 'mosaic', title: 'mosaic.title', blurb: 'mosaic.blurb', glyph: '壁', records: false, component: DexMosaic },
+  { id: 'mosaic', title: 'mosaic.title', blurb: 'mosaic.blurb', glyph: '壁', records: false, hotkey: 'K', component: DexMosaic },
   { id: 'days', title: 'days.title', blurb: 'days.blurb', glyph: '日', records: true, component: CatchDays },
   { id: 'quiz', title: 'quiz.title', blurb: 'quiz.blurb', glyph: '名', records: false, component: NameQuiz },
   { id: 'check', title: 'check.title', blurb: 'check.blurb', glyph: '検', records: true, component: RecordCheck },

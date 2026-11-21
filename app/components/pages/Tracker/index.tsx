@@ -569,6 +569,9 @@ function TrackerInner () {
   useHotkey('b', sceneKey('orrery', true));
   // the lab's deck of sketches (lab/)
   useHotkey('x', sceneKey('lab'));
+  // and the sketches used most, each on its own key (lab/registry.ts)
+  useHotkey('u', sceneKey('lab:galaxy', true));
+  useHotkey('k', sceneKey('lab:mosaic'));
 
   return (
     <div className="tracker-container" onAnimationStart={syncLoops} ref={containerRef}>

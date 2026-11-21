@@ -475,6 +475,10 @@ const en = {
   'redpen.form.hisui': 'Hisuian {name}',
   'redpen.form.paldea': 'Paldean {name}',
 
+  'lab.open': 'Lab',
+  'galaxy.open': 'Ball Galaxy',
+  'mosaic.open': 'Dex Mosaic',
+
   'atlas.open': 'Atlas',
   'atlas.title': 'Atlas',
   'atlas.hint': 'Every dex side by side along the national dex; press a column to go to its mon',
@@ -984,6 +988,10 @@ const ja: Record<TranslationKey, string> = {
   'redpen.form.galar': '{name}（ガラルのすがた）',
   'redpen.form.hisui': '{name}（ヒスイのすがた）',
   'redpen.form.paldea': '{name}（パルデアのすがた）',
+
+  'lab.open': 'ラボ',
+  'galaxy.open': 'ボール銀河',
+  'mosaic.open': '図鑑モザイク',
 
   'atlas.open': 'アトラス',
   'atlas.title': 'アトラス',

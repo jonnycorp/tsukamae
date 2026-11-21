@@ -71,23 +71,27 @@ function LabDeck ({ checklist, quiet, onClose, onOpen }: Pick<Props, 'checklist'
               >
                 <span aria-hidden="true" className="lab-card-glyph">{sketch.glyph}</span>
                 <kbd>{i + 1}</kbd>
+                {sketch.hotkey && <kbd className="lab-card-hotkey">{sketch.hotkey}</kbd>}
                 <strong>{lt(sketch.title)}</strong>
                 <small>{lt(sketch.blurb)}</small>
               </button>
             ))}
           </div>
-          <p className="lab-note">{lt('lab.note')}</p>
         </div>
       )}
     </Scene>
   );
 }
 
-// the deck, or the sketch it opened; a sketch closed goes back to the deck, there at once (no title card again), and the
-// deck closed goes back to the dex
+// the deck, or the sketch it opened; a sketch closed goes back to the deck it came from, there at once (no title card
+// again), or to the dex when its own key opened it there; the deck closed goes back to the dex
 export function LabHost ({ scene, checklist, back, onOpen, onClose, onFilter, onLocate, onReview, onSpot }: Props) {
   const [returned, setReturned] = useState(false);
   const sketch = labSketch(scene);
+  const [viaDeck, setViaDeck] = useState(!sketch);
+  if (!sketch && !viaDeck) {
+    setViaDeck(true);
+  }
   if (!sketch) {
     return <LabDeck checklist={checklist} onClose={onClose} onOpen={onOpen} quiet={returned} />;
   }
@@ -96,6 +100,10 @@ export function LabHost ({ scene, checklist, back, onOpen, onClose, onFilter, on
     <Sketch
       back={back}
       onClose={() => {
+        if (!viaDeck) {
+          onClose();
+          return;
+        }
         setReturned(true);
         onOpen('lab');
       }}

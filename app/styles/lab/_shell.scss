@@ -76,6 +76,12 @@ $lab-ease: cubic-bezier(.2, .9, .3, 1);
     top: 14px;
     right: 14px;
   }
+
+  // its own key from the dex, beside its number
+  .lab-card-hotkey {
+    right: 48px;
+    color: var(--accent);
+  }
 }
 
 .lab-card-glyph {
@@ -95,14 +101,6 @@ $lab-ease: cubic-bezier(.2, .9, .3, 1);
   .lab-card:hover & {
     opacity: .24;
   }
-}
-
-.lab-note {
-  margin-top: 28px;
-  color: var(--ink-muted);
-  text-align: center;
-
-  @include small-text(12px);
 }
 
 .lab-tip-layer {
