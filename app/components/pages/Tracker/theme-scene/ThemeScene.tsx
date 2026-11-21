@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import { kumoScene } from './kumo';
 import { midnightScene } from './midnight';
+import { onsenScene } from './onsen';
 import { shodoScene } from './shodo';
 import { yozakuraScene } from './yozakura';
 import { themeSlug } from '../../../../palette/themes';
@@ -16,6 +17,7 @@ const SCENES: Record<string, SceneMaker> = {
   ink: shodoScene,
   wisteria: kumoScene,
   yozakura: yozakuraScene,
+  onsen: onsenScene,
 };
 
 const FRAME_MS = 1000 / 30;
@@ -64,6 +66,8 @@ export function ThemeScene () {
       s.draw(clock);
     };
     size();
+    // a scene over pictures, drawn again once they're in (still mode draws nothing else)
+    s.ready?.then(() => s.draw(clock), () => undefined);
     window.addEventListener('resize', size);
     if (!still) {
       frame = requestAnimationFrame(tick);

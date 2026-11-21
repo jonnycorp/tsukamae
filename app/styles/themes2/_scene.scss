@@ -10,7 +10,7 @@
 }
 
 // a scene's theme lets it show: the tracker over it, the page it scrolled on cleared
-:root:is([data-theme='midnight'], [data-theme='ink'], [data-theme='wisteria'], [data-theme='yozakura']) {
+:root:is([data-theme='midnight'], [data-theme='ink'], [data-theme='wisteria'], [data-theme='yozakura'], [data-theme='onsen']) {
   .tracker {
     z-index: 1;
   }

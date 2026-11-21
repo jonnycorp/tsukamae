@@ -1,4 +1,4 @@
-// the scene themes (Midnight, Ink, Wisteria, Yozakura): each a world the boxes sit in, drawn behind them by its scene
+// the scene themes (Midnight, Ink, Wisteria, Yozakura, Onsen): each a world the boxes sit in, drawn behind them by its scene
 // (components/pages/Tracker/theme-scene) and carried through the bar, the header, the frames and the tiles, rather
 // than props laid on a plain page. The other themes are in styles/themes.scss
 @use 'scene';
@@ -7,3 +7,4 @@
 @use 'shodo';
 @use 'kumo';
 @use 'yozakura';
+@use 'onsen';

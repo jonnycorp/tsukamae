@@ -193,6 +193,23 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
+  // Onsen: an open-air hot spring on a winter night, painted (theme-scene/onsen.ts): its stone lanterns and windows
+  // flickering, the pool stirring their light, steam rising and snow falling; the boxes thin night glass over the water,
+  // amber as the lanterns where you press
+  {
+    name: 'Onsen', hue: 245, ink: 70, unobtainable: 260, temporary: 25, caught: 60, chroma: 0.8,
+    tones: {
+      dark: {
+        paper: { l: 0.18, c: 0.03 }, 'paper-raised': { l: 0.22, c: 0.035 }, 'paper-sunken': { l: 0.15, c: 0.028 }, chip: { l: 0.15, c: 0.028 },
+        chrome: { l: 0.12, c: 0.03 }, 'chrome-hover': { l: 0.17, c: 0.035 }, 'chrome-active': { l: 0.21, c: 0.04 }, 'chrome-pattern': { l: 0.1, c: 0.03 },
+        meter: { l: 0.2, c: 0.035 }, 'meter-edge': { l: 0.82, c: 0.1, source: 'caught' },
+        accent: { l: 0.82, c: 0.11, source: 'caught' }, 'accent-hover': { l: 0.87, c: 0.09, source: 'caught' },
+        overlay: { l: 0.16, c: 0.03 }, 'overlay-deep': { l: 0.2, c: 0.035 }, 'overlay-deeper': { l: 0.24, c: 0.04 }, 'overlay-edge': { l: 0.8, c: 0.09, source: 'caught' },
+        field: { l: 0.15, c: 0.028 }, 'field-edge': { l: 0.45, c: 0.05 }, 'field-focus': { l: 0.82, c: 0.11, source: 'caught' },
+        'tile-caught': { l: 0.32, c: 0.06 }, 'tile-unobtainable': { l: 0.235, c: 0.03 }, 'tile-temporary': { l: 0.28, c: 0.06 }, 'tile-temporary-stripe': { l: 0.32, c: 0.075 },
+      },
+    },
+  },
   // a risograph: warm stock printed in two inks, a blue bar and popover, fluorescent pink for what you press and for
   // the caught tiles, their overprint purple for the unobtainable; Soft Dark the same inks on blue-black stock. Its
   // sprites in the two inks (scripts/theme-sprites.mjs), its headings a little misregistered (styles/themes.scss)

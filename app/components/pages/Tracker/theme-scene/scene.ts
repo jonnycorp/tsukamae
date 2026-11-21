@@ -3,14 +3,34 @@ export interface Scene {
   resize: (width: number, height: number, dpr: number) => void;
   draw: (time: number) => void;
   dispose: () => void;
+  // a scene drawn over pictures: settles once they've loaded, to be drawn again then (still mode draws no frames)
+  ready?: Promise<void>;
 }
 
 export type SceneMaker = (back: HTMLCanvasElement) => Scene;
 
+// a picture a scene is drawn over, fitted to cover the window as CSS's background-size: cover does, held at `anchor`
+// (its point kept in view as the window's shape crops it, 0–1 across and down)
+export interface ScenePicture {
+  src: string;
+  anchor?: [number, number];
+}
+
+// the part of a picture iw × ih that covers a window w × h, held at its anchor: its left, top, width and height
+function cover (iw: number, ih: number, w: number, h: number, [ax, ay]: [number, number]) {
+  const scale = Math.max(w / iw, h / ih);
+  const sw = w / scale;
+  const sh = h / scale;
+  return [(iw - sw) * ax, (ih - sh) * ay, sw, sh];
+}
+
 // a full-window fragment shader: its uniforms the size in device pixels (u_res), the clock (u_time) and the device
 // pixel ratio (u_dpr). A scene whose world mostly holds still can hand its still part over as a second shader (still):
-// drawn once a size, into a texture its main shader reads as u_still, so each frame only works out what moves
-export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?: string): Scene {
+// drawn once a size, into a texture its main shader reads as u_still, so each frame only works out what moves. A scene
+// over pictures has each resampled by the browser to the window's own pixels once a size (crisper than the GPU's
+// filtering) and read as u_picture0, u_picture1…, at gl_FragCoord.xy / u_res; u_crop maps that onto the first
+// picture's own 0–1 coordinates (top down) and u_loaded is 1 once they're all in, 0 before
+export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?: string, pictures: ScenePicture[] = []): Scene {
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: false });
   if (!gl) {
     throw new Error('no webgl');
@@ -28,7 +48,7 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
   const link = (src: string) => {
     const program = gl.createProgram()!;
     gl.attachShader(program, vertex);
-    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, `precision highp float;\nuniform vec2 u_res;\nuniform float u_time;\nuniform float u_dpr;\nuniform sampler2D u_still;\n${src}`));
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, `precision highp float;\nuniform vec2 u_res;\nuniform float u_time;\nuniform float u_dpr;\nuniform sampler2D u_still;\n${pictures.map((_, i) => `uniform sampler2D u_picture${i};\n`).join('')}uniform vec4 u_crop;\nuniform float u_loaded;\n${src}`));
     gl.bindAttribLocation(program, 0, 'p');
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -52,6 +72,54 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
   const target = stillProgram ? gl.createFramebuffer() : null;
   gl.useProgram(program);
   const time = gl.getUniformLocation(program, 'u_time');
+
+  const images = pictures.map(() => new Image());
+  const textures = pictures.map(() => gl.createTexture());
+  let loaded = false;
+  let disposed = false;
+  const fitPictures = () => {
+    if (!loaded || disposed) {
+      return;
+    }
+    const w = canvas.width;
+    const h = canvas.height;
+    const scratch = document.createElement('canvas');
+    scratch.width = w;
+    scratch.height = h;
+    const ctx = scratch.getContext('2d')!;
+    ctx.imageSmoothingQuality = 'high';
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    images.forEach((image, i) => {
+      const [sx, sy, sw, sh] = cover(image.naturalWidth, image.naturalHeight, w, h, pictures[i].anchor ?? [0.5, 0.5]);
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(image, sx, sy, sw, sh, 0, 0, w, h);
+      gl.activeTexture(gl.TEXTURE1 + i);
+      gl.bindTexture(gl.TEXTURE_2D, textures[i]);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, scratch);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.uniform1i(gl.getUniformLocation(program, `u_picture${i}`), 1 + i);
+      if (i === 0) {
+        const { naturalWidth: iw, naturalHeight: ih } = image;
+        gl.uniform4f(gl.getUniformLocation(program, 'u_crop'), sx / iw, sy / ih, sw / iw, sh / ih);
+      }
+    });
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1f(gl.getUniformLocation(program, 'u_loaded'), 1);
+  };
+  const ready = pictures.length
+    ? Promise.all(images.map((image, i) => {
+      image.src = pictures[i].src;
+      return image.decode();
+    })).then(() => {
+      loaded = true;
+      gl.useProgram(program);
+      fitPictures();
+    })
+    : undefined;
 
   return {
     resize (width, height, dpr) {
@@ -77,12 +145,19 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
         gl.bindTexture(gl.TEXTURE_2D, texture);
       }
       sizeUniforms(program, dpr);
+      fitPictures();
     },
     draw (t) {
+      if (disposed) {
+        return;
+      }
       gl.uniform1f(time, t);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
+    ready,
     dispose () {
+      disposed = true;
+      textures.forEach((texture) => gl.deleteTexture(texture));
       gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
       if (stillProgram) {

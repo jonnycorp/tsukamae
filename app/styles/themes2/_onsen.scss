@@ -1,0 +1,57 @@
+@use '../variables' as *;
+
+// Onsen: a hot spring on a winter night (theme-scene/onsen.ts). The boxes thin night glass over the pool, the water
+// and its lantern light showing through; amber as the lanterns where you press, a sealed tile lit from below as the
+// lanterns light the steam (the lanterns' own amber at home, a red lantern's out in a game, gold in Champions, the
+// moon's blue in HOME); a finished box glowing warm round its edge
+:root[data-theme='onsen'] {
+  --w-nav: rgb(8 10 20 / 50%);
+  --w-hairline: linear-gradient(90deg, transparent, rgb(255 200 140 / 40%) 40%, transparent);
+  --w-header: linear-gradient(rgb(10 13 24 / 62%), rgb(10 13 24 / 42%));
+  --w-slot: rgb(8 10 20 / 55%);
+  --w-edge: rgb(200 215 240 / 18%);
+  --w-fill: linear-gradient(rgb(255 255 255 / 22%), transparent 50%), linear-gradient(90deg, #4a5a7a, #c9a27a 60%, #ffd9a0);
+  --w-post: #fff1dc;
+  --w-figure: linear-gradient(160deg, #fff3e0, #ffd49a);
+  --w-figure-ink: #2a1a0a;
+  --w-title: #f4ecdf;
+  --w-title-glow: 0 0 14px rgb(255 190 120 / 35%), 0 2px 0 rgb(0 0 0 / 50%);
+  --w-panel: rgb(10 14 26 / 42%);
+  --w-panel-shadow: 0 0 0 1px rgb(200 215 240 / 13%), 0 28px 50px -18px rgb(0 0 0 / 70%);
+  --w-blur: 6px;
+  --w-line: rgb(200 215 240 / 7%);
+  --w-caught: rgb(255 200 140 / 8%);
+  --w-unobtainable: rgb(0 0 0 / 28%);
+  --w-temporary: rgb(255 140 100 / 12%);
+  --w-temporary-stripe: rgb(255 140 100 / 8%);
+  --w-complete: 0 0 0 1px rgb(255 214 170 / 55%), 0 0 36px rgb(255 180 110 / 26%), 0 28px 50px -18px rgb(0 0 0 / 70%);
+  --line-solid: var(--w-line);
+
+  .seal-material {
+    --glow: rgb(255 190 120);
+
+    background:
+      radial-gradient(ellipse 90% 70% at 50% 100%, color-mix(in srgb, var(--glow) 34%, transparent), transparent 75%) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      rgb(30 38 60 / 40%);
+  }
+
+  .seal-material[data-tint='champions'] {
+    --glow: rgb(255 214 110);
+  }
+
+  .seal-material[data-tint='out'] {
+    --glow: rgb(240 90 60);
+  }
+
+  .seal-material[data-tint='home'] {
+    --glow: rgb(170 200 255);
+  }
+
+  .seal-flow {
+    --flow-y: -#{$pokemon-box-size * 5};
+    --flow-time: 44s;
+
+    display: block;
+    background: linear-gradient(to top, transparent, rgb(230 235 245 / 7%) 50%, transparent) 0 0 / 100% #{$pokemon-box-size * 5};
+  }
+}
