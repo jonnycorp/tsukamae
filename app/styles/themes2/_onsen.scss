@@ -5,9 +5,11 @@
 // lanterns light the steam (the lanterns' own amber at home, a red lantern's out in a game, gold in Champions, the
 // moon's blue in HOME); a finished box glowing warm round its edge
 :root[data-theme='onsen'] {
-  --w-nav: rgb(8 10 20 / 50%);
+  // the bar and the header open onto the sky, the painting's top seen through them (a trial: their text's contrast
+  // rests on the night behind it and a shadow)
+  --w-nav: transparent;
   --w-hairline: linear-gradient(90deg, transparent, rgb(255 200 140 / 40%) 40%, transparent);
-  --w-header: linear-gradient(rgb(10 13 24 / 62%), rgb(10 13 24 / 42%));
+  --w-header: transparent;
   --w-slot: rgb(8 10 20 / 55%);
   --w-edge: rgb(200 215 240 / 18%);
   --w-fill: linear-gradient(rgb(255 255 255 / 22%), transparent 50%), linear-gradient(90deg, #4a5a7a, #c9a27a 60%, #ffd9a0);
@@ -26,6 +28,12 @@
   --w-temporary-stripe: rgb(255 140 100 / 8%);
   --w-complete: 0 0 0 1px rgb(255 214 170 / 55%), 0 0 36px rgb(255 180 110 / 26%), 0 28px 50px -18px rgb(0 0 0 / 70%);
   --line-solid: var(--w-line);
+
+  nav,
+  .dex-search-bar {
+    backdrop-filter: none;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 80%);
+  }
 
   .seal-material {
     --glow: rgb(255 190 120);
