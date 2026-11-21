@@ -15,7 +15,8 @@ import type { RefObject } from 'react';
 // sprites), made for the change and let go after it: the theme's mark (--page-brush) in its ink (--page-brush-color),
 // worked out once a frame at the screen's pixels and stamped on every tile. Timed by the strips' own cycle, so the marks
 // keep with what the compositor shows, or by a face picked while the flips are held (useFlipClock's flippick); never in
-// still mode, which holds the flips
+// still mode, which holds the flips. A theme whose --page-brush-span is line lays one long stroke the line's width
+// instead, each line's its own (a part of the mark, turned over or not), so a box reads as written a line at a time
 
 // the mark's moments in a change, from the end of a page's hold: laid over the line, then dried away; keep in step with
 // the strips' dip in styles/tile-faces.scss ($brush-out ...)
@@ -79,7 +80,8 @@ function rgbOf (color: string): number[] {
   return [...ctx.getImageData(0, 0, 1, 1).data.slice(0, 3)];
 }
 
-function makeMark (img: HTMLImageElement, w: number, h: number, flip: boolean, rgb: number[]): Mark {
+// cut: the share of the mark's width left off its start, so long strokes from one mark differ
+function makeMark (img: HTMLImageElement, w: number, h: number, flip: boolean, rgb: number[], cut = 0): Mark {
   const read = document.createElement('canvas');
   read.width = w;
   read.height = h;
@@ -88,7 +90,7 @@ function makeMark (img: HTMLImageElement, w: number, h: number, flip: boolean, r
     ctx.translate(0, h);
     ctx.scale(1, -1);
   }
-  ctx.drawImage(img, 0, 0, w, h);
+  ctx.drawImage(img, img.width * cut, 0, img.width * (1 - cut), img.height, 0, 0, w, h);
   const ink = ctx.getImageData(0, 0, w, h).data;
   const canvas = document.createElement('canvas');
   canvas.width = w;
@@ -193,7 +195,8 @@ export function usePageBrush (ref: RefObject<HTMLElement>, display: DisplayMode)
         return [];
       }
       const rgb = rgbOf(style.getPropertyValue('--page-brush-color').trim() || '#000');
-      if (marks.size > 16) {
+      const long = style.getPropertyValue('--page-brush-span').trim() === 'line';
+      if (marks.size > 32) {
         marks.clear();
       }
       const built: Line[] = [];
@@ -220,6 +223,21 @@ export function usePageBrush (ref: RefObject<HTMLElement>, display: DisplayMode)
           Object.assign(canvas.style, { position: 'absolute', left: `${from}px`, top: `${top}px`, width: `${to - from}px`, height: `${height}px`, pointerEvents: 'none' });
           canvas.width = Math.round((to - from) * res);
           canvas.height = Math.round(height * res);
+          if (long) {
+            // one stroke the line's width, its part of the mark and its turn its line's own
+            const seed = from * 0.37 + top * 1.91 + overlay.offsetTop * 0.13;
+            const flip = hash(seed) > 0.5;
+            const cut = Math.floor(hash(seed + 5) * 4) * 0.06;
+            const [mw, mh] = [Math.round((to - from - 2 * INSET) * res), canvas.height];
+            const key = `${src} ${rgb.join()} ${mw}x${mh}${flip ? ' flipped' : ''} ${cut}`;
+            if (!marks.has(key)) {
+              marks.set(key, makeMark(img, mw, mh, flip, rgb, cut));
+            }
+            const w = (to - from - 2 * INSET) * (1 - 0.08 * hash(seed + 7));
+            overlay.append(canvas);
+            built.push({ canvas, stamps: [{ mark: marks.get(key)!, x: (INSET + hash(seed + 3) * 8) * res, w: w * res }] });
+            continue;
+          }
           const [mw, mh] = [Math.round((Math.max(...spans.map(([, width]) => width)) - 2 * INSET) * res), canvas.height];
           // each tile's stamp a little its own: turned over or not, nudged, a touch shorter
           const stamps = spans.map(([left, width]) => {
@@ -277,16 +295,16 @@ export function usePageBrush (ref: RefObject<HTMLElement>, display: DisplayMode)
     // the next change's start waited for
     const check = () => {
       window.clearTimeout(timer);
+      // its mark loaded ahead of it, held flips' picks too
+      const src = live() ? brushSrc(getComputedStyle(document.documentElement)) : undefined;
+      if (src) {
+        markImage(src);
+      }
       const anim = !frame && live() ? clock() : null;
       const now = anim && phase(anim);
       if (!anim || !now) {
         timer = window.setTimeout(check, 1000);
         return;
-      }
-      // its mark loaded ahead of it
-      const src = brushSrc(getComputedStyle(document.documentElement));
-      if (src) {
-        markImage(src);
       }
       const lead = HOLD_MS - 80 - now.into;
       if (lead > 0) {

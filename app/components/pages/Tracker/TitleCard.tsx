@@ -58,8 +58,8 @@ export function useCalmStart (run = 0): boolean {
   return calmRun === run;
 }
 
-// a scene's title card (the timeline, the review, the almanac, a page in the scene frame): its name slammed onto a
-// slash of the accent with a flash and a shake, the dex's name sliding in under it, then cleared
+// a scene's title card (the timeline, the review, the almanac, a page in the scene frame): its name rising up through a
+// hairline of the accent, the dex's name fading in under it, then lifted away
 export function TitleCard ({ title }: { title: string }) {
   const { activeDex } = useDexContext();
   const { t } = useTranslation();
@@ -77,8 +77,7 @@ export function TitleCard ({ title }: { title: string }) {
 
   return (
     <div aria-hidden="true" className="title-card" ref={cardRef}>
-      <div className="title-card-flash" />
-      <div className="title-card-slash" />
+      <div className="title-card-rule" />
       <div className="title-card-title"><span>{title}</span></div>
       <div className="title-card-sub"><span>{activeDex!.title}</span></div>
       <div className="title-card-skip">{t('scene.skip')}</div>

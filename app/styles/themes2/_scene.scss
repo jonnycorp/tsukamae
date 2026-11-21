@@ -1,0 +1,22 @@
+// the scene's canvas, fixed to the window behind everything in the tracker
+.theme-scene {
+  display: block;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+// a scene's theme lets it show: the tracker over it, the page it scrolled on cleared
+:root:is([data-theme='midnight'], [data-theme='ink'], [data-theme='wisteria'], [data-theme='yozakura']) {
+  .tracker {
+    z-index: 1;
+  }
+
+  .tracker .dex-wrapper,
+  .tracker .dex-wrapper .dex-column {
+    background: transparent;
+  }
+}

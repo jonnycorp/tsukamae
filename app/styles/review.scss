@@ -116,22 +116,6 @@ $wire: 30px;
 }
 
 // Ink's: a stroke of the brush across each plate, drying as the value shows under it
-@keyframes review-ink-stroke {
-  0% {
-    opacity: .85;
-    transform: scaleX(0);
-  }
-
-  45% {
-    opacity: .85;
-    transform: scaleX(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scaleX(1);
-  }
-}
 
 @keyframes review-hold {
   to {
@@ -1971,8 +1955,7 @@ $wire: 30px;
 // ---- the entrance, as W opens (data-entering, Review.tsx), the first mon settling in its bay (data-dir 0): the
 // plates fading in row by row (--row) from the top on both sides, each wire then drawn from its plate toward the mon and
 // its dot lit (the right side's right to left). Only opacity and transform. Held at its start while the first frames go by
-// (data-gate, title-card.scss); still mode lands at once (main.scss's net). A theme can bring its own entrance
-// (ThemeSeed.reviewEntrance)
+// (data-gate, title-card.scss); still mode lands at once (main.scss's net)
 .review[data-entering] {
   .review-plate,
   .review-cartridge {
@@ -1994,32 +1977,5 @@ $wire: 30px;
   .review-plate::before {
     animation: review-dot-in .1s ease-out backwards;
     animation-delay: calc(var(--row, 0) * 10ms + 150ms);
-  }
-}
-
-// Ink's brushed entrance: a stroke of its brush (its title mark) laid across each plate's value from the left, drying away
-// as the value shows through it; the plates fade rather than slide
-:root[data-review-entrance='brush'] .review[data-entering] {
-  .review-plate,
-  .review-cartridge {
-    animation-name: review-dot-in;
-  }
-
-  .review-plate-row {
-    position: relative;
-
-    // the mark drawn as it is (a black brush stroke, theme-marks.mjs), not as a mask: a mask on each moving stroke cost
-    // frames (entrance-frames.ps1)
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 10% -6px;
-      background: url('/themes/ink/title.png') center / 100% 100% no-repeat;
-      opacity: 0;
-      transform-origin: left;
-      animation: review-ink-stroke .24s cubic-bezier(.3, .7, .3, 1) backwards;
-      animation-delay: calc(var(--row, 0) * 10ms + 20ms);
-      pointer-events: none;
-    }
   }
 }

@@ -1,0 +1,58 @@
+@use '../variables' as *;
+
+// Yozakura: cherry blossom at night (theme-scene/yozakura.ts). The boxes dark glass under the canopy, its pink blurred
+// through them; a sealed tile lit as the blossom is, warm from below, in its place's light (the lanterns' at home, a
+// red lantern's out in a game, gold in Champions, the moon's white-blue in HOME); a finished box glowing like a
+// lantern itself
+:root[data-theme='yozakura'] {
+  --blossom: #f6c3d4;
+  --w-nav: rgb(10 6 14 / 55%);
+  --w-hairline: linear-gradient(90deg, transparent, rgb(246 195 212 / 45%) 40%, transparent);
+  --w-header: linear-gradient(rgb(14 8 18 / 72%), rgb(14 8 18 / 52%));
+  --w-slot: rgb(10 6 14 / 60%);
+  --w-edge: rgb(246 195 212 / 22%);
+  --w-fill: linear-gradient(rgb(255 255 255 / 25%), transparent 50%), linear-gradient(90deg, #8a3a5e, #e58fb0 60%, #ffd9c2);
+  --w-post: #fff2e6;
+  --w-figure: linear-gradient(160deg, #ffe8ef, #f6c3d4);
+  --w-figure-ink: #3a1224;
+  --w-title: #ffe3ec;
+  --w-title-glow: 0 0 14px rgb(246 160 190 / 40%), 0 2px 0 rgb(0 0 0 / 50%);
+  --w-panel: rgb(18 10 22 / 62%);
+  --w-panel-shadow: 0 0 0 1px rgb(246 195 212 / 16%), 0 28px 50px -18px rgb(0 0 0 / 75%);
+  --w-blur: 8px;
+  --w-line: rgb(246 195 212 / 8%);
+  --w-caught: rgb(246 160 190 / 9%);
+  --w-unobtainable: rgb(0 0 0 / 30%);
+  --w-temporary: rgb(255 140 100 / 12%);
+  --w-temporary-stripe: rgb(255 140 100 / 8%);
+  --w-complete: 0 0 0 1px rgb(255 214 170 / 60%), 0 0 36px rgb(255 170 120 / 30%), 0 28px 50px -18px rgb(0 0 0 / 75%);
+  --line-solid: var(--w-line);
+
+  .seal-material {
+    --glow: rgb(255 190 140);
+
+    background:
+      radial-gradient(ellipse 90% 70% at 50% 100%, color-mix(in srgb, var(--glow) 38%, transparent), transparent 75%) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      rgb(70 30 52 / 45%);
+  }
+
+  .seal-material[data-tint='champions'] {
+    --glow: rgb(255 214 110);
+  }
+
+  .seal-material[data-tint='out'] {
+    --glow: rgb(240 80 60);
+  }
+
+  .seal-material[data-tint='home'] {
+    --glow: rgb(170 200 255);
+  }
+
+  .seal-flow {
+    --flow-y: -#{$pokemon-box-size * 5};
+    --flow-time: 40s;
+
+    display: block;
+    background: linear-gradient(to top, transparent, rgb(255 220 230 / 8%) 50%, transparent) 0 0 / 100% #{$pokemon-box-size * 5};
+  }
+}

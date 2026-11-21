@@ -88,7 +88,6 @@ function setTokens (name: string) {
   root.dataset.theme = themeSlug(seed.name);
   root.dataset.mode = side;
   root.dataset.pageChange = seed.pageChange ?? 'slide';
-  root.dataset.reviewEntrance = seed.reviewEntrance ?? 'settle';
   titleBar = { color: palette.chrome, symbolColor: palette['on-chrome'] };
   // what a resize uncovers before the page repaints it
   window.tracker?.setBackground(palette.paper);

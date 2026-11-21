@@ -1,0 +1,317 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the Champions roster (views/ChampionsRoster.tsx): a ring counting the standings, chips to narrow to one, and a card per
+// roster mon by generation, edged in its standing's colour; a card held nowhere shows its mon as a shadow
+$lch-ease: cubic-bezier(.2, .9, .3, 1);
+
+@keyframes lch-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(.94);
+  }
+}
+
+@keyframes lch-arc-in {
+  from {
+    stroke-dasharray: 0 var(--c);
+  }
+}
+
+.view-champions,
+.view-tip-layer {
+  --st-there: #f2b632;
+  --st-been: #4fb3c8;
+  --st-held: var(--ink-muted);
+  --st-none: var(--line);
+
+  .st-there {
+    --st: var(--st-there);
+  }
+
+  .st-been {
+    --st: var(--st-been);
+  }
+
+  .st-held {
+    --st: var(--st-held);
+  }
+
+  .st-none {
+    --st: var(--st-none);
+  }
+}
+
+.lch-page {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.lch-head {
+  display: flex;
+  position: relative;
+  align-items: center;
+  gap: 26px;
+  margin-bottom: 26px;
+  padding: 20px 26px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background:
+    radial-gradient(80% 140% at 0% 50%, color-mix(in oklab, var(--st-there) 18%, transparent), transparent 60%),
+    var(--paper-raised);
+}
+
+.lch-ring {
+  flex: none;
+  transform: rotate(-90deg);
+
+  circle {
+    fill: none;
+    stroke-width: 14px;
+  }
+}
+
+.lch-ring-track {
+  stroke: var(--paper-sunken);
+}
+
+.lch-ring-arc {
+  stroke: var(--st);
+  stroke-dasharray: calc(var(--len) * 1px) calc(var(--c) * 1px);
+  stroke-dashoffset: calc(var(--off) * 1px);
+  animation: lch-arc-in 1s $lch-ease both;
+  animation-delay: calc(200ms + var(--i) * 150ms);
+}
+
+.lch-ring-text {
+  display: flex;
+  position: absolute;
+  left: 26px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 152px;
+  height: 152px;
+  text-align: center;
+
+  b {
+    font-family: $font-secondary;
+    font-size: 30px;
+    font-weight: 300;
+
+    small {
+      color: var(--ink-muted);
+      font-size: 15px;
+    }
+  }
+
+  span {
+    color: var(--ink-muted);
+
+    @include small-text(11px);
+  }
+}
+
+.lch-season {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  h2 {
+    margin: 0;
+    font-family: $font-secondary;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  > span {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+}
+
+.lch-season-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+}
+
+.lch-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lch-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background-color: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .2s, background-color .2s;
+
+  i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--st);
+  }
+
+  b {
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &:hover {
+    border-color: var(--st);
+  }
+
+  &.on {
+    border-color: var(--st);
+    background-color: color-mix(in oklab, var(--st) 22%, var(--paper));
+  }
+}
+
+.lch-gen {
+  margin-bottom: 22px;
+
+  h3 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+    font-family: $font-secondary;
+    font-size: 15px;
+    font-weight: 800;
+
+    span {
+      color: var(--ink-muted);
+      font-weight: 400;
+    }
+  }
+}
+
+.lch-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.lch-card {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px 9px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background-color: var(--paper-raised);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform .2s $lch-ease, box-shadow .2s, border-color .2s;
+  animation: lch-card-in .4s $lch-ease both;
+  animation-delay: calc(var(--i) * 14ms);
+
+  // the standing as a band along the foot
+  &::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background-color: var(--st);
+    content: '';
+  }
+
+  &.st-there {
+    border-color: color-mix(in oklab, var(--st-there) 55%, var(--line));
+    background: linear-gradient(180deg, color-mix(in oklab, var(--st-there) 16%, var(--paper-raised)), var(--paper-raised) 70%);
+  }
+
+  // held nowhere: the mon as its shadow
+  &.st-none .scene-mon {
+    filter: brightness(0);
+    opacity: .28;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--st);
+    box-shadow: 0 10px 22px -14px var(--paper-shadow);
+    outline: none;
+    transform: translateY(-3px);
+  }
+}
+
+.lch-mon {
+  display: flex;
+  align-items: flex-end;
+  height: 48px;
+}
+
+.lch-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @include small-text(12px);
+}
+
+.lch-badges {
+  display: flex;
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  gap: 4px;
+
+  b {
+    @include small-text(10px);
+
+    color: var(--ink-muted);
+  }
+
+  .lch-shiny {
+    color: #f2b632;
+  }
+}
+
+.lch-tip-standing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background-color: var(--st);
+  }
+}
+
+.lch-tip-copies {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+}

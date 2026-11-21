@@ -1,0 +1,107 @@
+@use '../variables' as *;
+
+// what the later scene themes share, set by each through its own custom properties (--w-*): a glass bar and header the
+// scene shows through, the meter a slot with its fill, the boxes panels over the scene with their tiles' states, a
+// finished box's look. A theme's sealed tiles and anything of its own stay in its own file
+:root[data-theme='yozakura'] {
+  nav {
+    background: var(--w-nav);
+    backdrop-filter: blur(16px) saturate(1.2);
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 1px;
+      background: var(--w-hairline);
+      pointer-events: none;
+    }
+  }
+
+  .dex-search-bar {
+    background: var(--w-header);
+    backdrop-filter: blur(16px) saturate(1.2);
+  }
+
+  .dex-meter-bar {
+    border: 0;
+    background: var(--w-slot);
+    box-shadow: inset 0 0 0 1px var(--w-edge);
+  }
+
+  .dex-meter-fill {
+    background: var(--w-fill);
+  }
+
+  .dex-meter-water {
+    display: none;
+  }
+
+  .dex-meter-edge {
+    background: var(--w-post);
+  }
+
+  .dex-meter-figure {
+    background: var(--w-figure);
+
+    span {
+      color: var(--w-figure-ink);
+      text-shadow: none;
+      transform: none;
+    }
+  }
+
+  .box-header h1 {
+    color: var(--w-title);
+    text-shadow: var(--w-title-glow, none);
+  }
+
+  .box-container {
+    background: var(--w-panel);
+    box-shadow: var(--w-panel-shadow, 0 30px 50px -20px rgb(0 0 0 / 70%));
+    backdrop-filter: blur(var(--w-blur, 14px)) saturate(1.3);
+  }
+
+  .box-container > .tile-grid {
+    border-color: var(--w-edge);
+
+    > .pokemon {
+      border-color: var(--w-line);
+    }
+  }
+
+  .pokemon.captured {
+    background-color: transparent;
+  }
+
+  .pokemon.captured.caught {
+    background-color: var(--w-caught);
+  }
+
+  .pokemon.captured.unobtainable {
+    background-color: var(--w-unobtainable);
+  }
+
+  .pokemon.captured.temporary {
+    background-color: var(--w-temporary);
+    background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--w-temporary-stripe) 8px 16px);
+  }
+
+  .pokemon.captured.sealed {
+    background-image: none;
+  }
+
+  &:not([data-plain-seals]) .seal-material[data-tint] {
+    display: block;
+  }
+
+  .box-complete .box-container {
+    box-shadow: var(--w-complete);
+  }
+
+  .box-complete .box-container > .tile-grid {
+    outline: 0;
+  }
+}

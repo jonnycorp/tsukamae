@@ -1,0 +1,195 @@
+@use '../variables' as *;
+
+// Ink: shodō, a calligrapher's desk (theme-scene/shodo.ts). The window is black felt; the header and every box are
+// sheets of hanshi laid on it, their fibres showing, casting a soft shadow. A box's tiles are the creases a student
+// folds into the sheet as a guide, pressed into the paper rather than drawn on it; a box's range is written with the
+// brush on a slip of the same paper above it, each slip laid a little differently, and a finished box is stamped
+// beside it with a cinnabar seal (済). A sealed mon's tile takes a wash of diluted ink, every one a different part of
+// the same bloom, in the ink of where it is: sumi at home, indigo in HOME, ochre in Champions, vermilion out in a
+// game. The only motion is the window's light drifting slowly over the felt
+:root[data-theme='ink'] {
+  --sumi: #1d1a17;
+  --shu: #c23a22;
+  --crease: rgb(120 98 66 / 22%);
+  --crease-light: rgb(255 255 255 / 55%);
+  --wash-ink: var(--sumi);
+  --line-solid: var(--crease);
+  // its pages change by one fast stroke along each line of a box, not one per tile (page-brush.ts)
+  --page-brush: url('/themes/ink/title.png');
+  --page-brush-color: var(--sumi);
+  --page-brush-span: line;
+
+  nav {
+    background: transparent;
+    box-shadow: inset 0 -1px 0 rgb(255 255 255 / 4%);
+  }
+
+  // the header a long sheet across the felt
+  .dex-search-bar {
+    position: relative;
+    z-index: 1;
+    margin: 0 10px;
+    background: var(--shodo-washi) 0 0 / 512px;
+    box-shadow: 0 2px 3px rgb(0 0 0 / 45%), 0 14px 28px -8px rgb(0 0 0 / 55%);
+  }
+
+  // the meter: one stroke of the brush laid along a strip of the paper, dry at its end, its figure a seal pressed
+  // beside it
+  .dex-meter-bar {
+    border: 0;
+    background: rgb(120 98 66 / 8%);
+    box-shadow: inset 0 1px 2px rgb(80 60 30 / 18%);
+  }
+
+  .dex-meter-fill {
+    background-color: var(--sumi);
+    mask: var(--shodo-kasure) 0 0 / 1024px 100% repeat-x;
+  }
+
+  .dex-meter-water,
+  .dex-meter-edge {
+    display: none;
+  }
+
+  .dex-meter-figure {
+    margin-right: 10px;
+    padding: 0 14px;
+    background-color: var(--shu);
+    clip-path: none;
+    mask: var(--shodo-stamp) 0 0 / 128px;
+    transform: rotate(-1.2deg);
+
+    span {
+      color: #fbf3e6;
+      text-shadow: none;
+    }
+  }
+
+  // a box: a sheet on the felt
+  .box-container {
+    background: var(--shodo-washi) 0 0 / 512px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 55%), 0 18px 34px -10px rgb(0 0 0 / 65%);
+  }
+
+  .box-container > .tile-grid {
+    border-color: transparent;
+
+    > .pokemon {
+      border-color: var(--crease);
+    }
+  }
+
+  // a crease pressed in: its dark fold, and the paper's light catching the ridge beside it
+  .tile-grid > .pokemon {
+    background-image: linear-gradient(90deg, var(--crease-light) 1px, transparent 1px), linear-gradient(var(--crease-light) 1px, transparent 1px);
+  }
+
+  .pokemon.captured {
+    background-color: transparent;
+  }
+
+  .pokemon.captured.caught {
+    background-color: rgb(196 160 104 / 9%);
+  }
+
+  .pokemon.captured.unobtainable {
+    background-color: rgb(60 54 48 / 13%);
+  }
+
+  .pokemon.captured.temporary {
+    background-color: rgb(194 58 34 / 6%);
+    background-image:
+      linear-gradient(90deg, var(--crease-light) 1px, transparent 1px),
+      linear-gradient(var(--crease-light) 1px, transparent 1px),
+      repeating-linear-gradient(45deg, transparent 0 9px, rgb(194 58 34 / 7%) 9px 11px);
+  }
+
+  .pokemon.captured.sealed {
+    background-color: transparent;
+  }
+
+  // the wash: the ink's colour through the bloom's mask, which lies on one sheet down the display, so no two tiles
+  // take the same part of it
+  .seal-material {
+    background-color: color-mix(in srgb, var(--wash-ink) 34%, transparent);
+    mask: var(--shodo-wash) var(--seal-x) var(--seal-y) / 768px;
+  }
+
+  &:not([data-plain-seals]) {
+    .seal-material[data-tint] {
+      display: block;
+    }
+
+    .seal-material[data-tint='champions'] {
+      --wash-ink: #b07f24;
+    }
+
+    .seal-material[data-tint='out'] {
+      --wash-ink: var(--shu);
+    }
+
+    .seal-material[data-tint='home'] {
+      --wash-ink: #284a78;
+    }
+  }
+
+  // a box's range on its slip, written in sumi that bleeds a little into the paper; each slip laid at its own angle
+  .box-header h1 {
+    position: relative;
+    padding: 0 20px;
+    background: var(--shodo-washi) 0 0 / 512px;
+    color: var(--sumi);
+    text-shadow: 0 0 1px rgb(29 26 23 / 55%), 0 0 4px rgb(29 26 23 / 18%);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 50%), 0 8px 16px -6px rgb(0 0 0 / 55%);
+    transform: rotate(var(--slip, -0.6deg)) translateX(var(--slip-x, 0));
+  }
+
+  .box:nth-child(3n + 1) {
+    --slip: 0.5deg;
+    --slip-x: -6px;
+  }
+
+  .box:nth-child(4n + 2) {
+    --slip: -1.1deg;
+    --slip-x: 8px;
+  }
+
+  .box:nth-child(5n + 3) {
+    --slip: 0.2deg;
+    --slip-x: 3px;
+  }
+
+  // a finished box's seal, pressed beside its slip, at an angle of its own
+  .box-complete .box-header h1::after {
+    content: '済';
+    position: absolute;
+    top: 50%;
+    right: -46px;
+    width: 34px;
+    height: 34px;
+    border-radius: 4px;
+    background-color: var(--shu);
+    color: #f6ecd9;
+    font-family: $font-theme-brush;
+    font-size: 24px;
+    line-height: 34px;
+    text-align: center;
+    text-shadow: none;
+    mask: var(--shodo-stamp) 0 0 / 96px;
+    transform: translateY(-50%) rotate(calc(var(--slip, -0.6deg) * -6));
+  }
+
+  .box-complete .box-container > .tile-grid {
+    outline: 0;
+  }
+}
+
+:root[data-typefaces][data-theme='ink'] :is(.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name) {
+  font-family: $font-theme-brush;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+:root[data-theme='ink'] .dex-meter-figure span {
+  transform: none;
+}
