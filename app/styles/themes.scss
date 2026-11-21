@@ -409,8 +409,8 @@ $art-origin: 200px;
   pointer-events: none;
 }
 
-// Pokédex, Koi and Ukiyo: boxes as rounded panels, the seal material kept inside them
-:is([data-theme='pokedex'], [data-theme='koi'], [data-theme='ukiyo']) {
+// Pokédex: boxes as rounded panels, the seal material kept inside them
+[data-theme='pokedex'] {
   .tile-grid {
     border-radius: 12px;
     overflow: hidden;
@@ -425,7 +425,7 @@ $art-origin: 200px;
 // corner with the box: a box's four, where a short last row (search results) has its own; keep in sync with the 750px
 // media queries in tracker.scss
 @media (width > 750px) {
-  :is([data-theme='pokedex'], [data-theme='koi'], [data-theme='ukiyo']) .tile-grid > .pokemon {
+  [data-theme='pokedex'] .tile-grid > .pokemon {
     &:first-child {
       border-top-left-radius: 11px;
     }
@@ -448,7 +448,7 @@ $art-origin: 200px;
   @for $boxes from 2 through 8 {
     $n: $boxes * $box-columns;
 
-    :is([data-theme='pokedex'], [data-theme='koi'], [data-theme='ukiyo']) .results-chunk > .tile-grid[data-columns='#{$n}'] > .pokemon {
+    [data-theme='pokedex'] .results-chunk > .tile-grid[data-columns='#{$n}'] > .pokemon {
       &:nth-child(#{$box-columns}) {
         border-top-right-radius: 0;
       }
@@ -470,7 +470,7 @@ $art-origin: 200px;
 
 // a narrow window's list: its first row and its last shown (the empty slots after it are hidden)
 @media (max-width: 750px) {
-  :is([data-theme='pokedex'], [data-theme='koi'], [data-theme='ukiyo']) .tile-grid > .pokemon {
+  [data-theme='pokedex'] .tile-grid > .pokemon {
     &:first-child {
       border-top-left-radius: 11px;
       border-top-right-radius: 11px;
@@ -485,14 +485,14 @@ $art-origin: 200px;
 
 // a complete box's frame: square, it's a border and an outline a screen pixel each, but an outline doesn't follow a
 // rounded corner as the border does; a ring a screen pixel wide (--dex-px) does, so the corner matches the sides
-:is([data-theme='pokedex'], [data-theme='koi'], [data-theme='ukiyo']) .box-complete .tile-grid {
+[data-theme='pokedex'] .box-complete .tile-grid {
   outline: none;
   box-shadow: 0 0 0 var(--dex-px, 1px) var(--status-caught);
 }
 
 // search results run on as one grid (tracker.scss): rounded at its two ends, square where one chunk meets the next. A
 // tile's rule here (:nth-child(n), any tile) is as specific as the widest corner rule above, so coming after, it wins
-:is([data-theme='pokedex'], [data-theme='koi'], [data-theme='ukiyo']) .search-results {
+[data-theme='pokedex'] .search-results {
   .results-chunk:not(:first-child) > :is(.tile-grid, .seal-material),
   .results-chunk:not(:first-child) > .tile-grid > .pokemon:nth-child(n) {
     border-top-left-radius: 0;

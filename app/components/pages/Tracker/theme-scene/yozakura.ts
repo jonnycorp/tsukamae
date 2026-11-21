@@ -4,8 +4,9 @@ import type { SceneMaker } from './scene';
 
 // Yozakura: cherry trees in full bloom at night, their canopy filling the top of the window, branches dark through it;
 // strings of red and white paper lanterns (chōchin) hung under it for the hanami, swaying a little, each throwing its
-// light warm (or rosy, from a red one) over the blossom round it and into the night air; petals falling slowly through the dark between, turning as they fall
-const FRAGMENT = `
+// light warm (or rosy, from a red one) over the blossom round it and into the night air; petals falling slowly through
+// the dark between, turning as they fall
+const COMMON = `
 float hash (vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise (vec2 p) {
   vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -22,12 +23,17 @@ float mass (vec2 uv, float aspect) {
 // the lanterns' strings: each sagging between the window's sides, the string's height at x
 float stringY (float x, float y0, float aspect) { return y0 - 0.05 * (1.0 - pow(x / (aspect * 0.5), 2.0)); }
 
+`;
+
+// the still part: drawn once a size (scene.ts), so the canopy's many flowers aren't worked out every frame
+const STILL = `${COMMON}
 void main () {
   vec2 px = gl_FragCoord.xy;
   float h = u_res.y;
   float aspect = u_res.x / h;
   vec2 uv = vec2((px.x - 0.5 * u_res.x) / h, px.y / h);
-  float t = u_time;
+  // still: the lanterns' flames held at a steady moment
+  float t = 0.0;
 
   // the night: plum toward the top, a deep blue below, a haze of the lanterns' light low down
   vec3 col = mix(vec3(0.05, 0.04, 0.09), vec3(0.09, 0.04, 0.1), smoothstep(0.0, 1.0, uv.y));
@@ -118,6 +124,44 @@ void main () {
   pink = mix(pink, pink * 0.6 + glowCol * 0.7, clamp(warm, 0.0, 1.0) * 0.6);
   col = mix(col, pink, bloom * 0.95);
 
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+// each frame: the lanterns, swaying and flickering, their bloom, and the petals falling
+const FRAGMENT = `${COMMON}
+void main () {
+  vec2 px = gl_FragCoord.xy;
+  float h = u_res.y;
+  float aspect = u_res.x / h;
+  vec2 uv = vec2((px.x - 0.5 * u_res.x) / h, px.y / h);
+  float t = u_time;
+
+  // the still world (the night, the boughs, the canopy lit by the lanterns), drawn once a size
+  vec3 col = texture2D(u_still, px / u_res).rgb;
+
+  // the lanterns' light, worked out first: each pools warm round itself, red or white as its paper is, lighting the
+  // blossom near it and the night air between, breathing a little as its flame does
+  float warm = 0.0;
+  vec3 glowCol = vec3(0.0);
+  for (int k = 0; k < 2; k++) {
+    float fk = float(k);
+    float y0 = 0.56 + fk * 0.18;
+    float gap = 0.2 - fk * 0.04;
+    float base = floor((uv.x + fk * 0.07) / gap);
+    for (int n = -1; n <= 1; n++) {
+      float cell = base + float(n);
+      float cx = (cell + 0.5) * gap - fk * 0.07;
+      vec2 lc = vec2(cx, stringY(cx, y0, aspect) - 0.036 * (1.0 - fk * 0.3));
+      float d = length((uv - lc) * vec2(1.0, 1.15));
+      float red = step(0.5, mod(cell + fk, 2.0));
+      float flicker = 0.9 + 0.1 * noise(vec2(t * 0.7, cell + fk * 9.0));
+      float pool = exp(-d * 9.0) * flicker * (1.0 - fk * 0.35);
+      warm += pool;
+      glowCol += mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.36, 0.22), red) * (pool + exp(-d * 30.0) * 0.6 * flicker);
+    }
+  }
+
   // the strings of chōchin under the canopy: red and white by turns, each hung from the string and swaying a little,
   // ribbed paper glowing from within, black lacquered caps, their light on the dark round them
   for (int k = 0; k < 2; k++) {
@@ -173,4 +217,4 @@ void main () {
 }
 `;
 
-export const yozakuraScene: SceneMaker = (back) => shaderScene(back, FRAGMENT);
+export const yozakuraScene: SceneMaker = (back) => shaderScene(back, FRAGMENT, STILL);
