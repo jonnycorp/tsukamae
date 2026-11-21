@@ -3,7 +3,7 @@ import { canvas, rng, toProperty } from './texture';
 
 import type { SceneMaker } from './scene';
 
-// Wisteria 2's court night: deep violet lacquer, the gold waves of seigaiha laid faintly over it, and bands of gold-leaf
+// Wisteria's court night: deep violet lacquer, the gold waves of seigaiha laid faintly over it, and bands of gold-leaf
 // cloud (suyari-gasumi) drifting across in two depths, the near ones slower than the far, the leaf catching a light that
 // stands still as they pass under it, flecked where the leaf was laid in squares and broke
 const FRAGMENT = `

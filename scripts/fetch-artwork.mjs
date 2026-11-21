@@ -1,7 +1,7 @@
 'use strict';
 
 // dev-only, and never committed (public/artwork/ is ignored): the official artwork for every mon the dexes list, from
-// PokéAPI's sprites repository, for the review's art lens (lab/LabLensArt.tsx). Saved as public/artwork/<national>.png,
+// PokéAPI's sprites repository, for the review's art lens (views/ViewLensArt.tsx). Saved as public/artwork/<national>.png,
 // a regional form as <national>-<form>.png; with --shiny, the shiny artwork too, under public/artwork/shiny/. Every
 // other variety of those species too (megas, Gigantamax, the rest), as <national>-<variety>.png (6-mega-x, 6-gmax),
 // listed by species in public/artwork/forms.json. A file already there is kept, so a run after a new season or

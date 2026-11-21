@@ -56,40 +56,6 @@
   src: url('/fonts/yuji-boku.ttf') format('truetype');
 }
 
-// and every other word of Ink's in a brush pen's hand (Zen Kurenaido), its Japanese and its Latin each scaled to draw as
-// large as the app's own face for its script does at the same size (measured on their ink, as Wisteria's are)
-@font-face {
-  font-family: 'Theme Pen';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/zen-kurenaido.ttf') format('truetype');
-  size-adjust: 104%;
-  unicode-range: U+3000-30FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
-}
-
-@font-face {
-  font-family: 'Theme Pen';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/zen-kurenaido.ttf') format('truetype');
-  size-adjust: 97%;
-  unicode-range: U+0000-2FFF;
-}
-
-// its figures and their marks to the app's capitals' height: the app's own figures are old-style, the pen's lining, so
-// at the Latin's scale they stood a fifth taller than the words round them
-@font-face {
-  font-family: 'Theme Pen';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/zen-kurenaido.ttf') format('truetype');
-  size-adjust: 89%;
-  unicode-range: U+0023, U+0025, U+002B-002F, U+0030-003A;
-}
-
 // Wisteria: a printed serif (Alegreya) and its Japanese, a Mincho (Zen Old Mincho), each scaled to draw as large as the
 // app's own face for its script does at the same size, so the sizes the app sets for Japanese and English hold here
 // too: the serif, wider and darker than Alegreya Sans, to 93%; the Mincho, whose kana and kanji sit small in their
@@ -154,25 +120,6 @@
   font-weight: 100 900;
   font-display: swap;
   src: url('/fonts/dotgothic16.ttf') format('truetype');
-}
-
-// Midnight: a wide geometric display face (Orbitron), Latin alone
-@font-face {
-  font-family: 'Theme Wide';
-  font-style: normal;
-  font-weight: 400 900;
-  font-display: swap;
-  src: url('/fonts/orbitron.ttf') format('truetype');
-}
-
-// and its figures alone, first in the stack its every word takes at night: the digits and their marks (# % + , - . / :)
-@font-face {
-  font-family: 'Theme Wide Digits';
-  font-style: normal;
-  font-weight: 400 900;
-  font-display: swap;
-  src: url('/fonts/orbitron.ttf') format('truetype');
-  unicode-range: U+0023, U+0025, U+002B-002F, U+0030-003A;
 }
 
 // Pokédex: a device's seven-segment numerals (DSEG7 Classic), the digits and their marks alone

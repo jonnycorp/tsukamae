@@ -2,7 +2,7 @@ import { canvas, fbm, rng, toProperty } from './texture';
 
 import type { SceneMaker } from './scene';
 
-// Ink 2's desk: a calligrapher's black felt (mōsen) under the sheets of hanshi the boxes are, the window's light
+// Ink's desk: a calligrapher's black felt (mōsen) under the sheets of hanshi the boxes are, the window's light
 // drifting slowly across it. The felt is drawn once. It also makes the paper and the ink the stylesheet lays on:
 // the hanshi's fibres (--shodo-washi), a diluted-ink wash for a sealed tile (--shodo-wash), a dry brush's streaks for
 // the meter (--shodo-kasure) and the grain a seal leaves on paper (--shodo-stamp)

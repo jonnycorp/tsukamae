@@ -18,9 +18,9 @@ import { SearchBar } from './SearchBar';
 import { Timeline } from './Timeline';
 import { ZoomIndicator } from './ZoomIndicator';
 import { ThemeScene } from './theme-scene/ThemeScene';
-import { LabHost, labTitle } from './lab/LabHost';
-import { isLabScene } from './lab/registry';
-import { spotlight } from './lab/spotlight';
+import { ViewsHost, viewTitle } from './views/ViewsHost';
+import { isViewScene } from './views/registry';
+import { spotlight } from './views/spotlight';
 import { DISPLAY_MODES } from '../../../utils/display-modes';
 import { EMPTY_FILTERS, filterMatcher, queryMatcher } from './filters';
 import { MENU_OR_MODAL, useHotkey } from '../../../hooks/use-hotkey';
@@ -30,7 +30,6 @@ import { useLocalStorage } from '../../../hooks/use-local-storage';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useDexScale } from './use-dex-scale';
 import { useFlipClock } from './use-flip-clock';
-import { useInkPond } from './ink-pond';
 import { usePageBrush } from './page-brush';
 import { useDisplayContext, useThemeContext } from '../../../hooks/contexts/use-local-storage-context';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -41,7 +40,7 @@ import type { FacetId, TrackerFilters } from './filters';
 import type { JourneysView } from './Journeys';
 import type { LabScene, SceneView } from './Scene';
 import type { OrreryView } from './BallOrrery';
-import type { LabSceneId } from './lab/registry';
+import type { ViewSceneId } from './views/registry';
 
 // frames a located mon is looked for before it's taken as filtered out, beyond those the boxes are still going in for
 const LOCATE_FRAMES = 30;
@@ -62,7 +61,7 @@ type SceneBack =
   | { scene: 'journeys'; view: JourneysView }
   | { scene: 'trainers'; view: SceneView }
   | { scene: 'orrery'; view: OrreryView }
-  | { scene: LabSceneId; view: SceneView };
+  | { scene: ViewSceneId; view: SceneView };
 
 // the name on the tab in the filters' row that goes back to it (FilterBar)
 const LAYER_TITLES = { journeys: 'journeys.title', trainers: 'trainers.title', orrery: 'orrery.title' } as const;
@@ -124,8 +123,6 @@ function TrackerInner () {
   const { still, setStill } = useThemeContext();
   const { display, setDisplay } = useDisplayContext();
   const flipPause = useFlipClock(containerRef, still, display);
-  // Ink's pond, drops falling on it every second or two (ink-pond.ts)
-  useInkPond();
   // a theme's brushed page change, its marks laid over the lines as they change (page-brush.ts)
   usePageBrush(containerRef, display);
   // still mode (M): no moving part anywhere, the flips held on the face its picker shows (useFlipClock), the sealed
@@ -274,7 +271,7 @@ function TrackerInner () {
     }
   }, []);
 
-  // the mon a lab sketch's spot is handing off to (handleSceneSpot)
+  // the mon a view's spot is handing off to (handleSceneSpot)
   const spotRef = useRef<number | null>(null);
   const handOff = useCallback((close: () => void, locate: HandOff['locate'] = null) => {
     handingRef.current = true;
@@ -305,7 +302,7 @@ function TrackerInner () {
         return;
       }
       tile?.scrollIntoView({ block: 'center' });
-      // a lab sketch's spot: shown where it's filed rather than opened (lab/spotlight.ts)
+      // a view's spot: shown where it's filed rather than opened (views/spotlight.ts)
       if (tile && spotRef.current === locate.pokemon) {
         spotlight(tile, locale);
       }
@@ -465,10 +462,10 @@ function TrackerInner () {
 
   // the scenes on the shared shell, one up at a time (Scene.tsx): each opened by its key; what's pressed in one filters
   // the dex, goes to a mon's tile, or runs the review through a list of mons, as the scene closes
-  const [scene, setScene] = useState<LabScene | LabSceneId | null>(null);
+  const [scene, setScene] = useState<LabScene | ViewSceneId | null>(null);
   // a scene come back to from the dex, quietly and as it was left (null when it's opened)
   const [sceneBack, setSceneBack] = useState<SceneBack | null>(null);
-  const handleOpenScene = useCallback((next: LabScene | LabSceneId) => {
+  const handleOpenScene = useCallback((next: LabScene | ViewSceneId) => {
     setSelectedPokemon(0);
     setSceneBack(null);
     setScene(next);
@@ -511,7 +508,7 @@ function TrackerInner () {
   const handleOrreryFilter = useCallback((next: TrackerFilters, view: OrreryView) => {
     handleLayerFilter(next, { scene: 'orrery', view });
   }, [handleLayerFilter]);
-  const handleLabFilter = useCallback((next: TrackerFilters, view: SceneView, from: LabSceneId) => {
+  const handleViewFilter = useCallback((next: TrackerFilters, view: SceneView, from: ViewSceneId) => {
     handleLayerFilter(next, { scene: from, view });
   }, [handleLayerFilter]);
   // first of every listener, so the key is read before anything acts on it: an open popover, menu or panel, or a field
@@ -537,7 +534,7 @@ function TrackerInner () {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [layerStands, handleLayerBack]);
   // a scene reading the records (records) has nothing to show in a checklist, which keeps none
-  const sceneKey = (next: LabScene | LabSceneId, records = false) => () => {
+  const sceneKey = (next: LabScene | ViewSceneId, records = false) => () => {
     if (!document.querySelector('.facet-panel') && !(records && activeDex!.checklist)) {
       handleOpenScene(next);
     }
@@ -546,7 +543,7 @@ function TrackerInner () {
     handOff(() => setScene(null));
     handleReveal(pokemon);
   }, [handOff, handleReveal]);
-  // a lab sketch's mon shown in the boxes where it's filed, the dex let go of what hides it, nothing opened
+  // a view's mon shown in the boxes where it's filed, the dex let go of what hides it, nothing opened
   const handleSceneSpot = useCallback((pokemon: number) => {
     const capture = captures.find((entry) => entry.pokemon.id === pokemon);
     if (capture && !(filterMatcher(filters)(capture) && queryMatcher(query, regional)(capture))) {
@@ -567,11 +564,11 @@ function TrackerInner () {
   useHotkey('g', sceneKey('atlas'));
   useHotkey('c', sceneKey('trainers', true));
   useHotkey('b', sceneKey('orrery', true));
-  // the lab's deck of sketches (lab/)
-  useHotkey('x', sceneKey('lab'));
-  // and the sketches used most, each on its own key (lab/registry.ts)
-  useHotkey('u', sceneKey('lab:galaxy', true));
-  useHotkey('k', sceneKey('lab:mosaic'));
+  // the views' deck of views (views/)
+  useHotkey('x', sceneKey('views'));
+  // and the views used most, each on its own key (views/registry.ts)
+  useHotkey('u', sceneKey('view:galaxy', true));
+  useHotkey('k', sceneKey('view:mosaic'));
 
   return (
     <div className="tracker-container" onAnimationStart={syncLoops} ref={containerRef}>
@@ -601,7 +598,7 @@ function TrackerInner () {
             query={query}
             setFilters={setFilters}
             setQuery={setQuery}
-            source={layerStands ? { title: isLabScene(layer.from.scene) ? labTitle(locale, layer.from.scene) : t(LAYER_TITLES[layer.from.scene]), onBack: handleLayerBack } : undefined}
+            source={layerStands ? { title: isViewScene(layer.from.scene) ? viewTitle(locale, layer.from.scene) : t(LAYER_TITLES[layer.from.scene]), onBack: handleLayerBack } : undefined}
             width={headerWidth}
           />
           <div className="dex-column" data-veil={(curtain && !curtain.revealed) || undefined} ref={columnRef}>
@@ -653,12 +650,12 @@ function TrackerInner () {
         <TrainerCards back={sceneBack?.scene === 'trainers' ? sceneBack.view : null} onClose={handleCloseScene} onFilter={handleTrainersFilter} />}
       {scene === 'orrery' &&
         <BallOrrery back={sceneBack?.scene === 'orrery' ? sceneBack.view : null} onClose={handleCloseScene} onFilter={handleOrreryFilter} />}
-      {isLabScene(scene) &&
-        <LabHost
+      {isViewScene(scene) &&
+        <ViewsHost
           back={sceneBack && sceneBack.scene === scene ? sceneBack.view : null}
           checklist={Boolean(activeDex!.checklist)}
           onClose={handleCloseScene}
-          onFilter={handleLabFilter}
+          onFilter={handleViewFilter}
           onLocate={handleSceneLocate}
           onOpen={handleOpenScene}
           onReview={handleSceneReview}

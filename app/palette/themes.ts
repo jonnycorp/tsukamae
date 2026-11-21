@@ -48,11 +48,8 @@ export interface ThemeSeed {
   // the side it's made for and shown on, there being no switch between them: dark, unless it says
   side?: Mode;
   // how a sealed tile's pages change: slid up, unless it says brushed, a brush's mark laid over the line as its text
-  // changes under it (its mark and ink --page-brush and --page-brush-color in styles/themes.scss; page-brush.ts)
+  // changes under it (its mark and ink --page-brush and --page-brush-color in styles/themes2; page-brush.ts)
   pageChange?: 'brush';
-  // how W comes in as it opens: the mon settling and the plates coming in, unless it says brushed, a stroke of
-  // its brush across each plate, drying as the value shows (styles/review.scss)
-  reviewEntrance?: 'brush';
 }
 
 // Apricot contrasts, and Wisteria with its gold; the rest are waves through a single colour family. Every theme's
@@ -63,30 +60,6 @@ export const THEMES: ThemeSeed[] = [
   { name: 'Apricot', hue: 55, ink: 42, unobtainable: 75, temporary: 355, caught: 28, chroma: 1 },
   { name: 'Matcha', hue: 128, ink: 145, unobtainable: 160, temporary: 112, caught: 145, chroma: 0.85 },
   { name: 'Harbor', hue: 232, ink: 245, unobtainable: 68, temporary: 205, caught: 240, chroma: 0.8, unobtainableChroma: 0.9 },
-  // miyabi, in the Elegant Vivillon's colours: violet and orchid tiles, a peony pink, and gold, the unobtainable laid
-  // in pale gold. Light is lavender paper under a deep violet bar; Soft Dark an aubergine night, gold what you press.
-  // The waves on its bar and the gold clouds behind its rows are drawn by scripts/theme-marks.mjs and laid on in
-  // styles/themes.scss
-  {
-    name: 'Wisteria', hue: 310, ink: 303, unobtainable: 78, temporary: 345, caught: 320, chroma: 1, unobtainableChroma: 0.85,
-    tones: {
-      light: {
-        chrome: { l: 0.37, c: 0.12, source: 'ink' }, 'chrome-hover': { l: 0.42, c: 0.12, source: 'ink' }, 'chrome-active': { l: 0.46, c: 0.12, source: 'ink' }, 'chrome-pattern': { l: 0.33, c: 0.11, source: 'ink' },
-        accent: { l: 0.5, c: 0.17, source: 'caught' }, 'accent-hover': { l: 0.44, c: 0.16, source: 'caught' },
-        overlay: { l: 0.32, c: 0.1, source: 'ink' }, 'overlay-deep': { l: 0.28, c: 0.095, source: 'ink' }, 'overlay-deeper': { l: 0.25, c: 0.09, source: 'ink' }, 'overlay-edge': { l: 0.5, c: 0.17, source: 'caught' },
-        'tile-caught': { l: 0.825, c: 0.095 }, 'tile-unobtainable': { l: 0.9, c: 0.045 },
-      },
-      dark: {
-        paper: { l: 0.22, c: 0.045 }, 'paper-raised': { l: 0.26, c: 0.05 }, 'paper-sunken': { l: 0.19, c: 0.04 }, chip: { l: 0.19, c: 0.04 },
-        chrome: { l: 0.16, c: 0.06, source: 'ink' }, 'chrome-hover': { l: 0.2, c: 0.065, source: 'ink' }, 'chrome-active': { l: 0.24, c: 0.07, source: 'ink' }, 'chrome-pattern': { l: 0.14, c: 0.055, source: 'ink' },
-        meter: { l: 0.25, c: 0.06 }, 'meter-edge': { l: 0.72, c: 0.11, source: 'unobtainable' },
-        accent: { l: 0.8, c: 0.12, source: 'unobtainable' }, 'accent-hover': { l: 0.85, c: 0.1, source: 'unobtainable' },
-        overlay: { l: 0.18, c: 0.06, source: 'ink' }, 'overlay-deep': { l: 0.22, c: 0.065, source: 'ink' }, 'overlay-deeper': { l: 0.26, c: 0.07, source: 'ink' }, 'overlay-edge': { l: 0.72, c: 0.11, source: 'unobtainable' },
-        field: { l: 0.19, c: 0.04 }, 'field-edge': { l: 0.45, c: 0.07, source: 'ink' }, 'field-focus': { l: 0.8, c: 0.12, source: 'unobtainable' },
-        'tile-caught': { l: 0.38, c: 0.11 }, 'tile-unobtainable': { l: 0.27, c: 0.042 }, 'tile-temporary': { l: 0.3, c: 0.07 }, 'tile-temporary-stripe': { l: 0.34, c: 0.09 },
-      },
-    },
-  },
   {
     name: 'Graphite', hue: 250, ink: 255, unobtainable: 250, temporary: 232, caught: 256, chroma: 0.22, statusChroma: 0.85, unobtainableChroma: 0.3,
     tones: {
@@ -147,70 +120,12 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // synthwave: a hot violet bar over lilac in Light, hot pink tiles with cyan buttons and a cyan temporary; Soft Dark,
-  // the side it's made for, is vaporwave on a deep indigo night, its tiles the night's own dark (an indigo, a teal
-  // temporary, a plum unobtainable) and the sunset's neon pink their lines (styles/themes.scss). Pokédex keeps the teal
-  // screen to itself
-  {
-    name: 'Midnight', hue: 285, ink: 330, unobtainable: 75, temporary: 190, caught: 345, chroma: 1.2, statusChroma: 1.3,
-    tones: {
-      light: {
-        chrome: { l: 0.45, c: 0.2 }, 'chrome-hover': { l: 0.5, c: 0.19 }, 'chrome-active': { l: 0.55, c: 0.18 }, 'chrome-pattern': { l: 0.41, c: 0.2 },
-        accent: { l: 0.55, c: 0.2, source: 'temporary' }, 'accent-hover': { l: 0.49, c: 0.19, source: 'temporary' },
-        overlay: { l: 0.28, c: 0.08, source: 'hue' }, 'overlay-deep': { l: 0.24, c: 0.075, source: 'hue' }, 'overlay-deeper': { l: 0.21, c: 0.07, source: 'hue' }, 'overlay-edge': { l: 0.55, c: 0.2 },
-        'tile-caught': { l: 0.84, c: 0.1 },
-      },
-      dark: {
-        paper: { l: 0.19, c: 0.05 }, 'paper-raised': { l: 0.23, c: 0.055 }, 'paper-sunken': { l: 0.16, c: 0.045 }, chip: { l: 0.16, c: 0.045 },
-        chrome: { l: 0.14, c: 0.06 }, 'chrome-hover': { l: 0.19, c: 0.07 }, 'chrome-active': { l: 0.23, c: 0.08 }, 'chrome-pattern': { l: 0.17, c: 0.065 },
-        meter: { l: 0.22, c: 0.07 }, 'meter-edge': { l: 0.6, c: 0.2, source: 'ink' },
-        accent: { l: 0.72, c: 0.2, source: 'temporary' }, 'accent-hover': { l: 0.77, c: 0.18, source: 'temporary' },
-        overlay: { l: 0.16, c: 0.06, source: 'hue' }, 'overlay-deep': { l: 0.2, c: 0.065, source: 'hue' }, 'overlay-deeper': { l: 0.24, c: 0.07, source: 'hue' }, 'overlay-edge': { l: 0.6, c: 0.2 },
-        field: { l: 0.16, c: 0.045 }, 'field-edge': { l: 0.45, c: 0.1, source: 'hue' }, 'field-focus': { l: 0.72, c: 0.2 },
-        'tile-unobtainable': { l: 0.235, c: 0.065, source: 'ink' }, 'tile-temporary': { l: 0.26, c: 0.08 }, 'tile-temporary-stripe': { l: 0.31, c: 0.11 }, 'tile-caught': { l: 0.27, c: 0.065, source: 'hue' },
-      },
-    },
-  },
-  // calligraphy: sumi on warm washi, a black bar and rules, the statuses in the cool greys of a diluted ink (usuzumi),
-  // and a seal's vermilion for what you press; Soft Dark the same ink on an inkstone's black. Light is the side it's
-  // made for: its washi a soft, unbleached white rather than a bright one, the tiles a step deeper to keep apart from it.
-  // Its brush marks are drawn by scripts/theme-marks.mjs
-  {
-    name: 'Ink', hue: 80, ink: 33, unobtainable: 250, temporary: 33, caught: 250, chroma: 0.05, statusChroma: 0.6, unobtainableChroma: 0.05, lineAlpha: 0.32,
-    rangeDash: { ja: '～' },
-    side: 'light',
-    pageChange: 'brush',
-    reviewEntrance: 'brush',
-    tones: {
-      light: {
-        paper: { l: 0.928, c: 0.018 }, 'paper-raised': { l: 0.948, c: 0.014 }, 'paper-sunken': { l: 0.903, c: 0.02 }, chip: { l: 0.888, c: 0.02 },
-        chrome: { l: 0.2, c: 0.006 }, 'chrome-hover': { l: 0.27, c: 0.006 }, 'chrome-active': { l: 0.32, c: 0.006 }, 'chrome-pattern': { l: 0.16, c: 0.006 },
-        meter: { l: 0.82, c: 0.008 }, 'meter-edge': { l: 0.2, c: 0.006 },
-        accent: { l: 0.55, c: 0.19 }, 'accent-hover': { l: 0.49, c: 0.18 },
-        overlay: { l: 0.2, c: 0.006 }, 'overlay-deep': { l: 0.26, c: 0.006 }, 'overlay-deeper': { l: 0.31, c: 0.006 }, 'overlay-edge': { l: 0.12, c: 0.006 },
-        field: { l: 0.955, c: 0.012 }, 'field-edge': { l: 0.25, c: 0.006 }, 'field-focus': { l: 0.55, c: 0.19 },
-        'tile-unobtainable': { l: 0.85, c: 0.009 }, 'tile-temporary': { l: 0.882, c: 0.012 }, 'tile-temporary-stripe': { l: 0.828, c: 0.012 }, 'tile-caught': { l: 0.775, c: 0.012 },
-        'status-unobtainable': { l: 0.62, c: 0.008 }, 'status-temporary': { l: 0.55, c: 0.18 }, 'status-caught': { l: 0.3, c: 0.006 },
-      },
-      dark: {
-        paper: { l: 0.17, c: 0.005 }, 'paper-raised': { l: 0.21, c: 0.005 }, 'paper-sunken': { l: 0.14, c: 0.005 }, chip: { l: 0.14, c: 0.005 },
-        chrome: { l: 0.1, c: 0.004 }, 'chrome-hover': { l: 0.15, c: 0.004 }, 'chrome-active': { l: 0.2, c: 0.004 }, 'chrome-pattern': { l: 0.12, c: 0.004 },
-        meter: { l: 0.3, c: 0.005 }, 'meter-edge': { l: 0.7, c: 0.005 },
-        accent: { l: 0.67, c: 0.17, source: 'ink' }, 'accent-hover': { l: 0.72, c: 0.15, source: 'ink' },
-        overlay: { l: 0.24, c: 0.005 }, 'overlay-deep': { l: 0.29, c: 0.005 }, 'overlay-deeper': { l: 0.33, c: 0.005 }, 'overlay-edge': { l: 0.5, c: 0.005 },
-        field: { l: 0.14, c: 0.005 }, 'field-edge': { l: 0.6, c: 0.005 }, 'field-focus': { l: 0.67, c: 0.17, source: 'ink' },
-        'tile-unobtainable': { l: 0.235, c: 0.005 }, 'tile-temporary': { l: 0.29, c: 0.006 }, 'tile-temporary-stripe': { l: 0.345, c: 0.006 }, 'tile-caught': { l: 0.42, c: 0.008 },
-        'status-unobtainable': { l: 0.55, c: 0.005 }, 'status-temporary': { l: 0.67, c: 0.16 }, 'status-caught': { l: 0.82, c: 0.006 },
-      },
-    },
-  },
-  // ---- second versions (exp/views), each a whole scene the boxes sit in (components/pages/Tracker/theme-scene,
-  // styles/themes2), beside the originals they grew from
-  // Ink 2: shodō, a calligrapher's desk. Hanshi on a felt underlay, the tiles the creases a student folds into the sheet
+  // ---- scene themes, each a whole world the boxes sit in (components/pages/Tracker/theme-scene, styles/themes2)
+  // Ink: shodō, a calligrapher's desk. Hanshi on a felt underlay, the tiles the creases a student folds into the sheet
   // as a guide, the titles written in sumi that bleeds into the paper, a finished box signed with a cinnabar seal; the
   // only motion the window's light drifting over the felt, and a page change one stroke of the brush along each line
   {
-    name: 'Ink 2', hue: 80, ink: 33, unobtainable: 250, temporary: 33, caught: 60, chroma: 0.05, statusChroma: 0.6, unobtainableChroma: 0.05, lineAlpha: 0.2,
+    name: 'Ink', hue: 80, ink: 33, unobtainable: 250, temporary: 33, caught: 60, chroma: 0.05, statusChroma: 0.6, unobtainableChroma: 0.05, lineAlpha: 0.2,
     rangeDash: { ja: '～' },
     pageChange: 'brush',
     side: 'light',
@@ -227,12 +142,12 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // Midnight 2: one vaporwave night the boxes float in, not props laid on the page. A sky running from indigo down to
+  // Midnight: one vaporwave night the boxes float in, not props laid on the page. A sky running from indigo down to
   // the sunset, a striped sun sinking behind a chrome grid floor that runs slowly toward you, haze and stars; the
   // boxes dark glass over it, their tiles calm (no lattice), a sealed tile's place told by the neon its lower edge
   // glows in, as a sign's light lies on wet glass
   {
-    name: 'Midnight 2', hue: 285, ink: 330, unobtainable: 75, temporary: 190, caught: 345, chroma: 1.2, statusChroma: 1.3,
+    name: 'Midnight', hue: 285, ink: 330, unobtainable: 75, temporary: 190, caught: 345, chroma: 1.2, statusChroma: 1.3,
     tones: {
       dark: {
         paper: { l: 0.17, c: 0.05 }, 'paper-raised': { l: 0.22, c: 0.055 }, 'paper-sunken': { l: 0.14, c: 0.045 }, chip: { l: 0.15, c: 0.045 },
@@ -245,11 +160,11 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // Wisteria 2: the original's feel taken into a scene, a night under a wisteria trellis. Racemes hang from the top of
+  // Wisteria: the original's feel taken into a scene, a night under a wisteria trellis. Racemes hang from the top of
   // the window in depth, the near ones soft, swaying slowly; the boxes lacquer panels under them, framed in gold that
   // catches the light, with gold dust (nashiji) in the lacquer of a sealed tile
   {
-    name: 'Wisteria 2', hue: 305, ink: 300, unobtainable: 80, temporary: 345, caught: 300, chroma: 1, unobtainableChroma: 0.85,
+    name: 'Wisteria', hue: 305, ink: 300, unobtainable: 80, temporary: 345, caught: 300, chroma: 1, unobtainableChroma: 0.85,
     tones: {
       dark: {
         paper: { l: 0.18, c: 0.04 }, 'paper-raised': { l: 0.23, c: 0.045 }, 'paper-sunken': { l: 0.16, c: 0.035 }, chip: { l: 0.16, c: 0.035 },
@@ -643,7 +558,8 @@ export function themeSlug (name: string): string {
   return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
 }
 
-export function findTheme (name: string): ThemeSeed {
+export function findTheme (stored: string): ThemeSeed {
+  const name = stored.replace(/^(Ink|Midnight|Wisteria) 2$/, '$1');
   return THEMES.find((seed) => seed.name === name) ?? THEMES.find((seed) => seed.name === DEFAULT_THEME)!;
 }
 

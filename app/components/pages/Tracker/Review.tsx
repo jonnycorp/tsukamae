@@ -5,7 +5,7 @@ import { faArrowLeft, faArrowRight, faArrowUpRightFromSquare, faBan, faCheck, fa
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { CAPTURE_FIELDS, asksPlace, sealedPlace, unansweredFields, withFieldInvariants } from '../../../utils/capture-fields';
-import { LabLensArt } from './lab/LabLensArt';
+import { ViewLensArt } from './views/ViewLensArt';
 import { FieldControl, FieldText, FieldVisual, SoftBox } from './review-fields';
 import { PokemonName } from '../../library/PokemonName';
 import { useCalmStart } from './TitleCard';
@@ -739,7 +739,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
                       <svg aria-hidden="true" className="review-brackets" preserveAspectRatio="none" viewBox="0 0 100 100">
                         <path d="M1 17V1H17M83 1H99V17M99 83V99H83M17 99H1V83" />
                       </svg>
-                      <LabLensArt giant={capture.gigantamax === true} pokemon={capture.pokemon} shiny={dex.shiny}><i className={iconClass(capture.pokemon, dex)} /></LabLensArt>
+                      <ViewLensArt giant={capture.gigantamax === true} pokemon={capture.pokemon} shiny={dex.shiny}><i className={iconClass(capture.pokemon, dex)} /></ViewLensArt>
                       {capture.sealed && <span className={classNames('review-stamp', { slam: stamping === capture.pokemon.id })}>{t('review.stamp')}</span>}
                     </div>
                     {/* a row each, every one its own height on every mon, filled or not */}

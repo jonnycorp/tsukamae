@@ -1,0 +1,380 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the catch days (views/CatchDays.tsx): a column of day cards under a year's numeral where the year changes, each the
+// day large at its left, what came that day at its right; a yearly day edged in the accent. A card comes up as it
+// scrolls into view (a view timeline, where there is one), its mons a beat after
+$ld-ease: cubic-bezier(.2, .9, .3, 1);
+
+@keyframes ld-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+@keyframes ld-mon {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(.85);
+  }
+}
+
+.ld-page {
+  max-width: 1080px;
+  margin: 0 auto;
+
+  // a pick's day at the left (the galaxy's day panel): the journal steps aside for it
+  &.aside {
+    margin-left: 300px;
+  }
+
+  .lg-panel {
+    position: fixed;
+    top: 110px;
+    z-index: 3;
+  }
+}
+
+// the journal's switches airy, as the galaxy's
+.ld-head .view-scope {
+  padding: 2px;
+  border-color: color-mix(in srgb, var(--line) 55%, transparent);
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  backdrop-filter: blur(6px);
+
+  button {
+    padding: 4px 12px;
+
+    &.on {
+      background-color: color-mix(in srgb, var(--accent) 22%, transparent);
+      color: var(--ink);
+    }
+  }
+}
+
+.ld-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 40px;
+  margin-bottom: 10px;
+}
+
+.ld-figure {
+  display: flex;
+  flex-direction: column;
+
+  b {
+    font-family: $font-secondary;
+    font-size: 30px;
+    font-weight: 300;
+    line-height: 1.1;
+  }
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+}
+
+.ld-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.ld-order {
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 99px;
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  color: var(--ink-muted);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+}
+
+.ld-empty {
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.ld-run {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
+}
+
+// the year's numeral, where the column passes into it
+.ld-year {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 34px 0 14px;
+  color: var(--accent);
+  font-family: $font-secondary;
+  font-size: 44px;
+  font-weight: 200;
+  letter-spacing: .04em;
+
+  &::after {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    content: '';
+  }
+}
+
+.ld-day {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 22px;
+  margin-bottom: 12px;
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 16px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--paper-raised) 45%, transparent), color-mix(in srgb, var(--paper) 15%, transparent));
+
+  &.marked {
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    background:
+      radial-gradient(120% 90% at 0 0, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+      linear-gradient(160deg, color-mix(in srgb, var(--paper-raised) 45%, transparent), color-mix(in srgb, var(--paper) 15%, transparent));
+  }
+
+  @supports (animation-timeline: view()) {
+    animation: ld-up linear both;
+    animation-range: entry 0% entry 60%;
+    animation-timeline: view();
+  }
+}
+
+.ld-when {
+  display: flex;
+  flex-direction: column;
+
+  b {
+    font-family: $font-secondary;
+    font-size: 56px;
+    font-weight: 200;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  span {
+    margin-top: 4px;
+    font-weight: 700;
+  }
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+}
+
+.ld-mark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--accent);
+  font-style: normal;
+  font-weight: 700;
+
+  @include small-text(12px);
+}
+
+.ld-what {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ld-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+}
+
+// how many, with a bar as long as its share of the busiest day
+.ld-count {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 90px;
+
+  b {
+    font-family: $font-secondary;
+    font-size: 22px;
+    font-weight: 300;
+  }
+
+  i {
+    width: calc(var(--f) * 90px);
+    min-width: 4px;
+    height: 3px;
+    border-radius: 2px;
+    background-color: var(--accent);
+  }
+}
+
+.ld-games {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    @include small-text(12px);
+  }
+
+  i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background-color: var(--ground);
+  }
+
+  b {
+    color: var(--ink-muted);
+    font-weight: 400;
+  }
+}
+
+.ld-balls {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: auto;
+
+  span {
+    display: flex;
+    position: relative;
+  }
+
+  img {
+    image-rendering: pixelated;
+  }
+
+  b {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    color: var(--ink-muted);
+    font-weight: 400;
+
+    @include small-text(10px);
+  }
+}
+
+.ld-mons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.ld-mon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  place-items: center;
+  transition: background-color .15s, transform .15s;
+  animation: ld-mon .4s $ld-ease both;
+  animation-delay: calc(var(--i) * 18ms);
+
+  &:hover {
+    background-color: var(--hover-wash);
+    transform: scale(1.2);
+  }
+
+  &.away {
+    cursor: default;
+    opacity: .7;
+  }
+}
+
+.ld-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.ld-note {
+  display: flex;
+  flex: 1 1 220px;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    outline: none;
+
+    &:focus {
+      border-bottom-color: var(--accent);
+    }
+
+    &::placeholder {
+      color: var(--ink-muted);
+      opacity: .7;
+    }
+  }
+}
+
+.ld-yearly,
+.ld-review {
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 99px;
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  color: var(--ink-muted);
+  cursor: pointer;
+
+  @include small-text(12px);
+
+  &:not(:disabled):hover {
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: .4;
+  }
+}
+
+.ld-yearly.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ld-review {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--ink);
+}

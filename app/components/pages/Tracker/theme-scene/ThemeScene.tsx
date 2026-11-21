@@ -12,9 +12,9 @@ import type { Scene, SceneMaker } from './scene';
 // a second-version theme's world, the boxes floating over it (styles/themes2): one canvas behind the dex. It moves
 // slowly, at most 30 frames a second, and stops in still mode, a hidden window, or once the theme changes
 const SCENES: Record<string, SceneMaker> = {
-  'midnight-2': midnightScene,
-  'ink-2': shodoScene,
-  'wisteria-2': kumoScene,
+  midnight: midnightScene,
+  ink: shodoScene,
+  wisteria: kumoScene,
   yozakura: yozakuraScene,
 };
 

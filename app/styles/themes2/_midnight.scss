@@ -1,12 +1,12 @@
 @use '../variables' as *;
 
-// Midnight 2: vaporwave as one night (theme-scene/midnight.ts) rather than parts laid on a page. The bar and the header
+// Midnight: vaporwave as one night (theme-scene/midnight.ts) rather than parts laid on a page. The bar and the header
 // are dark glass the sky shows through; the boxes float over the grid floor as panes of smoked glass, the sky blurred
 // through them, so the sun and its grid are there everywhere without a line of them crossing a tile. Tiles are calm:
 // no lattice, a sealed tile's place told by the neon its foot glows in (pink at home, the sun's gold in Champions,
 // cyan out in a game, lavender in HOME), as a sign's light lies on wet glass. The one motion in the boxes is that glow
 // breathing very slowly through the sealed tiles; the rest is the scene's
-:root[data-theme='midnight-2'] {
+:root[data-theme='midnight'] {
   --neon-pink: #ff5bd6;
   --neon-sun: #ffb35c;
   --neon-lavender: #b99bff;

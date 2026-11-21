@@ -2,7 +2,7 @@ import { shaderScene } from './scene';
 
 import type { SceneMaker } from './scene';
 
-// Midnight 2's night: a sky from indigo down to the sunset, stars, a striped sun low over the horizon, mountains
+// Midnight's night: a sky from indigo down to the sunset, stars, a striped sun low over the horizon, mountains
 // either side of it rimmed in its light, and a neon grid floor running slowly toward you into a haze. Every colour
 // dithered, so the long gradients never band
 const FRAGMENT = `

@@ -1,6 +1,6 @@
-// the second versions (exp/views): each theme a world the boxes sit in, drawn behind them by its scene
+// the scene themes (Midnight, Ink, Wisteria, Yozakura): each a world the boxes sit in, drawn behind them by its scene
 // (components/pages/Tracker/theme-scene) and carried through the bar, the header, the frames and the tiles, rather
-// than props laid on a plain page. Beside the originals in styles/themes.scss, which they don't touch
+// than props laid on a plain page. The other themes are in styles/themes.scss
 @use 'scene';
 @use 'kit';
 @use 'midnight';

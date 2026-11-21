@@ -475,7 +475,7 @@ const en = {
   'redpen.form.hisui': 'Hisuian {name}',
   'redpen.form.paldea': 'Paldean {name}',
 
-  'lab.open': 'Lab',
+  'views.open': 'Views',
   'galaxy.open': 'Ball Galaxy',
   'mosaic.open': 'Dex Mosaic',
 
@@ -989,7 +989,7 @@ const ja: Record<TranslationKey, string> = {
   'redpen.form.hisui': '{name}（ヒスイのすがた）',
   'redpen.form.paldea': '{name}（パルデアのすがた）',
 
-  'lab.open': 'ラボ',
+  'views.open': 'ビュー',
   'galaxy.open': 'ボール銀河',
   'mosaic.open': '図鑑モザイク',
 

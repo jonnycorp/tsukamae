@@ -157,7 +157,13 @@ export interface AppState {
   dexes: PersonalDex[];
   // absent on state written before saves existed
   saves?: GameSave[];
+  // what the views keep (components/pages/Tracker/views): the name quiz's cards, the catch days' notes. A section of its
+  // own, apart from the dexes, so it can be dropped whole
+  views?: ViewsData;
 }
+
+// a view's section (quiz, days) of its own keys
+export type ViewsData = Record<string, Record<string, unknown>>;
 
 export function newId (prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -224,6 +230,10 @@ function normalizeState (raw: unknown): { state: AppState; dropped: boolean } {
       state.saves = saves;
       dropped = true;
     }
+  }
+  if (state.views !== undefined && !(isObject(state.views) && Object.values(state.views).every(isObject))) {
+    delete state.views;
+    dropped = true;
   }
   if (typeof state.activeDexId !== 'string') {
     // a value Import would refuse, so the file needs it fixed too

@@ -1,0 +1,448 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// the dex mosaic (views/DexMosaic.tsx): a band per generation, a tile per mon on its game's colour, a missing one as its
+// shadow, the tiles sized by the wall's zoom (--size). Each band is skipped by layout and paint while off screen
+// (content-visibility), so a thousand tiles cost what the screenful does. Then the catch order (views/CatchOrder.tsx):
+// the whole wall fitted to the scene on a canvas, the day and the mon above it, the games and the scrub below
+$lm-tile: 44px;
+$lm-ease: cubic-bezier(.2, .9, .3, 1);
+
+@keyframes lm-bar {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.lm-page {
+  max-width: 1320px;
+  margin: 0 auto;
+
+  // a pick's panel at the right: the wall steps aside for it rather than going under it
+  &.picking {
+    margin-right: 330px;
+  }
+}
+
+.lm-head {
+  display: flex;
+  position: sticky;
+  top: -26px;
+  z-index: 2;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 22px;
+  margin: -26px -28px 10px;
+  padding: 18px 28px 12px;
+  background: linear-gradient(180deg, var(--paper) 80%, transparent);
+
+  // out to the scene body's narrower padding there (scene.scss)
+  @media (width < 900px) {
+    top: -20px;
+    margin: -20px -14px 10px;
+    padding: 14px 14px 12px;
+  }
+}
+
+.lm-figures {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  color: var(--ink-muted);
+
+  b {
+    color: var(--ink);
+    font-family: $font-secondary;
+    font-size: 30px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    margin-left: 6px;
+
+    @include small-text(12px);
+  }
+}
+
+// the generations shown: all, or any few
+.lm-gens {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 4px;
+
+  button {
+    min-width: 32px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    background: none;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background-color .2s, border-color .2s, color .2s;
+
+    &:hover {
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
+    &.on {
+      border-color: var(--accent);
+      background-color: var(--accent);
+      color: var(--on-accent);
+    }
+  }
+}
+
+.lm-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lm-order-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 99px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    opacity: .4;
+  }
+
+  &:not(:disabled):hover {
+    background-color: var(--hover-wash);
+  }
+}
+
+// the key: a chip per game, most first; pressed, the dex filtered to it
+.lm-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-bottom: 18px;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+
+    @include small-text(12px);
+
+    &:hover {
+      border-bottom-color: var(--ground);
+    }
+  }
+
+  i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background-color: var(--ground);
+  }
+
+  b {
+    color: var(--ink-muted);
+    font-weight: 400;
+  }
+}
+
+.lm-dex > h2 {
+  margin: 8px 0 12px;
+  font-family: $font-secondary;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.lm-band {
+  margin-bottom: 18px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto calc(var(--n) * 2.2px * var(--size) + 30px);
+
+  h3 {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 8px;
+    font-family: $font-secondary;
+    font-size: 13px;
+    font-weight: 800;
+
+    i {
+      height: 3px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent) calc(var(--f) * 100%), var(--line) 0);
+      transform-origin: left;
+      animation: lm-bar .9s $lm-ease .2s both;
+    }
+
+    small {
+      color: var(--ink-muted);
+      font-weight: 400;
+    }
+  }
+}
+
+.lm-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(3px * var(--size));
+}
+
+.lm-tile {
+  --ground: var(--ink-muted);
+
+  display: grid;
+  position: relative;
+  width: calc(#{$lm-tile} * var(--size));
+  height: calc(#{$lm-tile} * var(--size));
+  padding: 0;
+  border: 0;
+  border-radius: calc(7px * var(--size));
+  background-color: color-mix(in oklab, var(--ground) 42%, var(--paper-raised));
+  cursor: pointer;
+  place-items: center;
+  transition: transform .18s $lm-ease, box-shadow .18s;
+
+  .scene-mon {
+    zoom: var(--size);
+  }
+
+  &.st-missing {
+    background-color: var(--paper-sunken);
+
+    .scene-mon {
+      filter: brightness(0);
+      opacity: .22;
+    }
+  }
+
+  &.st-unobtainable {
+    background-color: var(--paper-sunken);
+    opacity: .35;
+  }
+
+  &:hover,
+  &:focus-visible {
+    z-index: 1;
+    box-shadow: 0 8px 18px -8px var(--paper-shadow), 0 0 0 2px var(--accent);
+    outline: none;
+    transform: scale(1.4);
+  }
+}
+
+// the catch order fills the scene, unscrolled
+.view-mosaic .scene-body:has(.lco) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.lco {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 40%, var(--paper-raised), var(--paper) 75%);
+}
+
+.lco-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  position: relative;
+  z-index: 1;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 28px 6px;
+}
+
+.lco-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  padding: 5px 14px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 99px;
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: color .25s, border-color .25s;
+  backdrop-filter: blur(6px);
+
+  @include small-text(12px);
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    color: var(--ink);
+  }
+}
+
+// the day, front and centre
+.lco-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  b {
+    font-family: $font-secondary;
+    font-size: 40px;
+    font-weight: 200;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+    line-height: 1.1;
+  }
+
+  span {
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+
+    @include small-text(12px);
+  }
+}
+
+// the stage at the left, the wall beside it
+.lco-main {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.lco-stage {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 0 0 0 22px;
+
+  // the pick's record, in the galaxy's glass, standing in the stage rather than over the wall
+  .lg-panel {
+    position: static;
+    width: auto;
+  }
+}
+
+// the latest caught as the run plays: its art as a hologram, its name under it
+.lco-show {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+
+  .lg-holo {
+    width: 100%;
+    height: 240px;
+  }
+
+  strong {
+    font-family: $font-secondary;
+    font-size: 24px;
+    font-weight: 300;
+    letter-spacing: .04em;
+    animation: lco-name-in .4s ease-out both;
+  }
+
+  small {
+    color: var(--ink-muted);
+
+    @include small-text(12px);
+  }
+}
+
+@keyframes lco-name-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.lco-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.view-mosaic .lco .view-scrub button {
+  border-color: color-mix(in srgb, var(--line) 55%, transparent);
+  background-color: color-mix(in srgb, var(--paper) 25%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+// a narrow window: the stage gives its room to the wall
+@media (width < 900px) {
+  .lco-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lco-stage {
+    display: none;
+  }
+}
+
+// the wall's pick, its record at the right over the scene, held still as the wall scrolls under it
+.lm-page .lg-panel {
+  position: fixed;
+  top: 110px;
+  right: 26px;
+  z-index: 3;
+}
+
+.lco-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 28px 18px;
+}
+
+// the games, counted up as they come in; unlit till their first
+.lco-games {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-muted);
+    opacity: .4;
+    transition: opacity .3s, color .3s;
+
+    @include small-text(12px);
+
+    &.on {
+      color: var(--ink);
+      opacity: 1;
+    }
+  }
+
+  i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background-color: var(--ground);
+  }
+
+  b {
+    min-width: 2ch;
+    color: var(--ink-muted);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+}

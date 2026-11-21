@@ -1,12 +1,12 @@
 @use '../variables' as *;
 
-// Wisteria 2: the original's violet and gold taken into a court's night (theme-scene/kumo.ts): gold-leaf clouds
+// Wisteria: the original's violet and gold taken into a court's night (theme-scene/kumo.ts): gold-leaf clouds
 // drifting over seigaiha on violet lacquer, the header lacquered glass they show through; every box is
 // a lacquer panel set in a gold frame whose leaf catches the light along its length, a second hairline of gold inside
 // it on a finished box. A sealed tile is lacquered deeper in the colour of where it is (violet at home, indigo in HOME,
 // amber in Champions, peony out in a game) with the original's seigaiha over gold dust (nashiji) in it, drifting very slowly as its
 // waves did; its range is lettered in gold leaf above it
-:root[data-theme='wisteria-2'] {
+:root[data-theme='wisteria'] {
   --gold-leaf: linear-gradient(115deg, #7a5a22 0%, #e9cd84 16%, #a37b33 32%, #f6e3a6 50%, #b48a3f 68%, #e3c47a 84%, #7e5c24 100%);
   --gold: #e0c27a;
   --lacquer: rgb(26 12 34 / 82%);
@@ -183,12 +183,12 @@
   }
 }
 
-:root[data-typefaces][data-theme='wisteria-2'] :is(.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name) {
+:root[data-typefaces][data-theme='wisteria'] :is(.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name) {
   font-family: $font-theme-serif;
   font-style: normal;
   letter-spacing: 0;
 }
 
-:root[data-theme='wisteria-2'] .dex-meter-figure span {
+:root[data-theme='wisteria'] .dex-meter-figure span {
   transform: none;
 }

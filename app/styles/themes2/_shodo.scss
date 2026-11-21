@@ -1,13 +1,13 @@
 @use '../variables' as *;
 
-// Ink 2: shodō, a calligrapher's desk (theme-scene/shodo.ts). The window is black felt; the header and every box are
+// Ink: shodō, a calligrapher's desk (theme-scene/shodo.ts). The window is black felt; the header and every box are
 // sheets of hanshi laid on it, their fibres showing, casting a soft shadow. A box's tiles are the creases a student
 // folds into the sheet as a guide, pressed into the paper rather than drawn on it; a box's range is written with the
 // brush on a slip of the same paper above it, each slip laid a little differently, and a finished box is stamped
 // beside it with a cinnabar seal (済). A sealed mon's tile takes a wash of diluted ink, every one a different part of
 // the same bloom, in the ink of where it is: sumi at home, indigo in HOME, ochre in Champions, vermilion out in a
 // game. The only motion is the window's light drifting slowly over the felt
-:root[data-theme='ink-2'] {
+:root[data-theme='ink'] {
   --sumi: #1d1a17;
   --shu: #c23a22;
   --crease: rgb(120 98 66 / 22%);
@@ -184,12 +184,12 @@
   }
 }
 
-:root[data-typefaces][data-theme='ink-2'] :is(.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name) {
+:root[data-typefaces][data-theme='ink'] :is(.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-name) {
   font-family: $font-theme-brush;
   font-style: normal;
   letter-spacing: 0;
 }
 
-:root[data-theme='ink-2'] .dex-meter-figure span {
+:root[data-theme='ink'] .dex-meter-figure span {
   transform: none;
 }

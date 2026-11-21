@@ -41,7 +41,7 @@ const GROUPS: Group[] = [
       { keys: [['G']], label: 'atlas.open' },
       { keys: [['C']], label: 'trainers.open', records: true },
       { keys: [['B']], label: 'orrery.open', records: true },
-      { keys: [['X']], label: 'lab.open' },
+      { keys: [['X']], label: 'views.open' },
       { keys: [['U']], label: 'galaxy.open', records: true },
       { keys: [['K']], label: 'mosaic.open' },
       { keys: [['V']], label: 'help.layout' },
