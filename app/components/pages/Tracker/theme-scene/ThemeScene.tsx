@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 
-import { kintsugiScene } from './kintsugi';
 import { koiScene } from './koi';
 import { kumoScene } from './kumo';
 import { midnightScene } from './midnight';
 import { neonRainScene } from './neon-rain';
+import { routeScene } from './route';
 import { shodoScene } from './shodo';
 import { ukiyoScene } from './ukiyo';
 import { yozakuraScene } from './yozakura';
@@ -21,9 +21,9 @@ const SCENES: Record<string, SceneMaker> = {
   'wisteria-2': kumoScene,
   ukiyo: ukiyoScene,
   koi: koiScene,
-  kintsugi: kintsugiScene,
   yozakura: yozakuraScene,
   'neon-rain': neonRainScene,
+  'game-boy-2': routeScene,
 };
 
 const FRAME_MS = 1000 / 30;

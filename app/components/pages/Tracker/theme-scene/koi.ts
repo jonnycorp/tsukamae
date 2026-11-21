@@ -2,7 +2,7 @@ import { shaderScene } from './scene';
 
 import type { FrameUniforms, SceneMaker } from './scene';
 
-// Koi's pond under a glass floor: dark green water, light netted on its bed (caustics) shifting slowly, lily pads
+// Koi's pond under a glass floor: dark green water over a bed of river stones, the light on it swelling slowly, lily pads
 // resting on the surface, and koi gliding below in long slow loops, each bending along its own path, its shadow on
 // the bed under it. Kohaku, sanke, yamabuki, a black karasu and an ochiba; every body built from its spine each frame
 const FRAGMENT = `
@@ -11,6 +11,39 @@ float noise (vec2 p) {
   vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
 }
+vec2 hash2 (vec2 p) { return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
+
+// the pond's bed: river stones packed together, each rounded and lit from above, its own grey, slate or ochre; the
+// colour of the stone (rgb) and how far in from its edge (a)
+vec4 pebbles (vec2 p) {
+  vec2 g = floor(p);
+  vec2 f = fract(p);
+  float f1 = 8.0;
+  float f2 = 8.0;
+  vec2 near = vec2(0.0);
+  vec2 id = vec2(0.0);
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec2 o = vec2(float(x), float(y));
+      vec2 c = g + o;
+      // stones longer one way than the other
+      vec2 r = (o + 0.15 + 0.7 * hash2(c) - f) * vec2(1.0, 1.0 + 0.5 * hash(c + 2.0));
+      float d = dot(r, r);
+      if (d < f1) { f2 = f1; f1 = d; near = r; id = c; } else if (d < f2) { f2 = d; }
+    }
+  }
+  float edge = sqrt(f2) - sqrt(f1);
+  float h = hash(id + 4.0);
+  vec3 stone = h < 0.45 ? vec3(0.42, 0.42, 0.4) : h < 0.75 ? vec3(0.32, 0.35, 0.36) : h < 0.92 ? vec3(0.5, 0.42, 0.3) : vec3(0.58, 0.55, 0.5);
+  stone *= 0.8 + 0.35 * hash(id + 6.0);
+  // rounded: lit on the side toward the light, its crown brighter, sinking dark into the gaps between
+  float rad = 0.42 + 0.14 * hash(id + 8.0);
+  float dome = smoothstep(0.0, 0.3, edge) * smoothstep(rad, rad * 0.45, sqrt(f1));
+  float lit = clamp(0.55 + 0.9 * dot(-near, normalize(vec2(-0.5, 0.7))), 0.0, 1.0);
+  stone *= (0.22 + 0.78 * dome) * (0.65 + 0.5 * lit * dome);
+  return vec4(stone, dome);
+}
+
 float segment (vec2 p, vec2 a, vec2 b) { vec2 pa = p - a; vec2 ba = b - a; float k = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * k); }
 
 // each koi's spine, worked out once a frame (below): 16 points from the head back, its size, and the box it and its
@@ -80,14 +113,12 @@ void main () {
   float t = u_time;
   float aa = 1.2 * u_dpr / h;
 
-  // the water: deep green, darker at its edges and its depth
-  vec3 col = mix(vec3(0.02, 0.09, 0.09), vec3(0.04, 0.16, 0.15), smoothstep(0.0, 1.0, uv.y));
-  // light netted on the bed, two layers drifting against each other
-  vec2 cp = uv * 9.0;
-  float c1 = abs(noise(cp + vec2(t * 0.05, t * 0.03)) - 0.5);
-  float c2 = abs(noise(cp * 1.3 - vec2(t * 0.04, -t * 0.02) + 7.0) - 0.5);
-  float caustic = pow(1.0 - min(c1, c2) * 2.0, 14.0);
-  col += vec3(0.25, 0.4, 0.3) * caustic * 0.07;
+  // the bed under the water: stones seen through it, the deeper water greener and darker over them, the light on it
+  // swelling and fading in broad soft patches as the surface moves
+  vec4 bed = pebbles(uv * 16.0);
+  float swell = noise(uv * 2.5 + vec2(t * 0.03, -t * 0.02)) * 0.6 + noise(uv * 5.0 - vec2(t * 0.02, t * 0.025)) * 0.4;
+  vec3 water = mix(vec3(0.02, 0.08, 0.08), vec3(0.04, 0.15, 0.14), smoothstep(0.0, 1.0, uv.y));
+  vec3 col = mix(water, bed.rgb * vec3(0.34, 0.52, 0.46), 0.5) * (0.8 + 0.45 * swell);
 
   // the koi, their shadows on the bed first, then their bodies
   float which;

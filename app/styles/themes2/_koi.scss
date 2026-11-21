@@ -28,6 +28,12 @@
   --w-complete: 0 0 0 5px #5a3a22, 0 0 0 6px rgb(255 220 160 / 25%), 0 0 30px rgb(150 220 200 / 18%), 0 26px 40px -16px rgb(0 0 0 / 70%);
   --line-solid: var(--w-line);
 
+  // each pane rounded like a stone worn smooth in the water, its frame following (the tiles' corners in
+  // styles/themes.scss, shared with the original Pokédex)
+  .box-container {
+    border-radius: 13px;
+  }
+
   .seal-material {
     --rim: #6fd6b8;
 

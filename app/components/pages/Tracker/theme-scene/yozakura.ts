@@ -122,9 +122,15 @@ void main () {
     float red = step(0.5, mod(cell + fk, 2.0));
     float flicker = 0.93 + 0.07 * noise(vec2(t * 0.7, cell + fk * 9.0));
     vec3 paper = mix(vec3(1.0, 0.9, 0.72), vec3(0.95, 0.22, 0.1), red);
-    // brighter at its heart, the ribs dark rings across it
-    paper *= (0.55 + 0.6 * (1.0 - dot(e, e) * 0.8)) * flicker;
-    paper *= 1.0 - 0.25 * smoothstep(0.35, 0.5, abs(fract(e.y * 4.5) - 0.5));
+    // a round paper body lit from within: brightest at its heart and toward you, falling off round its sides where the
+    // paper turns away, the bamboo ribs rings round it that crowd together toward its top and foot as a sphere's do
+    float rr = clamp(dot(e, e), 0.0, 1.0);
+    float facing = sqrt(1.0 - rr);
+    paper *= (0.35 + 0.85 * facing * facing + 0.25 * exp(-rr * 6.0)) * flicker;
+    float rib = abs(fract(asin(clamp(e.y, -0.999, 0.999)) * 2.9) - 0.5);
+    paper *= 1.0 - 0.35 * smoothstep(0.38, 0.5, rib) * (0.4 + 0.6 * facing);
+    // a little of the night's sheen on its shoulder, away from the light within
+    paper += vec3(0.25, 0.2, 0.3) * smoothstep(0.35, 0.0, length(e - vec2(-0.45, 0.5))) * 0.25;
     col += mix(vec3(1.0, 0.7, 0.4), vec3(1.0, 0.35, 0.2), red) * exp(-length(e) * 1.6) * 0.12 * flicker;
     col = mix(col, paper, body);
     float caps = step(abs(v.x), 0.012) * (step(abs(v.y + 0.009), 0.004) + step(abs(v.y + 0.063), 0.004));

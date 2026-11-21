@@ -296,23 +296,7 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // Kintsugi: a broken bowl mended with gold. Dark raku glaze, its cracks filled with gold that catches a light moving
-  // slowly over it; a sealed tile mended with gold too, every one along its own cracks
-  {
-    name: 'Kintsugi', hue: 55, ink: 75, unobtainable: 40, temporary: 30, caught: 80, chroma: 0.5, statusChroma: 0.9,
-    tones: {
-      dark: {
-        paper: { l: 0.19, c: 0.012 }, 'paper-raised': { l: 0.23, c: 0.014 }, 'paper-sunken': { l: 0.16, c: 0.01 }, chip: { l: 0.16, c: 0.01 },
-        chrome: { l: 0.13, c: 0.01 }, 'chrome-hover': { l: 0.18, c: 0.012 }, 'chrome-active': { l: 0.22, c: 0.014 }, 'chrome-pattern': { l: 0.11, c: 0.01 },
-        meter: { l: 0.21, c: 0.012 }, 'meter-edge': { l: 0.78, c: 0.12 },
-        accent: { l: 0.8, c: 0.12, source: 'caught' }, 'accent-hover': { l: 0.85, c: 0.1, source: 'caught' },
-        overlay: { l: 0.16, c: 0.012 }, 'overlay-deep': { l: 0.2, c: 0.014 }, 'overlay-deeper': { l: 0.24, c: 0.016 }, 'overlay-edge': { l: 0.78, c: 0.12, source: 'caught' },
-        field: { l: 0.16, c: 0.01 }, 'field-edge': { l: 0.45, c: 0.03 }, 'field-focus': { l: 0.8, c: 0.12, source: 'caught' },
-        'tile-caught': { l: 0.3, c: 0.025 }, 'tile-unobtainable': { l: 0.245, c: 0.02 }, 'tile-temporary': { l: 0.28, c: 0.04 }, 'tile-temporary-stripe': { l: 0.32, c: 0.05 },
-      },
-    },
-  },
-  // Yozakura: cherry blossom at night, lit from below by paper lanterns (bonbori) along the path; petals drifting
+  // Yozakura: cherry blossom at night, strings of red and white chōchin under it for the hanami; petals drifting
   // down slowly behind the boxes
   {
     name: 'Yozakura', hue: 300, ink: 350, unobtainable: 260, temporary: 25, caught: 350, chroma: 0.8,
@@ -341,6 +325,43 @@ export const THEMES: ThemeSeed[] = [
         overlay: { l: 0.14, c: 0.03 }, 'overlay-deep': { l: 0.18, c: 0.035 }, 'overlay-deeper': { l: 0.22, c: 0.04 }, 'overlay-edge': { l: 0.7, c: 0.15, source: 'ink' },
         field: { l: 0.13, c: 0.025 }, 'field-edge': { l: 0.45, c: 0.06 }, 'field-focus': { l: 0.78, c: 0.13, source: 'ink' },
         'tile-caught': { l: 0.28, c: 0.05 }, 'tile-unobtainable': { l: 0.2, c: 0.02 }, 'tile-temporary': { l: 0.27, c: 0.07 }, 'tile-temporary-stripe': { l: 0.31, c: 0.09 },
+      },
+    },
+  },
+  // Game Boy 2: inside the pocket game rather than its screen. A route in a handheld's colour scrolling slowly behind
+  // (theme-scene/route.ts), the boxes the game's own text windows over it, white with a navy double rule, the sprites
+  // in their full colour; the meter an HP bar, the figures in the game's pixel numerals
+  {
+    name: 'Game Boy 2', hue: 255, ink: 255, unobtainable: 255, temporary: 85, caught: 150, chroma: 0.9, lineAlpha: 0.22, rangeDash: { en: '-', ja: '-' },
+    side: 'light',
+    tones: {
+      light: {
+        paper: { l: 0.965, c: 0.008 }, 'paper-raised': { l: 0.99, c: 0.004 }, 'paper-sunken': { l: 0.94, c: 0.01 }, chip: { l: 0.92, c: 0.012 },
+        chrome: { l: 0.3, c: 0.09 }, 'chrome-hover': { l: 0.35, c: 0.09 }, 'chrome-active': { l: 0.4, c: 0.09 }, 'chrome-pattern': { l: 0.26, c: 0.08 },
+        meter: { l: 0.95, c: 0.01 }, 'meter-edge': { l: 0.3, c: 0.09 },
+        accent: { l: 0.55, c: 0.19, source: 'caught' }, 'accent-hover': { l: 0.5, c: 0.18, source: 'caught' },
+        overlay: { l: 0.3, c: 0.09 }, 'overlay-deep': { l: 0.26, c: 0.085 }, 'overlay-deeper': { l: 0.23, c: 0.08 }, 'overlay-edge': { l: 0.55, c: 0.19, source: 'caught' },
+        field: { l: 0.99, c: 0.004 }, 'field-edge': { l: 0.3, c: 0.09 }, 'field-focus': { l: 0.55, c: 0.19, source: 'caught' },
+        'tile-caught': { l: 0.92, c: 0.07 }, 'tile-unobtainable': { l: 0.87, c: 0.012 }, 'tile-temporary': { l: 0.94, c: 0.08 }, 'tile-temporary-stripe': { l: 0.89, c: 0.1 },
+        'status-unobtainable': { l: 0.58, c: 0.03 }, 'status-temporary': { l: 0.62, c: 0.14 }, 'status-caught': { l: 0.5, c: 0.15 },
+      },
+    },
+  },
+  // Pokédex 2: looking through the device itself. The page its red casing; every box one of its screens, set square in
+  // a pale bezel with the two small lights over it, the cut corner, the red button and the speaker's slots under it,
+  // its tiles the original's teal screen; a box's range on the small green readout beside it. The lens on the bar
+  // breathes slowly, the only motion besides the screens' scanlines
+  {
+    name: 'Pokédex 2', hue: 25, ink: 255, unobtainable: 75, temporary: 320, caught: 190, chroma: 1,
+    rangeDash: { en: '-', ja: '-' },
+    tones: {
+      dark: {
+        paper: { l: 0.25, c: 0.015, source: 'ink' }, 'paper-raised': { l: 0.29, c: 0.017, source: 'ink' }, 'paper-sunken': { l: 0.22, c: 0.013, source: 'ink' }, chip: { l: 0.22, c: 0.013, source: 'ink' },
+        field: { l: 0.22, c: 0.013, source: 'ink' },
+        chrome: { l: 0.36, c: 0.14 }, 'chrome-hover': { l: 0.4, c: 0.14 }, 'chrome-active': { l: 0.44, c: 0.14 }, 'chrome-pattern': { l: 0.33, c: 0.13 },
+        meter: { l: 0.3, c: 0.05, source: 'caught' }, 'meter-edge': { l: 0.55, c: 0.14 },
+        accent: { l: 0.74, c: 0.14 }, 'accent-hover': { l: 0.79, c: 0.12 },
+        'tile-caught': { l: 0.33, c: 0.06 }, 'tile-unobtainable': { l: 0.21, c: 0.02 }, 'tile-temporary': { l: 0.27, c: 0.04 },
       },
     },
   },

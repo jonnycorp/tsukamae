@@ -1,0 +1,112 @@
+@use '../variables' as *;
+
+// Game Boy 2: inside the pocket game (theme-scene/route.ts). The route scrolls behind; the bar is the game's navy, the
+// header and every box one of its text windows, off-white with a navy double rule round it, square as the game drew
+// them, the sprites in their full colour. A box's range sits on a window of its own in the game's pixel numerals;
+// the meter is an HP bar, green filling a navy frame. A sealed tile is tinted in the colour of where it is (sky at
+// home, violet in HOME, amber in Champions, rose out in a game) with the old games' water stepping across it
+:root[data-theme='game-boy-2'] {
+  --navy: #1d2b5a;
+  --window: #f8f6ee;
+  --window-rule: 0 0 0 3px var(--window), 0 0 0 6px var(--navy);
+  --w-nav: var(--navy);
+  --w-hairline: var(--window);
+  --w-header: var(--window);
+  --w-slot: var(--window);
+  --w-edge: var(--navy);
+  --w-fill: linear-gradient(#8ce884 0 25%, #48c048 25% 70%, #2c8a34 70%);
+  --w-post: var(--navy);
+  --w-figure: var(--navy);
+  --w-figure-ink: var(--window);
+  --w-title: var(--navy);
+  --w-panel: var(--window);
+  --w-panel-shadow: var(--window-rule);
+  --w-blur: 0;
+  --w-line: rgb(29 43 90 / 16%);
+  --w-caught: var(--tile-caught);
+  --w-unobtainable: var(--tile-unobtainable);
+  --w-temporary: var(--tile-temporary);
+  --w-temporary-stripe: var(--tile-temporary-stripe);
+  --w-complete: var(--window-rule), 0 0 0 9px #f0c030;
+  --line-solid: var(--w-line);
+
+  nav {
+    backdrop-filter: none;
+  }
+
+  // the header a window across the top, its rule inside the page's edge
+  .dex-search-bar {
+    margin: 10px 12px 4px;
+    border: 3px solid var(--navy);
+    box-shadow: inset 0 0 0 3px var(--window), inset 0 0 0 6px var(--navy);
+    backdrop-filter: none;
+  }
+
+  // the HP bar: a navy frame, the green in three bands as the games shaded it, the figure in pixel numerals
+  .dex-meter-bar {
+    border: 3px solid var(--navy);
+    box-shadow: none;
+  }
+
+  .dex-meter-figure span {
+    font-family: $font-pixel-digits, $font-secondary;
+    font-size: 20px;
+    font-style: normal;
+    letter-spacing: 0;
+  }
+
+  // a box's range on its own small window over the route
+  .box-header h1 {
+    width: fit-content;
+    margin-right: auto;
+    margin-left: auto;
+    padding: 0 12px;
+    border: 3px solid var(--navy);
+    background: var(--window);
+    box-shadow: 0 0 0 3px var(--window), 0 0 0 6px var(--navy);
+    font-family: $font-pixel-digits, $font-secondary;
+    font-size: 17px;
+    line-height: 25px * 1.35;
+  }
+
+  .box-container {
+    border: 3px solid var(--navy);
+    border-radius: 2px;
+  }
+
+  .box-container > .tile-grid {
+    border-color: transparent;
+  }
+
+  .pokemon .pkicon {
+    image-rendering: pixelated;
+  }
+
+  .seal-material {
+    --tint: #8ccfff;
+
+    background: color-mix(in srgb, var(--tint) 34%, transparent);
+  }
+
+  .seal-material[data-tint='champions'] {
+    --tint: #ffc04a;
+  }
+
+  .seal-material[data-tint='out'] {
+    --tint: #ff7a8a;
+  }
+
+  .seal-material[data-tint='home'] {
+    --tint: #b49aff;
+  }
+
+  .seal-flow {
+    --flow-x: 48px;
+    --flow-time: 6s;
+
+    display: block;
+    background-color: rgb(255 255 255 / 55%);
+    mask: url('/themes/game-boy/water.png') var(--seal-x) var(--seal-y) / 48px 24px;
+    animation-timing-function: steps(16);
+  }
+}
