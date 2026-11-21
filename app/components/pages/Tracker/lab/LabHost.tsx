@@ -36,8 +36,9 @@ function unlean (e: PointerEvent<HTMLButtonElement>) {
   e.currentTarget.style.removeProperty('--ly');
 }
 
-// the lab (X): a deck of the sketches, each opening over the dex as any scene does
-function LabDeck ({ checklist, quiet, onClose, onOpen }: Pick<Props, 'checklist' | 'onClose' | 'onOpen'> & { quiet: boolean }) {
+// the lab (X): a deck of the sketches, each opening over the dex as any scene does. A menu, so no title card of its
+// own: X then a number, typed straight on, opens the sketch rather than skipping the card
+function LabDeck ({ checklist, onClose, onOpen }: Pick<Props, 'checklist' | 'onClose' | 'onOpen'>) {
   const { lt } = useLabText();
   const sketches = LAB_SKETCHES.filter((sketch) => !checklist || !sketch.records);
 
@@ -55,7 +56,7 @@ function LabDeck ({ checklist, quiet, onClose, onOpen }: Pick<Props, 'checklist'
   }, [sketches, onOpen]);
 
   return (
-    <Scene hint={lt('lab.hint')} name="lab-deck" onClose={onClose} quiet={quiet} title={lt('lab.title')}>
+    <Scene hint={lt('lab.hint')} name="lab-deck" onClose={onClose} quiet title={lt('lab.title')}>
       {({ scale }) => (
         <div className="lab-deck-page" style={{ zoom: scale }}>
           <div className="lab-cards">
@@ -83,17 +84,16 @@ function LabDeck ({ checklist, quiet, onClose, onOpen }: Pick<Props, 'checklist'
   );
 }
 
-// the deck, or the sketch it opened; a sketch closed goes back to the deck it came from, there at once (no title card
-// again), or to the dex when its own key opened it there; the deck closed goes back to the dex
+// the deck, or the sketch it opened; a sketch closed goes back to the deck it came from, or to the dex when its own key
+// opened it there; the deck closed goes back to the dex
 export function LabHost ({ scene, checklist, back, onOpen, onClose, onFilter, onLocate, onReview, onSpot }: Props) {
-  const [returned, setReturned] = useState(false);
   const sketch = labSketch(scene);
   const [viaDeck, setViaDeck] = useState(!sketch);
   if (!sketch && !viaDeck) {
     setViaDeck(true);
   }
   if (!sketch) {
-    return <LabDeck checklist={checklist} onClose={onClose} onOpen={onOpen} quiet={returned} />;
+    return <LabDeck checklist={checklist} onClose={onClose} onOpen={onOpen} />;
   }
   const Sketch = sketch.component;
   return (
@@ -104,7 +104,6 @@ export function LabHost ({ scene, checklist, back, onOpen, onClose, onFilter, on
           onClose();
           return;
         }
-        setReturned(true);
         onOpen('lab');
       }}
       onFilter={(filters, view) => onFilter(filters, view, scene)}
