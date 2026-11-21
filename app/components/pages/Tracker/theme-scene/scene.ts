@@ -7,9 +7,13 @@ export interface Scene {
 
 export type SceneMaker = (back: HTMLCanvasElement) => Scene;
 
+// what a shader scene works out on the CPU once a frame, before it's drawn (a moment, the window's aspect), set up once
+// with its program
+export type FrameUniforms = (gl: WebGLRenderingContext, program: WebGLProgram) => (time: number, aspect: number) => void;
+
 // a full-window fragment shader: its uniforms the size in device pixels (u_res), the clock (u_time) and the device
-// pixel ratio (u_dpr)
-export function shaderScene (canvas: HTMLCanvasElement, fragment: string): Scene {
+// pixel ratio (u_dpr), and any its own frame sets
+export function shaderScene (canvas: HTMLCanvasElement, fragment: string, frame?: FrameUniforms): Scene {
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: false });
   if (!gl) {
     throw new Error('no webgl');
@@ -40,6 +44,7 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string): Scene
   const res = gl.getUniformLocation(program, 'u_res');
   const time = gl.getUniformLocation(program, 'u_time');
   const dprAt = gl.getUniformLocation(program, 'u_dpr');
+  const perFrame = frame?.(gl, program);
 
   return {
     resize (width, height, dpr) {
@@ -51,6 +56,7 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string): Scene
       gl.uniform1f(dprAt, dpr);
     },
     draw (t) {
+      perFrame?.(t, canvas.width / Math.max(1, canvas.height));
       gl.uniform1f(time, t);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },

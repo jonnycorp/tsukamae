@@ -18,7 +18,7 @@ float fbm (vec2 p) { float v = 0.0; float a = 0.5; for (int i = 0; i < 5; i++) {
 
 // the distance to the nearest crack: the edges between pieces, wobbled as a real break is
 float crack (vec2 p) {
-  p += (vec2(fbm(p * 1.7), fbm(p * 1.7 + 5.0)) - 0.5) * 0.35;
+  p += (vec2(fbm(p * 1.3), fbm(p * 1.3 + 5.0)) - 0.5) * 0.22;
   vec2 g = floor(p);
   vec2 f = fract(p);
   float f1 = 8.0;
@@ -52,16 +52,21 @@ void main () {
   vec2 light = vec2(sin(t * 0.03) * 0.6, 0.55 + cos(t * 0.021) * 0.25);
   float ld = length(uv - light);
   col += vec3(0.55, 0.45, 0.38) * exp(-ld * 3.5) * 0.12 * (0.6 + 0.4 * m2);
+  // the glaze's gloss: a soft sheen where the light lies on it
+  col += vec3(0.7, 0.62, 0.55) * exp(-ld * ld * 30.0) * 0.06;
 
-  // the gold in the cracks, wider in places as the lacquer was laid
-  float c = crack(uv * 2.4);
-  float width = (0.018 + 0.03 * noise(uv * 6.0)) ;
-  float fine = crack(uv * 7.0 + 11.0);
-  float gold = smoothstep(width, width * 0.4, c) + smoothstep(0.012, 0.004, fine) * 0.6 * step(0.55, noise(uv * 3.0 + 2.0));
-  gold = clamp(gold, 0.0, 1.0);
-  vec3 g = mix(vec3(0.55, 0.38, 0.12), vec3(1.0, 0.85, 0.5), 0.35 + 0.65 * exp(-ld * 2.2));
-  g *= 0.85 + 0.25 * noise(uv * 220.0);
-  col = mix(col, g, gold);
+  // the gold in the seams: a few broad pieces, their breaks wandering a little as a real one does, the lacquer laid
+  // evenly along them and swelling slightly where it pooled; a raised bead, bright along its crown where the light is
+  float c = crack(uv * 1.5);
+  float width = 0.012 + 0.008 * noise(uv * 4.0);
+  float bead = smoothstep(width, width * 0.35, c);
+  float crown = smoothstep(width * 0.6, 0.0, c);
+  vec3 g = mix(vec3(0.5, 0.34, 0.1), vec3(0.95, 0.78, 0.42), 0.3 + 0.7 * exp(-ld * 2.2));
+  g *= 0.88 + 0.18 * noise(uv * 260.0);
+  g += vec3(0.35, 0.3, 0.2) * crown * exp(-ld * 3.0);
+  // the glaze lifts a hair at each seam's edge, a dark line where the lacquer meets it
+  col *= 1.0 - 0.5 * smoothstep(width * 1.8, width, c) * (1.0 - bead);
+  col = mix(col, g, bead);
 
   vec2 q = px / u_res;
   col *= mix(0.6, 1.0, smoothstep(1.25, 0.3, length((q - 0.5) * vec2(1.1, 1.0))));
@@ -98,11 +103,11 @@ function cracks (): HTMLCanvasElement {
     }
     ctx.stroke();
   };
-  for (let n = 0; n < 5; n++) {
+  for (let n = 0; n < 3; n++) {
     for (const [ox, oy] of [[0, 0], [-size, 0], [0, -size], [-size, -size], [size, 0], [0, size]]) {
       // the same crack laid at each neighbouring copy, so the mask tiles
       const r = rng(100 + n);
-      run(r, r() * size + ox, r() * size + oy, r() * Math.PI * 2, 40, 1 + r() * 0.9, 0);
+      run(r, r() * size + ox, r() * size + oy, r() * Math.PI * 2, 40, 0.8 + r() * 0.6, 0);
     }
   }
   return c;

@@ -14,6 +14,10 @@
   --crease-light: rgb(255 255 255 / 55%);
   --wash-ink: var(--sumi);
   --line-solid: var(--crease);
+  // its pages change by one fast stroke along each line of a box, not one per tile (page-brush.ts)
+  --page-brush: url('/themes/ink/title.png');
+  --page-brush-color: var(--sumi);
+  --page-brush-span: line;
 
   nav {
     background: transparent;

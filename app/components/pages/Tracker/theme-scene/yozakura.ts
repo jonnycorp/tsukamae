@@ -2,9 +2,9 @@ import { shaderScene } from './scene';
 
 import type { SceneMaker } from './scene';
 
-// Yozakura: cherry trees in full bloom at night, their canopy filling the top of the window, branches dark through it,
-// the blossom lit warm from below by paper lanterns (bonbori) along the path at the foot; petals falling slowly through
-// the dark between, turning as they fall
+// Yozakura: cherry trees in full bloom at night, their canopy filling the top of the window, branches dark through it;
+// strings of red and white paper lanterns (chōchin) hung under it for the hanami, swaying a little, the blossom lit
+// warm around and below them; petals falling slowly through the dark between, turning as they fall
 const FRAGMENT = `
 float hash (vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise (vec2 p) {
@@ -12,6 +12,15 @@ float noise (vec2 p) {
   return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
 }
 float fbm (vec2 p) { float v = 0.0; float a = 0.5; for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
+
+// how thick the blossom is about a point: thickest at the top and the window's sides, gathering in clouds, none low down
+float mass (vec2 uv, float aspect) {
+  return (fbm(uv * vec2(2.2, 3.0) + 2.0) + smoothstep(0.45, 1.0, uv.y) * 0.6 + abs(uv.x) / (aspect * 0.5) * 0.3 - 0.62)
+    * smoothstep(0.18, 0.5, uv.y);
+}
+
+// the lanterns' strings: each sagging between the window's sides, the string's height at x
+float stringY (float x, float y0, float aspect) { return y0 - 0.05 * (1.0 - pow(x / (aspect * 0.5), 2.0)); }
 
 void main () {
   vec2 px = gl_FragCoord.xy;
@@ -39,6 +48,25 @@ void main () {
     limbs = min(limbs, along < 1.0 ? d : 1.0);
   }
 
+  // the boughs first, the blossom over them, so they show only through its gaps
+  col = mix(col, vec3(0.07, 0.04, 0.05), smoothstep(0.002, 0.0, limbs));
+
+  // the lanterns' warmth, worked out first: the blossom near a string glows with it
+  float warm = 0.0;
+  for (int k = 0; k < 2; k++) {
+    float y0 = 0.56 + float(k) * 0.18;
+    warm += exp(-abs(uv.y - (stringY(uv.x, y0, aspect) - 0.03)) * 14.0) * (0.7 - float(k) * 0.3);
+  }
+
+  // the canopy's body, behind the flowers: soft clouds of blossom, lit from beneath and by the lanterns, so it has depth
+  float m0 = mass(uv, aspect);
+  float m1 = mass(uv + vec2(0.0, 0.03), aspect);
+  float cloud = smoothstep(-0.02, 0.2, m0);
+  float lit = clamp((m1 - m0) * 8.0 + 0.4, 0.0, 1.0);
+  vec3 body = mix(vec3(0.16, 0.08, 0.14), vec3(0.5, 0.3, 0.4), lit);
+  body += vec3(0.45, 0.22, 0.12) * warm * 0.6;
+  col = mix(col, body, cloud * 0.7);
+
   // the canopy: blossom gathered in clusters along the boughs, thickest at the top and the sides; each cluster a puff of
   // small flowers, lit warm and bright on its underside by the lanterns, deeper mauve where it's shaded
   vec2 fp = px / (11.0 * u_dpr);
@@ -50,8 +78,7 @@ void main () {
       vec2 c = fc + vec2(float(x), float(y));
       vec2 centre = c + vec2(hash(c + 1.7), hash(c + 3.1));
       vec2 cuv = vec2((centre.x * 11.0 * u_dpr - 0.5 * u_res.x) / h, centre.y * 11.0 * u_dpr / h);
-      float dens = fbm(cuv * vec2(2.2, 3.0) + 2.0) + smoothstep(0.45, 1.0, cuv.y) * 0.6 + abs(cuv.x) / (aspect * 0.5) * 0.3 - 0.62;
-      if (hash(c) < dens * 2.2 * smoothstep(0.18, 0.5, cuv.y)) {
+      if (hash(c) < mass(cuv, aspect) * 2.2) {
         float r = 0.55 + 0.5 * hash(c + 5.0);
         // a flower: five petals round its centre, a notch at each petal's tip
         vec2 v = fp - centre;
@@ -71,24 +98,38 @@ void main () {
   float under = smoothstep(0.6, 0.25, uv.y);
   pink = mix(pink, vec3(1.0, 0.85, 0.72), under * 0.35);
   pink *= 0.6 + 0.4 * smoothstep(1.0, 0.4, uv.y);
-  col = mix(col, vec3(0.03, 0.02, 0.03), smoothstep(0.002, 0.0, limbs));
+  pink = mix(pink, vec3(1.0, 0.82, 0.7), clamp(warm, 0.0, 1.0) * 0.35);
   col = mix(col, pink, bloom * 0.95);
 
-  // the lanterns along the path: paper boxes on posts, glowing, their light on the haze
-  for (int k = 0; k < 9; k++) {
+  // the strings of chōchin under the canopy: red and white by turns, each hung from the string and swaying a little,
+  // ribbed paper glowing from within, black lacquered caps, their light on the dark round them
+  for (int k = 0; k < 2; k++) {
     float fk = float(k);
-    float lx = (fk / 8.0 - 0.5) * aspect * 0.95 + (hash(vec2(fk, 9.0)) - 0.5) * 0.08;
-    float depth = 0.5 + 0.5 * hash(vec2(fk, 7.0));
-    vec2 c = vec2(lx, 0.06 + 0.05 * (1.0 - depth));
-    vec2 v = (uv - c) / depth;
-    float box = step(abs(v.x), 0.014) * step(abs(v.y), 0.022);
-    float cap = step(abs(v.x), 0.018) * step(abs(v.y - 0.025), 0.004);
-    float post = step(abs(v.x), 0.002) * step(v.y, -0.022);
-    float flicker = 0.92 + 0.08 * noise(vec2(t * 0.6, fk));
-    col += vec3(1.0, 0.6, 0.3) * exp(-length(v) * 22.0) * 0.35 * flicker;
-    col = mix(col, vec3(0.06, 0.04, 0.04), post);
-    col = mix(col, vec3(1.0, 0.86, 0.62) * flicker * (0.9 + 0.1 * step(0.5, fract(v.y * 90.0))), box);
-    col = mix(col, vec3(0.1, 0.05, 0.04), cap);
+    float y0 = 0.56 + fk * 0.18;
+    float gap = 0.2 - fk * 0.04;
+    float x0 = uv.x + fk * 0.07;
+    float cell = floor(x0 / gap);
+    float cx = (cell + 0.5) * gap - fk * 0.07;
+    float sy = stringY(uv.x, y0, aspect);
+    col = mix(col, vec3(0.04, 0.03, 0.03), smoothstep(0.0012 * (1.0 - fk * 0.3), 0.0, abs(uv.y - sy)) * 0.9);
+    float scale = 1.0 - fk * 0.3;
+    float sway = sin(t * 0.35 + cell * 1.7 + fk) * 0.05;
+    vec2 top = vec2(cx, stringY(cx, y0, aspect));
+    vec2 v = uv - top;
+    v = vec2(cos(sway) * v.x - sin(sway) * v.y, sin(sway) * v.x + cos(sway) * v.y) / scale;
+    vec2 e = (v - vec2(0.0, -0.036)) / vec2(0.02, 0.026);
+    float body = smoothstep(1.0, 0.92, length(e));
+    float red = step(0.5, mod(cell + fk, 2.0));
+    float flicker = 0.93 + 0.07 * noise(vec2(t * 0.7, cell + fk * 9.0));
+    vec3 paper = mix(vec3(1.0, 0.9, 0.72), vec3(0.95, 0.22, 0.1), red);
+    // brighter at its heart, the ribs dark rings across it
+    paper *= (0.55 + 0.6 * (1.0 - dot(e, e) * 0.8)) * flicker;
+    paper *= 1.0 - 0.25 * smoothstep(0.35, 0.5, abs(fract(e.y * 4.5) - 0.5));
+    col += mix(vec3(1.0, 0.7, 0.4), vec3(1.0, 0.35, 0.2), red) * exp(-length(e) * 1.6) * 0.12 * flicker;
+    col = mix(col, paper, body);
+    float caps = step(abs(v.x), 0.012) * (step(abs(v.y + 0.009), 0.004) + step(abs(v.y + 0.063), 0.004));
+    col = mix(col, vec3(0.05, 0.03, 0.03), clamp(caps, 0.0, 1.0));
+    col = mix(col, vec3(0.05, 0.03, 0.03), step(abs(v.x), 0.0008) * step(-0.006, v.y) * step(v.y, 0.0));
   }
 
   // petals falling, drifting side to side, turning

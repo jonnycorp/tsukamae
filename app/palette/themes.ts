@@ -208,10 +208,11 @@ export const THEMES: ThemeSeed[] = [
   // styles/themes2), beside the originals they grew from
   // Ink 2: shodō, a calligrapher's desk. Hanshi on a felt underlay, the tiles the creases a student folds into the sheet
   // as a guide, the titles written in sumi that bleeds into the paper, a finished box signed with a cinnabar seal; the
-  // only motion the window's light drifting over the felt
+  // only motion the window's light drifting over the felt, and a page change one stroke of the brush along each line
   {
     name: 'Ink 2', hue: 80, ink: 33, unobtainable: 250, temporary: 33, caught: 60, chroma: 0.05, statusChroma: 0.6, unobtainableChroma: 0.05, lineAlpha: 0.2,
     rangeDash: { ja: '～' },
+    pageChange: 'brush',
     side: 'light',
     tones: {
       light: {
