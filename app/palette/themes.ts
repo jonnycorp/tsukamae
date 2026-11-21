@@ -262,9 +262,8 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // Ukiyo: a woodblock print. Prussian blue waves rolling slowly under a cream sky graded in blue at its top
-  // (bokashi), a small far mountain; every box a print's cartouche, framed in the key block's indigo line, its range on
-  // a title slip in red, a sealed tile printed in the blue's gradation
+  // Ukiyo: an island at dusk painted as a game would, flat colour in two or three tones: curled waves swaying under a
+  // violet sky, a torii in the sea, a sakura leaning in; every box a game's menu panel, cream ringed in gold and slate
   {
     name: 'Ukiyo', hue: 80, ink: 255, unobtainable: 60, temporary: 25, caught: 240, chroma: 0.7, statusChroma: 1, unobtainableChroma: 0.4,
     side: 'light',
@@ -276,7 +275,7 @@ export const THEMES: ThemeSeed[] = [
         accent: { l: 0.52, c: 0.17, source: 'temporary' }, 'accent-hover': { l: 0.46, c: 0.16, source: 'temporary' },
         overlay: { l: 0.28, c: 0.08, source: 'ink' }, 'overlay-deep': { l: 0.24, c: 0.075, source: 'ink' }, 'overlay-deeper': { l: 0.21, c: 0.07, source: 'ink' }, 'overlay-edge': { l: 0.52, c: 0.17, source: 'temporary' },
         field: { l: 0.96, c: 0.02 }, 'field-edge': { l: 0.3, c: 0.09, source: 'ink' }, 'field-focus': { l: 0.52, c: 0.17, source: 'temporary' },
-        'tile-caught': { l: 0.86, c: 0.04 }, 'tile-unobtainable': { l: 0.84, c: 0.03 }, 'tile-temporary': { l: 0.9, c: 0.05 }, 'tile-temporary-stripe': { l: 0.86, c: 0.06 },
+        'tile-caught': { l: 0.9, c: 0.045 }, 'tile-unobtainable': { l: 0.85, c: 0.025 }, 'tile-temporary': { l: 0.9, c: 0.05 }, 'tile-temporary-stripe': { l: 0.86, c: 0.06 },
       },
     },
   },
@@ -362,6 +361,90 @@ export const THEMES: ThemeSeed[] = [
         meter: { l: 0.3, c: 0.05, source: 'caught' }, 'meter-edge': { l: 0.55, c: 0.14 },
         accent: { l: 0.74, c: 0.14 }, 'accent-hover': { l: 0.79, c: 0.12 },
         'tile-caught': { l: 0.33, c: 0.06 }, 'tile-unobtainable': { l: 0.21, c: 0.02 }, 'tile-temporary': { l: 0.27, c: 0.04 },
+      },
+    },
+  },
+  // Onsen: an open-air bath at an inn on a winter night (theme-scene/onsen.ts), seen from inside: the bar the eave's dark
+  // wood, the header and every box a shōji lit from within, its tiles the paper panes between the kumiko's bars, a sealed
+  // one glowing deeper where a lantern stands behind it in the colour of where it is
+  {
+    name: 'Onsen', hue: 70, ink: 45, unobtainable: 60, temporary: 30, caught: 80, chroma: 0.7, statusChroma: 0.9, unobtainableChroma: 0.3,
+    side: 'light',
+    tones: {
+      light: {
+        paper: { l: 0.86, c: 0.035 }, 'paper-raised': { l: 0.89, c: 0.03 }, 'paper-sunken': { l: 0.83, c: 0.035 }, chip: { l: 0.81, c: 0.035 },
+        chrome: { l: 0.24, c: 0.04, source: 'ink' }, 'chrome-hover': { l: 0.3, c: 0.045, source: 'ink' }, 'chrome-active': { l: 0.35, c: 0.05, source: 'ink' }, 'chrome-pattern': { l: 0.2, c: 0.035, source: 'ink' },
+        meter: { l: 0.86, c: 0.035 }, 'meter-edge': { l: 0.24, c: 0.04, source: 'ink' },
+        accent: { l: 0.5, c: 0.15, source: 'temporary' }, 'accent-hover': { l: 0.45, c: 0.14, source: 'temporary' },
+        overlay: { l: 0.24, c: 0.04, source: 'ink' }, 'overlay-deep': { l: 0.21, c: 0.035, source: 'ink' }, 'overlay-deeper': { l: 0.18, c: 0.03, source: 'ink' }, 'overlay-edge': { l: 0.5, c: 0.15, source: 'temporary' },
+        field: { l: 0.95, c: 0.025 }, 'field-edge': { l: 0.24, c: 0.04, source: 'ink' }, 'field-focus': { l: 0.5, c: 0.15, source: 'temporary' },
+        'tile-caught': { l: 0.93, c: 0.05 }, 'tile-unobtainable': { l: 0.8, c: 0.02 }, 'tile-temporary': { l: 0.9, c: 0.06 }, 'tile-temporary-stripe': { l: 0.86, c: 0.07 },
+      },
+    },
+  },
+  // Murim: a shan shui scroll (theme-scene/murim.ts), ink on xuan paper. Every box a painting mounted on its scroll, its
+  // tiles the paper and its border the mounting's silk; a sealed tile washed in the colour of where it is
+  {
+    name: 'Murim', hue: 85, ink: 60, unobtainable: 70, temporary: 25, caught: 190, chroma: 0.5, statusChroma: 0.9, unobtainableChroma: 0.3,
+    side: 'light',
+    tones: {
+      light: {
+        paper: { l: 0.87, c: 0.022 }, 'paper-raised': { l: 0.9, c: 0.018 }, 'paper-sunken': { l: 0.845, c: 0.025 }, chip: { l: 0.83, c: 0.025 },
+        chrome: { l: 0.3, c: 0.04, source: 'caught' }, 'chrome-hover': { l: 0.36, c: 0.045, source: 'caught' }, 'chrome-active': { l: 0.41, c: 0.05, source: 'caught' }, 'chrome-pattern': { l: 0.26, c: 0.035, source: 'caught' },
+        meter: { l: 0.88, c: 0.02 }, 'meter-edge': { l: 0.3, c: 0.04, source: 'caught' },
+        accent: { l: 0.5, c: 0.17, source: 'temporary' }, 'accent-hover': { l: 0.45, c: 0.16, source: 'temporary' },
+        overlay: { l: 0.28, c: 0.035, source: 'caught' }, 'overlay-deep': { l: 0.24, c: 0.03, source: 'caught' }, 'overlay-deeper': { l: 0.21, c: 0.03, source: 'caught' }, 'overlay-edge': { l: 0.5, c: 0.17, source: 'temporary' },
+        field: { l: 0.96, c: 0.015 }, 'field-edge': { l: 0.3, c: 0.04, source: 'caught' }, 'field-focus': { l: 0.5, c: 0.17, source: 'temporary' },
+        'tile-caught': { l: 0.93, c: 0.012 }, 'tile-unobtainable': { l: 0.8, c: 0.015 }, 'tile-temporary': { l: 0.92, c: 0.04 }, 'tile-temporary-stripe': { l: 0.88, c: 0.05 },
+      },
+    },
+  },
+  // Sky Pillar: Hoenn's ancient tower at night over a sea of cloud, Rayquaza winding far off through the sky
+  // (theme-scene/sky-pillar.ts). Every box is a slab of the tower's old stone, its tiles carved panels in it; a sealed
+  // tile glows from within in one of the orbs' colours for where it is
+  {
+    name: 'Sky Pillar', hue: 230, ink: 160, unobtainable: 260, temporary: 85, caught: 160, chroma: 0.6,
+    tones: {
+      dark: {
+        paper: { l: 0.2, c: 0.03 }, 'paper-raised': { l: 0.24, c: 0.035 }, 'paper-sunken': { l: 0.17, c: 0.025 }, chip: { l: 0.17, c: 0.025 },
+        chrome: { l: 0.14, c: 0.03 }, 'chrome-hover': { l: 0.19, c: 0.035 }, 'chrome-active': { l: 0.23, c: 0.04 }, 'chrome-pattern': { l: 0.12, c: 0.03 },
+        meter: { l: 0.22, c: 0.035 }, 'meter-edge': { l: 0.78, c: 0.13, source: 'temporary' },
+        accent: { l: 0.78, c: 0.14, source: 'caught' }, 'accent-hover': { l: 0.83, c: 0.12, source: 'caught' },
+        overlay: { l: 0.17, c: 0.03 }, 'overlay-deep': { l: 0.21, c: 0.035 }, 'overlay-deeper': { l: 0.25, c: 0.04 }, 'overlay-edge': { l: 0.78, c: 0.14, source: 'caught' },
+        field: { l: 0.17, c: 0.025 }, 'field-edge': { l: 0.45, c: 0.04 }, 'field-focus': { l: 0.78, c: 0.14, source: 'caught' },
+        'tile-caught': { l: 0.32, c: 0.035 }, 'tile-unobtainable': { l: 0.25, c: 0.02 }, 'tile-temporary': { l: 0.29, c: 0.05 }, 'tile-temporary-stripe': { l: 0.33, c: 0.065 },
+      },
+    },
+  },
+  // Hanabi: a summer matsuri on a river at night, chōchin on the bridge and andon along the bank, a few people sat
+  // watching; the fireworks over it few and slow. Every box a lacquered tray, a sealed tile lit as by a burst
+  {
+    name: 'Hanabi', hue: 275, ink: 55, unobtainable: 260, temporary: 25, caught: 45, chroma: 0.8,
+    tones: {
+      dark: {
+        paper: { l: 0.18, c: 0.035 }, 'paper-raised': { l: 0.22, c: 0.04 }, 'paper-sunken': { l: 0.15, c: 0.03 }, chip: { l: 0.15, c: 0.03 },
+        chrome: { l: 0.12, c: 0.03 }, 'chrome-hover': { l: 0.17, c: 0.035 }, 'chrome-active': { l: 0.21, c: 0.04 }, 'chrome-pattern': { l: 0.1, c: 0.03 },
+        meter: { l: 0.2, c: 0.04 }, 'meter-edge': { l: 0.8, c: 0.1, source: 'ink' },
+        accent: { l: 0.8, c: 0.12, source: 'ink' }, 'accent-hover': { l: 0.85, c: 0.1, source: 'ink' },
+        overlay: { l: 0.16, c: 0.035 }, 'overlay-deep': { l: 0.2, c: 0.04 }, 'overlay-deeper': { l: 0.24, c: 0.045 }, 'overlay-edge': { l: 0.8, c: 0.1, source: 'ink' },
+        field: { l: 0.15, c: 0.03 }, 'field-edge': { l: 0.45, c: 0.05 }, 'field-focus': { l: 0.8, c: 0.12, source: 'ink' },
+        'tile-caught': { l: 0.32, c: 0.06 }, 'tile-unobtainable': { l: 0.235, c: 0.03 }, 'tile-temporary': { l: 0.28, c: 0.06 }, 'tile-temporary-stripe': { l: 0.32, c: 0.075 },
+      },
+    },
+  },
+  // Hanabi 2: the same night, the fireworks off screen above it as anime shows them, only their light seen flaring
+  // over the sky, the roofs, the water and the watchers
+  {
+    name: 'Hanabi 2', hue: 275, ink: 55, unobtainable: 260, temporary: 25, caught: 45, chroma: 0.8,
+    tones: {
+      dark: {
+        paper: { l: 0.18, c: 0.035 }, 'paper-raised': { l: 0.22, c: 0.04 }, 'paper-sunken': { l: 0.15, c: 0.03 }, chip: { l: 0.15, c: 0.03 },
+        chrome: { l: 0.12, c: 0.03 }, 'chrome-hover': { l: 0.17, c: 0.035 }, 'chrome-active': { l: 0.21, c: 0.04 }, 'chrome-pattern': { l: 0.1, c: 0.03 },
+        meter: { l: 0.2, c: 0.04 }, 'meter-edge': { l: 0.8, c: 0.1, source: 'ink' },
+        accent: { l: 0.8, c: 0.12, source: 'ink' }, 'accent-hover': { l: 0.85, c: 0.1, source: 'ink' },
+        overlay: { l: 0.16, c: 0.035 }, 'overlay-deep': { l: 0.2, c: 0.04 }, 'overlay-deeper': { l: 0.24, c: 0.045 }, 'overlay-edge': { l: 0.8, c: 0.1, source: 'ink' },
+        field: { l: 0.15, c: 0.03 }, 'field-edge': { l: 0.45, c: 0.05 }, 'field-focus': { l: 0.8, c: 0.12, source: 'ink' },
+        'tile-caught': { l: 0.32, c: 0.06 }, 'tile-unobtainable': { l: 0.235, c: 0.03 }, 'tile-temporary': { l: 0.28, c: 0.06 }, 'tile-temporary-stripe': { l: 0.32, c: 0.075 },
       },
     },
   },

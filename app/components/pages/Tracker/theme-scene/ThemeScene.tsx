@@ -1,11 +1,15 @@
 import { useEffect, useRef } from 'react';
 
+import { hanabiFarScene, hanabiScene } from './hanabi';
 import { koiScene } from './koi';
 import { kumoScene } from './kumo';
 import { midnightScene } from './midnight';
+import { murimScene } from './murim';
 import { neonRainScene } from './neon-rain';
+import { onsenScene } from './onsen';
 import { routeScene } from './route';
 import { shodoScene } from './shodo';
+import { skyPillarScene } from './sky-pillar';
 import { ukiyoScene } from './ukiyo';
 import { yozakuraScene } from './yozakura';
 import { themeSlug } from '../../../../palette/themes';
@@ -24,6 +28,11 @@ const SCENES: Record<string, SceneMaker> = {
   yozakura: yozakuraScene,
   'neon-rain': neonRainScene,
   'game-boy-2': routeScene,
+  onsen: onsenScene,
+  murim: murimScene,
+  'sky-pillar': skyPillarScene,
+  hanabi: hanabiScene,
+  'hanabi-2': hanabiFarScene,
 };
 
 const FRAME_MS = 1000 / 30;

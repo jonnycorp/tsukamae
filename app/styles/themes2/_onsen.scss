@@ -1,0 +1,58 @@
+@use '../variables' as *;
+
+// Onsen: inside the inn, looking out on the bath (theme-scene/onsen.ts). The bar is the eave's dark wood; the header
+// and every box a shōji, its frame dark wood and its tiles the paper panes between the kumiko's bars, lit from within
+// so each glows warm toward its middle. An empty pane is the paper unlit; a sealed one glows deeper, a lantern stood
+// behind it in the colour of where it is (amber at home, indigo in HOME, gold in Champions, vermilion out in a game)
+:root[data-theme='onsen'] {
+  --sugi: #2a1a10;
+  --lit: #f6e7c6;
+  --w-nav: rgb(22 14 9 / 88%);
+  --w-hairline: linear-gradient(90deg, transparent, rgb(255 200 130 / 35%), transparent);
+  --w-header: radial-gradient(120% 220% at 50% 50%, #f4e4c2, #e2cda2);
+  --w-slot: #e8d7b2;
+  --w-edge: var(--sugi);
+  --w-fill: linear-gradient(rgb(255 255 255 / 30%), transparent 50%), linear-gradient(90deg, #d07a2c, #f0b25a);
+  --w-post: var(--sugi);
+  --w-figure: var(--sugi);
+  --w-figure-ink: var(--lit);
+  --w-title: #fbe9c8;
+  --w-title-glow: 0 0 10px rgb(255 170 80 / 55%), 0 2px 6px rgb(0 0 0 / 70%);
+  --w-panel: #cdbb98;
+  --w-panel-shadow: 0 0 0 6px var(--sugi), 0 0 0 7px rgb(255 210 150 / 18%), 0 0 60px rgb(255 160 70 / 18%), 0 30px 50px -20px rgb(0 0 0 / 80%);
+  --w-blur: 0px;
+  --w-line: var(--sugi);
+  --w-caught: transparent;
+  --w-unobtainable: rgb(60 40 20 / 18%);
+  --w-temporary: rgb(208 122 44 / 10%);
+  --w-temporary-stripe: rgb(208 122 44 / 14%);
+  --w-complete: 0 0 0 6px var(--sugi), 0 0 0 8px #e0a850, 0 0 70px rgb(255 170 80 / 30%), 0 30px 50px -20px rgb(0 0 0 / 80%);
+  --line-solid: var(--w-line);
+
+  // the shōji's paper: every caught pane lit from behind, brightest at its middle
+  .pokemon.captured.caught {
+    background-image: radial-gradient(closest-side, #fbf0d8, var(--lit) 55%, #e8d4ac);
+  }
+
+  .box-container > .tile-grid {
+    border-width: 2px;
+  }
+
+  .seal-material {
+    --lamp: #ff9a3a;
+
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--lamp) 42%, #fff3dc), color-mix(in srgb, var(--lamp) 30%, #f0dcb4) 60%, color-mix(in srgb, var(--lamp) 34%, #d8c094)) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size};
+  }
+
+  .seal-material[data-tint='champions'] {
+    --lamp: #ffd23a;
+  }
+
+  .seal-material[data-tint='out'] {
+    --lamp: #ff5a3a;
+  }
+
+  .seal-material[data-tint='home'] {
+    --lamp: #6a78ff;
+  }
+}

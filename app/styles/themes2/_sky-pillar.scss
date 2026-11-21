@@ -1,0 +1,54 @@
+@use '../variables' as *;
+
+// Sky Pillar: Hoenn's ancient tower at night (theme-scene/sky-pillar.ts). The bar and header the night itself, glass
+// over it; every box a slab of the tower's weathered stone, its tiles panels carved into it, each sunk a little with
+// its edge lit along the top as moonlight would catch it. A sealed tile glows up from within in an orb's colour for
+// where it is (the jade orb's at home, the blue orb's in HOME, the red orb's out in a game, gold in Champions)
+:root[data-theme='sky-pillar'] {
+  --stone: #3a4250;
+  --w-nav: rgb(6 10 22 / 60%);
+  --w-hairline: linear-gradient(90deg, transparent, rgb(230 200 90 / 45%), transparent);
+  --w-header: linear-gradient(rgb(8 12 26 / 72%), rgb(8 12 26 / 52%));
+  --w-slot: rgb(8 12 24 / 70%);
+  --w-edge: rgb(180 200 230 / 18%);
+  --w-fill: linear-gradient(rgb(255 255 255 / 25%), transparent 45%), linear-gradient(90deg, #1c6a40, #2f9a58 60%, #e6c84a);
+  --w-post: #e6c84a;
+  --w-figure: #e6c84a;
+  --w-figure-ink: #14200f;
+  --w-title: #eef2f8;
+  --w-title-glow: 0 0 10px rgb(150 200 255 / 40%), 0 2px 4px rgb(0 0 0 / 80%);
+  --w-panel: #2e3440;
+  --w-panel-shadow: 0 0 0 4px #232831, 0 0 0 5px rgb(200 215 240 / 14%), 0 28px 44px -16px rgb(0 0 0 / 85%);
+  --w-blur: 0px;
+  --w-line: #1d222b;
+  --w-caught: var(--tile-caught);
+  --w-unobtainable: var(--tile-unobtainable);
+  --w-temporary: var(--tile-temporary);
+  --w-temporary-stripe: var(--tile-temporary-stripe);
+  --w-complete: 0 0 0 4px #232831, 0 0 0 6px #e6c84a, 0 0 24px rgb(230 200 74 / 35%), 0 28px 44px -16px rgb(0 0 0 / 85%);
+  --line-solid: var(--w-line);
+
+  // each panel carved: sunk into the slab, shadowed under its top edge, its lower edge catching the light
+  .box-container > .tile-grid > .pokemon {
+    box-shadow: inset 0 3px 4px -1px rgb(0 0 0 / 55%), inset 0 -1px 0 rgb(220 230 255 / 10%);
+    border-width: 2px;
+  }
+
+  .seal-material {
+    --orb: #3ce08c;
+
+    background: radial-gradient(70% 60% at 50% 100%, color-mix(in srgb, var(--orb) 38%, transparent), color-mix(in srgb, var(--orb) 10%, transparent) 70%, transparent) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size};
+  }
+
+  .seal-material[data-tint='champions'] {
+    --orb: #f0c840;
+  }
+
+  .seal-material[data-tint='out'] {
+    --orb: #ff4a3a;
+  }
+
+  .seal-material[data-tint='home'] {
+    --orb: #3a8cff;
+  }
+}

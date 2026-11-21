@@ -1,0 +1,51 @@
+@use '../variables' as *;
+
+// Hanabi and Hanabi 2: a summer matsuri on a river at night (theme-scene/hanabi.ts), the fireworks over it on screen
+// or off it. Every box a lacquered tray: black lacquer tiles with a gloss along their top, in a vermilion lacquer frame
+// as the shrine's rails are; a sealed tile lit as the night is when a burst goes up, its place's colour washing down
+// from the top (gold at home, red out in a game, the green burst in Champions, the pink in HOME)
+:root:is([data-theme='hanabi'], [data-theme='hanabi-2']) {
+  --shu: #c23a26;
+  --w-nav: rgb(8 6 16 / 60%);
+  --w-hairline: linear-gradient(90deg, transparent, rgb(255 190 120 / 40%) 40%, transparent);
+  --w-header: linear-gradient(rgb(12 8 20 / 76%), rgb(12 8 20 / 56%));
+  --w-slot: rgb(8 6 16 / 62%);
+  --w-edge: rgb(255 190 120 / 20%);
+  --w-fill: linear-gradient(rgb(255 255 255 / 25%), transparent 50%), linear-gradient(90deg, #7a1e1a, var(--shu) 55%, #ffb860);
+  --w-post: #ffe2b8;
+  --w-figure: linear-gradient(160deg, #ffe7c4, #f2b878);
+  --w-figure-ink: #2a1006;
+  --w-title: #fff0dc;
+  --w-title-glow: 0 0 14px rgb(255 170 90 / 40%), 0 2px 0 rgb(0 0 0 / 55%);
+  --w-panel: rgb(10 8 14 / 78%);
+  --w-panel-shadow: 0 0 0 4px var(--shu), 0 0 0 5px rgb(0 0 0 / 60%), 0 0 0 6px rgb(255 200 150 / 18%), 0 28px 50px -18px rgb(0 0 0 / 75%);
+  --w-blur: 6px;
+  --w-line: rgb(255 210 170 / 7%);
+  --w-caught: rgb(255 200 150 / 6%);
+  --w-unobtainable: rgb(0 0 0 / 35%);
+  --w-temporary: rgb(255 120 80 / 12%);
+  --w-temporary-stripe: rgb(255 120 80 / 8%);
+  --w-complete: 0 0 0 4px #e0a040, 0 0 0 5px rgb(0 0 0 / 60%), 0 0 40px rgb(255 190 100 / 30%), 0 28px 50px -18px rgb(0 0 0 / 75%);
+  --line-solid: var(--w-line);
+
+  .seal-material {
+    --burst: rgb(255 200 110);
+
+    background:
+      linear-gradient(rgb(255 255 255 / 8%), transparent 18%) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      radial-gradient(ellipse 100% 80% at 50% 0%, color-mix(in srgb, var(--burst) 32%, transparent), transparent 75%) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      rgb(30 16 22 / 50%);
+  }
+
+  .seal-material[data-tint='champions'] {
+    --burst: rgb(110 240 190);
+  }
+
+  .seal-material[data-tint='out'] {
+    --burst: rgb(255 90 70);
+  }
+
+  .seal-material[data-tint='home'] {
+    --burst: rgb(255 140 215);
+  }
+}

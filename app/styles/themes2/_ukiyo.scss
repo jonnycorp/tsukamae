@@ -1,54 +1,64 @@
 @use '../variables' as *;
 
-// Ukiyo: a woodblock print (theme-scene/ukiyo.ts). Every box is a print's cartouche: cream stock framed in the key
-// block's indigo line, a second line inside it, its range on a red title slip as a print's title is; a sealed tile
-// printed in the Prussian blue's gradation (bokashi), lightest at its foot, in its place's colour (blue at home, the
-// sun's red out in a game, ochre in Champions, grey-green in HOME)
+// Ukiyo: an island at dusk drawn as a game would paint it (theme-scene/ukiyo.ts), flat colour, no texture. Every box a
+// game's menu panel: warm cream, rounded (the corners in styles/themes.scss, shared with Pokédex and Koi), ringed in
+// pale gold inside a slate line, its range on a slate plaque in gold. A sealed tile takes its place's colour flat, in
+// two tones, a band at its foot (the sea's blue at home, the torii's vermilion out in a game, gold in Champions, the
+// sakura's rose in HOME)
 :root[data-theme='ukiyo'] {
-  --key: #1e2234;
-  --prussian: #1a3a6c;
-  --w-nav: rgb(30 34 52 / 82%);
-  --w-hairline: var(--key);
-  --w-header: rgb(240 230 206 / 82%);
-  --w-slot: rgb(235 224 196 / 80%);
-  --w-edge: var(--key);
-  --w-fill: linear-gradient(rgb(255 255 255 / 0%), rgb(255 255 255 / 30%)), linear-gradient(90deg, #6d93bd, var(--prussian));
-  --w-post: var(--key);
-  --w-figure: #c8382a;
-  --w-figure-ink: #f7efdc;
-  --w-title: #f7efdc;
-  --w-panel: #efe5cc;
-  --w-panel-shadow: 0 0 0 2px var(--key), 0 0 0 6px #efe5cc, 0 0 0 7px var(--key), 0 18px 30px -12px rgb(20 20 40 / 45%);
+  --slate: #3b4255;
+  --gold: #d3bc8e;
+  --cream: #ece5d8;
+  --w-nav: rgb(59 66 85 / 86%);
+  --w-hairline: var(--gold);
+  --w-header: rgb(236 229 216 / 88%);
+  --w-slot: rgb(236 229 216 / 80%);
+  --w-edge: var(--slate);
+  --w-fill: linear-gradient(90deg, #4a7cc4, #2c4f8e);
+  --w-post: var(--gold);
+  --w-figure: var(--slate);
+  --w-figure-ink: var(--gold);
+  --w-title: #fff6ea;
+  --w-panel: var(--cream);
+  --w-panel-shadow: 0 0 0 3px var(--gold), 0 0 0 5px var(--slate), 0 16px 28px -12px rgb(40 30 70 / 50%);
   --w-blur: 0px;
-  --w-line: rgb(30 34 52 / 30%);
-  --w-caught: rgb(26 58 108 / 8%);
-  --w-unobtainable: rgb(120 100 70 / 16%);
-  --w-temporary: rgb(200 56 42 / 8%);
-  --w-temporary-stripe: rgb(200 56 42 / 10%);
-  --w-complete: 0 0 0 2px var(--key), 0 0 0 6px #e7c96a, 0 0 0 7px var(--key), 0 18px 30px -12px rgb(20 20 40 / 45%);
+  --w-line: rgb(59 66 85 / 18%);
+  --w-caught: rgb(230 205 150 / 22%);
+  --w-unobtainable: rgb(120 100 80 / 14%);
+  --w-temporary: rgb(220 70 50 / 8%);
+  --w-temporary-stripe: rgb(220 70 50 / 10%);
+  --w-complete: 0 0 0 3px #f0c75e, 0 0 0 5px var(--slate), 0 0 24px rgb(255 220 140 / 45%), 0 16px 28px -12px rgb(40 30 70 / 50%);
   --line-solid: var(--w-line);
 
+  .box-container {
+    border-radius: 14px;
+  }
+
   .box-header h1 {
-    padding: 0 16px;
-    background: #c8382a;
-    box-shadow: inset 0 0 0 1.5px var(--key), inset 0 0 0 4px #c8382a, inset 0 0 0 5px rgb(247 239 220 / 60%);
+    padding: 0 18px;
+    border-radius: 999px;
+    background: var(--slate);
+    color: var(--gold);
+    box-shadow: inset 0 0 0 1.5px var(--gold), 0 0 0 2px var(--slate);
   }
 
   .seal-material {
-    --ink: var(--prussian);
+    --ink: #4a7cc4;
 
-    background: linear-gradient(color-mix(in srgb, var(--ink) 46%, transparent), color-mix(in srgb, var(--ink) 8%, transparent)) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size};
+    background:
+      linear-gradient(transparent 76%, color-mix(in srgb, var(--ink) 38%, transparent) 76%) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size},
+      color-mix(in srgb, var(--ink) 6%, transparent);
   }
 
   .seal-material[data-tint='champions'] {
-    --ink: #b8862a;
+    --ink: #d9a43a;
   }
 
   .seal-material[data-tint='out'] {
-    --ink: #c8382a;
+    --ink: #dc4632;
   }
 
   .seal-material[data-tint='home'] {
-    --ink: #5c7a68;
+    --ink: #e0789a;
   }
 }

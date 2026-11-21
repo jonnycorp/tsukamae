@@ -3,8 +3,8 @@ import { shaderScene } from './scene';
 import type { SceneMaker } from './scene';
 
 // Yozakura: cherry trees in full bloom at night, their canopy filling the top of the window, branches dark through it;
-// strings of red and white paper lanterns (chōchin) hung under it for the hanami, swaying a little, the blossom lit
-// warm around and below them; petals falling slowly through the dark between, turning as they fall
+// strings of red and white paper lanterns (chōchin) hung under it for the hanami, swaying a little, each throwing its
+// light warm (or rosy, from a red one) over the blossom round it and into the night air; petals falling slowly through the dark between, turning as they fall
 const FRAGMENT = `
 float hash (vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise (vec2 p) {
@@ -51,12 +51,29 @@ void main () {
   // the boughs first, the blossom over them, so they show only through its gaps
   col = mix(col, vec3(0.07, 0.04, 0.05), smoothstep(0.002, 0.0, limbs));
 
-  // the lanterns' warmth, worked out first: the blossom near a string glows with it
+  // the lanterns' light, worked out first: each pools warm round itself, red or white as its paper is, lighting the
+  // blossom near it and the night air between, breathing a little as its flame does
   float warm = 0.0;
+  vec3 glowCol = vec3(0.0);
   for (int k = 0; k < 2; k++) {
-    float y0 = 0.56 + float(k) * 0.18;
-    warm += exp(-abs(uv.y - (stringY(uv.x, y0, aspect) - 0.03)) * 14.0) * (0.7 - float(k) * 0.3);
+    float fk = float(k);
+    float y0 = 0.56 + fk * 0.18;
+    float gap = 0.2 - fk * 0.04;
+    float base = floor((uv.x + fk * 0.07) / gap);
+    for (int n = -1; n <= 1; n++) {
+      float cell = base + float(n);
+      float cx = (cell + 0.5) * gap - fk * 0.07;
+      vec2 lc = vec2(cx, stringY(cx, y0, aspect) - 0.036 * (1.0 - fk * 0.3));
+      float d = length((uv - lc) * vec2(1.0, 1.15));
+      float red = step(0.5, mod(cell + fk, 2.0));
+      float flicker = 0.9 + 0.1 * noise(vec2(t * 0.7, cell + fk * 9.0));
+      float pool = exp(-d * 9.0) * flicker * (1.0 - fk * 0.35);
+      warm += pool;
+      glowCol += mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.36, 0.22), red) * (pool + exp(-d * 30.0) * 0.6 * flicker);
+    }
   }
+  // the air itself lit round them, a soft bloom over the dark
+  col += glowCol * 0.16;
 
   // the canopy's body, behind the flowers: soft clouds of blossom, lit from beneath and by the lanterns, so it has depth
   float m0 = mass(uv, aspect);
@@ -64,7 +81,7 @@ void main () {
   float cloud = smoothstep(-0.02, 0.2, m0);
   float lit = clamp((m1 - m0) * 8.0 + 0.4, 0.0, 1.0);
   vec3 body = mix(vec3(0.16, 0.08, 0.14), vec3(0.5, 0.3, 0.4), lit);
-  body += vec3(0.45, 0.22, 0.12) * warm * 0.6;
+  body += glowCol * 0.35;
   col = mix(col, body, cloud * 0.7);
 
   // the canopy: blossom gathered in clusters along the boughs, thickest at the top and the sides; each cluster a puff of
@@ -98,7 +115,7 @@ void main () {
   float under = smoothstep(0.6, 0.25, uv.y);
   pink = mix(pink, vec3(1.0, 0.85, 0.72), under * 0.35);
   pink *= 0.6 + 0.4 * smoothstep(1.0, 0.4, uv.y);
-  pink = mix(pink, vec3(1.0, 0.82, 0.7), clamp(warm, 0.0, 1.0) * 0.35);
+  pink = mix(pink, pink * 0.6 + glowCol * 0.7, clamp(warm, 0.0, 1.0) * 0.6);
   col = mix(col, pink, bloom * 0.95);
 
   // the strings of chōchin under the canopy: red and white by turns, each hung from the string and swaying a little,
@@ -122,21 +139,18 @@ void main () {
     float red = step(0.5, mod(cell + fk, 2.0));
     float flicker = 0.93 + 0.07 * noise(vec2(t * 0.7, cell + fk * 9.0));
     vec3 paper = mix(vec3(1.0, 0.9, 0.72), vec3(0.95, 0.22, 0.1), red);
-    // a round paper body lit from within: brightest at its heart and toward you, falling off round its sides where the
-    // paper turns away, the bamboo ribs rings round it that crowd together toward its top and foot as a sphere's do
-    float rr = clamp(dot(e, e), 0.0, 1.0);
-    float facing = sqrt(1.0 - rr);
-    paper *= (0.35 + 0.85 * facing * facing + 0.25 * exp(-rr * 6.0)) * flicker;
-    float rib = abs(fract(asin(clamp(e.y, -0.999, 0.999)) * 2.9) - 0.5);
-    paper *= 1.0 - 0.35 * smoothstep(0.38, 0.5, rib) * (0.4 + 0.6 * facing);
-    // a little of the night's sheen on its shoulder, away from the light within
-    paper += vec3(0.25, 0.2, 0.3) * smoothstep(0.35, 0.0, length(e - vec2(-0.45, 0.5))) * 0.25;
+    // brighter at its heart, the ribs dark rings across it
+    paper *= (0.55 + 0.6 * (1.0 - dot(e, e) * 0.8)) * flicker;
+    paper *= 1.0 - 0.25 * smoothstep(0.35, 0.5, abs(fract(e.y * 4.5) - 0.5));
     col += mix(vec3(1.0, 0.7, 0.4), vec3(1.0, 0.35, 0.2), red) * exp(-length(e) * 1.6) * 0.12 * flicker;
     col = mix(col, paper, body);
     float caps = step(abs(v.x), 0.012) * (step(abs(v.y + 0.009), 0.004) + step(abs(v.y + 0.063), 0.004));
     col = mix(col, vec3(0.05, 0.03, 0.03), clamp(caps, 0.0, 1.0));
     col = mix(col, vec3(0.05, 0.03, 0.03), step(abs(v.x), 0.0008) * step(-0.006, v.y) * step(v.y, 0.0));
   }
+
+  // the lanterns' bloom over their own paper and the blossom in front, so they read as light, not paint
+  col += glowCol * 0.12 * smoothstep(0.3, 1.2, warm);
 
   // petals falling, drifting side to side, turning
   for (int layer = 0; layer < 2; layer++) {

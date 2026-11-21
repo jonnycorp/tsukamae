@@ -3,7 +3,7 @@
 // what the later scene themes share, set by each through its own custom properties (--w-*): a glass bar and header the
 // scene shows through, the meter a slot with its fill, the boxes panels over the scene with their tiles' states, a
 // finished box's look. A theme's sealed tiles and anything of its own stay in its own file
-:root:is([data-theme='koi'], [data-theme='yozakura'], [data-theme='neon-rain'], [data-theme='ukiyo'], [data-theme='game-boy-2']) {
+:root:is([data-theme='koi'], [data-theme='yozakura'], [data-theme='neon-rain'], [data-theme='ukiyo'], [data-theme='game-boy-2'], [data-theme='onsen'], [data-theme='murim'], [data-theme='sky-pillar'], [data-theme='hanabi'], [data-theme='hanabi-2']) {
   nav {
     background: var(--w-nav);
     backdrop-filter: blur(16px) saturate(1.2);
