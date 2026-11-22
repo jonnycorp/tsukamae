@@ -18,6 +18,7 @@
   --w-title: #ffe3ec;
   --w-title-glow: 0 0 14px rgb(246 160 190 / 40%), 0 2px 0 rgb(0 0 0 / 50%);
   --w-panel: rgb(18 10 22 / 62%);
+  --w-sheet: rgb(18 10 22 / 88%);
   --w-panel-shadow: 0 0 0 1px rgb(246 195 212 / 16%), 0 28px 50px -18px rgb(0 0 0 / 75%);
   --w-blur: 8px;
   --w-line: rgb(246 195 212 / 8%);
@@ -26,7 +27,6 @@
   --w-temporary: rgb(255 140 100 / 12%);
   --w-temporary-stripe: rgb(255 140 100 / 8%);
   --w-complete: 0 0 0 1px rgb(255 214 170 / 60%), 0 0 36px rgb(255 170 120 / 30%), 0 28px 50px -18px rgb(0 0 0 / 75%);
-  --line-solid: var(--w-line);
 
   .seal-material {
     --glow: rgb(255 190 140);

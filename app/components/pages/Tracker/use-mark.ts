@@ -2,21 +2,26 @@ import { useCallback } from 'react';
 
 import { EMPTY_METADATA, freshMetadata, withBaselines } from '../../../utils/capture-fields';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
+import { writeTouches } from '../../../utils/review-confirm';
 import { useTrackerActions } from './use-tracker';
 
 import type { CaptureStatus } from '../../../types';
 
-// a status set on a slot, from a tile or a ledger row: unobtainable clears the record; a marked record keeps its own,
-// with what a caught one must have filled in; a new mark (or one back from unobtainable) is built as writeCapture
-// builds it. The caller has already ruled out a sealed mon
+// a status set on a slot, from a tile or a ledger row: unobtainable clears the record, and what W had confirmed of it
+// (utils/review-confirm); a marked record keeps its own, with what a caught one must have filled in; a new mark (or one
+// back from unobtainable) is built as writeCapture builds it. The caller has already ruled out a sealed mon
 export function useMark (): (pokemon: number, status: CaptureStatus) => void {
   const { activeDex, activeDexView, saves } = useDexContext();
   const { setCaptures, updateCapture } = useTrackerActions();
+  const dexId = activeDex!.id;
   const checklist = Boolean(activeDex!.checklist);
   const defaults = activeDex!.captureDefaults;
   const homeDex = activeDexView!.game.id === 'home';
 
   return useCallback((pokemon: number, status: CaptureStatus) => {
+    if (status === 'unobtainable') {
+      writeTouches(dexId, pokemon, null);
+    }
     setCaptures((prev) => prev.map((cap) => {
       if (cap.pokemon.id !== pokemon) {
         return cap;
@@ -31,5 +36,5 @@ export function useMark (): (pokemon: number, status: CaptureStatus) => void {
       return { ...cap, ...fresh, captured: true, status };
     }));
     updateCapture({ pokemon, status });
-  }, [setCaptures, updateCapture, checklist, defaults, homeDex, saves]);
+  }, [setCaptures, updateCapture, dexId, checklist, defaults, homeDex, saves]);
 }

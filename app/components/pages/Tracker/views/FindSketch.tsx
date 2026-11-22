@@ -19,6 +19,7 @@ import { useScopedRecords } from './ViewScope';
 
 import type { Facet, FacetId } from '../filters';
 import type { KeyboardEvent } from 'react';
+import type { SceneView } from '../Scene';
 import type { ViewProps } from './views-kit';
 import type { ViewRecord } from './ViewScope';
 
@@ -35,6 +36,12 @@ interface Chip {
 interface Suggestion extends Chip {
   label: string;
   count: number;
+}
+
+// the search as it was left for the dex's filter (Shift+Enter), to come back to
+interface FindView extends SceneView {
+  text: string;
+  chips: Chip[];
 }
 
 // where a mon sits in the dex's boxes, as the boxes draw them: the box's number and title, its row and column
@@ -68,26 +75,40 @@ function rangeOf (text: string): [number, number] | null {
 // filters the dex to them, a set and never one mon
 export function FindSketch ({ back, onClose, onFilter, onLocate, onSpot }: ViewProps) {
   const { lt, locale } = useViewText();
-  const { activeDexView } = useDexContext();
+  const { activeDex, activeDexView } = useDexContext();
   const records = useScopedRecords('dex');
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const [text, setText] = useState('');
-  const [chips, setChips] = useState<Chip[]>([]);
+  const [text, setText] = useState(() => (back as FindView | null)?.text ?? '');
+  const [chips, setChips] = useState<Chip[]>(() => (back as FindView | null)?.chips ?? []);
   const [at, setAt] = useState(0);
   const regional = Boolean(activeDexView?.regional);
 
   useEffect(() => inputRef.current?.focus(), []);
 
-  // every mon's place in the boxes
+  // every mon's place in the boxes: a catalog's as its boxes are cut, a free-form dex's where its entries put them, in
+  // the boxes it has (FreeBoxes), a box left unnamed going by its number alone
   const places = useMemo(() => {
     const out = new Map<string, Place>();
+    if (activeDex!.free) {
+      const boxes = activeDex!.boxes ?? [];
+      const at = new Map(boxes.map((box, b) => [box.id, b]));
+      const entries = new Map((activeDex!.entries ?? []).map((entry) => [entry.id, entry]));
+      for (const record of records) {
+        const entry = entries.get(record.capture.pokemon.id);
+        const b = entry && at.get(entry.box);
+        if (entry && b !== undefined) {
+          out.set(record.key, { box: b + 1, title: boxes[b].name, row: Math.floor(entry.slot / BOX_COLUMNS) + 1, column: (entry.slot % BOX_COLUMNS) + 1 });
+        }
+      }
+      return out;
+    }
     groupBoxes(records.map((record) => ({ ...record, pokemon: record.capture.pokemon }))).forEach((box, b) => {
       const title = boxTitle(box.map(({ capture }) => capture), activeDexView!, locale);
       box.forEach((record, i) => out.set(record.key, { box: b + 1, title, row: Math.floor(i / BOX_COLUMNS) + 1, column: (i % BOX_COLUMNS) + 1 }));
     });
     return out;
-  }, [records, activeDexView, locale]);
+  }, [records, activeDex, activeDexView, locale]);
 
   // the values the dex's records hold, by facet, labelled and counted, for the suggestions
   const values = useMemo(() => FACETS.filter((facet) => !facet.pressOnly).map((facet) => {
@@ -173,7 +194,8 @@ export function FindSketch ({ back, onClose, onFilter, onLocate, onSpot }: ViewP
     for (const chip of chips) {
       facets[chip.facet] = [...(facets[chip.facet] ?? []), chip.value];
     }
-    onFilter({ view: 'all', facets }, { scroll: 0 });
+    const left: FindView = { scroll: 0, text, chips };
+    onFilter({ view: 'all', facets }, left);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -260,7 +282,7 @@ export function FindSketch ({ back, onClose, onFilter, onLocate, onSpot }: ViewP
                   onClick={() => (at === n && record.here ? onSpot(capture.pokemon.id) : setAt(n))}
                   type="button"
                 >
-                  <SceneMon pokemon={capture.pokemon} />
+                  <SceneMon pokemon={capture.pokemon} view={record.view} />
                   <span className="lf-names">
                     <strong>{capture.pokemon.name_ja || capture.pokemon.name}</strong>
                     <small>No.{String(capture.pokemon.national_id).padStart(4, '0')} · {displayName(capture.pokemon.name, null, 'en')}{capture.has_nickname && capture.nickname ? ` · “${capture.nickname}”` : ''}</small>
@@ -269,7 +291,7 @@ export function FindSketch ({ back, onClose, onFilter, onLocate, onSpot }: ViewP
                   {place && (
                     <span className="lf-place">
                       <b>{lt('find.box', { n: place.box })}</b>
-                      <small>{place.title}</small>
+                      {place.title && <small>{place.title}</small>}
                       <i>{lt('find.slot', { row: place.row, column: place.column })}</i>
                     </span>
                   )}

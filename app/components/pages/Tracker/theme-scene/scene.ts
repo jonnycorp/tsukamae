@@ -5,6 +5,8 @@ export interface Scene {
   dispose: () => void;
   // a scene drawn over pictures: settles once they've loaded, to be drawn again then (still mode draws no frames)
   ready?: Promise<void>;
+  // its ground, for the window to show where a resize uncovers it, if it's far from the palette's paper (Ink's felt)
+  ground?: string;
 }
 
 export type SceneMaker = (back: HTMLCanvasElement) => Scene;

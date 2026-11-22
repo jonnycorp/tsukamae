@@ -8,6 +8,10 @@ import type { Capture, CaptureStatus, GameSave, PokemonType } from '../../../typ
 // what the Almanac shows: a dex's collection counted every way the records allow, from the captures and, for where
 // each is, your games (shownPlace)
 
+// the first games came out in 1996: a catch dated before then, or after this year, is a slip (the red pen's to fix),
+// kept off the months, whose run would otherwise stretch over every month between, centuries of them for a 9026
+const FIRST_GAMES = 1996;
+
 export interface StatusCounts {
   total: number;
   marked: number;
@@ -46,10 +50,11 @@ export interface AlmanacData {
   ots: Tally[];
   // sealed mons by where they are: home, champions, game:<save id>, or game where the save is unanswered
   places: Tally[];
-  // sealed mons' catches by month, oldest first, every month from the first catch to the last (empty ones too); and
-  // the sealed ones with no whole date
+  // sealed mons' catches by month, oldest first, every month from the first catch to the last (empty ones too); the
+  // sealed ones with no whole date; and those whose date can't be right, left off the months (FIRST_GAMES)
   months: MonthCount[];
   undated: number;
+  impossible: number;
   specials: {
     favorites: number;
     partners: number;
@@ -106,6 +111,8 @@ export function almanacData (captures: Capture[], saves: GameSave[]): AlmanacDat
   const legendary = emptyCounts();
   const mythical = emptyCounts();
   let undated = 0;
+  let impossible = 0;
+  const thisYear = new Date().getFullYear();
   let favorites = 0;
   let partners = 0;
   let nicknamed = 0;
@@ -156,7 +163,12 @@ export function almanacData (captures: Capture[], saves: GameSave[]): AlmanacDat
       }
       // a whole date only: a bare year's month would run the month loop below for ever
       if (capture.catch_date && DATE.test(capture.catch_date)) {
-        tally(months, capture.catch_date.slice(0, 7));
+        const year = Number(capture.catch_date.slice(0, 4));
+        if (year >= FIRST_GAMES && year <= thisYear) {
+          tally(months, capture.catch_date.slice(0, 7));
+        } else {
+          impossible++;
+        }
         byDate.push(capture);
       } else {
         undated++;
@@ -200,6 +212,7 @@ export function almanacData (captures: Capture[], saves: GameSave[]): AlmanacDat
     places: sorted(places),
     months: monthRun,
     undated,
+    impossible,
     specials: { favorites, partners, nicknamed, gifts, trained, legendary, mythical },
     milestones,
     recent: byDate.slice(-RECENT).reverse(),

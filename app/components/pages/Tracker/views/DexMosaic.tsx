@@ -4,7 +4,7 @@ import { faPlay } from '@fortawesome/free-solid-svg-icons';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { BALL_NAMES, ORIGIN_GAME_NAMES } from '../../../../utils/capture-fields';
-import { CatchOrder, mosaicState } from './CatchOrder';
+import { CatchOrder, mosaicState, mosaicWalls } from './CatchOrder';
 import { GalaxyPanel } from './GalaxyPanel';
 import { Scene, sceneScroll, useScrollBack } from '../Scene';
 import { ScopeSwitch, useViewScope, useScopedRecords } from './ViewScope';
@@ -12,25 +12,18 @@ import { gameColor } from '../../../../utils/game-colors';
 import { iconClass } from '../../../../utils/pokemon';
 import { localizeBall, localizeOriginGame } from '../../../../i18n/names';
 import { useCalm, useKeys } from './views-kit';
-import { useDexContext } from '../../../../hooks/contexts/use-dex-context';
 import { useViewText } from './views-i18n';
 import { useLocalStorage } from '../../../../hooks/use-local-storage';
 
 import type { CSSProperties } from 'react';
+import type { MosaicWall } from './CatchOrder';
 import type { ViewProps } from './views-kit';
 import type { ViewRecord } from './ViewScope';
-import type { PersonalDex } from '../../../../utils/local-data';
 
 // the wall's zooms (Ctrl+wheel, Ctrl+= and Ctrl+-, Ctrl+0 back to 1), a tile 44px at 1; a wheel's travel to a step, as
 // the dex's
 const ZOOMS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.15, 1.3, 1.5, 1.75, 2];
 const WHEEL_STEP = 50;
-
-// a dex's wall: a band per generation shown
-export interface MosaicWall {
-  dex: PersonalDex;
-  bands: [generation: number, records: ViewRecord[]][];
-}
 
 const stepZoom = (zoom: number, by: number) => {
   const at = ZOOMS.reduce((best, z, i) => (Math.abs(z - zoom) < Math.abs(ZOOMS[best] - zoom) ? i : best), 0);
@@ -39,7 +32,6 @@ const stepZoom = (zoom: number, by: number) => {
 
 // the tiles, apart from the panel, so a pick re-renders none of them
 const Wall = memo(function Wall ({ walls, labelled }: { walls: MosaicWall[]; labelled: boolean }) {
-  const { activeDexView } = useDexContext();
   const { lt } = useViewText();
   return (
     <div className="lm-wall">
@@ -56,7 +48,7 @@ const Wall = memo(function Wall ({ walls, labelled }: { walls: MosaicWall[]; lab
                   <small>{have}/{records.length}</small>
                 </h3>
                 <div className="lm-tiles">
-                  {records.map(({ key, capture }) => {
+                  {records.map(({ key, capture, view }) => {
                     const state = mosaicState(capture);
                     return (
                       <button
@@ -66,7 +58,7 @@ const Wall = memo(function Wall ({ walls, labelled }: { walls: MosaicWall[]; lab
                         style={state === 'caught' && capture.origin_game ? { '--ground': gameColor(capture.origin_game) } as CSSProperties : undefined}
                         type="button"
                       >
-                        <span className="scene-mon"><i className={iconClass(capture.pokemon, activeDexView!)} /></span>
+                        <span className="scene-mon"><i className={iconClass(capture.pokemon, view)} /></span>
                       </button>
                     );
                   })}
@@ -101,19 +93,7 @@ export function DexMosaic ({ back, onClose, onFilter, onLocate }: ViewProps) {
   const generations = useMemo(() => [...new Set(records.map(({ capture }) => capture.pokemon.generation))].sort((a, b) => a - b), [records]);
   const shown = useMemo(() => records.filter(({ capture }) => gens.length === 0 || gens.includes(capture.pokemon.generation)), [records, gens]);
 
-  const walls = useMemo(() => {
-    const byDex = new Map<string, MosaicWall & { groups: Map<number, ViewRecord[]> }>();
-    for (const record of shown) {
-      let wall = byDex.get(record.dex.id);
-      if (!wall) {
-        wall = { dex: record.dex, bands: [], groups: new Map() };
-        byDex.set(record.dex.id, wall);
-      }
-      const generation = record.capture.pokemon.generation;
-      wall.groups.set(generation, [...(wall.groups.get(generation) ?? []), record]);
-    }
-    return [...byDex.values()].map(({ dex, groups }) => ({ dex, bands: [...groups.entries()].sort((a, b) => a[0] - b[0]) }));
-  }, [shown]);
+  const walls = useMemo(() => mosaicWalls(shown), [shown]);
   const byKey = useMemo(() => new Map(shown.map((record) => [record.key, record])), [shown]);
 
   const caught = useMemo(() => shown.filter(({ capture }) => mosaicState(capture) === 'caught'), [shown]);

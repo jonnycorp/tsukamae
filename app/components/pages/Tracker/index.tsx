@@ -572,7 +572,7 @@ function TrackerInner () {
 
   return (
     <div className="tracker-container" onAnimationStart={syncLoops} ref={containerRef}>
-      <ThemeScene />
+      <ThemeScene covered={showTimeline || showAlmanac || review !== null || scene !== null} />
       <div className="tracker" ref={areaRef}>
         <div
           className="dex-wrapper"

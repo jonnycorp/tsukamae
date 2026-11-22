@@ -57,12 +57,16 @@ function DayNote ({ value, onSave }: { value: string; onSave: (note: string) => 
         }}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
-          // Enter keeps it and Escape puts it back, either leaving the field; typing here is the note's, not the scene's
+          // Enter keeps it and Escape puts it back, either leaving the field; typing here is the note's, not the scene's,
+          // and an IME's Enter and Escape its conversion's
+          e.stopPropagation();
+          if (e.nativeEvent.isComposing) {
+            return;
+          }
           cancelled.current = e.key === 'Escape';
           if (e.key === 'Enter' || e.key === 'Escape') {
             e.currentTarget.blur();
           }
-          e.stopPropagation();
         }}
         placeholder={lt('days.note')}
         value={draft ?? value}
@@ -196,7 +200,7 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: ViewProps) {
                     style={{ '--i': Math.min(i, 30) } as CSSProperties}
                     type="button"
                   >
-                    <SceneMon pokemon={record.capture.pokemon} />
+                    <SceneMon pokemon={record.capture.pokemon} view={record.view} />
                   </button>
                 ))}
               </div>

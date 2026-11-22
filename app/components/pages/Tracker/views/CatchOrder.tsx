@@ -10,13 +10,13 @@ import { gameColor } from '../../../../utils/game-colors';
 import { iconClass } from '../../../../utils/pokemon';
 import { localizeBall, localizeOriginGame } from '../../../../i18n/names';
 import { spriteCuts, spriteShadow, spriteSheet } from './sprite-atlas';
-import { useDexContext } from '../../../../hooks/contexts/use-dex-context';
 import { useViewText } from './views-i18n';
 import { useThemeContext } from '../../../../hooks/contexts/use-local-storage-context';
 
 import type { CSSProperties, PointerEvent } from 'react';
 import type { Capture } from '../../../../types';
 import type { ViewProps } from './views-kit';
+import type { PersonalDex } from '../../../../utils/local-data';
 import type { ViewRecord } from './ViewScope';
 import type { SpriteCut } from './sprite-atlas';
 
@@ -37,6 +37,33 @@ const STAGE_MS = 700;
 export type MosaicState = 'caught' | 'missing' | 'unobtainable';
 
 export const mosaicState = (capture: Capture): MosaicState => (!capture.captured ? 'missing' : capture.status === 'unobtainable' ? 'unobtainable' : 'caught');
+
+// a dex's wall: a band per generation shown
+export interface MosaicWall {
+  dex: PersonalDex;
+  bands: [generation: number, records: ViewRecord[]][];
+}
+
+// the wall's walls, a dex's each as it first comes, and in each a band per generation in turn, its mons in dex order
+// (a regional dex mixes generations through its order)
+export function mosaicWalls (records: ViewRecord[]): MosaicWall[] {
+  const byDex = new Map<string, { dex: PersonalDex; groups: Map<number, ViewRecord[]> }>();
+  for (const record of records) {
+    let wall = byDex.get(record.dex.id);
+    if (!wall) {
+      wall = { dex: record.dex, groups: new Map() };
+      byDex.set(record.dex.id, wall);
+    }
+    const generation = record.capture.pokemon.generation;
+    const band = wall.groups.get(generation);
+    if (band) {
+      band.push(record);
+    } else {
+      wall.groups.set(generation, [record]);
+    }
+  }
+  return [...byDex.values()].map(({ dex, groups }) => ({ dex, bands: [...groups.entries()].sort((a, b) => a[0] - b[0]) }));
+}
 
 interface Cell {
   record: ViewRecord;
@@ -78,7 +105,6 @@ interface Props {
 export function CatchOrder ({ records, scale, calm, onBack, onLocate, onFilter }: Props) {
   const { lt, locale } = useViewText();
   const { theme } = useThemeContext();
-  const { activeDexView } = useDexContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cells = useRef<{ list: Cell[]; labels: { x: number; y: number; generation: number }[]; size: number; w: number; h: number; from: unknown }>({ list: [], labels: [], size: 0, w: 0, h: 0, from: null });
   const cursor = useRef(calm ? Infinity : 0);
@@ -100,27 +126,15 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate, onFilter }
   const duration = Math.min(MAX_MS, Math.max(MIN_MS, total * STEP_MS));
   const picked = focus !== null ? ordered[focus] ?? null : null;
 
-  // each mon's sprite cut, measured once for the lot
+  // each mon's sprite cut, as its dex draws it, measured once for the lot
   const cutOf = useMemo(() => {
-    const classes = records.map(({ capture }) => iconClass(capture.pokemon, activeDexView!));
+    const classes = records.map(({ capture, view }) => iconClass(capture.pokemon, view));
     const found = spriteCuts(classes);
     return new Map(records.map((record, i) => [record.key, found.get(classes[i]) ?? null]));
-  }, [records, activeDexView]);
+  }, [records]);
 
   // the bands as the wall has them: a dex's generations in turn
-  const bands = useMemo(() => {
-    const groups: ViewRecord[][] = [];
-    let last = '';
-    for (const record of records) {
-      const band = `${record.dex.id}:${record.capture.pokemon.generation}`;
-      if (band !== last) {
-        groups.push([]);
-        last = band;
-      }
-      groups[groups.length - 1].push(record);
-    }
-    return groups;
-  }, [records]);
+  const bands = useMemo(() => mosaicWalls(records).flatMap((wall) => wall.bands.map(([, band]) => band)), [records]);
 
   // the colours the canvas draws, as this theme has them
   const colors = useMemo(() => {

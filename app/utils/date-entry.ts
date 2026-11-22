@@ -255,6 +255,10 @@ export function editDate (text: string, start: number, end: number, inputType: s
   }
 }
 
+// the first games came out in 1996, and no mon's caught in a year still to come: a year outside them is a slip of the
+// keys (2062 for 2026), which the box doesn't take
+const FIRST_GAMES = 1996;
+
 // a whole, real date as stored (2024-02-30 isn't one), or null
 export function dateIso (text: string): string | null {
   const match = /^(\d{4})\/(\d{2})\/(\d{2})$/.exec(text);
@@ -262,6 +266,9 @@ export function dateIso (text: string): string | null {
     return null;
   }
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  if (year < FIRST_GAMES || year > new Date().getFullYear()) {
+    return null;
+  }
   const date = new Date(Date.UTC(year, month - 1, day));
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
     return null;

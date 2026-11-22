@@ -92,6 +92,12 @@
   gap: 2px;
 }
 
+// the cursor's suggestion or mon, brought into sight as it moves, clear of the box stuck over the top
+.lf-suggest button,
+.lf-mon {
+  scroll-margin: 96px 0 16px;
+}
+
 .lf-suggest {
   display: flex;
   flex-direction: column;

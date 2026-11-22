@@ -383,13 +383,26 @@ $lm-ease: cubic-bezier(.2, .9, .3, 1);
   backdrop-filter: blur(6px);
 }
 
-// a narrow window: the stage gives its room to the wall
+// a narrow window: the stage gives its room to the wall, the run's art going with it; a pick's record stands over the
+// wall at the right instead, as the wall's own pick does
 @media (width < 900px) {
   .lco-main {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .lco-stage {
+    position: fixed;
+    top: 110px;
+    right: 26px;
+    z-index: 3;
+    padding: 0;
+
+    .lg-panel {
+      width: 300px;
+    }
+  }
+
+  .lco-show {
     display: none;
   }
 }

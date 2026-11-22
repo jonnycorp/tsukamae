@@ -100,8 +100,10 @@ function stamp (): HTMLCanvasElement {
 }
 
 // the felt: a deep warm black, its nap a fine noise, lit by the window at the top left
+const FELT = '#1b1917';
+
 function felt (ctx: CanvasRenderingContext2D, w: number, h: number) {
-  ctx.fillStyle = '#1b1917';
+  ctx.fillStyle = FELT;
   ctx.fillRect(0, 0, w, h);
   const [nap, nctx] = canvas(256);
   const n = fbm(256, 64, 2, 3);
@@ -133,6 +135,7 @@ export const shodoScene: SceneMaker = (back) => {
   let scale = 1;
 
   return {
+    ground: FELT,
     resize (width, height, dpr) {
       w = width;
       h = height;

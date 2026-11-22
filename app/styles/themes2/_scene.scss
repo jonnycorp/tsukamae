@@ -9,14 +9,23 @@
   pointer-events: none;
 }
 
-// a scene's theme lets it show: the tracker over it, the page it scrolled on cleared
+// a scene's theme lets it show, the page the dex scrolled on cleared; the tracker, after the canvas, paints over it
+// without a stacking context of its own, which would keep the card and the menus it opens under the nav
 :root:is([data-theme='midnight'], [data-theme='ink'], [data-theme='wisteria'], [data-theme='yozakura'], [data-theme='onsen']) {
-  .tracker {
-    z-index: 1;
-  }
-
   .tracker .dex-wrapper,
   .tracker .dex-wrapper .dex-column {
     background: transparent;
+  }
+
+  // the list, a search's results and what an emptied view says stand in the scene as the boxes do, each on its theme's
+  // material (in the theme's own file, with its boxes'); the list and the words with room round them, the words' as
+  // wide as they take
+  .tracker :is(.ledger, .search-results-empty) {
+    padding: 16px 20px 20px;
+  }
+
+  .tracker .search-results-empty {
+    width: fit-content;
+    max-width: 100%;
   }
 }

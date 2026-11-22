@@ -389,7 +389,8 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   }, [capture, patchRecords]);
 
   // a status for the mon: marks one that has none, else changes it (a sealed one keeps its own). By key, Unobtainable
-  // only marks: on a record it would wipe what's been filled in
+  // only marks: on a record it would wipe what's been filled in. Into Unobtainable or out of it, the record starts over,
+  // and what's been confirmed of it with it (as useMark and usePatchRecords keep it)
   const setStatus = useCallback((status: CaptureStatus, byKey = false) => {
     if (!capture || capture.sealed) {
       return;
@@ -398,23 +399,31 @@ export function Review ({ queue: opened, start, onClose }: Props) {
       mark(capture.pokemon.id, status);
     } else if (capture.status !== status && !(byKey && status === 'unobtainable')) {
       patch({ status });
+    } else {
+      return;
     }
-  }, [capture, mark, patch]);
+    if ((status === 'unobtainable') !== (capture.status === 'unobtainable')) {
+      touch(capture.pokemon.id, null);
+    }
+  }, [capture, mark, patch, touch]);
+
+  // Enter on the Nickname box (a button: review-fields' toggle), and on a typed field, set in the body below once
+  // `change` is
+  const nicknameKeyRef = useRef(() => {});
+  const confirmTypedRef = useRef<(field: string) => void>(() => {});
 
   // ← → between mons (anywhere with Ctrl or Alt; bare, out of what's typed into), or Q and E; 1 2 3 mark, S moves a
-  // sealed mon; Enter starts filling in from the top, and in a field (or on a closed menu's button) goes on to the next to
-  // fill; Ctrl+Enter seals (with nothing to seal, goes on), from an open menu too, which it closes; Esc leaves a field,
-  // then the review. An open menu keeps its other keys, an IME its own while it
-  // composes
+  // sealed mon; Enter starts filling in from the top, and in a field (or on a closed menu's button, or the Nickname box)
+  // goes on to the next to fill; Ctrl+Enter seals (with nothing to seal, goes on), from an open menu too, which it
+  // closes; Esc leaves a field, then the review. An open menu keeps its other keys, an IME its own while it composes
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) {
         return;
       }
       const target = e.target instanceof Element ? e.target : null;
-      // a checkbox (the Nickname box) takes no text, so the keys stay the review's
-      const typing = target?.closest('input:not([type="checkbox"]), textarea, [contenteditable]') ?? null;
-      const field = typing ?? target?.closest('.dropdown-trigger, input[type="checkbox"]') ?? null;
+      const typing = target?.closest('input, textarea, [contenteditable]') ?? null;
+      const field = typing ?? target?.closest('.dropdown-trigger, .rv-toggle') ?? null;
       const bare = !e.ctrlKey && !e.metaKey && !e.altKey;
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
@@ -444,10 +453,17 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         }
       } else if (e.key === 'Enter' && bare && !e.shiftKey && !e.repeat) {
         // answered: committed as it's left, then on; nothing focused: from the top. Another button keeps its Enter
-        if (field instanceof HTMLElement) {
+        if (field instanceof HTMLElement && field.classList.contains('rv-toggle')) {
           e.preventDefault();
+          nicknameKeyRef.current();
+        } else if (field instanceof HTMLElement) {
+          e.preventDefault();
+          const after = field.closest<HTMLElement>('[data-field]')?.dataset.field ?? null;
+          if (typing && after) {
+            confirmTypedRef.current(after);
+          }
           field.blur();
-          setFlow({ after: field.closest<HTMLElement>('[data-field]')?.dataset.field ?? null, from: field.id || null });
+          setFlow({ after, from: field.id || null });
         } else if (!(target instanceof HTMLButtonElement)) {
           e.preventDefault();
           setFlow({ after: null });
@@ -552,6 +568,27 @@ export function Review ({ queue: opened, start, onClose }: Props) {
     if (MENU_KINDS.has(field.kind) && waited && !pointedRef.current) {
       setFlow({ after: field.id, from: `review-${field.id}` });
     }
+  };
+
+  // Enter in a typed field (an OT, an ID No.) still holding the value it was given: nothing to commit, so it's confirmed
+  // as it stands, as a menu's Enter on what it's on confirms that
+  confirmTypedRef.current = (id) => {
+    if (capture && toTouch.some((field) => field.id === id)) {
+      touch(capture.pokemon.id, [id]);
+    }
+  };
+
+  // Enter on the Nickname box: still to answer, it's taken as it shows, unticked a No, as a menu's Enter takes what it's
+  // on; answered, it's ticked or unticked as a press does. Either way on, to the name where it's ticked and has none
+  nicknameKeyRef.current = () => {
+    const field = FIELD.get('nickname')!;
+    if (!capture?.captured || capture.sealed) {
+      return;
+    }
+    const named = capture.has_nickname === true;
+    const taken = missingIds.has('nickname') ? named : !named;
+    change(field, taken ? { has_nickname: true, nickname: capture.nickname ?? null } : { has_nickname: false, nickname: null });
+    setFlow({ after: 'nickname', from: 'review-nickname' });
   };
 
   // the date plate's recent dates: those given here this run, newest first, then the latest the dex's records

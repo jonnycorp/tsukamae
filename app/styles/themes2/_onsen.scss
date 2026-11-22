@@ -19,6 +19,7 @@
   --w-title: #f4ecdf;
   --w-title-glow: 0 0 14px rgb(255 190 120 / 35%), 0 2px 0 rgb(0 0 0 / 50%);
   --w-panel: rgb(10 14 26 / 42%);
+  --w-sheet: rgb(10 14 26 / 84%);
   --w-panel-shadow: 0 0 0 1px rgb(200 215 240 / 13%), 0 28px 50px -18px rgb(0 0 0 / 70%);
   --w-blur: 6px;
   --w-line: rgb(200 215 240 / 7%);
@@ -27,7 +28,6 @@
   --w-temporary: rgb(255 140 100 / 12%);
   --w-temporary-stripe: rgb(255 140 100 / 8%);
   --w-complete: 0 0 0 1px rgb(255 214 170 / 55%), 0 0 36px rgb(255 180 110 / 26%), 0 28px 50px -18px rgb(0 0 0 / 70%);
-  --line-solid: var(--w-line);
 
   nav,
   .dex-search-bar {

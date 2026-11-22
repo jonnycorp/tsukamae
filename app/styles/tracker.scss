@@ -220,7 +220,11 @@ $seal-chunk-rise: $box-rows * math.div($pokemon-box-size, 1px);
 // a face of the pause's picker, square
 $flip-face-width: $search-height;
 
+// a layer over the dex below it, whose boxes can be layers of their own (a scene theme's glass), so the menus that hang
+// from it (the dex's menu, the filters' panel) stay over them
 .dex-search-bar {
+  position: relative;
+  z-index: 10;
   background-color: var(--paper-raised);
   padding: 12px;
 

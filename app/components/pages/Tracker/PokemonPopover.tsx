@@ -38,8 +38,9 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   const capture = useMemo(() => captures.find((cap) => cap.pokemon.id === selectedPokemon), [captures, selectedPokemon]);
 
   const popoverRef = useRef<HTMLDivElement>(null);
-  // a tile's or a ledger row's click retargets the popover rather than closing it
-  const { closing, dismiss, revive } = useDismissable({ onDismissed: onClose, ref: popoverRef, keepOpenOn: '.pokemon:not(.empty), .ledger-row' });
+  // a tile's or a ledger row's click retargets the popover rather than closing it, and a pick in the move menu (S, L,
+  // portalled) moves the mon it shows
+  const { closing, dismiss, revive } = useDismissable({ onDismissed: onClose, ref: popoverRef, keepOpenOn: '.pokemon:not(.empty), .ledger-row, .move-menu' });
 
   useEffect(() => revive(), [selectedPokemon, revive]);
 

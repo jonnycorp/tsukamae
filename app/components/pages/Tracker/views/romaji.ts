@@ -31,6 +31,9 @@ for (const [spelling, kana] of [['sha', 'シャ'], ['shu', 'シュ'], ['sho', '�
 
 const LONGEST = 3;
 
+// every spelling's start short of the whole (k, ky, sh, ch, ts): one still being typed
+const STARTS = new Set(Object.keys(BASE).flatMap((spelling) => Array.from({ length: spelling.length - 1 }, (_, n) => spelling.slice(0, n + 1))));
+
 // the katakana of a romaji string, or null where it doesn't read as romaji (a digit, a kana already)
 export function romajiToKana (input: string): string | null {
   const text = input.toLowerCase();
@@ -67,11 +70,8 @@ export function romajiToKana (input: string): string | null {
         }
       }
       if (!matched) {
-        // a consonant still being typed (pik): kept as is, so the kana so far still matches
-        if (i === text.length - 1) {
-          return out;
-        }
-        return null;
+        // a spelling still being typed at the end (pik, fush, pikach): left off, so the kana so far still matches
+        return STARTS.has(text.slice(i)) ? out : null;
       }
     }
   }

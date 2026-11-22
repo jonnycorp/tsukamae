@@ -43,6 +43,9 @@ const STOP_MS = 160;
 const PLOP_LANDS_MS = 300;
 // the first month's year is marked under it unless it falls after this, too close to the next January's
 const FIRST_YEAR_BY = 9;
+// the most years marked under the months before only every second's, then every fifth's, are: a year's name is wider
+// than a long run's twelve bars
+const YEARS_MARKED = 14;
 // a list longer than this takes two of the records' columns, its rows in two columns of their own
 const LONG_LIST = 14;
 // English's 1st, 2nd, 3rd and the rest; Japanese has the one form
@@ -339,7 +342,9 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
   let card = 0;
 
   const placeLabel = (key: string) => placeLabelOf(placeFromKey(key), saves, locale);
-  const maxMonth = Math.max(1, ...data.months.map((entry) => entry.count));
+  const maxMonth = data.months.reduce((most, entry) => Math.max(most, entry.count), 1);
+  const years = data.months.length / 12;
+  const yearsLabelled = years > YEARS_MARKED * 2 ? 5 : years > YEARS_MARKED ? 2 : 1;
 
   const cards: ReactNode[] = [];
 
@@ -374,6 +379,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
   cards.push(
     <Card className="almanac-gens" index={gens} key="gens" title={t('almanac.generations')}>
       <div className="almanac-rows">
+        {data.generations.length === 0 && <p className="almanac-empty">{t('almanac.empty')}</p>}
         {data.generations.map((gen, i) => {
           const at = counted(gens) + wave(i, data.generations.length);
           return (
@@ -393,6 +399,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
   cards.push(
     <Card className="almanac-types-card" index={types} key="types" title={t('almanac.types')}>
       <div className="almanac-types">
+        {data.types.length === 0 && <p className="almanac-empty">{t('almanac.empty')}</p>}
         {data.types.map((entry, i) => {
           const at = counted(types) + wave(i, data.types.length);
           const color = `var(--type-${entry.type})`;
@@ -552,9 +559,9 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
         {data.months.length > 0
           ? (
             <>
-              <div className="almanac-months">
+              <div className="almanac-months" style={{ '--n': data.months.length } as CSSProperties}>
                 {data.months.map((entry, i) => {
-                  const year = entry.month === 1 || (i === 0 && entry.month <= FIRST_YEAR_BY);
+                  const year = (entry.month === 1 && entry.year % yearsLabelled === 0) || (i === 0 && yearsLabelled === 1 && entry.month <= FIRST_YEAR_BY);
                   const at = counted(activity) + wave(i, data.months.length, MONTH_SPREAD);
                   const busiest = entry === data.busiest;
                   return (
@@ -573,6 +580,7 @@ export function Almanac ({ onClose, onFilter, onLocate }: Props) {
               <p className="almanac-activity-note">
                 {data.busiest && <span>{t('almanac.busiest', { month: monthYear(data.busiest), n: data.busiest.count })}</span>}
                 {data.undated > 0 && <span>{t('almanac.undated', { n: data.undated })}</span>}
+                {data.impossible > 0 && <span>{t('almanac.impossible', { n: data.impossible })}</span>}
               </p>
             </>
           )

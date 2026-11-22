@@ -18,6 +18,10 @@ export const DISPLAY_STORAGE_KEY = 'tileDisplay';
 const MODAL_SHADE = 0.35;
 
 let titleBar = { color: '', symbolColor: '' };
+// what a resize uncovers before the page repaints it: the palette's paper, or the ground of a theme's world while one is
+// drawn behind the dex (ThemeScene)
+let paper = '';
+let sceneGround: string | null = null;
 // the backdrops up; the buttons dim while any is
 let openBackdrops = 0;
 // how much of the backdrop's black is on the buttons: it fades in and out with the backdrop
@@ -89,8 +93,13 @@ function setTokens (name: string) {
   root.dataset.mode = side;
   root.dataset.pageChange = seed.pageChange ?? 'slide';
   titleBar = { color: palette.chrome, symbolColor: palette['on-chrome'] };
-  // what a resize uncovers before the page repaints it
-  window.tracker?.setBackground(palette.paper);
+  paper = palette.paper;
+  window.tracker?.setBackground(sceneGround ?? paper);
+}
+
+export function setSceneGround (color: string | null) {
+  sceneGround = color;
+  window.tracker?.setBackground(sceneGround ?? paper);
 }
 
 // the browser repaints the buttons at once, while the page takes a frame or more to restyle for a new theme: sent with

@@ -450,7 +450,7 @@ export function freeCaptures (dex: PersonalDex): Capture[] {
 // a HOME dex that keeps records (not a checklist, whose Temporary is Elsewhere) has no Temporary: an open record
 // there already is one. A stored Temporary, an old mark, reads as caught, and nothing offers it
 export const noTemporary = (dex: Pick<PersonalDex, 'checklist' | 'catalogKey'>) => !dex.checklist && getCatalogDex(dex.catalogKey).game.id === 'home';
-const statusIn = (dex: Pick<PersonalDex, 'checklist' | 'catalogKey'>, status: CaptureStatus | null | undefined) =>
+const statusIn = <S extends CaptureStatus | null | undefined>(dex: Pick<PersonalDex, 'checklist' | 'catalogKey'>, status: S): S | 'caught' =>
   (status === 'temporary' && noTemporary(dex) ? 'caught' : status);
 
 export function progressToCaptures (dex: PersonalDex): Capture[] {
@@ -499,9 +499,10 @@ export function dexCounts (dex: PersonalDex): { marked: number; temporary: numbe
       continue;
     }
     marked++;
-    if (entry.status === 'temporary') {
+    const status = statusIn(dex, entry.status);
+    if (status === 'temporary') {
       temporary++;
-    } else if (entry.status === 'caught') {
+    } else if (status === 'caught') {
       caught++;
     }
   }
@@ -590,9 +591,11 @@ export function writeCapture (dexId: string, payload: UpdateCapturePayload): voi
       return [];
     }
 
-    // unobtainable wiped the record, so leaving it starts over like a new mark
+    // unobtainable wiped the record, so leaving it starts over like a new mark; a record otherwise goes on from its status
+    // as the dex reads it, an old Temporary in a HOME dex that keeps records as the Caught it shows (statusIn), so W can
+    // seal it
     const reviving = existing?.status === 'unobtainable' && changes.status !== undefined && changes.status !== 'unobtainable';
-    const base: ProgressEntry = existing && !reviving ? existing : {
+    const base: ProgressEntry = existing && !reviving ? { ...existing, status: statusIn(dex, existing.status) } : {
       ...newEntryMetadata(dex, state.saves ?? [], dex.free ? (dex.entries ?? []).find((entry) => entry.id === pokemon)?.species ?? 0 : pokemon),
       status: defaultStatus(dex),
       sealed: false,

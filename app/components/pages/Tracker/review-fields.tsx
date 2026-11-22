@@ -5,7 +5,7 @@ import { faArrowDown, faArrowUp, faFileImport, faGenderless, faHeart, faHouse, f
 import { DateInput } from '../../library/DateInput';
 import { DraftInput } from '../../library/DraftInput';
 import { Dropdown } from '../../library/Dropdown';
-import { LANGUAGE_ABBRS, NAME_MAX_FALLBACK, NATURES, ORIGIN_GAME_NAMES, ballOptions, favoriteOptions, formatFieldValue, genderOptions, languageOptions, locationOptions, nameLang, readFavorite, saveLabel } from '../../../utils/capture-fields';
+import { LANGUAGE_ABBRS, NAME_MAX_FALLBACK, NATURES, ORIGIN_GAME_NAMES, ballOptions, favoriteOptions, formatFieldValue, genderOptions, languageOptions, locationOptions, nameLang, readFavorite, saveLabel, stampedSave } from '../../../utils/capture-fields';
 import { MY_GAME_IDS, softFields } from '../../../utils/review-confirm';
 import { CJK } from '../../../utils/game-rules';
 import { NatureHex } from './face-pages';
@@ -436,11 +436,15 @@ export function FieldControl ({ field, capture, saves, homeDex, canVisitChampion
       const current = capture.location === 'game'
         ? `${IN_GAME}${capture.location_save ?? ''}`
         : capture.location === 'home' && free && capture.location_save ? `${IN_DEX}${capture.location_save}` : capture.location ?? '';
+      // In a game, which one not yet given (a new mark in a game's dex): the menu's keys start on the game it came from,
+      // or the first of yours, never on HOME at the menu's head
+      const inGame = capture.location === 'game' && !capture.location_save ? stampedSave(yours, capture) ?? yours[0] : undefined;
       return (
         <>
           {picture}
           <Dropdown
             columns={3}
+            fallback={inGame && `${IN_GAME}${inGame.id}`}
             id={id}
             maxHeight={440}
             menuClassName="rv-menu rv-menu-location rv-grid"

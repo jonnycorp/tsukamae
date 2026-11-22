@@ -6,7 +6,7 @@ import { ALT_KEY } from '../../utils/platform';
 import { Dropdown } from './Dropdown';
 import { ModalShell } from './ModalShell';
 import { LANGUAGES, ORIGIN_GAMES, idDigits, saveLabel } from '../../utils/capture-fields';
-import { idLength, languageAllowed, otMax as otLimit } from '../../utils/game-rules';
+import { idAllowed, idLength, languageAllowed, otMax as otLimit } from '../../utils/game-rules';
 import { gameColor } from '../../utils/game-colors';
 import { setRetired, useRetiredSaves } from '../../utils/retired-saves';
 import { localizeCaptureLanguage, localizeOriginGame } from '../../i18n/names';
@@ -53,7 +53,9 @@ export function SavesModal ({ onRequestClose }: Props) {
   const duplicate = Boolean(draftGame && draftLanguage &&
     saves.some((save) => save.id !== editId && save.game === draftGame && save.language === draftLanguage &&
       (!tid || !save.tid || save.tid === tid)));
-  const canAdd = Boolean(draftGame && draftLanguage && draftOT.trim()) && !duplicate;
+  // a five-digit ID No. (Gen 3 to 6) goes no higher than 65535: one past it could never be written to a mon of the game
+  const tidOutOfRange = Boolean(draftGame && tid) && !idAllowed(draftGame, tid);
+  const canAdd = Boolean(draftGame && draftLanguage && draftOT.trim()) && !duplicate && !tidOutOfRange;
 
   // a game in a language it never came in loses it, and its OT and ID No. are held to its limits
   const handleGameChange = (next: string) => {
@@ -237,6 +239,7 @@ export function SavesModal ({ onRequestClose }: Props) {
               </div>
             </div>
             {duplicate && <p className="saves-warning">{t('saves.duplicate')}</p>}
+            {tidOutOfRange && <p className="saves-warning">{t('saves.tidRange')}</p>}
           </>
         }
 

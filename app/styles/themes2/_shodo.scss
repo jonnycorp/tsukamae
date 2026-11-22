@@ -13,21 +13,19 @@
   --crease: rgb(120 98 66 / 22%);
   --crease-light: rgb(255 255 255 / 55%);
   --wash-ink: var(--sumi);
-  --line-solid: var(--crease);
   // its pages change by one fast stroke along each line of a box, not one per tile (page-brush.ts)
   --page-brush: url('/themes/ink/title.png');
   --page-brush-color: var(--sumi);
   --page-brush-span: line;
 
-  nav {
+  // the bar clear over the felt, which lies only under the tracker; the other pages keep their chrome
+  &:has(.tracker-container) nav {
     background: transparent;
     box-shadow: inset 0 -1px 0 rgb(255 255 255 / 4%);
   }
 
   // the header a long sheet across the felt
   .dex-search-bar {
-    position: relative;
-    z-index: 1;
     margin: 0 10px;
     background: var(--shodo-washi) 0 0 / 512px;
     box-shadow: 0 2px 3px rgb(0 0 0 / 45%), 0 14px 28px -8px rgb(0 0 0 / 55%);
@@ -65,13 +63,20 @@
     }
   }
 
-  // a box: a sheet on the felt
-  .box-container {
+  // a box: a sheet on the felt; the list, a search's results and what an emptied view says each a sheet too, the list's
+  // head the same paper
+  .box-container,
+  .ledger,
+  .search-results {
     background: var(--shodo-washi) 0 0 / 512px;
     box-shadow: 0 1px 2px rgb(0 0 0 / 55%), 0 18px 34px -10px rgb(0 0 0 / 65%);
   }
 
-  .box-container > .tile-grid {
+  .ledger-head {
+    background: var(--shodo-washi) 0 0 / 512px;
+  }
+
+  :is(.box-container, .results-chunk) > .tile-grid {
     border-color: transparent;
 
     > .pokemon {
@@ -104,8 +109,17 @@
       repeating-linear-gradient(45deg, transparent 0 9px, rgb(194 58 34 / 7%) 9px 11px);
   }
 
-  .pokemon.captured.sealed {
+  // a sealed tile clear for its wash where one is drawn under it; the narrow list draws none, so there the tile takes
+  // the wash itself, over its creases
+  :is(.box-container, .results-chunk):has(> .seal-material) .pokemon.captured.sealed {
     background-color: transparent;
+  }
+
+  :is(.box-container, .results-chunk):not(:has(> .seal-material)) > .tile-grid > .pokemon.captured.sealed {
+    background-image:
+      linear-gradient(90deg, var(--crease-light) 1px, transparent 1px),
+      linear-gradient(var(--crease-light) 1px, transparent 1px),
+      linear-gradient(180deg, var(--wash), color-mix(in srgb, var(--wash) 17%, transparent));
   }
 
   // the wash: the ink's colour through the bloom's mask, which lies on one sheet down the display, so no two tiles

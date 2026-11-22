@@ -1,7 +1,7 @@
 import { shaderScene } from './scene';
 import { canvas, rng, toProperty } from './texture';
 
-import type { SceneMaker } from './scene';
+import type { Scene, SceneMaker } from './scene';
 
 // Wisteria's court night: deep violet lacquer, the gold waves of seigaiha laid faintly over it, and bands of gold-leaf
 // cloud (suyari-gasumi) drifting across in two depths, the near ones slower than the far, the leaf catching a light that
@@ -117,14 +117,23 @@ function nashiji (): HTMLCanvasElement {
   return c;
 }
 
+// the gold dust set first, as the seals' and the meter's masks (styles/themes2/_kumo.scss) want it whether or not the
+// night can be drawn: with no WebGL they keep it, over no scene
 export const kumoScene: SceneMaker = (back) => {
-  const scene = shaderScene(back, FRAGMENT);
   const off = toProperty('--kumo-nashiji', nashiji());
+  let scene: Scene | null = null;
+  try {
+    scene = shaderScene(back, FRAGMENT);
+  } catch {
+    // drawn over nothing
+  }
   return {
-    ...scene,
+    resize: (width, height, dpr) => scene?.resize(width, height, dpr),
+    draw: (time) => scene?.draw(time),
+    ready: scene?.ready,
     dispose () {
       off();
-      scene.dispose();
+      scene?.dispose();
     },
   };
 };

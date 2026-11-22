@@ -62,8 +62,9 @@ export function TrainerCards ({ back, onClose, onFilter }: Props) {
   const filter = (facets: TrackerFilters['facets']) => onFilter({ view: 'all', facets }, { scroll: sceneScroll(pageRef.current) });
   const press = (save: GameSave, mons: Capture[]) => {
     const tid = save.tid ? { tid: mons.some((capture) => !capture.tid) ? [save.tid, ''] : [save.tid] } : {};
+    // a HOME entry with no ID No. holds its OT's mons with none, in any language (trainerCards)
     if (save.game === 'home') {
-      filter(save.tid ? { ot: [save.ot], ...tid } : { ot: [save.ot], language: [save.language] });
+      filter({ ot: [save.ot], ...(save.tid ? tid : { tid: [''] }) });
       return;
     }
     filter({ origin_game: [save.game], language: [save.language], ot: [save.ot], ...tid });
@@ -109,9 +110,10 @@ export function TrainerCards ({ back, onClose, onFilter }: Props) {
                   <span className="tc-mons">{other.mons.map((capture) => <Mon capture={capture} key={capture.pokemon.id} />)}</span>
                 </button>
               ))}
-              {data.unknown > 0 && <p className="tc-note">{t('trainers.unknown', { n: data.unknown })}</p>}
             </section>
           )}
+          {data.unknown > 0 && <p className="tc-note">{t('trainers.unknown', { n: data.unknown })}</p>}
+          {data.cards.length === 0 && data.others.length === 0 && data.unknown === 0 && <p className="tc-note">{t('trainers.empty')}</p>}
         </div>
       )}
     </Scene>

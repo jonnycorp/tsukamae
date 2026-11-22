@@ -730,12 +730,13 @@ $tally-count: 15px;
 }
 
 // catches by month: a bar each risen by the entrance's --p in a wave from the first, the busiest in the accent's
-// stripes with its count over it, the years marked under their Januaries
+// stripes with its count over it, the years marked under their Januaries. However long the run (--n months), it fits
+// the card: the gaps narrow with the bars, never more than a third of a bar's room
 .almanac-activity {
   .almanac-months {
     display: flex;
     align-items: flex-end;
-    gap: min(2px, .4%);
+    gap: min(2px, .4%, calc(100% / var(--n, 1) / 3));
     height: 190px;
     padding-top: 30px;
     padding-bottom: 20px;
@@ -748,7 +749,7 @@ $tally-count: 15px;
     flex: 1 1 0;
     align-items: flex-end;
     justify-content: center;
-    min-width: 1px;
+    min-width: 0;
     height: 100%;
 
     &.year::after {

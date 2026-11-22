@@ -2,23 +2,26 @@ import classNames from 'classnames';
 import { useMemo } from 'react';
 
 import { everyDex } from '../../../../utils/copies';
+import { toDexView } from '../../../../utils/local-data';
 import { useDexContext } from '../../../../hooks/contexts/use-dex-context';
 import { useViewText } from './views-i18n';
 import { useLocalStorage } from '../../../../hooks/use-local-storage';
 import { useTrackerState } from '../use-tracker';
 
-import type { Capture } from '../../../../types';
+import type { Capture, Dex } from '../../../../types';
 import type { PersonalDex } from '../../../../utils/local-data';
 
 // what a view reads: the open dex alone, or every dex you have
 export type ViewScope = 'dex' | 'all';
 
 // a mon in one of your dexes: its key unique across them all (a mon's id is its catalog's, so two dexes share them),
-// and whether it's in the open dex, the only one the dex can go to
+// its dex as the sprites draw it (shiny or not, its games' forms), and whether it's in the open dex, the only one the
+// dex can go to
 export interface ViewRecord {
   key: string;
   capture: Capture;
   dex: PersonalDex;
+  view: Dex;
   here: boolean;
 }
 
@@ -31,16 +34,15 @@ export function useViewScope (sketch: string): [ViewScope, (scope: ViewScope) =>
 // the records in a scope: the open dex's as the tracker holds them, every other's read from its progress
 export function useScopedRecords (scope: ViewScope): ViewRecord[] {
   const { captures } = useTrackerState();
-  const { dexes, activeDex } = useDexContext();
+  const { dexes, activeDex, activeDexView } = useDexContext();
   return useMemo(() => {
     const all = scope === 'all' ? everyDex(dexes ?? [], activeDex!.id, captures) : [{ dex: activeDex!, captures }];
-    return all.flatMap(({ dex, captures: held }) => held.map((capture) => ({
-      key: `${dex.id}:${capture.pokemon.id}`,
-      capture,
-      dex,
-      here: dex.id === activeDex!.id,
-    })));
-  }, [scope, dexes, activeDex, captures]);
+    return all.flatMap(({ dex, captures: held }) => {
+      const here = dex.id === activeDex!.id;
+      const view = here ? activeDexView! : toDexView(dex);
+      return held.map((capture) => ({ key: `${dex.id}:${capture.pokemon.id}`, capture, dex, view, here }));
+    });
+  }, [scope, dexes, activeDex, activeDexView, captures]);
 }
 
 // the switch between the two, in a view's header

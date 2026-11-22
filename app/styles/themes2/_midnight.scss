@@ -15,7 +15,6 @@
   --glass-edge: rgb(255 220 250 / 14%);
   --glass-line: rgb(255 220 250 / 7%);
   --line-neon: var(--neon-pink);
-  --line-solid: rgb(46 34 78);
 
   nav {
     background: rgb(8 3 26 / 55%);
@@ -92,16 +91,39 @@
     filter: drop-shadow(0 0 10px rgb(255 91 214 / 35%)) drop-shadow(0 2px 0 rgb(40 8 60 / 80%));
   }
 
-  // the pane: smoked glass, the sky blurred through it, lit along its top edge, standing off the floor in a shadow
-  .box-container {
+  // the pane: smoked glass, the sky blurred through it, lit along its top edge, standing off the floor in a shadow; a
+  // search's results and what an emptied view says panes of it too
+  .box-container,
+  .search-results {
     background: var(--glass);
     box-shadow: 0 30px 60px -20px rgb(0 0 0 / 70%);
     backdrop-filter: blur(14px) saturate(1.35);
   }
 
+  // the list a pane of the same glass, smoked deeper in place of the blur, too much to keep drawing down a pane as long
+  // as the whole dex
+  .ledger {
+    background: rgb(16 8 38 / 88%);
+    box-shadow: 0 30px 60px -20px rgb(0 0 0 / 70%);
+  }
+
+  .ledger,
+  .search-results-empty {
+    border: 1px solid var(--glass-edge);
+  }
+
   .box-container > .tile-grid {
     border: 1px solid var(--glass-edge);
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+
+    > .pokemon {
+      border-color: var(--glass-line);
+    }
+  }
+
+  // a search's results one pane, framed once round them all (tracker.scss)
+  .results-chunk > .tile-grid {
+    border-color: var(--glass-edge);
 
     > .pokemon {
       border-color: var(--glass-line);
@@ -136,7 +158,8 @@
     background-image: repeating-linear-gradient(45deg, transparent 0 8px, rgb(60 220 230 / 7%) 8px 16px);
   }
 
-  .pokemon.captured.sealed {
+  // a sealed tile's wash gives way to its material where one is drawn under it; the narrow list draws none, and keeps it
+  :is(.box-container, .results-chunk):has(> .seal-material) .pokemon.captured.sealed {
     background-image: none;
   }
 

@@ -60,7 +60,7 @@ const BatchTable = memo(function BatchTable ({ batch, cursor, ditto, onCell, onO
         return (
           <tr className={classNames({ ready: row.left === 0, at: cursor?.row === row.record.key })} key={row.record.key}>
             <th onDoubleClick={() => onOpen(row)} scope="row" title={lt('sheet.open')}>
-              <SceneMon pokemon={row.record.capture.pokemon} />
+              <SceneMon pokemon={row.record.capture.pokemon} view={row.record.view} />
               <span>{displayName(row.record.capture.pokemon.name, row.record.capture.pokemon.name_ja, locale)}</span>
               <small>{row.left === 0 ? lt('sheet.ready') : row.left}</small>
             </th>
@@ -156,7 +156,7 @@ export function ReviewSheet ({ back, onClose, onReview }: ViewProps) {
   const open = useCallback((target: Row) => {
     const batch = batches.find((entry) => entry.rows.includes(target))!;
     const queue = batch.rows.map((entry) => entry.record.capture.pokemon.id);
-    onReview(queue, queue.indexOf(target.record.capture.pokemon.id));
+    onReview(queue, target.record.capture.pokemon.id);
   }, [batches, onReview]);
 
   const confirm = () => {

@@ -166,7 +166,7 @@ export function NameQuiz ({ onClose }: ViewProps) {
       pick(question.choices[n - 1]);
     } else if (answer && (e.key === ' ' || e.key === 'Enter')) {
       grade(suggested);
-    } else if (answer && right && n >= 1 && n <= 4) {
+    } else if (answer && right && n >= 2 && n <= 4) {
       grade(n as Grade);
     } else {
       return;
@@ -270,7 +270,7 @@ export function NameQuiz ({ onClose }: ViewProps) {
             ))}
             <label className="lq-per-day">
               {lt('quiz.perDay')}
-              <input max={100} min={0} onChange={(e) => setPerDay(Math.max(0, Number(e.target.value) || 0))} onKeyDown={(e) => e.stopPropagation()} type="number" value={perDay} />
+              <input max={100} min={0} onChange={(e) => setPerDay(Math.max(0, Number(e.target.value) || 0))} type="number" value={perDay} />
             </label>
           </footer>
         </div>

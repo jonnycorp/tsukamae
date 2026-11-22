@@ -84,11 +84,15 @@ function ViewDeck ({ checklist, onClose, onOpen }: Pick<Props, 'checklist' | 'on
   );
 }
 
+// a view as it was left for a filter's layer, and whether it came from the deck, which coming back to it (a remount)
+// would otherwise forget
+type HostView = SceneView & { deck?: boolean };
+
 // the deck, or the view it opened; a view closed goes back to the deck it came from, or to the dex when its own key
 // opened it there; the deck closed goes back to the dex
 export function ViewsHost ({ scene, checklist, back, onOpen, onClose, onFilter, onLocate, onReview, onSpot }: Props) {
   const sketch = viewSketch(scene);
-  const [viaDeck, setViaDeck] = useState(!sketch);
+  const [viaDeck, setViaDeck] = useState(!sketch || Boolean((back as HostView | null)?.deck));
   if (!sketch && !viaDeck) {
     setViaDeck(true);
   }
@@ -106,7 +110,10 @@ export function ViewsHost ({ scene, checklist, back, onOpen, onClose, onFilter, 
         }
         onOpen('views');
       }}
-      onFilter={(filters, view) => onFilter(filters, view, scene)}
+      onFilter={(filters, view) => {
+        const left: HostView = viaDeck ? { ...view, deck: true } : view;
+        onFilter(filters, left, scene);
+      }}
       onLocate={onLocate}
       onReview={onReview}
       onSpot={onSpot}

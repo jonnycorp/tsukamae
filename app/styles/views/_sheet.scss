@@ -203,10 +203,12 @@ $ls-doubt: oklch(.66 .17 28);
     }
   }
 
+  // the cursor's cell, brought into sight as it moves, clear of the head stuck over the top
   td {
     max-width: 150px;
     padding: 6px 10px;
     overflow: hidden;
+    scroll-margin: 120px 0 24px;
     border-radius: 6px;
     text-overflow: ellipsis;
     white-space: nowrap;

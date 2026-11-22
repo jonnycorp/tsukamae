@@ -570,9 +570,13 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: ViewProps) {
     e.preventDefault();
   });
 
+  // calm (still mode, reduced motion) plays no replay, as Catch Order doesn't; one under way still pauses
   const toggle = () => {
     if (playing) {
       setPlaying(false);
+      return;
+    }
+    if (calm) {
       return;
     }
     setFocus(null);
@@ -672,7 +676,7 @@ export function BallGalaxy ({ back, onClose, onFilter, onLocate }: ViewProps) {
                 ))}
               </div>
               <div className="view-scrub">
-                <button aria-label={lt(playing ? 'galaxy.pause' : 'galaxy.play')} onClick={toggle} type="button">
+                <button aria-label={lt(playing ? 'galaxy.pause' : 'galaxy.play')} disabled={calm && !playing} onClick={toggle} type="button">
                   <FontAwesomeIcon icon={playing ? faPause : faPlay} />
                 </button>
                 <input

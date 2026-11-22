@@ -7,7 +7,7 @@ import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
 import { useSceneScale } from './use-scene-scale';
 
-import type { CapturePokemon } from '../../../types';
+import type { CapturePokemon, Dex } from '../../../types';
 import type { ReactNode, RefObject } from 'react';
 
 // the scenes on this shell, one up at a time: journeys (J), the red pen (P), the atlas (G), the trainer cards (C) and
@@ -124,12 +124,12 @@ export function Scene ({ name, title, hint, onClose, quiet = false, children }: 
 }
 
 // a mon's sprite at a scene's size (`zoom` times the sheet's), its box as tall as the tallest of them so a row of
-// mons stands on one line
-export function SceneMon ({ pokemon, zoom = 1 }: { pokemon: CapturePokemon; zoom?: number }) {
+// mons stands on one line; as the open dex draws it, or as its own dex does (`view`: a view over every dex)
+export function SceneMon ({ pokemon, view, zoom = 1 }: { pokemon: CapturePokemon; view?: Dex; zoom?: number }) {
   const { activeDexView } = useDexContext();
   return (
     <span className="scene-mon" style={{ zoom }}>
-      <i className={iconClass(pokemon, activeDexView!)} />
+      <i className={iconClass(pokemon, view ?? activeDexView!)} />
     </span>
   );
 }

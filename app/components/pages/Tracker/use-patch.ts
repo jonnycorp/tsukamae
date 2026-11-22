@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 
 import { EMPTY_METADATA, freshMetadata, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
+import { writeTouches } from '../../../utils/review-confirm';
 import { useTrackerActions } from './use-tracker';
 
 import type { Capture, CaptureMetadata, CaptureStatus, GameSave } from '../../../types';
@@ -38,16 +39,23 @@ export function resolvePatch (capture: Capture, changes: RecordPatch, env: Patch
 }
 
 // one change written to marked records (the review's): each resolved against its own record, mirrored into the
-// tracker with writeCapture's baseline fill, and stored. Checklists never get here
+// tracker with writeCapture's baseline fill, and stored; one wiped by Unobtainable, or starting over from it, loses
+// what W had confirmed of it too (utils/review-confirm). Checklists never get here
 export function usePatchRecords (): (targets: Capture[], changes: RecordPatch) => void {
   const { activeDex, activeDexView, saves } = useDexContext();
   const { setCaptures, updateCapture } = useTrackerActions();
+  const dexId = activeDex!.id;
   const defaults = activeDex!.captureDefaults;
   const homeDex = activeDexView!.game.id === 'home';
 
   return useCallback((targets: Capture[], changes: RecordPatch) => {
     const env = { defaults, homeDex, saves };
     const resolved = new Map(targets.map((capture) => [capture.pokemon.id, resolvePatch(capture, changes, env)]));
+    for (const capture of targets) {
+      if (changes.status !== undefined && (changes.status === 'unobtainable') !== (capture.status === 'unobtainable')) {
+        writeTouches(dexId, capture.pokemon.id, null);
+      }
+    }
     setCaptures((prev) => prev.map((cap) => {
       const patch = resolved.get(cap.pokemon.id);
       if (!patch) {
@@ -59,5 +67,5 @@ export function usePatchRecords (): (targets: Capture[], changes: RecordPatch) =
     for (const [pokemon, patch] of resolved) {
       updateCapture({ pokemon, ...patch });
     }
-  }, [defaults, homeDex, saves, setCaptures, updateCapture]);
+  }, [dexId, defaults, homeDex, saves, setCaptures, updateCapture]);
 }

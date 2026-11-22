@@ -29,6 +29,9 @@ interface Props {
   menuClassName?: string;
   // a taller menu than the usual, for a grid that should open whole
   maxHeight?: number;
+  // the option the keys start on while none is chosen, where the first would be the wrong guess (a place half given: In
+  // a game, which game not yet)
+  fallback?: string;
 }
 
 const MENU_MAX_HEIGHT = 240;
@@ -56,7 +59,7 @@ function guardLabels () {
 }
 
 // the menu is position: fixed so no overflow ancestor (modal, popover body) can clip it
-export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, align = 'start', renderValue, renderOption, columns = 1, menuClassName, maxHeight = MENU_MAX_HEIGHT }: Props) {
+export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerClassName, align = 'start', renderValue, renderOption, columns = 1, menuClassName, maxHeight = MENU_MAX_HEIGHT, fallback }: Props) {
   const [open, setOpen] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -139,7 +142,8 @@ export function Dropdown ({ id, value, options, onSelect, blankLabel, triggerCla
       menu.scrollTop = ((chosen.previousElementSibling as HTMLElement | null) ?? chosen).offsetTop;
     }
     menu.style.animation = '';
-    setActive(Math.max(0, all.findIndex((option) => option.value === value)));
+    const at = all.findIndex((option) => option.value === value);
+    setActive(Math.max(0, at >= 0 ? at : all.findIndex((option) => option.value === fallback)));
   }, [open]);
 
   // the option a key moved to kept in sight, by scrolling the menu alone; one the pointer's on is in sight already

@@ -241,7 +241,8 @@ function matchesView (capture: Capture, view: FilterView): boolean {
     case 'temporary':
       return capture.status === 'temporary';
     case 'unsealed':
-      return capture.captured && !capture.sealed;
+      // what's left to seal: an Unobtainable mark keeps no record, and never seals
+      return capture.captured && !capture.sealed && capture.status !== 'unobtainable';
     case 'incomplete':
       // where an open record is isn't asked (asksPlace: a HOME dex's, the only records dex there is), so it's
       // left out, as W leaves it

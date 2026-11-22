@@ -12,7 +12,7 @@ import type { RefObject } from 'react';
 // under a modal or the timeline, the dex behind keeps its zoom, and under an open menu too, which is placed by what it
 // opened from and wouldn't follow it (the move menu by its tile, a field's by the popover, the species picker by its
 // slot)
-const COVERED = '.modal-overlay, .timeline, .almanac, .review, .scene, .dropdown-menu, .species-picker';
+const COVERED = '.modal-overlay, .timeline, .almanac, .review, .scene, .dropdown-menu, .move-menu, .species-picker';
 
 // screen px either side past the scrollbar's room, so a box's outline never meets the scroller's edge
 const EDGE_ROOM = 8;

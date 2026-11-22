@@ -15,6 +15,7 @@ export interface ViewProps {
   onLocate: (pokemon: number) => void;
   // shows a mon where it's filed in the boxes, without opening it (views/spotlight.ts)
   onSpot: (pokemon: number) => void;
+  // W over a run of mons, at the one given (its id) or the first
   onReview: (queue: number[], start?: number) => void;
 }
 
@@ -108,13 +109,16 @@ export function useFrameLoop (draw: (t: number, dt: number) => void, running = t
 
 // a view's keys: one document listener for its life, in the capture phase so it's ahead of the scene's own (an
 // Escape a view takes for itself never closes the scene), calling the latest `handle`, so a view that re-renders
-// every frame isn't adding and removing it every frame. A key typed into a field is the field's
+// every frame isn't adding and removing it every frame. A key typed into a field is the field's; a slider or a box to
+// tick takes no text, and keeps focus after a drag or a click, so the view's keys go on working over one
+const TYPING = 'input:not([type="range"], [type="checkbox"], [type="radio"]), textarea, select, [contenteditable]';
+
 export function useKeys (handle: (e: KeyboardEvent) => void) {
   const ref = useRef(handle);
   ref.current = handle;
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
-      if (!(e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]'))) {
+      if (!(e.target instanceof Element && e.target.closest(TYPING))) {
         ref.current(e);
       }
     };

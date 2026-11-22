@@ -117,8 +117,8 @@ export function NatureGrid ({ back, onClose, onFilter }: ViewProps) {
                         <span className="ln-name">{name(nature)}</span>
                         <b className="ln-n">{mons.length}</b>
                         <span className="ln-pile">
-                          {mons.slice(0, PILE).map(({ key, capture }, k) => (
-                            <span key={key} style={{ '--k': k } as CSSProperties}><SceneMon pokemon={capture.pokemon} /></span>
+                          {mons.slice(0, PILE).map(({ key, capture, view }, k) => (
+                            <span key={key} style={{ '--k': k } as CSSProperties}><SceneMon pokemon={capture.pokemon} view={view} /></span>
                           ))}
                         </span>
                       </button>
@@ -153,7 +153,7 @@ export function NatureGrid ({ back, onClose, onFilter }: ViewProps) {
                 return stats === 'neutral' || !stats ? lt('nature.neutral') : `${stats.up}↑ ${stats.down}↓`;
               })()} · {lt('nature.count', { n: hotMons.length })}</small>
               <span className="view-tip-mons">
-                {hotMons.slice(0, TIP_MONS).map(({ key, capture }) => <SceneMon key={key} pokemon={capture.pokemon} />)}
+                {hotMons.slice(0, TIP_MONS).map(({ key, capture, view }) => <SceneMon key={key} pokemon={capture.pokemon} view={view} />)}
               </span>
               <em>{lt('nature.press')}</em>
             </ViewTip>

@@ -25,6 +25,19 @@ export function DraftInput ({ value, onCommit, sanitize, ...rest }: Props) {
     }
   }, [value, focused]);
 
+  const take = (raw: string) => {
+    const next = sanitize ? sanitize(raw) : raw;
+    setDraft(next);
+    schedule(() => {
+      // compared trimmed, as names are committed: a space typed mid-name isn't a change to write yet
+      if (next.trim() !== committedRef.current) {
+        onCommit(next);
+      }
+    });
+  };
+
+  // an IME's text is its own while it composes (rewritten under it, ５０ comes out 550): held as typed, and taken once
+  // it's confirmed
   return (
     <input
       {...rest}
@@ -34,15 +47,13 @@ export function DraftInput ({ value, onCommit, sanitize, ...rest }: Props) {
         setFocused(false);
       }}
       onChange={(e) => {
-        const next = sanitize ? sanitize(e.target.value) : e.target.value;
-        setDraft(next);
-        schedule(() => {
-          // compared trimmed, as names are committed: a space typed mid-name isn't a change to write yet
-          if (next.trim() !== committedRef.current) {
-            onCommit(next);
-          }
-        });
+        if ((e.nativeEvent as InputEvent).isComposing) {
+          setDraft(e.target.value);
+        } else {
+          take(e.target.value);
+        }
       }}
+      onCompositionEnd={(e) => take(e.currentTarget.value)}
       onFocus={() => setFocused(true)}
       value={draft}
     />
