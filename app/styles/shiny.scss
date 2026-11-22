@@ -1,0 +1,29 @@
+// a shiny mon's mark (ShinyMark, and W's Shiny plate): Legends: Arceus' shiny stars (public/marks/shiny.png, from
+// pokesprite), white with a soft shadow, laid on as a luminance mask so the shadow falls away and the stars take the
+// theme's star red, the red the games' summary marks a shiny mon with. The stars fill the box: they're 31px of the
+// image's 42, the rest its shadow's
+.shiny-mark {
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  background-color: var(--star);
+  mask: url('/marks/shiny.png') center / 135% no-repeat;
+  mask-mode: luminance;
+}
+
+// a tile's, in the corner across from the stale pin; a press there is the tile's. A sealed tile's name runs along its
+// top (keep in sync with FlipStrips' stack), wider than the corner leaves it, so its stars sit under the name, beside
+// the sprite and above a box's grip
+.pokemon > .tile-shiny {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.pokemon.sealed > .tile-shiny {
+  top: 26px;
+}

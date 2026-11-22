@@ -1,7 +1,7 @@
 'use strict';
 
 // dev-only, one-time: downloads HOME-style origin marks + the Champions icon into public/marks/<id>.png, and
-// pokesprite's Gigantamax icon
+// pokesprite's Gigantamax icon and Legends: Arceus' shiny stars
 
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -27,6 +27,8 @@ const MARKS = {
   // upstream has a baked white background; the committed copy was hand-cleared, so it's only fetched when missing
   champions: 'https://archives.bulbagarden.net/wiki/Special:FilePath/HOME_Champions_icon.png',
   gigantamax: 'https://raw.githubusercontent.com/msikma/pokesprite/master/misc/special-attribute/gigantamax-icon.png',
+  // white with a soft shadow, drawn as a mask in the theme's colour (ShinyMark), which leaves the shadow out
+  shiny: 'https://raw.githubusercontent.com/msikma/pokesprite/master/misc/special-attribute/shiny-stars.png',
 };
 
 const HAND_EDITED = new Set(['champions']);

@@ -8,13 +8,15 @@ import { CAPTURE_FIELDS, asksPlace, sealedPlace, unansweredFields, withFieldInva
 import { ViewLensArt } from './views/ViewLensArt';
 import { FieldControl, FieldText, FieldVisual, SoftBox } from './review-fields';
 import { PokemonName } from '../../library/PokemonName';
+import { ShinyMark } from '../../library/ShinyMark';
 import { useCalmStart } from './TitleCard';
 import { UNSEAL_HOLD } from './Pokemon';
 import { locationTint, placeLabel, shownPlace } from '../../../utils/location-moves';
 import { CONFIRMABLE, CONFIRMABLE_IDS, MANUAL_ORIGIN, MY_GAME_IDS, asksField, givenValues, originMode, readTouches, softFields, untouched, writeTouches } from '../../../utils/review-confirm';
 import { gameColor } from '../../../utils/game-colors';
 import { canVisitChampions } from '../../../utils/champions';
-import { dexNumber, iconClass } from '../../../utils/pokemon';
+import { dexNumber, monIcon } from '../../../utils/pokemon';
+import { showsShiny } from '../../../utils/shiny';
 import { monLinks } from '../../../utils/formatting';
 import { stateOf } from './ledger-model';
 import { today } from '../../../utils/date-entry';
@@ -38,14 +40,15 @@ import type { RecordPatch } from './use-patch';
 
 // the plates either side of the mon, every field in a spot of its own that's the same on every mon, so going
 // from one to the next changes values and never places: on the left where it came from (on a record still open, held in
-// one card with My Game's box where it's one of your saves'), then the two only some mons are asked, an empty
+// one card with My Game's box where it's one of your saves'), then the three only some mons are asked, an empty
 // spot on the rest; on the right what it is.
-// Each side breaks after its fourth: above, what's fixed the day it was caught; below, what can come later (a visit to
-// Champions, Max Soup, and the four on the right changed by unsealing). Where it is isn't a plate in a HOME dex: it's a
-// sealed mon's alone (asksPlace), under the lens; a game's dex asks it of an open record too, last on the left
+// Each side breaks after its fourth: above, what's fixed the day it was caught; below, on the left what only some are
+// asked (a visit to Champions and Max Soup, which can come later; a shiny's colours, in a dex where a mon can be), on the
+// right the four changed by unsealing. Where it is isn't a plate in a HOME dex: it's a sealed mon's alone (asksPlace),
+// under the lens; a game's dex asks it of an open record too, last on the left
 const FIELD = new Map(CAPTURE_FIELDS.map((field) => [field.id, field]));
 const fieldsOf = (ids: CaptureField['id'][]) => ids.map((id) => FIELD.get(id)!);
-const LEFT: CaptureField['id'][] = ['origin_game', 'language', 'ot', 'tid', 'been_to_champions', 'gigantamax'];
+const LEFT: CaptureField['id'][] = ['origin_game', 'language', 'ot', 'tid', 'been_to_champions', 'gigantamax', 'shiny'];
 const RIGHT = fieldsOf(['ball', 'catch_date', 'gender', 'nature', 'nickname', 'level', 'trained', 'favorite']);
 const HOME_SIDES = [fieldsOf(LEFT), RIGHT];
 const GAME_SIDES = [fieldsOf([...LEFT, 'location']), RIGHT];
@@ -165,9 +168,10 @@ const RunRow = memo(function RunRow ({ capture, toTouch, index, current, dex, on
         onClick={() => onPick(index)}
         type="button"
       >
-        <span className="review-run-mon"><i className={iconClass(capture.pokemon, dex)} /></span>
+        <span className="review-run-mon"><i className={monIcon(capture, dex)} /></span>
         <span className="review-run-number">#{dexNumber(capture.pokemon, dex)}</span>
         <span className="review-run-name"><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></span>
+        {capture.shiny === true && <ShinyMark className="review-run-shiny" />}
         <span className="review-run-mark">{mark}</span>
       </button>
     </li>
@@ -282,7 +286,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   const touch = useCallback((pokemon: number, fields: string[] | null, untouch: string[] = []) => setTouches(writeTouches(dexId, pokemon, fields, untouch)), [dexId]);
   // what a record of this dex is given as it's marked (its defaults, its baselines), against which a field still to touch
   // is told
-  const given = useMemo(() => givenValues(activeDex?.captureDefaults, homeDex, saves), [activeDex, homeDex, saves]);
+  const given = useMemo(() => givenValues(activeDex?.captureDefaults, homeDex, dex.shiny, saves), [activeDex, homeDex, dex.shiny, saves]);
 
   useInertPage();
 
@@ -305,7 +309,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
     }
   }, [shownId]);
   // what the seal waits on: a field to answer, and a defaulted one still to touch
-  const toTouch = capture ? untouched(capture, touches[capture.pokemon.id], given) : [];
+  const toTouch = capture ? untouched(capture, touches[capture.pokemon.id], given, dex) : [];
   const missing = capture?.captured && capture.status !== 'unobtainable' ? [...gateOf(capture, homeDex), ...toTouch] : [];
   const missingIds = new Set<string>(missing.map((field) => field.id));
   const sealable = Boolean(capture?.captured && capture.status === 'caught' && !capture.sealed && missing.length === 0);
@@ -518,7 +522,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   flowRef.current = (next) => {
     const touched = capture ? touches[capture.pokemon.id] : undefined;
     const id = capture?.captured && !capture.sealed && capture.status !== 'unobtainable'
-      ? nextToFill(capture, next.after, next.from ?? null, softFields(originMode(capture, saves, touched).mode), homeDex, untouched(capture, touched, given).map((field) => field.id))
+      ? nextToFill(capture, next.after, next.from ?? null, softFields(originMode(capture, saves, touched).mode), homeDex, untouched(capture, touched, given, dex).map((field) => field.id))
       : null;
     const control = id ? document.getElementById(id) : null;
     if (!control) {
@@ -640,7 +644,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   const place = capture?.sealed ? shownPlace(capture, saves) : null;
   const links = capture ? monLinks(capture.pokemon, dex.game.game_family.id) : null;
   const sides = homeDex ? HOME_SIDES : GAME_SIDES;
-  const askedDefaulted = capture ? CONFIRMABLE.filter((field) => !field.gatesSeal && asksField(capture, field)) : [];
+  const askedDefaulted = capture ? CONFIRMABLE.filter((field) => !field.gatesSeal && asksField(capture, field, dex)) : [];
   const pipFields = [...(homeDex ? HOME_GATES : GAME_GATES), ...askedDefaulted, ...missing.filter((field) => !field.gatesSeal && !askedDefaulted.includes(field))];
   const filled = pipFields.filter((field) => !missingIds.has(field.id)).length;
 
@@ -660,8 +664,8 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   // each listed mon's defaulted fields still to touch, counted again only as a record or a touch changes
   const runTouches = useMemo(() => new Map(queue.map((id) => {
     const entry = byId.get(id);
-    return [id, entry ? untouched(entry, touches[id], given).length : 0];
-  })), [queue, byId, touches, given]);
+    return [id, entry ? untouched(entry, touches[id], given, dex).length : 0];
+  })), [queue, byId, touches, given, dex]);
   const checklists = useMemo(() => (dexes ?? []).filter((entry) => entry.checklist).map((entry) => ({ id: entry.id, title: entry.title })), [dexes]);
 
   // My Game's pick, as the card's box or the game's row's
@@ -671,12 +675,12 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   // the value once sealed, a dash till the mon's marked). Lit once it's in, every field alike: answered, and a
   // defaulted one touched; a sealed mon's all lit. On an open record its corner says so too, ! still to do and a tick
   // done; a sealed one's carries none. A field this mon is never asked (Been to Champions for a mon that can't go there,
-  // Gigantamax for one with no giant form), or a mon with no record, keeps its spot empty, so no plate moves from mon to
-  // mon
+  // Gigantamax for one with no giant form, Shiny outside a dex where a mon can be), or a mon with no record, keeps its
+  // spot empty, so no plate moves from mon to mon
   const plate = (field: CaptureField, line: number) => {
     // its line, top to bottom, for the entrance's stagger
     const rowStyle = { '--row': line } as CSSProperties;
-    const asked = capture && capture.status !== 'unobtainable' && asksField(capture, field);
+    const asked = capture && capture.status !== 'unobtainable' && asksField(capture, field, dex);
     if (!capture || !asked) {
       return <div aria-hidden="true" className="review-slot" data-field={field.id} key={field.id} style={rowStyle} />;
     }
@@ -774,7 +778,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
                       <svg aria-hidden="true" className="review-brackets" preserveAspectRatio="none" viewBox="0 0 100 100">
                         <path d="M1 17V1H17M83 1H99V17M99 83V99H83M17 99H1V83" />
                       </svg>
-                      <ViewLensArt giant={capture.gigantamax === true} pokemon={capture.pokemon} shiny={dex.shiny}><i className={iconClass(capture.pokemon, dex)} /></ViewLensArt>
+                      <ViewLensArt giant={capture.gigantamax === true} pokemon={capture.pokemon} shiny={showsShiny(capture, dex)}><i className={monIcon(capture, dex)} /></ViewLensArt>
                       {capture.sealed && <span className={classNames('review-stamp', { slam: stamping === capture.pokemon.id })}>{t('review.stamp')}</span>}
                     </div>
                     {/* a row each, every one its own height on every mon, filled or not */}

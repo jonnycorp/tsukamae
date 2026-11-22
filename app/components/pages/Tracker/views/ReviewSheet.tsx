@@ -6,6 +6,7 @@ import { CHECKS, CHECK_FIELDS, checkRecords } from './record-checks';
 import { Hologram } from './GalaxyPanel';
 import { Scene, SceneMon } from '../Scene';
 import { asksField, givenValues, readTouches, untouched, writeTouches } from '../../../../utils/review-confirm';
+import { asksShinyIn } from '../../../../utils/shiny';
 import { displayName } from '../../../library/PokemonName';
 import { localizeOriginGame } from '../../../../i18n/names';
 import { translate } from '../../../../i18n/translations';
@@ -21,7 +22,7 @@ import type { ViewProps } from './views-kit';
 import type { ViewRecord } from './ViewScope';
 
 // the sheet's columns: every field W asks but My Game (the four it fills are here one by one) and the place (asked as
-// a sealed mon's, never in a batch still open)
+// a sealed mon's, never in a batch still open); Shiny only where it's asked (shinyColumn)
 const COLUMNS: CaptureField[] = CAPTURE_FIELDS.filter((field) => field.id !== 'save' && field.id !== 'location');
 
 // a cell: still to fill (in W), given and still to confirm, done, or never asked of this mon
@@ -45,8 +46,9 @@ interface Cursor {
 }
 
 // a batch's table, apart from the panel; re-rendered as its own rows change, its cursor's row or a confirm
-const BatchTable = memo(function BatchTable ({ batch, cursor, ditto, onCell, onOpen }: {
+const BatchTable = memo(function BatchTable ({ batch, columns, cursor, ditto, onCell, onOpen }: {
   batch: Batch;
+  columns: CaptureField[];
   cursor: Cursor | null;
   ditto: boolean;
   onCell: (cursor: Cursor) => void;
@@ -60,7 +62,7 @@ const BatchTable = memo(function BatchTable ({ batch, cursor, ditto, onCell, onO
         return (
           <tr className={classNames({ ready: row.left === 0, at: cursor?.row === row.record.key })} key={row.record.key}>
             <th onDoubleClick={() => onOpen(row)} scope="row" title={lt('sheet.open')}>
-              <SceneMon pokemon={row.record.capture.pokemon} view={row.record.view} />
+              <SceneMon pokemon={row.record.capture.pokemon} shiny={row.record.capture.shiny} view={row.record.view} />
               <span>{displayName(row.record.capture.pokemon.name, row.record.capture.pokemon.name_ja, locale)}</span>
               <small>{row.left === 0 ? lt('sheet.ready') : row.left}</small>
             </th>
@@ -70,7 +72,7 @@ const BatchTable = memo(function BatchTable ({ batch, cursor, ditto, onCell, onO
               return (
                 <td
                   className={classNames(`st-${cell.state}`, { flag: cell.flags.length > 0, at: cursor?.row === row.record.key && cursor.column === c })}
-                  key={COLUMNS[c].id}
+                  key={columns[c].id}
                   onClick={() => onCell({ row: row.record.key, column: c })}
                   onDoubleClick={() => onOpen(row)}
                 >
@@ -104,7 +106,11 @@ export function ReviewSheet ({ back, onClose, onReview }: ViewProps) {
   const pageRef = useRef<HTMLDivElement>(null);
 
   const gameName = (game: string) => localizeOriginGame(locale, game, ORIGIN_GAME_NAMES.get(game) ?? game);
-  const given = useMemo(() => givenValues(activeDex?.captureDefaults, homeDex, saves), [activeDex, homeDex, saves]);
+  const dex = activeDexView!;
+  const given = useMemo(() => givenValues(activeDex?.captureDefaults, homeDex, dex.shiny, saves), [activeDex, homeDex, dex.shiny, saves]);
+  // Shiny where a mon can be, or where a record says yes all the same (utils/shiny); a living dex's sheet has none
+  const shinyColumn = asksShinyIn(dex) || records.some(({ capture }) => capture.shiny === true);
+  const columns = useMemo(() => COLUMNS.filter((field) => field.id !== 'shiny' || shinyColumn), [shinyColumn]);
 
   // the record check's doubts, by mon and field
   const doubts = useMemo(() => {
@@ -129,9 +135,9 @@ export function ReviewSheet ({ back, onClose, onReview }: ViewProps) {
         continue;
       }
       const gate = unansweredFields(capture, capture.pokemon.gender_lock, asksPlace(capture, homeDex)).map((field) => field.id as string);
-      const toTouch = untouched(capture, touches[capture.pokemon.id], given).map((field) => field.id as string);
-      const cells = COLUMNS.map((field) => ({
-        state: (!asksField(capture, field) ? 'na' : gate.includes(field.id) ? 'missing' : toTouch.includes(field.id) ? 'given' : 'done') as CellState,
+      const toTouch = untouched(capture, touches[capture.pokemon.id], given, dex).map((field) => field.id as string);
+      const cells = columns.map((field) => ({
+        state: (!asksField(capture, field, dex) ? 'na' : gate.includes(field.id) ? 'missing' : toTouch.includes(field.id) ? 'given' : 'done') as CellState,
         text: formatFieldValue(field, capture, locale, saves),
         flags: doubts.get(`${record.key}:${field.id}`) ?? [],
       }));
@@ -145,13 +151,13 @@ export function ReviewSheet ({ back, onClose, onReview }: ViewProps) {
     return [...byDate.entries()]
     .sort((a, b) => (!a[0] ? 1 : !b[0] ? -1 : b[0].localeCompare(a[0])))
     .map(([date, rows]): Batch => ({ date, rows: rows.sort((a, b) => a.record.capture.pokemon.id - b.record.capture.pokemon.id) }));
-  }, [records, touches, given, doubts, todo, homeDex, locale, saves]);
+  }, [records, touches, given, dex, columns, doubts, todo, homeDex, locale, saves]);
 
   const rows = useMemo(() => batches.flatMap((batch) => batch.rows), [batches]);
   const at = cursor ? rows.findIndex((row) => row.record.key === cursor.row) : -1;
   const row = at >= 0 ? rows[at] : null;
   const cell = row && cursor ? row.cells[cursor.column] : null;
-  const field = cursor ? COLUMNS[cursor.column] : null;
+  const field = cursor ? columns[cursor.column] ?? null : null;
 
   const open = useCallback((target: Row) => {
     const batch = batches.find((entry) => entry.rows.includes(target))!;
@@ -180,7 +186,7 @@ export function ReviewSheet ({ back, onClose, onReview }: ViewProps) {
     }
     const move = (dr: number, dc: number) => {
       const r = Math.max(0, Math.min(rows.length - 1, (at < 0 ? 0 : at) + dr));
-      const c = Math.max(0, Math.min(COLUMNS.length - 1, (cursor?.column ?? 0) + dc));
+      const c = Math.max(0, Math.min(columns.length - 1, (cursor?.column ?? 0) + dc));
       setCursor({ row: rows[r].record.key, column: c });
     };
     const key = e.key.toLowerCase();
@@ -250,12 +256,12 @@ export function ReviewSheet ({ back, onClose, onReview }: ViewProps) {
                   <thead>
                     <tr>
                       <th />
-                      {COLUMNS.map((column, c) => (
+                      {columns.map((column, c) => (
                         <th className={classNames({ at: cursor?.column === c })} key={column.id}>{translate(locale, column.labelKey)}</th>
                       ))}
                     </tr>
                   </thead>
-                  <BatchTable batch={batch} cursor={batch.rows.some((entry) => entry.record.key === cursor?.row) ? cursor : null} ditto={ditto} onCell={onCell} onOpen={open} />
+                  <BatchTable batch={batch} columns={columns} cursor={batch.rows.some((entry) => entry.record.key === cursor?.row) ? cursor : null} ditto={ditto} onCell={onCell} onOpen={open} />
                 </table>
               </div>
             </section>

@@ -226,7 +226,7 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
       <li className="rp-row" key={capture.pokemon.id} style={{ '--n': Math.min(i, STAGGER_MAX) } as CSSProperties}>
         <button className="rp-row-main" onClick={() => onReview(queue, capture.pokemon.id)} title={t('redpen.fix')} type="button">
           <PenMark kind={entry.severity} />
-          <SceneMon pokemon={capture.pokemon} />
+          <SceneMon pokemon={capture.pokemon} shiny={capture.shiny} />
           <span className="rp-who">
             <span className="rp-name">{monName(capture)}</span>
             <span className="rp-no">#{dexNumber(capture.pokemon, dex)}{!capture.sealed && <span className="rp-draft">{t('redpen.unsealed')}</span>}</span>
@@ -259,7 +259,7 @@ export function RedPen ({ onClose, onLocate, onReview }: Props) {
     <li className="rp-row" key={`book-${capture.pokemon.id}`} style={{ '--n': Math.min(i, STAGGER_MAX) } as CSSProperties}>
       <div className="rp-row-main">
         <PenMark kind="look" />
-        <SceneMon pokemon={capture.pokemon} />
+        <SceneMon pokemon={capture.pokemon} shiny={capture.shiny} />
         <span className="rp-who">
           <span className="rp-name">{monName(capture)}</span>
           <span className="rp-no">#{dexNumber(capture.pokemon, dex)}</span>

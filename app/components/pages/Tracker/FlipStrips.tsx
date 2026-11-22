@@ -1,6 +1,6 @@
 import { memo } from 'react';
 
-import { BOX_COLUMNS, BOX_GAP, BOX_WIDTH, TILE_SIZE, dexNumber, iconClass } from '../../../utils/pokemon';
+import { BOX_COLUMNS, BOX_GAP, BOX_WIDTH, TILE_SIZE, dexNumber, monIcon } from '../../../utils/pokemon';
 import { DISPLAY_PAGES } from '../../../utils/display-modes';
 import { FacePageBlock, HUB_BALL_Y, HUB_SLOTS, hubMoons } from './face-pages';
 import { NicknameLine, SpeciesLine, flipsName } from './seal-faces';
@@ -114,9 +114,9 @@ export const FlipStrips = memo(function FlipStrips ({ grids, columns = BOX_COLUM
     }
     // the sprite under a flipping name, drawn over it as a tile's own is over a name in the tile; or a giant form's
     // base and giant sprites (styles/gigantamax.scss); the tile's own hidden under either (liftsSprite)
-    const sprite = <i className={iconClass(capture.pokemon, activeDexView!)} />;
+    const sprite = <i className={monIcon(capture, activeDexView!)} />;
     if (showsGigantamax(capture)) {
-      add('giants', grid, index, sprite, <i className={gigantamaxIcon(capture.pokemon, activeDexView!)} />);
+      add('giants', grid, index, sprite, <i className={gigantamaxIcon(capture, activeDexView!)} />);
     } else if (flipsName(capture)) {
       add('sprites', grid, index, sprite);
     }

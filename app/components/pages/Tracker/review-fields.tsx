@@ -58,6 +58,11 @@ function MarkImage ({ mark, on }: { mark: 'champions' | 'gigantamax'; on: boolea
   return <span className={classNames('rv-glyph', { off: !on })}><img alt="" className="rv-mark" src={`/marks/${mark}.png`} /></span>;
 }
 
+// the shiny stars, a mask in the theme's star red (styles/shiny.scss), lit for a shiny mon
+function ShinyStars ({ on }: { on: boolean }) {
+  return <span className={classNames('rv-glyph', { off: !on })}><span className="rv-mark shiny-mark" /></span>;
+}
+
 function BallSprite ({ ball }: { ball: string | null | undefined }) {
   if (!ball) {
     return <span className="rv-glyph"><span className="rv-ball-empty" /></span>;
@@ -156,6 +161,8 @@ export function FieldVisual ({ field, capture, saves, homeDex = false }: { field
       return <MarkImage mark="champions" on={capture.been_to_champions === true} />;
     case 'gigantamax':
       return <MarkImage mark="gigantamax" on={capture.gigantamax === true} />;
+    case 'shiny':
+      return <ShinyStars on={capture.shiny === true} />;
     case 'location':
       return <PlaceVisual capture={capture} saves={saves} />;
     case 'ball':
@@ -224,6 +231,8 @@ function optionPicture (field: CaptureField, option: DropdownOption): ReactNode 
       return <MarkImage mark="champions" on={option.value === 'yes'} />;
     case 'gigantamax':
       return <MarkImage mark="gigantamax" on={option.value === 'yes'} />;
+    case 'shiny':
+      return <ShinyStars on={option.value === 'yes'} />;
     default:
       return null;
   }
@@ -251,6 +260,7 @@ const GRID: Partial<Record<CaptureField['id'], { columns: number; maxHeight?: nu
   favorite: { columns: 3 },
   been_to_champions: { columns: 2 },
   gigantamax: { columns: 2 },
+  shiny: { columns: 2 },
 };
 // a narrow window's grids: a column fewer where a whole one wouldn't fit across it, the games' four slimmer ones, so
 // every grid opens whole, never scrolled

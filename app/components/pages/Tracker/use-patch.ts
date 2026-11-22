@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { EMPTY_METADATA, freshMetadata, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
+import { EMPTY_METADATA, dexBaselines, freshMetadata, withBaselines, withFieldInvariants } from '../../../utils/capture-fields';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { writeTouches } from '../../../utils/review-confirm';
 import { useTrackerActions } from './use-tracker';
@@ -13,6 +13,8 @@ export type RecordPatch = Partial<CaptureMetadata> & { status?: CaptureStatus; s
 interface PatchEnv {
   defaults: CaptureDefaults | undefined;
   homeDex: boolean;
+  // the dex's Shiny box
+  shiny: boolean;
   saves: GameSave[];
 }
 
@@ -27,7 +29,7 @@ export function resolvePatch (capture: Capture, changes: RecordPatch, env: Patch
   if (changes.status === 'unobtainable') {
     resolved = { ...changes, ...EMPTY_METADATA };
   } else if (reviving) {
-    const fresh = freshMetadata({ defaults: env.defaults, checklist: false, homeDex: env.homeDex, genderLock: capture.pokemon.gender_lock, saves: env.saves });
+    const fresh = freshMetadata({ defaults: env.defaults, checklist: false, homeDex: env.homeDex, shiny: env.shiny, genderLock: capture.pokemon.gender_lock, saves: env.saves });
     resolved = { ...fresh, ...changes, sealed: false };
   } else {
     resolved = { ...changes, ...withFieldInvariants(capture, changes) };
@@ -47,9 +49,10 @@ export function usePatchRecords (): (targets: Capture[], changes: RecordPatch) =
   const dexId = activeDex!.id;
   const defaults = activeDex!.captureDefaults;
   const homeDex = activeDexView!.game.id === 'home';
+  const { shiny } = activeDex!;
 
   return useCallback((targets: Capture[], changes: RecordPatch) => {
-    const env = { defaults, homeDex, saves };
+    const env = { defaults, homeDex, shiny, saves };
     const resolved = new Map(targets.map((capture) => [capture.pokemon.id, resolvePatch(capture, changes, env)]));
     for (const capture of targets) {
       if (changes.status !== undefined && (changes.status === 'unobtainable') !== (capture.status === 'unobtainable')) {
@@ -62,10 +65,10 @@ export function usePatchRecords (): (targets: Capture[], changes: RecordPatch) =
         return cap;
       }
       const next = { ...cap, ...patch };
-      return next.status === 'unobtainable' ? next : withBaselines(next);
+      return next.status === 'unobtainable' ? next : withBaselines(next, dexBaselines(shiny));
     }));
     for (const [pokemon, patch] of resolved) {
       updateCapture({ pokemon, ...patch });
     }
-  }, [dexId, defaults, homeDex, saves, setCaptures, updateCapture]);
+  }, [dexId, defaults, homeDex, shiny, saves, setCaptures, updateCapture]);
 }

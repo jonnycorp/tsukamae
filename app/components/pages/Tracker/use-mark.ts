@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { EMPTY_METADATA, freshMetadata, withBaselines } from '../../../utils/capture-fields';
+import { EMPTY_METADATA, dexBaselines, freshMetadata, withBaselines } from '../../../utils/capture-fields';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { writeTouches } from '../../../utils/review-confirm';
 import { useTrackerActions } from './use-tracker';
@@ -17,6 +17,7 @@ export function useMark (): (pokemon: number, status: CaptureStatus) => void {
   const checklist = Boolean(activeDex!.checklist);
   const defaults = activeDex!.captureDefaults;
   const homeDex = activeDexView!.game.id === 'home';
+  const { shiny } = activeDex!;
 
   return useCallback((pokemon: number, status: CaptureStatus) => {
     if (status === 'unobtainable') {
@@ -30,11 +31,11 @@ export function useMark (): (pokemon: number, status: CaptureStatus) => void {
         return { ...cap, ...EMPTY_METADATA, captured: true, status };
       }
       if (cap.captured && cap.status !== 'unobtainable') {
-        return checklist ? { ...cap, status } : withBaselines({ ...cap, status });
+        return checklist ? { ...cap, status } : withBaselines({ ...cap, status }, dexBaselines(shiny));
       }
-      const fresh = freshMetadata({ defaults, checklist, homeDex, genderLock: cap.pokemon.gender_lock, saves });
+      const fresh = freshMetadata({ defaults, checklist, homeDex, shiny, genderLock: cap.pokemon.gender_lock, saves });
       return { ...cap, ...fresh, captured: true, status };
     }));
     updateCapture({ pokemon, status });
-  }, [setCaptures, updateCapture, dexId, checklist, defaults, homeDex, saves]);
+  }, [setCaptures, updateCapture, dexId, checklist, defaults, homeDex, shiny, saves]);
 }

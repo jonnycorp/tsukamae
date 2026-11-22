@@ -22,6 +22,8 @@ export interface CaptureMetadata {
   been_to_champions: boolean | null;
   // the Gigantamax factor (utils/gigantamax), which Max Soup in Sword and Shield gives, or takes back
   gigantamax: boolean | null;
+  // its colours (utils/shiny): asked in a free-form dex, or one whose Shiny box is ticked; no for every other mon
+  shiny: boolean | null;
   location: CaptureLocation | null;
   // which save holds it, when location is 'game'
   location_save: string | null;

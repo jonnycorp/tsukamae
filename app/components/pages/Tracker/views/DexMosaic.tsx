@@ -9,7 +9,7 @@ import { GalaxyPanel } from './GalaxyPanel';
 import { Scene, sceneScroll, useScrollBack } from '../Scene';
 import { ScopeSwitch, useViewScope, useScopedRecords } from './ViewScope';
 import { gameColor } from '../../../../utils/game-colors';
-import { iconClass } from '../../../../utils/pokemon';
+import { monIcon } from '../../../../utils/pokemon';
 import { localizeBall, localizeOriginGame } from '../../../../i18n/names';
 import { useCalm, useKeys } from './views-kit';
 import { useViewText } from './views-i18n';
@@ -58,7 +58,7 @@ const Wall = memo(function Wall ({ walls, labelled }: { walls: MosaicWall[]; lab
                         style={state === 'caught' && capture.origin_game ? { '--ground': gameColor(capture.origin_game) } as CSSProperties : undefined}
                         type="button"
                       >
-                        <span className="scene-mon"><i className={iconClass(capture.pokemon, view)} /></span>
+                        <span className="scene-mon"><i className={monIcon(capture, view)} /></span>
                       </button>
                     );
                   })}

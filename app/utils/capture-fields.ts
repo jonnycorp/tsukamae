@@ -125,6 +125,7 @@ type CaptureFieldId =
   | 'language'
   | 'been_to_champions'
   | 'gigantamax'
+  | 'shiny'
   | 'location'
   | 'ball'
   | 'catch_date'
@@ -253,6 +254,18 @@ export const CAPTURE_FIELDS: CaptureField[] = [
     isAnswered: () => true,
   },
   {
+    // a trait too, asked only where a mon can be shiny (utils/shiny); no for every mon till it's yes, but in a dex
+    // whose Shiny box is ticked, where a new one starts yes (freshMetadata)
+    id: 'shiny',
+    kind: 'yesno',
+    labelKey: 'info.shiny',
+    keys: ['shiny'],
+    gatesSeal: false,
+    defaultable: false,
+    baseline: { shiny: false },
+    isAnswered: () => true,
+  },
+  {
     id: 'location',
     kind: 'location',
     labelKey: 'info.location',
@@ -375,6 +388,9 @@ export const CAPTURE_FIELDS: CaptureField[] = [
 export const DEFAULTABLE_FIELDS = CAPTURE_FIELDS.filter((field) => field.defaultable);
 
 export const BASELINE_METADATA: Partial<CaptureMetadata> = Object.assign({}, ...CAPTURE_FIELDS.map((field) => field.baseline));
+const SHINY_BASELINES: Partial<CaptureMetadata> = { ...BASELINE_METADATA, shiny: true };
+// a dex's: a mon in one whose Shiny box is ticked starts shiny
+export const dexBaselines = (shiny: boolean) => (shiny ? SHINY_BASELINES : BASELINE_METADATA);
 export const DEFAULTABLE_BASELINES: Partial<CaptureMetadata> = Object.assign({}, ...DEFAULTABLE_FIELDS.map((field) => field.baseline));
 
 // fills empty baseline fields; an untouched record comes back as the same object
@@ -394,6 +410,7 @@ export const EMPTY_METADATA: CaptureMetadata = {
   language: null,
   been_to_champions: null,
   gigantamax: null,
+  shiny: null,
   location: null,
   location_save: null,
   ball: null,
@@ -413,21 +430,23 @@ interface FreshMetadataOptions {
   defaults: Partial<CaptureMetadata> | undefined;
   checklist: boolean;
   homeDex: boolean;
+  // the dex's Shiny box, its new mons shiny
+  shiny: boolean;
   genderLock: GenderLock | null | undefined;
   saves: GameSave[];
 }
 
-// a record as it's first marked, or marked again after unobtainable wiped it: the baselines, then the dex's defaults
-// under the cross-field rules (so a Mystery Gift default floors the favourite), where it lives, a species-locked
-// gender and the OT and ID No. of the save the defaults point at. A checklist keeps no defaults. writeCapture and the tiles'
-// optimistic copies all build from this, so they agree. The ball's pick rule isn't run again: the defaults already went
-// through it when picked, and an origin chosen after the Cherish Ball must stand
-export function freshMetadata ({ defaults, checklist, homeDex, genderLock, saves }: FreshMetadataOptions): CaptureMetadata {
+// a record as it's first marked, or marked again after unobtainable wiped it: the baselines (shiny in a dex whose Shiny
+// box is ticked), then the dex's defaults under the cross-field rules (so a Mystery Gift default floors the favourite),
+// where it lives, a species-locked gender and the OT and ID No. of the save the defaults point at. A checklist keeps no
+// defaults. writeCapture and the tiles' optimistic copies all build from this, so they agree. The ball's pick rule isn't
+// run again: the defaults already went through it when picked, and an origin chosen after the Cherish Ball must stand
+export function freshMetadata ({ defaults, checklist, homeDex, shiny, genderLock, saves }: FreshMetadataOptions): CaptureMetadata {
   const placed = { location: homeDex ? 'home' : 'game', location_save: null, gender: genderFromLock(genderLock) } as const;
   if (checklist) {
     return { ...EMPTY_METADATA, ...placed };
   }
-  const base = { ...EMPTY_METADATA, ...BASELINE_METADATA };
+  const base = { ...EMPTY_METADATA, ...dexBaselines(shiny) };
   const { ball, ...preset } = metadataFromDefaults(defaults);
   const meta: CaptureMetadata = { ...base, ...preset, ...withFieldInvariants(base, preset), ball: ball ?? null, ...placed };
   const save = findSave(saves, meta.origin_game, meta.language, meta.tid);

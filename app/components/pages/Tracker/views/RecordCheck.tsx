@@ -71,7 +71,7 @@ export function RecordCheck ({ back, onClose, onReview }: ViewProps) {
                     }}
                     type="button"
                   >
-                    <SceneMon pokemon={flag.record.capture.pokemon} view={flag.record.view} />
+                    <SceneMon pokemon={flag.record.capture.pokemon} shiny={flag.record.capture.shiny} view={flag.record.view} />
                   </button>
                 ))}
               </div>

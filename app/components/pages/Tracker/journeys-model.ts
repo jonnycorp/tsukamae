@@ -3,7 +3,7 @@ import { MYSTERY_GIFT, ORIGIN_GAMES } from '../../../utils/capture-fields';
 import { gameColor } from '../../../utils/game-colors';
 import { placeFromKey, placeKey, shownPlace } from '../../../utils/location-moves';
 
-import type { Capture, CaptureLocation, CapturePokemon, GameSave } from '../../../types';
+import type { Capture, CaptureLocation, GameSave } from '../../../types';
 
 // journeys (J): the master set's sealed mons as strands from the game each was caught in to the generation it belongs
 // to (its slot's, so an Alolan form is Gen 7's), or, the other way the right side splits, to where it is now. A
@@ -75,7 +75,7 @@ export interface Stop {
   // of them, how many have been to Champions (permanent, wherever they are now)
   visited: number;
   // the mons themselves, in the dex's order, for the tooltip's sprites
-  mons: CapturePokemon[];
+  mons: Capture[];
 }
 
 export interface Route extends Stop {
@@ -158,7 +158,7 @@ export function journeys (captures: Capture[], saves: GameSave[], grouping: Grou
   const bump = (stop: Stop, capture: Capture) => {
     stop.count++;
     stop.visited += Number(capture.been_to_champions === true);
-    stop.mons.push(capture.pokemon);
+    stop.mons.push(capture);
   };
   const stopIn = (map: Map<string, Stop>, key: string) => map.get(key) ?? map.set(key, emptyStop(key)).get(key)!;
   const routeIn = (map: Map<string, Route>, from: string, to: string) =>

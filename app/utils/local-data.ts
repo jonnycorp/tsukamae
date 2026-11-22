@@ -35,7 +35,7 @@ import ultraSunUltraMoonRegionalPokemon from '../../data/dexes/ultra-sun-ultra-m
 import xYRegionalMeta from '../../data/dexes/x-y-regional/meta.json';
 import xYRegionalPokemon from '../../data/dexes/x-y-regional/pokemon.json';
 
-import { EMPTY_METADATA, freshMetadata, withBaselines } from './capture-fields';
+import { EMPTY_METADATA, dexBaselines, freshMetadata, withBaselines } from './capture-fields';
 import { movedRecord, placeOf, samePlace } from './location-moves';
 
 import type { Capture, CaptureMetadata, CapturePokemon, CaptureStatus, Dex, DexType, Game, GameSave, Place } from '../types';
@@ -337,18 +337,23 @@ function save (state: AppState) {
 
 let appState: AppState | null = null;
 
-// marked records predating a field's baseline get it written once, so storage holds what the UI shows
+// keys no record holds any more, which nothing reads: an old experiment's log of a mon's moves
+const RETIRED_KEYS = ['moves', 'shelf'];
+
+// marked records predating a field's baseline get it written once, so storage holds what the UI shows (shiny as its
+// dex's Shiny box says, as the whole dex was drawn shiny before a record kept it), and a retired key goes
 function fillBaselines (state: AppState): boolean {
   let filled = false;
   for (const dex of state.dexes) {
-    if (dex.checklist) {
-      continue;
-    }
+    const baselines = dexBaselines(dex.shiny);
     for (const [id, entry] of Object.entries(dex.progress)) {
-      if (entry.status === 'unobtainable') {
-        continue;
+      let next = entry;
+      if (RETIRED_KEYS.some((key) => key in entry)) {
+        next = Object.fromEntries(Object.entries(entry).filter(([key]) => !RETIRED_KEYS.includes(key))) as ProgressEntry;
       }
-      const next = withBaselines(entry);
+      if (!dex.checklist && entry.status !== 'unobtainable') {
+        next = withBaselines(next, baselines);
+      }
       if (next !== entry) {
         dex.progress[id] = next;
         filled = true;
@@ -419,6 +424,7 @@ export function toDexView (dex: PersonalDex): Dex {
   return {
     title: dex.title,
     shiny: dex.shiny,
+    free: Boolean(dex.free),
     game: catalog.game,
     dex_type: catalog.dex_type,
     regional: catalog.dex_type.tags.includes('regional'),
@@ -524,6 +530,7 @@ function newEntryMetadata (dex: PersonalDex, saves: GameSave[], pokemonId: numbe
     defaults: dex.captureDefaults,
     checklist: Boolean(dex.checklist),
     homeDex: catalog.game.id === 'home',
+    shiny: dex.shiny,
     genderLock: catalog.pokemonList.find((mon) => mon.id === pokemonId)?.gender_lock,
     saves,
   });
@@ -531,7 +538,7 @@ function newEntryMetadata (dex: PersonalDex, saves: GameSave[], pokemonId: numbe
 
 // a free-form dex's new mon's record: a mark's, with the dex's defaults
 export function freshEntry (dex: PersonalDex, saves: GameSave[], species: number): ProgressEntry {
-  return withBaselines({ ...newEntryMetadata(dex, saves, species), status: 'caught', sealed: false });
+  return withBaselines({ ...newEntryMetadata(dex, saves, species), status: 'caught', sealed: false }, dexBaselines(dex.shiny));
 }
 
 // what a click marks; a checklist always checks as caught, and so does a default this version doesn't know, or a
@@ -609,7 +616,7 @@ export function writeCapture (dexId: string, payload: UpdateCapturePayload): voi
     if (next.status === 'unobtainable') {
       dex.progress[pokemon] = { ...next, ...EMPTY_METADATA };
     } else {
-      dex.progress[pokemon] = dex.checklist ? next : withBaselines(next);
+      dex.progress[pokemon] = dex.checklist ? next : withBaselines(next, dexBaselines(dex.shiny));
     }
     return [pokemon];
   });

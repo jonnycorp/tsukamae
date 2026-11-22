@@ -1,8 +1,9 @@
 import classNames from 'classnames';
 
 import { padding } from './formatting';
+import { showsShiny } from './shiny';
 
-import type { CapturePokemon, Dex } from '../types';
+import type { Capture, CapturePokemon, Dex } from '../types';
 
 export const BOX_SIZE = 30;
 export const BOX_COLUMNS = 6;
@@ -39,11 +40,16 @@ export function dexNumber (pokemon: CapturePokemon, dex: Dex): string {
   return pokemon.dex_number === -1 ? '---' : padding(pokemon.dex_number, numberDigits(dex));
 }
 
-// `family`, the game family whose icons to draw (the dex's own), or none for the sheet's own
-export function iconClass ({ national_id: nationalId, form }: CapturePokemon, dex: Dex, family: string | null = dex.dex_type.game_family_id) {
+// `family`, the game family whose icons to draw (the dex's own), or none for the sheet's own; `shiny`, drawn in its
+// shiny colours, as the dex's box says for a species alone (a marked mon's own record says: monIcon)
+export function iconClass ({ national_id: nationalId, form }: CapturePokemon, dex: Dex, family: string | null = dex.dex_type.game_family_id, shiny = dex.shiny) {
   return classNames('pkicon', `pkicon-${padding(nationalId, 3)}`, {
-    'color-shiny': dex.shiny,
+    'color-shiny': shiny,
     [`form-${form}`]: Boolean(form),
     [`game-family-${family}`]: Boolean(family),
   });
 }
+
+// a mon's icon in the colours its record says (utils/shiny)
+export const monIcon = (capture: Pick<Capture, 'pokemon' | 'shiny'>, dex: Dex, family?: string | null) =>
+  iconClass(capture.pokemon, dex, family, showsShiny(capture, dex));

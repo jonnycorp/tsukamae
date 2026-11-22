@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { TitleCard, useTitleCard } from './TitleCard';
-import { iconClass } from '../../../utils/pokemon';
+import { monIcon } from '../../../utils/pokemon';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useInertPage } from '../../../hooks/use-inert-page';
 import { useSceneScale } from './use-scene-scale';
@@ -124,12 +124,14 @@ export function Scene ({ name, title, hint, onClose, quiet = false, children }: 
 }
 
 // a mon's sprite at a scene's size (`zoom` times the sheet's), its box as tall as the tallest of them so a row of
-// mons stands on one line; as the open dex draws it, or as its own dex does (`view`: a view over every dex)
-export function SceneMon ({ pokemon, view, zoom = 1 }: { pokemon: CapturePokemon; view?: Dex; zoom?: number }) {
+// mons stands on one line; as the open dex draws it, or as its own dex does (`view`: a view over every dex). A record's
+// own in the colours it says (`shiny`, utils/shiny), a species alone in its dex's
+export function SceneMon ({ pokemon, shiny = null, view, zoom = 1 }: { pokemon: CapturePokemon; shiny?: boolean | null; view?: Dex; zoom?: number }) {
   const { activeDexView } = useDexContext();
+  const dex = view ?? activeDexView!;
   return (
     <span className="scene-mon" style={{ zoom }}>
-      <i className={iconClass(pokemon, view ?? activeDexView!)} />
+      <i className={monIcon({ pokemon, shiny }, dex)} />
     </span>
   );
 }

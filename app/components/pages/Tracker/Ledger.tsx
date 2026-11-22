@@ -8,9 +8,10 @@ import { Dropdown } from '../../library/Dropdown';
 import { NoResults } from './SearchResults';
 import { OriginMark } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
+import { ShinyMark } from '../../library/ShinyMark';
 import { boxTitle } from './Box';
 import { defaultStatus } from '../../../utils/local-data';
-import { dexNumber, groupBoxes, iconClass } from '../../../utils/pokemon';
+import { dexNumber, groupBoxes, monIcon } from '../../../utils/pokemon';
 import { filterMatcher, queryMatcher } from './filters';
 import { STATE_KEYS, groupCaptures, sortCaptures, stateOf } from './ledger-model';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
@@ -115,8 +116,9 @@ const CELLS: Record<LedgerColumnId, (capture: Capture, ctx: RowContext, state: L
   number: (capture, ctx) => dexNumber(capture.pokemon, ctx.dex),
   name: (capture, ctx) => (
     <>
-      <span className="ledger-icon"><i className={iconClass(capture.pokemon, ctx.dex)} /></span>
+      <span className="ledger-icon"><i className={monIcon(capture, ctx.dex)} /></span>
       <span className="ledger-name"><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></span>
+      {capture.shiny === true && <ShinyMark className="ledger-shiny" />}
       {(capture.favorite === 'favorite' || capture.favorite === 'partner') &&
         <FontAwesomeIcon className={`ledger-favorite ${capture.favorite}`} icon={faHeart} title={ctx.t(`favorite.${capture.favorite}`)} />
       }

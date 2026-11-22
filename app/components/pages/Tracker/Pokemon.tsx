@@ -8,8 +8,9 @@ import { ENTRY_DRAG } from '../../../utils/free-dex';
 import { STATUSES, statusKey, unansweredFields } from '../../../utils/capture-fields';
 import { SlotsLine, flipsName, liftsSprite } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
+import { ShinyMark } from '../../library/ShinyMark';
 import { defaultStatus } from '../../../utils/local-data';
-import { dexNumber, iconClass } from '../../../utils/pokemon';
+import { dexNumber, monIcon } from '../../../utils/pokemon';
 import { inTraining } from '../../../utils/location-moves';
 import { CONFIRMABLE_IDS, writeTouches } from '../../../utils/review-confirm';
 import { isDisplaySealed, tileTint, useTrackerActions } from './use-tracker';
@@ -114,7 +115,7 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture }: Prop
 
   const dex = activeDexView!;
   const number = dexNumber(capture.pokemon, dex);
-  const icon = iconClass(capture.pokemon, dex);
+  const icon = monIcon(capture, dex);
 
   // every press starts unsuppressed: a hold completed and released off the tile leaves no click to swallow, and the
   // tile, no longer holdable, would otherwise swallow the next real one
@@ -189,6 +190,8 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture }: Prop
       icon={faCircleExclamation}
       title={t('seal.stale', { fields: stale.map((field) => t(field.labelKey)).join(t('common.listSeparator')) })}
     />;
+  // a mon its record says is shiny: its sprite in its shiny colours, the stars in the corner
+  const shinyMark = capture.shiny === true && <ShinyMark className="tile-shiny" />;
 
   if (narrow) {
     return (
@@ -200,6 +203,7 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture }: Prop
           <h4>{speciesName}</h4>
           <p>#{number}</p>
         </div>
+        {shinyMark}
         {stalePin}
         {unsealRing}
       </div>
@@ -225,6 +229,7 @@ export const Pokemon = memo(function Pokemon ({ arrange = false, capture }: Prop
       onMouseEnter={statusButtons.length > 0 && !armed ? () => setArmed(true) : undefined}
       style={typeVars(capture.pokemon.types)}
     >
+      {shinyMark}
       {stalePin}
       {/* a free-form dex's mon in a box opened to arrange is moved by its grip, to another slot or onto an open
           box's name (FreeBoxes); a locked box's have none, nor a search's results, where nothing takes the drop */}

@@ -590,7 +590,7 @@ export function Journeys ({ back, onClose, onFilter }: Props) {
       <>
         <strong>{t('journeys.mons', { n: stop.count })}</strong>
         <span className="jr-tip-mons" style={{ '--cols': Math.min(PREVIEW_ROW, stop.mons.length) } as CSSProperties}>
-          {shown.map((pokemon) => <SceneMon key={pokemon.id} pokemon={pokemon} />)}
+          {shown.map((capture) => <SceneMon key={capture.pokemon.id} pokemon={capture.pokemon} shiny={capture.shiny} />)}
           {shown.length < stop.mons.length && <span className="jr-tip-more">+{stop.mons.length - shown.length}</span>}
         </span>
       </>

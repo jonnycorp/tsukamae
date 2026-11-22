@@ -8,6 +8,7 @@ import { Scene, SceneMon, useScrollBack } from '../Scene';
 import { displayName } from '../../../library/PokemonName';
 import { isCopy } from '../../../../utils/copies';
 import { getCatalogDex } from '../../../../utils/local-data';
+import { showsShiny } from '../../../../utils/shiny';
 import { slotKey } from '../../../../utils/champions';
 import { useViewText } from './views-i18n';
 import { useTrackerState } from '../use-tracker';
@@ -93,7 +94,7 @@ export function ChampionsRoster ({ back, onClose, onLocate }: ViewProps) {
         return [];
       }
       const mine = copies.get(key) ?? [];
-      return [{ key, pokemon, copies: mine, standing: standingOf(mine), shiny: mine.filter(({ dex }) => dex.shiny).length }];
+      return [{ key, pokemon, copies: mine, standing: standingOf(mine), shiny: mine.filter(({ dex, capture }) => showsShiny(capture, dex)).length }];
     });
   }, [records]);
 
@@ -229,7 +230,7 @@ export function ChampionsRoster ({ back, onClose, onLocate }: ViewProps) {
                   <ul className="lch-tip-copies">
                     {hot.slot.copies.map(({ dex, capture }) => (
                       <li key={`${dex.id}-${capture.pokemon.id}`}>
-                        <span>{dex.title}{dex.shiny ? ' ✦' : ''}</span>
+                        <span>{dex.title}{showsShiny(capture, dex) ? ' ✦' : ''}</span>
                         <em>{placeName(capture)}{capture.been_to_champions && capture.location !== 'champions' ? ` · ${lt('champions.beenShort')}` : ''}</em>
                       </li>
                     ))}

@@ -7,7 +7,7 @@ import { GalaxyPanel, Hologram } from './GalaxyPanel';
 import { cssColor, easeOut, fitCanvas, useFrameLoop, useKeys } from './views-kit';
 import { displayName } from '../../../library/PokemonName';
 import { gameColor } from '../../../../utils/game-colors';
-import { iconClass } from '../../../../utils/pokemon';
+import { monIcon } from '../../../../utils/pokemon';
 import { localizeBall, localizeOriginGame } from '../../../../i18n/names';
 import { spriteCuts, spriteShadow, spriteSheet } from './sprite-atlas';
 import { useViewText } from './views-i18n';
@@ -128,7 +128,7 @@ export function CatchOrder ({ records, scale, calm, onBack, onLocate, onFilter }
 
   // each mon's sprite cut, as its dex draws it, measured once for the lot
   const cutOf = useMemo(() => {
-    const classes = records.map(({ capture, view }) => iconClass(capture.pokemon, view));
+    const classes = records.map(({ capture, view }) => monIcon(capture, view));
     const found = spriteCuts(classes);
     return new Map(records.map((record, i) => [record.key, found.get(classes[i]) ?? null]));
   }, [records]);

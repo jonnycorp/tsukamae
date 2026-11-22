@@ -49,6 +49,9 @@ const CONTRAST_RULES: ContrastRule[] = [
   { fg: 'tile-badge', bg: ['tile-unobtainable', 'tile-caught'], min: 3 },
   { fg: 'mark-blue', bg: ['tile-unobtainable', 'tile-caught'], min: 3 },
   { fg: 'mark-pink', bg: ['tile-unobtainable', 'tile-caught'], min: 3 },
+  // a shiny mon's stars in a tile's corner (styles/shiny.scss), and the shiny dex's star on the page
+  { fg: 'star', bg: ['tile-unobtainable', 'tile-caught'], min: 3 },
+  { fg: 'star', bg: ['paper', 'paper-raised'], min: 3 },
 ];
 
 // OKLab distance, so an empty slot, each status, each sealed location and the gift red stay tellable apart; temporary also carries its stripes

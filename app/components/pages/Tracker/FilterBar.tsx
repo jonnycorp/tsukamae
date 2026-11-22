@@ -214,11 +214,14 @@ export function FilterBar ({ filters, query, setFilters, source }: Props) {
       }
 
       {appliedFacets(filters).map((facet) => {
+        const name = t(facet.labelKey);
         const labels = filters.facets[facet.id]!.map((value) => facet.label(value, locale));
+        const shown = labels.length > 2 ? t('filter.more', { first: labels[0], n: labels.length - 1 }) : labels.join(t('common.listSeparator'));
         return (
           <button className="filter-chip" key={facet.id} onClick={() => setFacet(facet.id, [])} title={t('filter.clear')} type="button">
-            <span className="filter-chip-label">{t(facet.labelKey)}</span>
-            {labels.length > 2 ? t('filter.more', { first: labels[0], n: labels.length - 1 }) : labels.join(t('common.listSeparator'))}
+            {/* a lone value that reads as its facet's name (Shiny, Favorite's favourites) is said once */}
+            {shown !== name && <span className="filter-chip-label">{name}</span>}
+            {shown}
             <FontAwesomeIcon icon={faXmark} />
           </button>
         );

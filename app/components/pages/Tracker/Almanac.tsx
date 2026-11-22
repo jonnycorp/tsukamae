@@ -9,7 +9,7 @@ import { OriginMark } from './seal-faces';
 import { TitleCard, useTitleCard } from './TitleCard';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { almanacData } from './almanac-data';
-import { iconClass } from '../../../utils/pokemon';
+import { monIcon } from '../../../utils/pokemon';
 import { localizeBall, localizeOriginGame } from '../../../i18n/names';
 import { locationTint, placeLabel as placeLabelOf, placeFromKey } from '../../../utils/location-moves';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
@@ -257,7 +257,7 @@ function MilestoneStop ({ milestone, dex, label, drop, onLocate }: { milestone: 
     <li style={{ '--d': drop } as CSSProperties}>
       <button className={classNames('almanac-milestone', { latest: milestone.latest })} onClick={() => onLocate(capture.pokemon.id)} type="button">
         <span className="almanac-milestone-n">{label}</span>
-        <span className="almanac-milestone-mon"><i className={iconClass(capture.pokemon, dex)} /></span>
+        <span className="almanac-milestone-mon"><i className={monIcon(capture, dex)} /></span>
         <span className="almanac-milestone-name"><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></span>
         <span className="almanac-milestone-date">{capture.catch_date?.replaceAll('-', '/')}</span>
       </button>
@@ -276,7 +276,7 @@ function LatelyMon ({ capture, dex, drop, onLocate }: { capture: Capture; dex: D
       title={`${displayName(capture.pokemon.name, capture.pokemon.name_ja, locale)} ${date.replaceAll('-', '/')}`}
       type="button"
     >
-      <span className="almanac-lately-mon"><i className={iconClass(capture.pokemon, dex)} /></span>
+      <span className="almanac-lately-mon"><i className={monIcon(capture, dex)} /></span>
       <span className="almanac-lately-date">{date.slice(5).replace('-', '/')}</span>
     </button>
   );

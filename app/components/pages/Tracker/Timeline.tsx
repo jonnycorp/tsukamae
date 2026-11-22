@@ -9,7 +9,7 @@ import { OriginMark } from './seal-faces';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { SLOT_H, SLOT_W, layoutTimeline } from './timeline-layout';
 import { MODIFIERS, TitleCard, useCalmStart } from './TitleCard';
-import { iconClass } from '../../../utils/pokemon';
+import { monIcon } from '../../../utils/pokemon';
 import { scrollbarSize } from '../../../utils/scrollbar';
 import { localizeOriginGame } from '../../../i18n/names';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
@@ -147,7 +147,7 @@ const Mons = memo(function Mons ({ dex, layout, locale }: MonsProps) {
           key={capture.pokemon.id}
           style={{ left: x, bottom: row * SLOT_H }}
         >
-          <i className={iconClass(capture.pokemon, dex)} />
+          <i className={monIcon(capture, dex)} />
         </div>
       ))}
     </>

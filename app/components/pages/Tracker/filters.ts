@@ -11,7 +11,7 @@ import type { Locale, TranslationKey } from '../../../i18n/translations';
 
 export type FilterView = 'all' | 'missing' | 'temporary' | 'unsealed' | 'incomplete';
 
-export type FacetId = 'generation' | 'class' | 'type' | 'game_dex' | 'origin_game' | 'language' | 'ot' | 'tid' | 'location' | 'ball' | 'nature' | 'trained' | 'favorite';
+export type FacetId = 'generation' | 'class' | 'type' | 'game_dex' | 'origin_game' | 'language' | 'ot' | 'tid' | 'location' | 'ball' | 'nature' | 'trained' | 'favorite' | 'shiny';
 
 export interface TrackerFilters {
   view: FilterView;
@@ -231,6 +231,15 @@ export const FACETS: Facet[] = [
     },
     label: (value, locale) => known(locale, `favorite.${value as FavoriteState}`, value),
     rank: fieldOrder('favorite'),
+  },
+  {
+    // the shiny ones alone, as Favorite lists its hearts alone: listed only where one's sealed shiny, which a living
+    // dex never has
+    id: 'shiny',
+    labelKey: 'info.shiny',
+    species: false,
+    value: (capture) => (capture.shiny === true ? 'shiny' : null),
+    label: (_value, locale) => translate(locale, 'info.shiny'),
   },
 ];
 

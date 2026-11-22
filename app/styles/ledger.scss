@@ -227,6 +227,11 @@ $ledger-head: 40px;
   text-overflow: ellipsis;
 }
 
+// after the name, before the heart
+.ledger-shiny {
+  font-size: 12px;
+}
+
 .ledger-favorite {
   flex: none;
   color: var(--mark-blue);

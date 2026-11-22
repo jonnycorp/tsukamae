@@ -2,12 +2,15 @@ import { CAPTURE_FIELDS, MYSTERY_GIFT, favoriteOptions, freshMetadata, genderOpt
 import { homeFileOf } from './game-reach';
 import { asksChampions } from './champions';
 import { asksGigantamax } from './gigantamax';
+import { asksShiny } from './shiny';
 
 import type { Capture, CaptureMetadata, GameSave } from '../types';
 import type { CaptureField } from './capture-fields';
+import type { ShinyDex } from './shiny';
 
 // the plate fields a record can be given a value in without you. As it's marked:
-// - its baselines: no Champions, no G-Max, no nickname, untrained, no heart;
+// - its baselines: no Champions, no G-Max, not shiny (shiny in a dex whose Shiny box is ticked), no nickname,
+//   untrained, no heart;
 // - the dex's defaults: the game and its language, the OT and ID No. of the save they name, the ball, the training;
 // - a gender its species is locked to.
 // Or since: the heart floored by a nickname or a gift.
@@ -16,7 +19,7 @@ import type { CaptureField } from './capture-fields';
 // gender, a G-Max mon's partner heart). Kept in this window's storage, per dex and mon, never in the collection: it's how a
 // record is filled in, not part of it. A sealed record's are all touched (sealing took them), and one unsealed again
 // keeps them so
-const CONFIRMABLE_FIELDS = ['origin_game', 'language', 'ot', 'tid', 'been_to_champions', 'gigantamax', 'ball', 'gender', 'nickname', 'trained', 'favorite'];
+const CONFIRMABLE_FIELDS = ['origin_game', 'language', 'ot', 'tid', 'been_to_champions', 'gigantamax', 'shiny', 'ball', 'gender', 'nickname', 'trained', 'favorite'];
 export const CONFIRMABLE: CaptureField[] = CAPTURE_FIELDS.filter((field) => CONFIRMABLE_FIELDS.includes(field.id));
 export const CONFIRMABLE_IDS = CONFIRMABLE.map((field) => field.id as string);
 // the four My Game fills, all touched by its pick
@@ -63,13 +66,14 @@ export function writeTouches (dexId: string, pokemon: number, fields: string[] |
 }
 
 // the values a record of this dex is given as it's marked, its species' gender lock aside
-export function givenValues (defaults: Partial<CaptureMetadata> | undefined, homeDex: boolean, saves: GameSave[]): Partial<CaptureMetadata> {
-  return freshMetadata({ defaults, checklist: false, homeDex, genderLock: null, saves });
+export function givenValues (defaults: Partial<CaptureMetadata> | undefined, homeDex: boolean, shiny: boolean, saves: GameSave[]): Partial<CaptureMetadata> {
+  return freshMetadata({ defaults, checklist: false, homeDex, shiny, genderLock: null, saves });
 }
 
-// whether a field's asked of this mon at all: Been to Champions of one on the roster, Gigantamax of one with a giant form
-export const asksField = (capture: Capture, field: CaptureField) => (field.id !== 'been_to_champions' || asksChampions(capture)) &&
-  (field.id !== 'gigantamax' || asksGigantamax(capture));
+// whether a field's asked of this mon at all: Been to Champions of one on the roster, Gigantamax of one with a giant
+// form, Shiny in a dex where a mon can be (utils/shiny)
+export const asksField = (capture: Capture, field: CaptureField, dex: ShinyDex) => (field.id !== 'been_to_champions' || asksChampions(capture)) &&
+  (field.id !== 'gigantamax' || asksGigantamax(capture)) && (field.id !== 'shiny' || asksShiny(capture, dex));
 
 // still holding a value it was given
 function holdsGiven (capture: Capture, field: CaptureField, given: Partial<CaptureMetadata>): boolean {
@@ -94,11 +98,11 @@ function oneChoice (capture: Capture, field: CaptureField): boolean {
 }
 
 // an open record's fields still holding a value they were given, still to touch
-export function untouched (capture: Capture, touched: string[] | undefined, given: Partial<CaptureMetadata>): CaptureField[] {
+export function untouched (capture: Capture, touched: string[] | undefined, given: Partial<CaptureMetadata>, dex: ShinyDex): CaptureField[] {
   if (!capture.captured || capture.sealed || capture.status === 'unobtainable') {
     return [];
   }
-  return CONFIRMABLE.filter((field) => asksField(capture, field) && holdsGiven(capture, field, given) && !oneChoice(capture, field) &&
+  return CONFIRMABLE.filter((field) => asksField(capture, field, dex) && holdsGiven(capture, field, given) && !oneChoice(capture, field) &&
     !touched?.includes(field.id));
 }
 

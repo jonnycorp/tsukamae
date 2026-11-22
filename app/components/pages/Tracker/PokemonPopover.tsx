@@ -5,7 +5,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } fr
 
 import { CAPTURE_FIELDS, formatFieldValue, unansweredFields } from '../../../utils/capture-fields';
 import { PokemonName, displayName } from '../../library/PokemonName';
-import { dexNumber, iconClass } from '../../../utils/pokemon';
+import { dexNumber, monIcon } from '../../../utils/pokemon';
 import { asksField } from '../../../utils/review-confirm';
 import { inTraining } from '../../../utils/location-moves';
 import { levelText } from './review-fields';
@@ -196,7 +196,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
     >
       <Fragment key={pokemon.id}>
         <div className="popover-header">
-          <i className={iconClass(pokemon, dexView)} />
+          <i className={monIcon(capture, dexView)} />
           <div className="popover-title">
             <h1 data-copy-name={displayName(pokemon.name, pokemon.name_ja, locale)}><PokemonName name={pokemon.name} nameJa={pokemon.name_ja} /></h1>
             <p className="popover-meta">
@@ -218,7 +218,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
                     <dd>{t('seal.sealed')}</dd>
                   </div>
                 }
-                {column.filter((field) => asksField(capture, field)).map((field) => (
+                {column.filter((field) => asksField(capture, field, dexView)).map((field) => (
                   <div className={classNames('popover-record-row', { stale: stale.has(field.id) })} key={field.id}>
                     <dt>{t(field.labelKey)}</dt>
                     <dd>

@@ -35,7 +35,7 @@ function Mon ({ capture }: { capture: Capture }) {
   const hearted = capture.favorite === 'favorite' || capture.favorite === 'partner';
   return (
     <span className="tc-mon" title={displayName(capture.pokemon.name, capture.pokemon.name_ja, locale)}>
-      <SceneMon pokemon={capture.pokemon} />
+      <SceneMon pokemon={capture.pokemon} shiny={capture.shiny} />
       {showsGigantamax(capture)
         ? <GigantamaxMark />
         : hearted && <FontAwesomeIcon className={classNames('heart-badge', { partner: capture.favorite === 'partner' })} icon={faHeart} />}

@@ -8,7 +8,7 @@ import { GameChip, LangTag } from './review-fields';
 import { ORIGIN_GAME_NAMES } from '../../../utils/capture-fields';
 import { PokemonName } from '../../library/PokemonName';
 import { asksLevel, dexPlacesFor, placeKey, placeLabel, placeOf, placesFor, samePlace, shownPlace } from '../../../utils/location-moves';
-import { iconClass } from '../../../utils/pokemon';
+import { monIcon } from '../../../utils/pokemon';
 import { localizeOriginGame } from '../../../i18n/names';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerActions, useTrackerState } from './use-tracker';
@@ -248,7 +248,7 @@ export function MoveMenu () {
     <div aria-label={t('move.title')} className="move-menu" role="dialog" style={style}>
       <div className="move-panel" ref={panelRef} style={{ zoom: target.zoom }}>
         <header className="move-head">
-          <span className="move-mon"><i className={iconClass(capture.pokemon, activeDexView!)} /></span>
+          <span className="move-mon"><i className={monIcon(capture, activeDexView!)} /></span>
           <span className="move-head-text">
             <strong><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></strong>
             <span className="move-now">{t('move.now', { place: shown ? placeLabel(shown, saves, locale) : '—' })}</span>
