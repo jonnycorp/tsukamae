@@ -30,7 +30,11 @@ function cover (iw: number, ih: number, w: number, h: number, [ax, ay]: [number,
 // over pictures has each resampled by the browser to the window's own pixels once a size (crisper than the GPU's
 // filtering) and read as u_picture0, u_picture1…, at gl_FragCoord.xy / u_res; u_crop maps that onto the first
 // picture's own 0–1 coordinates (top down) and u_loaded is 1 once they're all in, 0 before
-export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?: string, pictures: ScenePicture[] = []): Scene {
+// drawn into a 2D canvas the window's device size once a size, for the shader to read as u_paint at gl_FragCoord.xy /
+// u_res: what's crisper stroked by the browser than worked out per pixel (straight lines, a mesh)
+export type ScenePaint = (ctx: CanvasRenderingContext2D, width: number, height: number, dpr: number) => void;
+
+export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?: string, pictures: ScenePicture[] = [], paint?: ScenePaint): Scene {
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: false });
   if (!gl) {
     throw new Error('no webgl');
@@ -48,7 +52,7 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
   const link = (src: string) => {
     const program = gl.createProgram()!;
     gl.attachShader(program, vertex);
-    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, `precision highp float;\nuniform vec2 u_res;\nuniform float u_time;\nuniform float u_dpr;\nuniform sampler2D u_still;\n${pictures.map((_, i) => `uniform sampler2D u_picture${i};\n`).join('')}uniform vec4 u_crop;\nuniform float u_loaded;\n${src}`));
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, `precision highp float;\nuniform vec2 u_res;\nuniform float u_time;\nuniform float u_dpr;\nuniform sampler2D u_still;\n${pictures.map((_, i) => `uniform sampler2D u_picture${i};\n`).join('')}${paint ? 'uniform sampler2D u_paint;\n' : ''}uniform vec4 u_crop;\nuniform float u_loaded;\n${src}`));
     gl.bindAttribLocation(program, 0, 'p');
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -73,6 +77,30 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
   gl.useProgram(program);
   const time = gl.getUniformLocation(program, 'u_time');
 
+  const paintTexture = paint ? gl.createTexture() : null;
+  // the paint layer's unit, after the pictures'
+  const paintUnit = 1 + pictures.length;
+  const drawPaint = (dpr: number) => {
+    if (!paint) {
+      return;
+    }
+    const scratch = document.createElement('canvas');
+    scratch.width = canvas.width;
+    scratch.height = canvas.height;
+    paint(scratch.getContext('2d')!, canvas.width, canvas.height, dpr);
+    gl.useProgram(program);
+    gl.activeTexture(gl.TEXTURE0 + paintUnit);
+    gl.bindTexture(gl.TEXTURE_2D, paintTexture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, scratch);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.uniform1i(gl.getUniformLocation(program, 'u_paint'), paintUnit);
+    gl.activeTexture(gl.TEXTURE0);
+  };
   const images = pictures.map(() => new Image());
   const textures = pictures.map(() => gl.createTexture());
   let loaded = false;
@@ -146,6 +174,7 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
       }
       sizeUniforms(program, dpr);
       fitPictures();
+      drawPaint(dpr);
     },
     draw (t) {
       if (disposed) {
@@ -158,6 +187,7 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
     dispose () {
       disposed = true;
       textures.forEach((texture) => gl.deleteTexture(texture));
+      gl.deleteTexture(paintTexture);
       gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
       if (stillProgram) {

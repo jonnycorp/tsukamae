@@ -1,14 +1,13 @@
+import { paintMountains } from './midnight-mountains';
 import { shaderScene } from './scene';
 
 import type { SceneMaker } from './scene';
 
-// Midnight's night: a sky from indigo down to the sunset, stars, a striped sun low over the horizon, mountains
-// either side of it rimmed in its light, and a neon grid floor running slowly toward you into a haze. Every colour
+// Midnight's night: a sky from indigo down to the sunset, stars, a striped sun low over the horizon, wireframe
+// mountains either side of it, and a neon grid floor running slowly toward you into a haze. Every colour
 // dithered, so the long gradients never band
 const FRAGMENT = `
 float hash (vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise (float x) { float i = floor(x); float f = fract(x); f = f * f * (3.0 - 2.0 * f); return mix(hash(vec2(i, 0.0)), hash(vec2(i + 1.0, 0.0)), f); }
-float ridge (float x) { return noise(x) * 0.55 + noise(x * 2.3 + 7.0) * 0.3 + noise(x * 5.1 + 3.0) * 0.15; }
 
 void main () {
   vec2 px = gl_FragCoord.xy;
@@ -54,19 +53,11 @@ void main () {
   col += sunCol * exp(-max(sd - sr, 0.0) * 9.0) * 0.32;
   col = mix(col, sunCol, disc);
 
-  // mountains either side of the sun, dark, their ridges caught by its light
-  float side = smoothstep(0.12, 0.55, abs(uv.x));
-  float m = horizon + side * (0.035 + 0.11 * ridge(uv.x * 3.2 + 11.0));
-  float far = horizon + side * (0.02 + 0.07 * ridge(uv.x * 5.0 + 2.0));
-  if (uv.y < far && uv.y > horizon) {
-    col = mix(col, vec3(0.16, 0.05, 0.25), 0.85);
-  }
-  if (uv.y < m && uv.y > horizon) {
-    float depth = (m - uv.y) / max(m - horizon, 0.001);
-    col = mix(vec3(0.11, 0.03, 0.17), vec3(0.04, 0.01, 0.08), smoothstep(0.0, 0.8, depth));
-  }
-  float rim = exp(-abs(uv.y - m) * h / (1.4 * u_dpr)) * side * step(horizon, uv.y);
-  col += vec3(1.0, 0.35, 0.75) * rim * 0.55;
+  // the wireframe mountains either side of the sun (midnight-mountains.ts), painted once a size; the sun's light
+  // faint on the faces nearest it
+  vec4 range = texture2D(u_paint, px / u_res);
+  vec3 lit = range.rgb + sunCol * exp(-abs(uv.x) * 3.5) * 0.05;
+  col = mix(col, lit, range.a);
 
   // the floor: a grid in perspective, its rows running toward you, fading into the haze at the horizon
   if (uv.y < horizon) {
@@ -103,4 +94,4 @@ void main () {
 }
 `;
 
-export const midnightScene: SceneMaker = (back) => shaderScene(back, FRAGMENT);
+export const midnightScene: SceneMaker = (back) => shaderScene(back, FRAGMENT, undefined, [], paintMountains);

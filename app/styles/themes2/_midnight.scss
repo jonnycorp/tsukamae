@@ -108,10 +108,8 @@
     }
   }
 
-  // tiles, three states apart by the light in the glass alone, every sprite and mark left as it is: a slot nothing
-  // fills a dark socket sunk in the pane; a mon marked but not yet sealed a frosted pane, lit evenly, a bright edge
-  // along its top; a sealed tile the neon of its place glowing up from its foot (below). Their edges give way to the
-  // selection's ring and the hover's
+  // tiles: a slot nothing fills a dark socket sunk in the pane, so what's marked stands apart from it in the same glass
+  // as the sealed, a little lighter; a sealed tile told by the neon of its place glowing up from its foot (below)
   .pokemon:not(.captured, .empty) {
     background-color: rgb(4 1 14 / 58%);
 
@@ -129,11 +127,7 @@
   }
 
   .pokemon.captured.caught:not(.sealed) {
-    background-image: linear-gradient(rgb(255 205 245 / 24%), rgb(205 180 255 / 15%) 55%, rgb(185 155 255 / 12%));
-
-    &:not([data-selected], :hover) {
-      box-shadow: inset 0 1px 0 rgb(255 225 250 / 45%);
-    }
+    background-color: rgb(150 120 255 / 13%);
   }
 
   .pokemon.captured.unobtainable {
