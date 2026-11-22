@@ -42,13 +42,14 @@ export function movedRecord<T extends Located & Pick<CaptureMetadata, 'been_to_c
 }
 
 // a HOME dex's sealed mon out in one of your games is still being raised there: its level isn't tracked till
-// it's back (育成中), the last one confirmed kept as a floor
-export const inTraining = (record: Pick<Capture, 'sealed' | 'location'>, homeDex: boolean) => homeDex && record.sealed && record.location === 'game';
+// it's back (育成中), the last one confirmed kept as a floor. One at 100 can't go up, so it's just its level
+export const inTraining = (record: Pick<Capture, 'sealed' | 'location' | 'level'>, homeDex: boolean) =>
+  homeDex && record.sealed && record.location === 'game' && record.level !== 100;
 
 // coming home from a game (to HOME, a checklist's boxes in it, or Champions inside it) asks the level it's come back at,
-// at least the floor; one at 100 can't have gone up, so it's asked nothing
+// at least the floor; one at 100 isn't training, so it's asked nothing
 export const asksLevel = (record: Pick<Capture, 'sealed' | 'location' | 'level'>, to: Place, homeDex: boolean) =>
-  inTraining(record, homeDex) && to.location !== 'game' && record.level !== 100;
+  inTraining(record, homeDex) && to.location !== 'game';
 
 // a sealed tile's tint for a mon away from where its dex keeps them (HOME in a HOME dex, a game in a game's): gold in
 // Champions, out in one of your games, or in HOME. One where the dex keeps it has none, and wears the plain sealed wash
