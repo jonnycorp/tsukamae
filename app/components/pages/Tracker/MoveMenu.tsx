@@ -71,8 +71,7 @@ export function MoveMenu () {
   const capture = target ? captures.find((cap) => cap.pokemon.id === target.pokemon) : undefined;
   const open = Boolean(target && capture?.sealed);
   const here = capture ? placeOf(capture) : null;
-  // the games that can hold it (placesFor: in a HOME dex, those HOME can send it to), and the one it's in whatever it
-  // is, so where it is stays ticked
+  // the games it can go to from where it is (placesFor), and the one it's in whatever it is, so where it is stays ticked
   const places = useMemo(() => (open && capture
     ? placesFor(saves, capture, homeDex, dexPlacesFor(activeDex, dexes ?? []))
     : []), [open, capture, saves, homeDex, activeDex, dexes]);

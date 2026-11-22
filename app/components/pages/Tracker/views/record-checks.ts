@@ -1,5 +1,5 @@
 import { GAME_FACTS } from '../../../../utils/game-facts';
-import { closedGameHas, debutOf, gameDexes, lineOf, sameId } from '../../../../utils/game-reach';
+import { closedGameHas, debutOf, gameDexes, lineOf, outsideDexes, sameId } from '../../../../utils/game-reach';
 import { localDay } from './views-kit';
 import { unansweredFields } from '../../../../utils/capture-fields';
 
@@ -62,7 +62,7 @@ export function checkRecords (records: ViewRecord[], lt: Text, gameName: (game: 
     if (game) {
       const closed = line.map((stage) => closedGameHas(game, stage));
       const listed = dexes[game];
-      if ((closed[0] !== null && !closed.some(Boolean)) || (listed && !line.some((stage) => listed.has(stage.national)))) {
+      if ((closed[0] !== null && !closed.some(Boolean)) || (listed && !outsideDexes(capture.pokemon) && !line.some((stage) => listed.has(stage.national)))) {
         add('notInGame', record, gameName(game));
       }
     }

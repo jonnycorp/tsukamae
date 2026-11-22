@@ -1,5 +1,5 @@
 import { GAME_FACTS } from '../../../utils/game-facts';
-import { LETS_GO, cannotReach, closedGameHas, debutOf, gameDexes, homeFileOf, lineOf, sameId } from '../../../utils/game-reach';
+import { LETS_GO, cannotReach, closedGameHas, debutOf, gameDexes, gameHolds, homeFileOf, lineOf, outsideDexes, sameId } from '../../../utils/game-reach';
 import { MYSTERY_GIFT } from '../../../utils/capture-fields';
 import { nicknameMax, otMax } from '../../../utils/game-rules';
 import { today } from '../../../utils/date-entry';
@@ -126,8 +126,6 @@ const BALL_DEBUT: Record<string, number> = {
 const LANGUAGE_DEBUT: Record<string, number> = { chinese_simplified: 7, chinese_traditional: 7, korean: 4 };
 const CHINESE = new Set(['chinese_simplified', 'chinese_traditional']);
 const EUROPEAN = new Set(['english', 'french', 'italian', 'german', 'spanish']);
-// the Ultra Beasts, which come as legendaries do, by ways a game's dex doesn't list (Ultra Space, Max Lair)
-const ULTRA_BEASTS = new Set([793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806]);
 
 const KANA = /[぀-ヿㇰ-ㇿｦ-ﾟ]/;
 const HAN = /[㐀-䶿一-鿿豈-﫿]/;
@@ -179,7 +177,7 @@ function read (capture: Capture, saves: GameSave[], now: string): Finding[] {
     add('otMismatch', 'wrong', ['ot', 'tid'], { save: homeFile.id });
   }
   const nickname = capture.has_nickname ? capture.nickname : null;
-  const { national_id: national, form, generation } = capture.pokemon;
+  const { generation } = capture.pokemon;
   // the species itself, and the earliest of what it could have been caught as before it evolved
   const line = lineOf(capture);
   const debut = debutOf(line[0], generation);
@@ -203,10 +201,8 @@ function read (capture: Capture, saves: GameSave[], now: string): Finding[] {
     add('notInGame', 'wrong', ['species', 'origin_game']);
   } else if (origin && closed === null && gen !== undefined && earliest > gen) {
     add('newerSpecies', 'wrong', ['species', 'origin_game'], { gen: debut });
-  } else if (origin && closed === null && !capture.pokemon.legendary_class && !ULTRA_BEASTS.has(national) && gameDexes()[origin] &&
+  } else if (origin && closed === null && !outsideDexes(capture.pokemon) && gameDexes()[origin] &&
     !line.some((stage) => gameDexes()[origin].has(stage.national))) {
-    // legendaries and Ultra Beasts come by ways a dex doesn't list (Snacksworth, raids, events), so only the rest are
-    // asked about
     add('notInDex', 'look', ['species', 'origin_game']);
   }
 
@@ -232,14 +228,13 @@ function read (capture: Capture, saves: GameSave[], now: string): Finding[] {
     add('languageTooNew', 'wrong', ['language', 'origin_game']);
   }
 
-  // a game can't hold a species newer than itself, nor a closed game one it doesn't have (the species as it is now,
-  // whatever it was caught as), nor a mon that would have had to move back to it
+  // the game it's in must be one that can hold it (the species as it is now, whatever it was caught as) and one it
+  // could ever have got into from its own (utils/game-reach)
   if (capture.location === 'game' && capture.location_save) {
     const save = saves.find((entry) => entry.id === capture.location_save);
     const held = save ? GAME_FACTS[save.game]?.gen : undefined;
     if (save && held !== undefined) {
-      const holds = closedGameHas(save.game, { national, form });
-      if (holds === false || (holds === null && debut > held)) {
+      if (!gameHolds(save.game, capture, origin)) {
         add('saveTooOld', 'wrong', ['species', 'location']);
       } else if (cannotReach(save.game, held, origin, gen)) {
         add('saveBackward', 'wrong', ['origin_game', 'location']);

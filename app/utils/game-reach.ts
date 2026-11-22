@@ -3,7 +3,7 @@ import { GAME_FACTS } from './game-facts';
 import { REGIONAL_FORMS, slotKey } from './champions';
 import { getCatalogDex } from './local-data';
 
-import type { Capture, GameSave } from '../types';
+import type { Capture, CapturePokemon, GameSave } from '../types';
 
 const homeCatalogs = homeCatalogsJson as { sword_shield: string[]; scarlet_violet: string[] };
 
@@ -12,74 +12,110 @@ const homeCatalogs = homeCatalogsJson as { sword_shield: string[]; scarlet_viole
 
 export const LETS_GO = new Set(['lets_go_pikachu', 'lets_go_eevee']);
 const BDSP = new Set(['brilliant_diamond', 'shining_pearl']);
+const ZA = 'legends_za';
 
-// a mon keeps the game it was caught in as it evolves, so an evolved species can come from a game older than itself,
-// caught there as what it evolves from (a Magnezone caught as a FireRed Magnemite). The evolutions that cross from
-// one generation into a later one, each from what it evolves from (by national number); a line a regional form starts
-// (Obstagoon's, Sneasler's, Clodsire's) has none, as its form came with its region
-const EVOLVES_FROM: Record<number, number> = {
-  169: 42, // Crobat, from Golbat
-  182: 44, // Bellossom, from Gloom
-  186: 61, // Politoed, from Poliwhirl
-  196: 133, // Espeon, from Eevee
-  197: 133, // Umbreon
-  199: 79, // Slowking, from Slowpoke
-  208: 95, // Steelix, from Onix
-  212: 123, // Scizor, from Scyther
-  230: 117, // Kingdra, from Seadra
-  233: 137, // Porygon2, from Porygon
-  242: 113, // Blissey, from Chansey
-  407: 315, // Roserade, from Roselia
-  424: 190, // Ambipom, from Aipom
-  429: 200, // Mismagius, from Misdreavus
-  430: 198, // Honchkrow, from Murkrow
-  461: 215, // Weavile, from Sneasel
-  462: 82, // Magnezone, from Magneton
-  463: 108, // Lickilicky, from Lickitung
-  464: 112, // Rhyperior, from Rhydon
-  465: 114, // Tangrowth, from Tangela
-  466: 125, // Electivire, from Electabuzz
-  467: 126, // Magmortar, from Magmar
-  468: 176, // Togekiss, from Togetic
-  469: 193, // Yanmega, from Yanma
-  470: 133, // Leafeon, from Eevee
-  471: 133, // Glaceon
-  472: 207, // Gliscor, from Gligar
-  473: 221, // Mamoswine, from Piloswine
-  474: 233, // Porygon-Z, from Porygon2
-  475: 281, // Gallade, from Kirlia
-  476: 299, // Probopass, from Nosepass
-  477: 356, // Dusknoir, from Dusclops
-  478: 361, // Froslass, from Snorunt
-  700: 133, // Sylveon, from Eevee
-  866: 439, // Mr. Rime, from a Mime Jr. that grew into Galarian Mr. Mime in Galar
-  899: 234, // Wyrdeer, from Stantler
-  900: 123, // Kleavor, from Scyther
-  901: 217, // Ursaluna, from Ursaring
-  979: 57, // Annihilape, from Primeape
-  981: 203, // Farigiraf, from Girafarig
-  982: 206, // Dudunsparce, from Dunsparce
-  983: 625, // Kingambit, from Bisharp
-  1011: 840, // Dipplin, from Applin
-  1018: 884, // Archaludon, from Duraludon
-  1019: 1011, // Hydrapple, from Dipplin
-};
-// the regional forms an ordinary mon grows into by evolving in the region (a Pikachu evolved in Alola is an Alolan
-// Raichu), each from that ordinary species
-const REGIONAL_FROM: Record<string, number> = {
-  '26:alola': 25, // Raichu, from Pikachu
-  '103:alola': 102, // Exeggutor, from Exeggcute
-  '105:alola': 104, // Marowak, from Cubone
-  '110:galar': 109, // Weezing, from Koffing
-  '122:galar': 439, // Mr. Mime, from Mime Jr.
-  '157:hisui': 156, // Typhlosion, from Quilava
-  '503:hisui': 502, // Samurott, from Dewott
-  '549:hisui': 548, // Lilligant, from Petilil
-  '628:hisui': 627, // Braviary, from Rufflet
-  '705:hisui': 704, // Sliggoo, from Goomy
-  '706:hisui': 704, // Goodra
-  '713:hisui': 712, // Avalugg, from Bergmite
-  '724:hisui': 723, // Decidueye, from Dartrix
+// a mon keeps the game it was caught in as it evolves, so an evolved mon can come from a game that never had it, caught
+// there as what it evolves from: a FireRed Magnemite grown into a Magnezone, a Legends: Arceus Quilava into an ordinary
+// Typhlosion outside Hisui, a Violet Sneasel of Hisui's (bred from one HOME brought in) into a Sneasler. Each slot
+// (utils/champions slotKey) from what it evolves from, where that can be a species another game had
+const EVOLVES_FROM: Record<string, string> = {
+  // into a later generation
+  169: '42', // Crobat, from Golbat
+  182: '44', // Bellossom, from Gloom
+  186: '61', // Politoed, from Poliwhirl
+  196: '133', // Espeon, from Eevee
+  197: '133', // Umbreon
+  199: '79', // Slowking, from Slowpoke
+  208: '95', // Steelix, from Onix
+  212: '123', // Scizor, from Scyther
+  230: '117', // Kingdra, from Seadra
+  233: '137', // Porygon2, from Porygon
+  242: '113', // Blissey, from Chansey
+  407: '315', // Roserade, from Roselia
+  424: '190', // Ambipom, from Aipom
+  429: '200', // Mismagius, from Misdreavus
+  430: '198', // Honchkrow, from Murkrow
+  461: '215', // Weavile, from Sneasel
+  462: '82', // Magnezone, from Magneton
+  463: '108', // Lickilicky, from Lickitung
+  464: '112', // Rhyperior, from Rhydon
+  465: '114', // Tangrowth, from Tangela
+  466: '125', // Electivire, from Electabuzz
+  467: '126', // Magmortar, from Magmar
+  468: '176', // Togekiss, from Togetic
+  469: '193', // Yanmega, from Yanma
+  470: '133', // Leafeon, from Eevee
+  471: '133', // Glaceon
+  472: '207', // Gliscor, from Gligar
+  473: '221', // Mamoswine, from Piloswine
+  474: '233', // Porygon-Z, from Porygon2
+  475: '281', // Gallade, from Kirlia
+  476: '299', // Probopass, from Nosepass
+  477: '356', // Dusknoir, from Dusclops
+  478: '361', // Froslass, from Snorunt
+  700: '133', // Sylveon, from Eevee
+  866: '122:galar', // Mr. Rime, from Galarian Mr. Mime
+  899: '234', // Wyrdeer, from Stantler
+  900: '123', // Kleavor, from Scyther
+  901: '217', // Ursaluna, from Ursaring
+  979: '57', // Annihilape, from Primeape
+  981: '203', // Farigiraf, from Girafarig
+  982: '206', // Dudunsparce, from Dunsparce
+  983: '625', // Kingambit, from Bisharp
+  1011: '840', // Dipplin, from Applin
+  1018: '884', // Archaludon, from Duraludon
+  1019: '1011', // Hydrapple, from Dipplin
+  // the ordinary forms of Hisui's regional evolutions, which Legends: Arceus has only the first stages of: one of its
+  // own grown anywhere else
+  157: '156', // Typhlosion, from Quilava
+  503: '502', // Samurott, from Dewott
+  549: '548', // Lilligant, from Petilil
+  628: '627', // Braviary, from Rufflet
+  705: '704', // Sliggoo, from Goomy
+  706: '705', // Goodra
+  713: '712', // Avalugg, from Bergmite
+  724: '723', // Decidueye, from Dartrix
+  // the regional forms an ordinary mon grows into by evolving in the region (a Pikachu evolved in Alola is an Alolan
+  // Raichu)
+  '26:alola': '25', // Raichu, from Pikachu
+  '103:alola': '102', // Exeggutor, from Exeggcute
+  '105:alola': '104', // Marowak, from Cubone
+  '110:galar': '109', // Weezing, from Koffing
+  '122:galar': '439', // Mr. Mime, from Mime Jr.
+  '157:hisui': '156', // Typhlosion, from Quilava
+  '503:hisui': '502', // Samurott, from Dewott
+  '549:hisui': '548', // Lilligant, from Petilil
+  '628:hisui': '627', // Braviary, from Rufflet
+  '705:hisui': '704', // Sliggoo, from Goomy
+  '706:hisui': '705:hisui', // Goodra
+  '713:hisui': '712', // Avalugg, from Bergmite
+  '724:hisui': '723', // Decidueye, from Dartrix
+  // a regional form's own line, which a game can have the first of without the rest (a Sneasel of Hisui's bred in
+  // Violet)
+  '20:alola': '19:alola', // Raticate
+  '28:alola': '27:alola', // Sandslash
+  '38:alola': '37:alola', // Ninetales
+  '51:alola': '50:alola', // Dugtrio
+  '53:alola': '52:alola', // Persian
+  '75:alola': '74:alola', // Graveler
+  '76:alola': '75:alola', // Golem
+  '89:alola': '88:alola', // Muk
+  '78:galar': '77:galar', // Rapidash
+  '80:galar': '79:galar', // Slowbro
+  '199:galar': '79:galar', // Slowking
+  '264:galar': '263:galar', // Linoone
+  '555:galar': '554:galar', // Darmanitan
+  862: '264:galar', // Obstagoon, from Galarian Linoone
+  863: '52:galar', // Perrserker, from Galarian Meowth
+  864: '222:galar', // Cursola, from Galarian Corsola
+  865: '83:galar', // Sirfetch'd, from Galarian Farfetch'd
+  867: '562:galar', // Runerigus, from Galarian Yamask
+  '59:hisui': '58:hisui', // Arcanine
+  '101:hisui': '100:hisui', // Electrode
+  '571:hisui': '570:hisui', // Zoroark
+  903: '215:hisui', // Sneasler, from Hisuian Sneasel
+  904: '211:hisui', // Overqwil, from Hisuian Qwilfish
+  980: '194:paldea', // Clodsire, from Paldean Wooper
 };
 
 export interface Stage {
@@ -87,15 +123,17 @@ export interface Stage {
   form: string | null;
 }
 
-// a mon and what it could have been caught as: the slot itself, then (for a species, or a regional form an ordinary
-// mon grows into) each earlier stage across the generations
+const stageOf = (key: string): Stage => {
+  const [national, form] = key.split(':');
+  return { national: Number(national), form: form ?? null };
+};
+
+// a mon and what it could have been caught as: the slot itself, then each earlier stage EVOLVES_FROM names
 export function lineOf (capture: Capture): Stage[] {
   const { national_id: national, form } = capture.pokemon;
   const line: Stage[] = [{ national, form }];
-  let from: number | undefined = form ? REGIONAL_FROM[`${national}:${form}`] : EVOLVES_FROM[national];
-  while (from !== undefined) {
-    line.push({ national: from, form: null });
-    from = EVOLVES_FROM[from];
+  for (let from = EVOLVES_FROM[slotKey(national, form)]; from; from = EVOLVES_FROM[from]) {
+    line.push(stageOf(from));
   }
   return line;
 }
@@ -161,11 +199,18 @@ export function closedGameHas (game: string, stage: Stage): boolean | null {
   return null;
 }
 
-// a mon in one of your files of a game HOME can't send to (everything before Sword and Shield, Let's Go too) got there
-// by being caught there or moved on into it, never back: Let's Go takes only its own and GO's, the rest nothing newer
+// a trade, a gift or "other", which can hand on a mon from any game
+const ANYWHERE = new Set(['trade', 'mystery_gift', 'other']);
+
+// whether a mon from `origin` can never have got into one of your files of a game: one befriended in Legends: Z-A never
+// leaves it for another game; and a game HOME can't send to (everything before Sword and Shield, Let's Go too) has only
+// what was caught there or moved on into it, never back: Let's Go takes only its own and GO's, the rest nothing newer
 // than themselves, and nothing from HOME, GO or Let's Go
 export function cannotReach (saveGame: string, saveGen: number, origin: string | null, originGen: number | undefined): boolean {
-  if (saveGen >= 8 || !origin || origin === 'trade' || origin === 'mystery_gift' || origin === 'other') {
+  if (origin === ZA) {
+    return saveGame !== ZA;
+  }
+  if (saveGen >= 8 || !origin || ANYWHERE.has(origin)) {
     return false;
   }
   if (LETS_GO.has(saveGame)) {
@@ -209,41 +254,87 @@ function catalogOf (game: string): Set<string> | null {
   if (SV.has(game)) {
     return catalogs.sv;
   }
-  return game === 'legends_za' ? catalogs.za : null;
+  return game === ZA ? catalogs.za : null;
 }
 
-// where a HOME dex's mon (a living dex kept in HOME) can be checked out to: only one of the Switch games HOME
-// sends to (nothing before Sword and Shield, nor Let's Go or GO, which HOME sends nothing back to; nor one of HOME's own
-// entries, a trainer), only a species and form its catalogue has (so no Gen 9 in a Gen 8 game), and a mon born in
-// Legends: Z-A only back to Z-A
-export function homeCanSend (save: GameSave, capture: Capture, saves: GameSave[]): boolean {
-  const { national_id: national, form } = capture.pokemon;
-  if (originOf(capture, saves) === 'legends_za' && save.game !== 'legends_za') {
+const SPINDA = 327;
+const NINCADA = 290;
+// the Pikachu, Eevee and Meowth that can Gigantamax, which HOME sends neither to Brilliant Diamond and Shining Pearl
+// nor (Pikachu and Eevee; Hisui has no Meowth) to Legends: Arceus
+const NO_GIGANTAMAX: Record<string, number[]> = { brilliant_diamond: [25, 133, 52], shining_pearl: [25, 133, 52], legends_arceus: [25, 133] };
+
+// whether a game can hold a mon, the species as it is now (whatever it was caught as): one of the Switch games HOME
+// sends to only what its catalogue has, a closed game only what it has (closedGameHas), any other game nothing newer
+// than itself. And nothing HOME keeps out of it: Spinda goes neither into Brilliant Diamond and Shining Pearl nor out
+// of them, Nincada into them only if it came from them, and no Gigantamax Pikachu, Eevee or Meowth (NO_GIGANTAMAX).
+// Let's Go holds no mon with the Gigantamax factor at all, since only Sword and Shield give it, and nothing that's
+// been to a newer game goes back to Let's Go. One of HOME's own entries, GO, a trade, a gift or "other" is no game to
+// hold anything. A mon from a trade, a gift or "other" could be from either side of Spinda's and Nincada's rules, so
+// it's kept out by neither
+export function gameHolds (game: string, capture: Pick<Capture, 'pokemon' | 'gigantamax'>, origin: string | null): boolean {
+  const { national_id: national, form, generation } = capture.pokemon;
+  const gen = GAME_FACTS[game]?.gen;
+  if (gen === undefined) {
     return false;
   }
-  const catalog = catalogOf(save.game);
-  if (catalog) {
-    return catalog.has(slotKey(national, form));
+  const catalog = catalogOf(game);
+  if (catalog ? !catalog.has(slotKey(national, form)) : !(closedGameHas(game, { national, form }) ?? debutOf({ national, form }, generation) <= gen)) {
+    return false;
   }
-  return (BDSP.has(save.game) || save.game === 'legends_arceus') && closedGameHas(save.game, { national, form }) === true;
+  if (origin && !ANYWHERE.has(origin) &&
+    ((national === SPINDA && BDSP.has(game) !== BDSP.has(origin)) || (national === NINCADA && BDSP.has(game) && !BDSP.has(origin)))) {
+    return false;
+  }
+  return !(capture.gigantamax === true && (LETS_GO.has(game) || (!form && NO_GIGANTAMAX[game]?.includes(national))));
 }
 
-// whether one of your files can hold a mon: one of HOME's own entries is no game to hold anything, a game can't hold
-// a species newer than itself, nor a closed game one it doesn't have (the species as it is now, whatever it was
-// caught as), nor a mon that would have had to move back to it
-export function canHold (save: GameSave, capture: Capture, saves: GameSave[]): boolean {
-  if (save.game === 'home') {
-    return false;
+// the game a mon is in now, as far as where it can go next: HOME for HOME or Champions (which it visits from HOME), the
+// game of the file it's in, or null while that isn't known (no file named, one since deleted from My Games, or a
+// trade's, a gift's or "other", which is no game)
+function gameNow (capture: Pick<Capture, 'location' | 'location_save'>, saves: GameSave[]): string | null {
+  if (capture.location === 'home' || capture.location === 'champions') {
+    return 'home';
   }
+  const game = capture.location === 'game' ? saves.find((save) => save.id === capture.location_save)?.game : undefined;
+  return game && !ANYWHERE.has(game) ? game : null;
+}
+
+// the games HOME sends to and takes from: the Switch games, Let's Go among them
+const linked = (game: string) => LETS_GO.has(game) || (GAME_FACTS[game]?.gen ?? 0) >= 8;
+
+// whether a sealed mon can be moved to one of your files of a game, from where it is now: the game must hold it
+// (gameHolds) and be one it could ever be in (cannotReach), and there must be a way there. A mon in Legends: Z-A stays
+// in Z-A. Let's Go takes one from Let's Go, from GO (by GO Park), or from HOME when it came from Let's Go (or from a
+// trade, a gift or "other", which might be Let's Go's). The games before Sword and Shield take nothing from HOME or GO,
+// only what's in one of them already, and only into one no older: Bank moves a mon on up and never back (once in Sun
+// and Moon, never to X and Y again). Every other game HOME sends to takes it from anywhere, by HOME. Where it is isn't
+// known (no place yet, a file since deleted), only the first two are asked
+export function canMoveTo (save: GameSave, capture: Capture, saves: GameSave[]): boolean {
   const held = GAME_FACTS[save.game]?.gen;
-  if (held === undefined) {
+  const origin = originOf(capture, saves);
+  if (held === undefined || !gameHolds(save.game, capture, origin) || cannotReach(save.game, held, origin, origin ? GAME_FACTS[origin]?.gen : undefined)) {
+    return false;
+  }
+  const now = gameNow(capture, saves);
+  if (now === null) {
     return true;
   }
-  const { national_id: national, form, generation } = capture.pokemon;
-  const holds = closedGameHas(save.game, { national, form });
-  if (holds === false || (holds === null && debutOf({ national, form }, generation) > held)) {
-    return false;
+  if (now === ZA) {
+    return save.game === ZA;
   }
-  const origin = originOf(capture, saves);
-  return !cannotReach(save.game, held, origin, origin ? GAME_FACTS[origin]?.gen : undefined);
+  if (LETS_GO.has(save.game)) {
+    return LETS_GO.has(now) || now === 'go' || (now === 'home' && (!origin || ANYWHERE.has(origin) || LETS_GO.has(origin)));
+  }
+  if (!linked(save.game)) {
+    const from = GAME_FACTS[now]?.gen;
+    return from !== undefined && !linked(now) && from <= held;
+  }
+  return true;
 }
+
+// the Ultra Beasts, which come as legendaries do (Ultra Space, Max Lair)
+const ULTRA_BEASTS = new Set([793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806]);
+
+// a mon a game can have outside its dexes: a legendary, a mythical or an Ultra Beast, which come by ways a dex doesn't
+// list (Snacksworth, raids, events), so its game's dex not listing it is no sign it's wrong
+export const outsideDexes = (pokemon: Pick<CapturePokemon, 'national_id' | 'legendary_class'>) => Boolean(pokemon.legendary_class) || ULTRA_BEASTS.has(pokemon.national_id);

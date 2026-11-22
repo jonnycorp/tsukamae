@@ -1,4 +1,4 @@
-import { canHold, homeCanSend } from './game-reach';
+import { canMoveTo } from './game-reach';
 import { isDexPlaceId } from './dex-places';
 import { offersChampions } from './champions';
 import { retiredSaves } from './retired-saves';
@@ -76,13 +76,12 @@ export function destinations (saves: GameSave[], champions: boolean, holds: (sav
   ];
 }
 
-// where one mon can be moved, as the move menu (S or L) offers it: the games that can hold it (utils/game-reach; in a
-// HOME dex, only those HOME can send it to, homeCanSend) and aren't retired (My Games' 引退, utils/retired-saves), the one
+// where one mon can be moved, as the move menu (S or L) offers it: the games it can go to from where it is now
+// (utils/game-reach canMoveTo, whatever the dex) that aren't retired (My Games' 引退, utils/retired-saves), the one
 // it's in whatever it is, and Champions while it can go there
 export function placesFor (saves: GameSave[], capture: Capture, homeDex: boolean, inDexes: Place[] = []): Place[] {
   const retired = retiredSaves();
-  const holds = (save: GameSave) => save.id === capture.location_save ||
-    (!retired.has(save.id) && (homeDex ? homeCanSend(save, capture, saves) : canHold(save, capture, saves)));
+  const holds = (save: GameSave) => save.id === capture.location_save || (!retired.has(save.id) && canMoveTo(save, capture, saves));
   const [home, ...rest] = destinations(saves, offersChampions(capture, homeDex), holds);
   return [home, ...inDexes, ...rest];
 }
