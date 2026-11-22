@@ -39,20 +39,20 @@
     box-shadow: 0 1px 0 rgb(255 220 250 / 8%);
   }
 
-  // the meter a slot of glass, its filled length the sunset itself: rose at its start to the sun's gold at the post,
-  // a soft bloom at its head, and the sky's grid faint through the rest
+  // the meter a slot of dark glass, its figure a tag of the same glass lettered in the boxes' chrome. What's marked
+  // is the sunset laid along the whole slot, so a dex early on is lit in the dusk's violet and one near done reaches
+  // the sun's gold; lit inside like a tube, a bright line along its top. Its head a white-hot post whose glow breathes
+  // slowly, the one motion in it, where the dex has got to
   .dex-meter-bar {
-    border: 1px solid rgb(255 220 250 / 18%);
-    border-left: 0;
-    background: rgb(10 4 28 / 55%);
-    box-shadow: inset 0 0 18px rgb(0 0 0 / 45%);
+    border: 1px solid rgb(255 200 245 / 22%);
+    background: linear-gradient(rgb(6 2 20 / 70%), rgb(14 5 36 / 60%));
+    box-shadow: inset 0 0 16px rgb(0 0 0 / 50%);
   }
 
   .dex-meter-fill {
     background:
-      linear-gradient(rgb(255 255 255 / 22%), transparent 40%, rgb(0 0 0 / 12%)),
-      linear-gradient(90deg, #6b1a8c, #e0389e 55%, #ff9a5c 92%, #ffd27a);
-    box-shadow: 8px 0 22px rgb(255 160 90 / 45%);
+      linear-gradient(rgb(255 235 250 / 55%) 0 1px, rgb(255 255 255 / 16%) 1px, transparent 45%, rgb(30 0 50 / 22%)),
+      linear-gradient(90deg, #3d1470, #8a2aa8 25%, #e0389e 55%, #ff7a6a 80%, #ffc46e 96%, #ffe08a) 0 0 / 100cqw 100%;
   }
 
   .dex-meter-water {
@@ -60,16 +60,27 @@
   }
 
   .dex-meter-edge {
-    background-color: #fff3d6;
-    box-shadow: 0 0 10px 2px rgb(255 200 120 / 70%);
+    width: 2px;
+    margin-left: -1px;
+    background-color: #fff6ea;
+    box-shadow: 0 0 4px 1px rgb(255 240 230 / 90%), 0 0 16px 3px rgb(255 120 200 / 55%);
+    animation: meter-edge-in .7s cubic-bezier(.33, 1, .68, 1) both, midnight-head 5s ease-in-out .7s infinite;
   }
 
   .dex-meter-figure {
-    background: linear-gradient(100deg, #2fd9e6, #6ff3ff 60%, #b8fbff);
-    box-shadow: 0 0 24px rgb(111 243 255 / 35%);
+    margin-right: 0;
+    padding: 0 18px;
+    border: 1px solid rgb(255 200 245 / 22%);
+    border-right: 0;
+    background: linear-gradient(rgb(34 12 70 / 92%), rgb(14 5 36 / 92%));
+    clip-path: none;
 
     span {
-      text-shadow: 0 1px 0 rgb(255 255 255 / 40%);
+      background: linear-gradient(180deg, #d9fbff 0%, #8fe9ff 38%, #fdf3ff 52%, #ff8fd9 70%, #ffc2ec 100%);
+      color: transparent;
+      text-shadow: none;
+      background-clip: text;
+      filter: drop-shadow(0 0 8px rgb(255 91 214 / 35%)) drop-shadow(0 2px 0 rgb(40 8 60 / 80%));
     }
   }
 
@@ -97,14 +108,32 @@
     }
   }
 
-  // tiles: what's caught a little lighter in the glass, what's unobtainable deeper, the temporary in the cyan's
-  // shade with its stripes faint
+  // tiles, three states apart by the light in the glass alone, every sprite and mark left as it is: a slot nothing
+  // fills a dark socket sunk in the pane; a mon marked but not yet sealed a frosted pane, lit evenly, a bright edge
+  // along its top; a sealed tile the neon of its place glowing up from its foot (below). Their edges give way to the
+  // selection's ring and the hover's
+  .pokemon:not(.captured, .empty) {
+    background-color: rgb(4 1 14 / 58%);
+
+    &:not([data-selected], :hover) {
+      box-shadow: inset 0 12px 20px -12px rgb(0 0 0 / 80%);
+    }
+  }
+
   .pokemon.captured {
     background-color: rgb(255 255 255 / 3%);
   }
 
   .pokemon.captured.caught {
     background-color: rgb(140 110 255 / 9%);
+  }
+
+  .pokemon.captured.caught:not(.sealed) {
+    background-image: linear-gradient(rgb(255 205 245 / 24%), rgb(205 180 255 / 15%) 55%, rgb(185 155 255 / 12%));
+
+    &:not([data-selected], :hover) {
+      box-shadow: inset 0 1px 0 rgb(255 225 250 / 45%);
+    }
   }
 
   .pokemon.captured.unobtainable {
@@ -161,5 +190,11 @@
 
     display: block;
     background: linear-gradient(to top, transparent, color-mix(in srgb, var(--line-neon) 10%, transparent) 50%, transparent) 0 0 / 100% #{$pokemon-box-size * 4};
+  }
+}
+
+@keyframes midnight-head {
+  50% {
+    box-shadow: 0 0 4px 1px rgb(255 240 230 / 90%), 0 0 24px 6px rgb(255 120 200 / 75%);
   }
 }

@@ -113,6 +113,27 @@
   size-adjust: 95%;
 }
 
+// Midnight: the wide, heavy gothic of an 80s Japanese poster (Dela Gothic One) for its Latin, its numerals and the marks
+// between and after them, a range's dash and wave dash (〜, ～) among them, so a box's range is one face end to end; its
+// kana and kanji in a clean extra-bold gothic (M PLUS 1), whose 図鑑 keep their counters open at a heading's size where
+// Dela's own fill in. Both one weight drawn for every weight asked, so neither is faked bold or slanted
+@font-face {
+  font-family: 'Theme Neon';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/dela-gothic-one.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2010-205E, U+301C, U+FF5E;
+}
+
+@font-face {
+  font-family: 'Theme Neon JA';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/m-plus-1-800.woff2') format('woff2');
+}
+
 // Game Boy: a dot font with kana and kanji (DotGothic16)
 @font-face {
   font-family: 'Theme Dot';

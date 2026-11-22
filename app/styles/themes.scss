@@ -579,6 +579,11 @@ $theme-headings: '.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-na
       font-family: $font-theme-serif;
     }
 
+    [data-face='midnight'] {
+      font-family: $font-theme-neon;
+      font-weight: 400;
+    }
+
     [data-face='game-boy'] {
       font-family: $font-theme-dot;
       font-weight: 400;
@@ -590,6 +595,18 @@ $theme-headings: '.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-na
     font-style: normal;
     font-weight: 400;
     letter-spacing: 0;
+  }
+
+  // Midnight's one face, upright: it draws every weight as its own, and the meter's figure stands straight in it
+  &[data-theme='midnight'] :is(#{$theme-headings}) {
+    font-family: $font-theme-neon;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  &[data-theme='midnight'] .dex-meter-figure span {
+    transform: none;
   }
 
   &[data-theme='pokedex'] :is(.box-header h1, .dex-meter-figure span) {
