@@ -39,73 +39,37 @@
     box-shadow: 0 1px 0 rgb(255 220 250 / 8%);
   }
 
-  // the meter a slot of glass ruled every tenth, the sky's grid in it faint; its filled length the sunset itself, rose
-  // at its start to the sun's gold at its head, cut by the sun's own bands (thin toward its top, wider below) drifting
-  // slowly down through it as the sun's do; its head a white-hot post blooming into the glass. Edged above and below
-  // in the neon, the figure a chrome tag
+  // the meter a slot of glass, its filled length the sunset itself: rose at its start to the sun's gold at the post,
+  // a soft bloom at its head, and the sky's grid faint through the rest
   .dex-meter-bar {
-    border: 0;
-    background:
-      repeating-linear-gradient(90deg, rgb(185 155 255 / 22%) 0 1px, transparent 1px 10%),
-      linear-gradient(rgb(255 255 255 / 4%), transparent 40%, rgb(255 91 214 / 6%)),
-      rgb(10 4 28 / 55%);
-    box-shadow:
-      inset 0 1px 0 rgb(255 91 214 / 55%),
-      inset 0 -1px 0 rgb(185 155 255 / 45%),
-      0 0 18px -4px rgb(255 91 214 / 35%),
-      inset 0 0 18px rgb(0 0 0 / 45%);
+    border: 1px solid rgb(255 220 250 / 18%);
+    border-left: 0;
+    background: rgb(10 4 28 / 55%);
+    box-shadow: inset 0 0 18px rgb(0 0 0 / 45%);
   }
 
   .dex-meter-fill {
     background:
-      linear-gradient(rgb(255 255 255 / 30%), rgb(255 255 255 / 6%) 30%, transparent 46%, rgb(40 0 60 / 18%)),
-      linear-gradient(90deg, #4a1272, #c42a9a 40%, #ff5f8a 70%, #ff9a5c 90%, #ffd27a);
-    box-shadow: 0 0 22px rgb(255 120 140 / 40%);
+      linear-gradient(rgb(255 255 255 / 22%), transparent 40%, rgb(0 0 0 / 12%)),
+      linear-gradient(90deg, #6b1a8c, #e0389e 55%, #ff9a5c 92%, #ffd27a);
+    box-shadow: 8px 0 22px rgb(255 160 90 / 45%);
   }
 
-  // the sun's bands, over the fill alone (the water layer's its length): dark cuts that widen toward the foot
   .dex-meter-water {
-    display: block;
-    background:
-      linear-gradient(
-        to bottom,
-        transparent 0 40%,
-        rgb(30 4 50 / 55%) 40% 43%,
-        transparent 43% 56%,
-        rgb(30 4 50 / 60%) 56% 61%,
-        transparent 61% 73%,
-        rgb(30 4 50 / 65%) 73% 80%,
-        transparent 80% 88%,
-        rgb(30 4 50 / 70%) 88% 97%,
-        transparent 97%
-      ) 0 0 / 100% $meter-height;
-    animation: meter-draw .7s cubic-bezier(.33, 1, .68, 1) both, midnight-bands 9s linear infinite;
-
-    &::before,
-    &::after {
-      display: none;
-    }
-  }
-
-  &[data-still] .dex-meter-water {
-    animation: none;
+    display: none;
   }
 
   .dex-meter-edge {
-    width: 4px;
-    margin-left: -2px;
-    background-color: #fff8e6;
-    box-shadow: 0 0 6px 1px #fff3d6, 0 0 18px 4px rgb(255 190 120 / 70%), 0 0 44px 10px rgb(255 91 214 / 35%);
+    background-color: #fff3d6;
+    box-shadow: 0 0 10px 2px rgb(255 200 120 / 70%);
   }
 
   .dex-meter-figure {
-    background:
-      linear-gradient(180deg, #e9fdff 0%, #9ff3ff 44%, #2fc4d6 50%, #5fe6f2 72%, #c8fbff 100%);
+    background: linear-gradient(100deg, #2fd9e6, #6ff3ff 60%, #b8fbff);
     box-shadow: 0 0 24px rgb(111 243 255 / 35%);
 
     span {
-      color: #12062a;
-      text-shadow: 2px 2px 0 rgb(255 91 214 / 55%);
+      text-shadow: 0 1px 0 rgb(255 255 255 / 40%);
     }
   }
 
@@ -133,21 +97,8 @@
     }
   }
 
-  // tiles, three plainly apart: an empty slot (nothing marked) a hole in the glass, darker than it, its mon a dim grey
-  // ghost; a marked tile not yet sealed held in a lit cyan viewfinder, its four corners neon and the glass in it
-  // faintly cyan, waiting; a sealed tile the neon of its place glowing up from its foot (below)
-  .pokemon:not(.captured, .empty) {
-    background-color: rgb(2 0 10 / 46%);
-
-    .set-captured {
-      opacity: .5;
-    }
-
-    .icon-wrapper i {
-      filter: grayscale(1) brightness(.7);
-    }
-  }
-
+  // tiles: what's caught a little lighter in the glass, what's unobtainable deeper, the temporary in the cyan's
+  // shade with its stripes faint
   .pokemon.captured {
     background-color: rgb(255 255 255 / 3%);
   }
@@ -163,38 +114,6 @@
   .pokemon.captured.temporary {
     background-color: rgb(60 220 230 / 10%);
     background-image: repeating-linear-gradient(45deg, transparent 0 8px, rgb(60 220 230 / 7%) 8px 16px);
-  }
-
-  .pokemon.captured:not(.sealed) {
-    --viewfinder: rgb(111 243 255 / 90%);
-    --viewfinder-glow: inset 0 0 22px rgb(111 243 255 / 14%);
-
-    background-color: rgb(111 243 255 / 8%);
-    background-image:
-      linear-gradient(var(--viewfinder), var(--viewfinder)),
-      linear-gradient(var(--viewfinder), var(--viewfinder)),
-      linear-gradient(var(--viewfinder), var(--viewfinder)),
-      linear-gradient(var(--viewfinder), var(--viewfinder)),
-      linear-gradient(var(--viewfinder), var(--viewfinder)),
-      linear-gradient(var(--viewfinder), var(--viewfinder)),
-      linear-gradient(var(--viewfinder), var(--viewfinder)),
-      linear-gradient(var(--viewfinder), var(--viewfinder));
-    background-position: left 5px top 5px, left 5px top 5px, right 5px top 5px, right 5px top 5px, left 5px bottom 5px, left 5px bottom 5px, right 5px bottom 5px, right 5px bottom 5px;
-    background-repeat: no-repeat;
-    background-size: 14px 2px, 2px 14px, 14px 2px, 2px 14px, 14px 2px, 2px 14px, 14px 2px, 2px 14px;
-    box-shadow: var(--viewfinder-glow);
-
-    &.unobtainable {
-      background-color: rgb(0 0 0 / 28%);
-    }
-
-    &[data-selected] {
-      box-shadow: inset 0 0 0 2px var(--accent), var(--viewfinder-glow);
-    }
-
-    &:hover:not([data-selected]) {
-      box-shadow: inset 0 0 0 1px var(--tile-hover-edge), var(--viewfinder-glow);
-    }
   }
 
   .pokemon.captured.sealed {
@@ -242,11 +161,5 @@
 
     display: block;
     background: linear-gradient(to top, transparent, color-mix(in srgb, var(--line-neon) 10%, transparent) 50%, transparent) 0 0 / 100% #{$pokemon-box-size * 4};
-  }
-}
-
-@keyframes midnight-bands {
-  to {
-    background-position: 0 $meter-height;
   }
 }

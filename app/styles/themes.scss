@@ -579,11 +579,6 @@ $theme-headings: '.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-na
       font-family: $font-theme-serif;
     }
 
-    [data-face='midnight'] {
-      font-family: $font-theme-synth;
-      font-style: italic;
-    }
-
     [data-face='game-boy'] {
       font-family: $font-theme-dot;
       font-weight: 400;
@@ -595,21 +590,6 @@ $theme-headings: '.box-header h1, .dex-meter-figure span, .dex-menu .dex-menu-na
     font-style: normal;
     font-weight: 400;
     letter-spacing: 0;
-  }
-
-  // Midnight: its headings and figures in the outrun italic, its bar's and header's words in the squared face
-  &[data-theme='midnight'] {
-    :is(nav, .dex-search-bar),
-    :is(nav, .dex-search-bar) :is(a, button, input, span, li, h2, h3, label) {
-      font-family: $font-theme-tech;
-    }
-
-    :is(#{$theme-headings}) {
-      font-family: $font-theme-synth;
-      font-style: italic;
-      font-weight: 800;
-      letter-spacing: .5px;
-    }
   }
 
   &[data-theme='pokedex'] :is(.box-header h1, .dex-meter-figure span) {

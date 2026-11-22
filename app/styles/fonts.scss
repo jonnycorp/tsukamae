@@ -122,33 +122,6 @@
   src: url('/fonts/dotgothic16.ttf') format('truetype');
 }
 
-// Midnight: an outrun italic for its headings and figures (Exo 2's italic, its weights one variable font), and a
-// squared technical face for its labels (Chakra Petch, one weight drawn for every weight asked); both Latin alone, the
-// Japanese falling through to the app's own
-@font-face {
-  font-family: 'Theme Synth';
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/exo2-italic-latin.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Theme Synth';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/exo2-italic-latin.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Theme Tech';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/chakra-petch-600-latin.woff2') format('woff2');
-}
-
 // Pokédex: a device's seven-segment numerals (DSEG7 Classic), the digits and their marks alone
 @font-face {
   font-family: 'Theme LCD';
