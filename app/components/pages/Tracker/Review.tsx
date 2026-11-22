@@ -168,10 +168,12 @@ const RunRow = memo(function RunRow ({ capture, toTouch, index, current, dex, on
         onClick={() => onPick(index)}
         type="button"
       >
-        <span className="review-run-mon"><i className={monIcon(capture, dex)} /></span>
+        <span className="review-run-mon">
+          <i className={monIcon(capture, dex)} />
+          {capture.shiny === true && <ShinyMark className="review-run-shiny" />}
+        </span>
         <span className="review-run-number">#{dexNumber(capture.pokemon, dex)}</span>
         <span className="review-run-name"><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></span>
-        {capture.shiny === true && <ShinyMark className="review-run-shiny" />}
         <span className="review-run-mark">{mark}</span>
       </button>
     </li>

@@ -116,9 +116,11 @@ const CELLS: Record<LedgerColumnId, (capture: Capture, ctx: RowContext, state: L
   number: (capture, ctx) => dexNumber(capture.pokemon, ctx.dex),
   name: (capture, ctx) => (
     <>
-      <span className="ledger-icon"><i className={monIcon(capture, ctx.dex)} /></span>
+      <span className="ledger-icon">
+        <i className={monIcon(capture, ctx.dex)} />
+        {capture.shiny === true && <ShinyMark className="ledger-shiny" />}
+      </span>
       <span className="ledger-name"><PokemonName name={capture.pokemon.name} nameJa={capture.pokemon.name_ja} /></span>
-      {capture.shiny === true && <ShinyMark className="ledger-shiny" />}
       {(capture.favorite === 'favorite' || capture.favorite === 'partner') &&
         <FontAwesomeIcon className={`ledger-favorite ${capture.favorite}`} icon={faHeart} title={ctx.t(`favorite.${capture.favorite}`)} />
       }

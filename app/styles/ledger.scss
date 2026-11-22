@@ -212,6 +212,7 @@ $ledger-head: 40px;
 // the sprites are cut to the mon; each sits in a box the height of a row, which the few taller ones stretch rather than
 // spill over the next
 .ledger-icon {
+  position: relative;
   display: flex;
   flex: none;
   align-items: center;
@@ -220,16 +221,19 @@ $ledger-head: 40px;
   min-height: 40px;
 }
 
+// a shiny one's stars in its sprite's corner, as a tile's are in its own: after the name, they'd cut a long one short
+.ledger-shiny {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  font-size: 11px;
+}
+
 .ledger-name,
 .ledger-text {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-// after the name, before the heart
-.ledger-shiny {
-  font-size: 12px;
 }
 
 .ledger-favorite {
