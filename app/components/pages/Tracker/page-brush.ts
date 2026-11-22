@@ -149,9 +149,9 @@ export function usePageBrush (ref: RefObject<HTMLElement>, display: DisplayMode)
     if (!el || pages.length < 2) {
       return undefined;
     }
-    // the name changes only to the nickname, on the trainer's page, and back
-    const trainer = pages.indexOf('trainer');
-    const namesChange = (from: number, to: number) => (from === trainer) !== (to === trainer);
+    // the name changes only to the species' name, on the species page, and back
+    const species = pages.indexOf('species');
+    const namesChange = (from: number, to: number) => (from === species) !== (to === species);
     const marks = new Map<string, Mark>();
     let lines: Line[] = [];
     let timer = 0;

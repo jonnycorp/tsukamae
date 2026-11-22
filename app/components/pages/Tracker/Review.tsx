@@ -644,14 +644,16 @@ export function Review ({ queue: opened, start, onClose }: Props) {
       return <div aria-hidden="true" className="review-slot" data-field={field.id} key={field.id} style={rowStyle} />;
     }
     const waiting = !capture.sealed && missingIds.has(field.id);
-    // a row of the card, held: shown as it'll be sealed, a press anywhere on the card touching all it holds;
-    // the game's row the box itself where the four are (or wait on) a save's
+    // a row of the card, held: shown as it'll be sealed, a press anywhere on the card but its box touching all it
+    // holds; the game's row My Game's box where the four are (or wait on) a save's
     const fused = answering && soft.includes(field.id);
     const boxRow = fused && field.id === 'origin_game';
     // a defaulted field still at the value it was given: a press on its plate confirms it (on the card's, the card's)
-    const touchable = fused ? !boxRow && cardTouch.length > 0 : toTouch.includes(field);
+    const touchable = fused ? cardTouch.length > 0 : toTouch.includes(field);
     let row;
-    if (!capture.captured || (fused && origin.mode === 'empty')) {
+    if (boxRow) {
+      row = <SoftBox capture={capture} mode={origin.mode} onPick={pickSoft} save={origin.save} saves={saves} size="card" />;
+    } else if (!capture.captured || (fused && origin.mode === 'empty')) {
       row = <span className="rv-text blank">—</span>;
     } else if (capture.sealed || fused) {
       row = <><FieldVisual capture={capture} field={field} homeDex={homeDex} saves={saves} /><FieldText capture={capture} field={field} homeDex={homeDex} saves={saves} /></>;
@@ -680,7 +682,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
     }
     return (
       <div
-        className={classNames('review-plate', `field-${field.id}`, { waiting, touchable, fused, 'soft-row': boxRow, done: capture.captured && !missingIds.has(field.id) })}
+        className={classNames('review-plate', `field-${field.id}`, { waiting, touchable, fused, done: capture.captured && !missingIds.has(field.id) })}
         data-field={field.id}
         key={field.id}
         // a press on the plate never opens its menu or takes the caret: only its box does. On a defaulted field
@@ -694,19 +696,15 @@ export function Review ({ queue: opened, start, onClose }: Props) {
           : undefined}
         style={rowStyle}
       >
-        {boxRow
-          ? <SoftBox capture={capture} mode={origin.mode} onPick={pickSoft} save={origin.save} saves={saves} size="card" />
-          : (
-            <span className="review-plate-label">
-              {t(field.labelKey)}
-              {fused && origin.mode !== 'empty' && <span className="review-plate-lock" title={t('review.softLocked')}><FontAwesomeIcon icon={faLock} /></span>}
-            </span>
-          )}
+        <span className="review-plate-label">
+          {t(boxRow ? 'review.fillFromGame' : field.labelKey)}
+          {fused && !boxRow && origin.mode !== 'empty' && <span className="review-plate-lock" title={t('review.softLocked')}><FontAwesomeIcon icon={faLock} /></span>}
+        </span>
         <span className="review-plate-mark">
           {waiting && <FontAwesomeIcon icon={faCircleExclamation} />}
           {!waiting && !capture.sealed && capture.captured && <FontAwesomeIcon icon={faCheck} />}
         </span>
-        {!boxRow && <div className="review-plate-row">{row}</div>}
+        <div className="review-plate-row">{row}</div>
       </div>
     );
   };

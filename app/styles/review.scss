@@ -115,8 +115,6 @@ $wire: 30px;
   }
 }
 
-// Ink's: a stroke of the brush across each plate, drying as the value shows under it
-
 @keyframes review-hold {
   to {
     transform: none;
@@ -1341,10 +1339,10 @@ $wire: 30px;
 // ---- the cartridge: on a record still open, the four the game's plate starts (game, language, OT, ID
 // No.) held as one card where they're one of your saves', the card drawn behind their four plates, which stand where
 // they always do (so nothing moves as it's sealed) without frames of their own, their wires kept. Its spine down the
-// outer edge in the save's box-art colour; its first row My Game's box, the whole row, the one way the four change; the
-// other three as they'll be sealed, each with a lock after its name. A press anywhere on it but the box touches all it
-// holds. A HOME gift's card holds the trainer alone (the game's row its own picker, My Game at its end); a record with
-// none of the four yet is the card waiting on its box, dashed in the accent
+// outer edge in the save's box-art colour; its first row My Game, the game's chip and its box, the one way the four
+// change; the other three as they'll be sealed, each with a lock after its name. A press anywhere on it but the box
+// touches all it holds. A HOME gift's card holds the trainer alone (the game's row its own picker, My Game at its
+// end); a record with none of the four yet is the card waiting on its box, dashed in the accent
 .review-cartridge {
   --spine: 6px;
   --pitch: calc(var(--plate-h) + var(--plate-gap));
@@ -1403,8 +1401,44 @@ $wire: 30px;
   vertical-align: 1px;
 }
 
-// My Game: a box in both passes (the values pass's bare rule set aside), only it opening its menu
-.rv-soft {
+// My Game on the card's first row: the game's chip and its box as any menu's field has, the box edged in the save's
+// colour as the card's spine is
+.rv-soft.card {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+
+  > .dropdown {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .rv-box {
+    border-color: color-mix(in oklab, var(--rv-game, var(--field-edge)) 80%, var(--field-edge));
+  }
+
+  // none of the four yet: the box the next thing to press
+  &.mode-empty .rv-box {
+    border-color: var(--accent);
+
+    .rv-text {
+      color: var(--accent);
+      font-weight: 700;
+    }
+  }
+
+  .rv-box[aria-expanded='true'] {
+    border-color: var(--field-focus);
+  }
+}
+
+// at the end of the game's row: a HOME gift's (its trainer HOME's), a record by hand
+.rv-soft.compact {
+  flex: none;
+  height: var(--vis);
+
   .dropdown {
     height: 100%;
   }
@@ -1412,6 +1446,7 @@ $wire: 30px;
   .rv-soft-box {
     min-width: 0;
     height: 100%;
+    padding: 0 8px 0 6px;
     border: 2px solid var(--field-edge);
     background-color: var(--paper-raised);
     color: var(--ink);
@@ -1430,90 +1465,12 @@ $wire: 30px;
   .dropdown-chevron {
     font-size: 11px;
   }
-}
-
-.rv-soft-face {
-  min-width: 0;
-}
-
-// the card's first row, the whole row one box: its name where the plate's is, the game's chip and name where the game's
-// plate has its own, the chevron down its side
-.review-plate.soft-row {
-  padding: 0;
-}
-
-.rv-soft.card {
-  position: absolute;
-  inset: 3px 3px 3px 9px;
-
-  // the cartridge's label: edged in the save's colour, as its spine is
-  .rv-soft-box {
-    width: 100%;
-    padding: 2px 12px 3px 2px;
-    border-color: color-mix(in oklab, var(--rv-game, var(--field-edge)) 80%, var(--field-edge));
-  }
-
-  .rv-soft-value .rv-text {
-    font-weight: 700;
-  }
-
-  .rv-soft-face {
-    display: grid;
-    flex: 1;
-    grid-template-rows: 14px minmax(0, 1fr);
-    row-gap: 4px;
-    align-self: stretch;
-    padding-top: 2px;
-  }
-
-  .rv-soft-value {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  .dropdown-chevron {
-    align-self: center;
-    margin-top: 18px;
-    opacity: .8;
-  }
-
-  // none of the four yet: the box the next thing to press
-  &.mode-empty .rv-soft-box {
-    border-color: var(--accent);
-
-    .rv-text {
-      color: var(--accent);
-      font-weight: 700;
-    }
-  }
-}
-
-.rv-soft-label {
-  @include caps-label(11px);
-
-  overflow: hidden;
-  padding-right: 20px;
-  color: var(--ink-muted);
-  line-height: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-// at the end of the game's row: a HOME gift's (its trainer HOME's), a record by hand
-.rv-soft.compact {
-  flex: none;
-  height: var(--vis);
-
-  .rv-soft-box {
-    padding: 0 8px 0 6px;
-  }
 
   .rv-soft-face {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
 
     --vis: 22px;
   }
@@ -1525,8 +1482,7 @@ $wire: 30px;
   }
 }
 
-// ---- the pickers: a picture before each option; in the values pass a grid, the balls and the natures as the games
-// lay them out
+// ---- the pickers: a picture before each option, in a grid, the balls and the natures as the games lay them out
 .rv-menu {
   --vis: 24px;
   --ball-zoom: 1.15;
@@ -1784,24 +1740,6 @@ $wire: 30px;
   }
 
   .review-plate-label {
-    line-height: 13px;
-  }
-
-  .rv-soft.card {
-    inset: 3px 3px 3px 8px;
-
-    .rv-soft-face {
-      grid-template-rows: 13px minmax(0, 1fr);
-      row-gap: 3px;
-      padding-top: 1px;
-    }
-
-    .dropdown-chevron {
-      margin-top: 14px;
-    }
-  }
-
-  .rv-soft-label {
     line-height: 13px;
   }
 

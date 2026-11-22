@@ -36,29 +36,25 @@ export interface FlipPick {
   to: number;
 }
 
-// where the name stands on a face as a slide leaves it: its first face, its nickname for the trainer's page alone, the
-// copy of its name after it
-function nameRest (pages: FacePage[], face: number): string {
-  const trainer = pages.indexOf('trainer');
-  return up(face === trainer ? 'var(--flip-face)' : face > trainer ? 'calc(2 * var(--flip-face))' : '0px');
+const at = (face: number) => `calc(${face} * var(--flip-face))`;
+
+// the name's face on a page, its strip being the nickname, the species' name and the nickname again: the nickname
+// till the species page, the species' name on it, the copy of the nickname after it (and for the lower block's copy of
+// the first page)
+function nameFace (pages: FacePage[], page: number): number {
+  const species = pages.indexOf('species');
+  return species < 0 || page < species ? 0 : page === species ? 1 : 2;
 }
 
 // a strip's slide between two held faces, a single move either way (styles/tile-faces.scss places its rests): the
-// lower block a page apart, wrapping between its last page and its first through its copy of the first; the name to
-// or from the trainer's page alone
+// lower block a page apart, wrapping between its last page and its first through its copy of the first; the name onto
+// the species page or off it alone, wrapping alike
 function slide (pages: FacePage[], from: number, to: number, lower: boolean): [string, string] | null {
-  if (lower) {
-    const n = pages.length;
-    const at = (face: number) => `calc(${face} * var(--flip-face))`;
-    const a = from === 0 && to === n - 1 ? at(n) : at(from);
-    const b = from === n - 1 && to === 0 ? at(n) : at(to);
-    return [up(a), up(b)];
-  }
-  const trainer = pages.indexOf('trainer');
-  if (from !== trainer && to !== trainer) {
-    return null;
-  }
-  return [nameRest(pages, from), nameRest(pages, to)];
+  const n = pages.length;
+  const a = from === 0 && to === n - 1 ? n : from;
+  const b = from === n - 1 && to === 0 ? n : to;
+  const [x, y] = lower ? [a, b] : [nameFace(pages, a), nameFace(pages, b)];
+  return x === y ? null : [up(at(x)), up(at(y))];
 }
 
 interface Held {
@@ -117,19 +113,20 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
 
   // every strip's slide from one held face to another (or its brushed change), kept so the next pick or a resume can
   // cancel it
-  // standing: where a strip stood in a slide still under way, which it goes on from rather than its rest. A name this
-  // pick doesn't move, caught mid-slide (between two pages that both show it), goes on to where it was going, the face
-  // it was held on: a slide of its own begun with the rest, as the old one, left running, would run on through the
-  // pick's own work (about half a second offscreen, in a full dex) and be at its end by the next frame
-  const playSlides = (from: number, to: number, standing?: Map<Element, string>) => {
+  // standing: where a strip stood in a slide still under way and where that slide was going. It goes on from there
+  // rather than from its rest, and a name this pick doesn't move, caught mid-slide, goes on to where it was going: a
+  // slide of its own begun with the rest, as the old one, left running, would run on through the pick's own work (about
+  // half a second offscreen, in a full dex) and be at its end by the next frame
+  const playSlides = (from: number, to: number, standing?: Map<Element, [string, string]>) => {
     const brush = brushed();
     for (const strip of el.querySelectorAll<HTMLElement>('.flip-strip')) {
       const lower = Boolean(strip.closest('.flip-lower'));
-      const path = slide(pages(), from, to, lower) ?? (!lower && standing?.has(strip) ? [standing.get(strip)!, nameRest(pages(), from)] : null);
+      const stand = standing?.get(strip);
+      const path = slide(pages(), from, to, lower) ?? (!lower && stand ? stand : null);
       if (path) {
         slides.push(brush
           ? strip.animate(brushFrames(path[0], path[1]), { duration: SLIDE_MS })
-          : strip.animate([{ transform: standing?.get(strip) ?? path[0] }, { transform: path[1] }], { duration: SLIDE_MS, easing: 'ease-in-out' }));
+          : strip.animate([{ transform: stand?.[0] ?? path[0] }, { transform: path[1] }], { duration: SLIDE_MS, easing: 'ease-in-out' }));
       }
     }
     if (brush) {
@@ -198,12 +195,13 @@ function createFlipClock (el: HTMLElement, still: () => boolean, pages: () => Fa
       }
       // a pick's slide still under way: each strip goes on from where it stands, not back from the face it was
       // sliding to (a brushed change has no place between two faces to go on from)
-      const standing = new Map<Element, string>();
+      const standing = new Map<Element, [string, string]>();
       if (!brushed()) {
         for (const animation of slides) {
-          const strip = animation.playState === 'running' && animation.effect instanceof KeyframeEffect ? animation.effect.target : null;
-          if (strip) {
-            standing.set(strip, getComputedStyle(strip).transform);
+          const effect = animation.effect;
+          if (animation.playState === 'running' && effect instanceof KeyframeEffect && effect.target) {
+            const frames = effect.getKeyframes();
+            standing.set(effect.target, [getComputedStyle(effect.target).transform, String(frames[frames.length - 1].transform)]);
           }
         }
       }

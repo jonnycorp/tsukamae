@@ -42,9 +42,9 @@ const ORIGIN_MARK_SPRITES: Record<string, string> = {
   go: 'go',
 };
 
-// a sealed tile's name gives way to its nickname, flipping to it for Hexagon's trainer's page and shown in its place in
-// Orbit, as its number line and badges show the display mode's pages (face-pages) on every sealed tile; FlipStrips draws
-// them, and the tile leaves their space empty
+// a sealed tile's name gives way to its nickname: Hexagon's record and trainer's pages show it, flipping to the
+// species' name for its species page, and Orbit shows it in its place, as its number line and badges show the display
+// mode's pages (face-pages) on every sealed tile; FlipStrips draws them, and the tile leaves their space empty
 export function flipsName (capture: Capture): boolean {
   return Boolean(capture.has_nickname && capture.nickname);
 }

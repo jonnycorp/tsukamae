@@ -73,7 +73,7 @@ export const FlipStrips = memo(function FlipStrips ({ grids, columns = BOX_COLUM
   // the mode's pages, with the first again at the end for the strip to wrap onto; a lone page (Orbit's hub) stands still
   const pages = DISPLAY_PAGES[display];
   const strip = pages.length > 1 ? [...pages, pages[0]] : pages;
-  const trainer = pages.includes('trainer');
+  const species = pages.includes('species');
   // Orbit's hub: each row's moons by their slot, every tile's moon in a slot circling as one group (a copy behind the
   // balls and one before them), so a row costs two moving layers a slot however many tiles it has
   const hub = pages.includes('hub');
@@ -100,14 +100,15 @@ export const FlipStrips = memo(function FlipStrips ({ grids, columns = BOX_COLUM
     if (!isDisplaySealed(capture, false)) {
       return;
     }
-    // the name flips to the nickname for the trainer's page, or shows the nickname steadily in a mode without one
-    // (Orbit), the tile leaving its line to the strip either way; the lower block goes a page at a time
+    // the nickname on the record's pages, flipping to the species' name for the species page and back, or shown
+    // steadily in a mode without one (Orbit), the tile leaving its line to the strip either way; the lower block goes
+    // a page at a time
     if (flipsName(capture)) {
-      add('names', grid, index, trainer
+      add('names', grid, index, species
         ? <>
-          <SpeciesLine capture={capture} />
           <NicknameLine capture={capture} />
           <SpeciesLine capture={capture} />
+          <NicknameLine capture={capture} />
         </>
         : <NicknameLine capture={capture} />);
     }

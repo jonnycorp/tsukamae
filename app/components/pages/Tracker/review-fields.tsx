@@ -511,9 +511,10 @@ export function FieldControl ({ field, capture, saves, homeDex, canVisitChampion
 // change while they're its. A pick of one of your saves fills the game, the language, the OT and the ID No. at once (the
 // ID No., large in its row, the sign it took); a HOME entry fills its trainer alone, the game the mark's, kept where the
 // record has one and asked where it hasn't; Not my game clears what a save filled and leaves the four to the hand. Drawn
-// as the card's first row, the whole row one box, where the four are (or wait on) a save's; where the game's picked apart
-// (a HOME gift, a record by hand), a box at the end of the game's row. Its grid ticks the save the record's four are (or the
-// HOME entry its trainer is)
+// as the card's first row where the four are (or wait on) a save's, the game's chip and a box as any menu's field has, a
+// press on the row beside it touching the card as a plate's does; where the game's picked apart (a HOME gift, a record by
+// hand), a box at the end of the game's row. Its grid ticks the save the record's four are (or the HOME entry its trainer
+// is)
 
 interface SoftProps {
   capture: Capture;
@@ -547,10 +548,12 @@ export function SoftBox ({ capture, saves, mode, save, size, onPick }: SoftProps
       onPick({ origin_game: entry.game, language: entry.language, ot: entry.ot, tid: entry.tid ?? null }, MY_GAME_IDS, false);
     }
   };
+  const gameName = (id: string) => localizeOriginGame(locale, id, ORIGIN_GAME_NAMES.get(id) ?? id);
   const game = save?.game ?? null;
-  const name = game ? localizeOriginGame(locale, game, ORIGIN_GAME_NAMES.get(game) ?? game) : null;
+  const name = game ? gameName(game) : null;
   return (
     <div className={classNames('rv-soft', size, `mode-${mode}`)} style={game ? { '--rv-game': gameColor(game) } as CSSProperties : undefined}>
+      {size === 'card' && <GameChip game={game} />}
       <Dropdown
         align={size === 'card' ? 'start' : 'end'}
         columns={3}
@@ -569,7 +572,7 @@ export function SoftBox ({ capture, saves, mode, save, size, onPick }: SoftProps
               <GameChip game={entry.game} />
               <span className="rv-save">
                 <span className="rv-save-game">
-                  {localizeOriginGame(locale, entry.game, ORIGIN_GAME_NAMES.get(entry.game) ?? entry.game)}
+                  {gameName(entry.game)}
                   <LangTag language={entry.language} />
                 </span>
                 <span className="rv-save-trainer">{entry.ot}{entry.tid ? ` · ${entry.tid}` : ''}</span>
@@ -578,23 +581,14 @@ export function SoftBox ({ capture, saves, mode, save, size, onPick }: SoftProps
           );
         }}
         renderValue={() => (size === 'card'
-          // the row it stands in: its name over the game's chip and name, where the game's plate has its own
-          ? (
-            <span className="rv-soft-face">
-              <span className="rv-soft-label">{t('review.fillFromGame')}</span>
-              <span className="rv-soft-value">
-                <GameChip game={game} />
-                <span className={classNames('rv-text', { blank: !name })}>{name ?? t('review.softPick')}</span>
-              </span>
-            </span>
-          )
+          ? <BoxText blank={!name} shown={name ?? t('review.softPick')} sizes={[t('review.softPick'), ...new Set(saves.map((entry) => gameName(entry.game)))]} />
           : (
             <span className="rv-soft-face">
               {game ? <GameChip game={game} /> : <FontAwesomeIcon icon={faFileImport} />}
               <span className="rv-soft-name">{name ?? t('review.fillFromGame')}</span>
             </span>
           ))}
-        triggerClassName="rv-soft-box"
+        triggerClassName={size === 'card' ? 'rv-box' : 'rv-soft-box'}
         value={current}
       />
     </div>
