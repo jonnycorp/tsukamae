@@ -108,14 +108,11 @@
     }
   }
 
-  // tiles: a slot nothing fills a dark socket sunk in the pane, so what's marked stands apart from it in the same glass
-  // as the sealed, a little lighter; a sealed tile told by the neon of its place glowing up from its foot (below)
+  // tiles: a slot nothing fills a dark socket in the pane, near black so neither the sun nor the floor shows through
+  // it, and whatever's marked stands out of it in the lit glass; a sealed tile told by the neon of its place glowing up
+  // from its foot (below)
   .pokemon:not(.captured, .empty) {
-    background-color: rgb(4 1 14 / 58%);
-
-    &:not([data-selected], :hover) {
-      box-shadow: inset 0 12px 20px -12px rgb(0 0 0 / 80%);
-    }
+    background-color: rgb(3 1 12 / 88%);
   }
 
   .pokemon.captured {
@@ -127,7 +124,7 @@
   }
 
   .pokemon.captured.caught:not(.sealed) {
-    background-color: rgb(150 120 255 / 13%);
+    background-color: rgb(150 120 255 / 16%);
   }
 
   .pokemon.captured.unobtainable {

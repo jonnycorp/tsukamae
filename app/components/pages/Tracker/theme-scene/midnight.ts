@@ -3,7 +3,7 @@ import { shaderScene } from './scene';
 
 import type { SceneMaker } from './scene';
 
-// Midnight's night: a sky from indigo down to the sunset, stars, a striped sun low over the horizon, wireframe
+// Midnight's night: a sky from indigo down to the sunset, stars, a striped sun low over the horizon, low-poly
 // mountains either side of it, and a neon grid floor running slowly toward you into a haze. Every colour
 // dithered, so the long gradients never band
 const FRAGMENT = `
@@ -19,8 +19,8 @@ void main () {
 
   // the sky
   float sy = clamp((uv.y - horizon) / (1.0 - horizon), 0.0, 1.0);
-  vec3 top = vec3(0.025, 0.012, 0.075);
-  vec3 mid = vec3(0.13, 0.035, 0.24);
+  vec3 top = vec3(0.018, 0.016, 0.085);
+  vec3 mid = vec3(0.09, 0.04, 0.26);
   vec3 low = vec3(0.62, 0.12, 0.42);
   vec3 sky = mix(low, mid, smoothstep(0.0, 0.35, sy));
   sky = mix(sky, top, smoothstep(0.3, 1.0, sy));
@@ -53,7 +53,7 @@ void main () {
   col += sunCol * exp(-max(sd - sr, 0.0) * 9.0) * 0.32;
   col = mix(col, sunCol, disc);
 
-  // the wireframe mountains either side of the sun (midnight-mountains.ts), painted once a size; the sun's light
+  // the low-poly mountains either side of the sun (midnight-mountains.ts), painted once a size; the sun's light
   // faint on the faces nearest it
   vec4 range = texture2D(u_paint, px / u_res);
   vec3 lit = range.rgb + sunCol * exp(-abs(uv.x) * 3.5) * 0.05;
@@ -68,14 +68,15 @@ void main () {
     float drift = sin(t * 0.045) * 0.35 + sin(t * 0.017 + 1.3) * 0.2;
     float wx = (uv.x * z + drift) * 7.0;
     float wz = z;
-    // each line's distance in screen pixels, for a crisp core and a soft glow round it
-    float dx = (0.5 - abs(fract(wx) - 0.5)) * h / (z * 7.0 * u_dpr);
+    // each line's distance in screen pixels, measured across it, for a crisp core and a soft glow round it: the lines
+    // running toward you lie ever flatter out to the sides, and measured only sideways they'd break into dashes there
+    float dx = (0.5 - abs(fract(wx) - 0.5)) * h / (z * 7.0 * u_dpr * sqrt(1.0 + uv.x * uv.x / (y * y)));
     float dz = (0.5 - abs(fract(wz) - 0.5)) * h * y * y / (0.09 * u_dpr);
     float d = min(dx, dz);
     float grid = smoothstep(1.3, 0.2, d) + exp(-d / 3.5) * 0.35;
     float fog = smoothstep(0.0, 0.11, y);
     vec3 floorCol = mix(vec3(0.2, 0.04, 0.24), vec3(0.03, 0.01, 0.07), smoothstep(0.0, 0.25, y));
-    vec3 line = mix(vec3(1.0, 0.3, 0.85), vec3(0.45, 0.85, 1.0), smoothstep(0.08, 0.3, y));
+    vec3 line = mix(vec3(1.0, 0.3, 0.85), vec3(0.4, 0.58, 1.0), smoothstep(0.08, 0.3, y));
     col = floorCol + line * grid * fog * 0.85;
     // the sun's light on the floor, a long soft streak under it
     col += sunCol * exp(-abs(uv.x) * 9.0) * exp(-y * 9.0) * 0.28;
