@@ -42,8 +42,8 @@ vec2 shown (vec2 p) {
 // the far shore, where the water meets the rocks and lanterns along it: the line their reflections mirror about
 float shore (float x) { return 0.548 + 0.17 * (x - 0.52) * (x - 0.52); }
 
-// how far the wind has carried things by t: half a unit a second on average, faster in a gust, never back
-float carried (float t) { return t * 0.5 + 4.4 * noise(vec2(t * 0.06, 3.0)); }
+// how far the wind has carried things by t: 0.3 of a unit a second on average, faster in a gust, never back
+float carried (float t) { return t * 0.3 + 2.65 * noise(vec2(t * 0.06, 3.0)); }
 
 // one light across the painting (centred at cx, as wide as w): how bright it burns now, a little under full as a flame
 // gutters (by up to amp), weighted by how near x is to it
@@ -176,7 +176,7 @@ float sheet (sampler2D s, vec2 q, float lod) {
 // a row of plumes rising off the water where it lies at yb on the painting, in perspective (tall: how tall they grow,
 // in eye heights), the row carried as far as the wind has carried things (drift): each born at its own place and time,
 // lifting and swelling as it rises, its top leaning downwind (wind: how hard it blows now) and its steam curling,
-// thinning away after 12–20 s. d: a pixel's height on the painting. At ip, the steam's density
+// thinning away after 18–28 s. d: a pixel's height on the painting. At ip, the steam's density
 float plumes (vec2 ip, float yb, float tall, float seed, float t, float drift, float wind, float d) {
   float h = (yb - HORIZON) * tall;
   float w = h * 0.8;
@@ -188,18 +188,18 @@ float plumes (vec2 ip, float yb, float tall, float seed, float t, float drift, f
   // the plumes whose places are near enough to reach here, as far as one leaning downwind
   for (int i = -2; i <= 1; i++) {
     float c = c0 + float(i);
-    float life = 12.0 + 8.0 * hash(vec2(c, seed));
+    float life = 18.0 + 10.0 * hash(vec2(c, seed));
     float clock = t / life + hash(vec2(c, seed + 1.0));
     float f = fract(clock);
     // this life's own draw: where in its place it stands and what part of the sheet it shows
     float g = hash(vec2(c + floor(clock) * 7.31, seed + 2.0));
-    float ly = (yb - ip.y) / (h * mix(0.6, 1.25, f)) - f * 0.3;
+    float ly = (yb - ip.y) / (h * mix(0.7, 1.15, f)) - f * 0.18;
     float lx = (x - (c + 0.5 + (g - 0.5) * 0.4) * gap) / (w * mix(0.85, 1.2, f));
     lx -= wind * 0.35 * ly * ly;
     // eddies rising through it
-    vec2 eddy = vec2(noise(vec2(ly * 2.5 - t * 0.5, g * 17.0)), noise(vec2(lx * 2.5 + g * 5.0, ly * 2.0 - t * 0.45))) - 0.5;
+    vec2 eddy = vec2(noise(vec2(ly * 2.5 - t * 0.16, g * 17.0)), noise(vec2(lx * 2.5 + g * 5.0, ly * 2.0 - t * 0.14))) - 0.5;
     lx += eddy.x * 0.25 * ly;
-    ly += eddy.y * 0.1;
+    ly += eddy.y * 0.06;
     float s = sheet(u_picture4, vec2(0.15 + 0.7 * g + lx * 0.45, ly * 0.9), lod);
     float env = smoothstep(0.52, 0.2, abs(lx)) * smoothstep(-0.05, 0.15, ly) * smoothstep(1.0, 0.5, ly);
     acc += s * env * smoothstep(0.0, 0.3, f) * smoothstep(1.0, 0.6, f);
@@ -221,7 +221,7 @@ float band (sampler2D s, vec2 ip, float yb, float tall, float wide, float period
   for (int k = 0; k < 2; k++) {
     float clock = t / period + float(k) * 0.5 + lag;
     float ph = fract(clock);
-    vec2 q = vec2(x + hash(vec2(floor(clock), seed + float(k))) * 3.0, y - (ph - 0.5) * 0.3);
+    vec2 q = vec2(x + hash(vec2(floor(clock), seed + float(k))) * 3.0, y - (ph - 0.5) * 0.18);
     acc += sheet(s, q, lod) * (1.0 - abs(ph * 2.0 - 1.0));
   }
   return acc * smoothstep(-0.08, 0.1, y) * smoothstep(1.0, 0.6, y);
@@ -305,10 +305,10 @@ void main () {
   vec3 warm = vec3(1.0, 0.72, 0.42);
   vec3 vapour = vec3(0.42, 0.47, 0.56) + warm * glow * 0.9 * flame + light * 0.5;
   float edge = shore(ip.x) + 0.012;
-  float far = band(u_picture3, ip, edge, 0.9, 2.0, 16.0, 1.0, t, drift, d) * 0.45 * before(contact, edge, 0.04)
+  float far = band(u_picture3, ip, edge, 0.9, 2.0, 22.0, 1.0, t, drift, d) * 0.45 * before(contact, edge, 0.04)
     + plumes(ip, 0.615, 1.3, 2.0, t, drift, wind, d) * 0.6 * before(contact, 0.615, 0.03)
     + plumes(ip, 0.69, 1.6, 3.0, t, drift, wind, d) * 1.3 * before(contact, 0.69, 0.015)
-    + band(u_picture5, ip, 0.78, 1.4, 1.5, 18.0, 4.0, t, drift, d) * 0.3 * before(contact, 0.78, 0.015);
+    + band(u_picture5, ip, 0.78, 1.4, 1.5, 24.0, 4.0, t, drift, d) * 0.3 * before(contact, 0.78, 0.015);
   col = mix(col, vapour, 1.0 - exp(-far * 1.2));
 
   // the snow among it all, lit warm near a light: far flakes landing by the far shore, near ones past the window
@@ -322,7 +322,7 @@ void main () {
 
   // and the nearest steam, thin, before everything
   float near = plumes(ip, 0.86, 1.2, 5.0, t, drift, wind, d) * 0.35 * before(contact, 0.86, 0.015)
-    + band(u_picture5, ip, 1.15, 0.8, 1.6, 22.0, 6.0, t, drift, d) * 0.3;
+    + band(u_picture5, ip, 1.15, 0.8, 1.6, 28.0, 6.0, t, drift, d) * 0.3;
   col = mix(col, vapour, 1.0 - exp(-near * 1.2));
 
   gl_FragColor = vec4(col, 1.0);
