@@ -12,10 +12,14 @@ export interface Scene {
 export type SceneMaker = (back: HTMLCanvasElement) => Scene;
 
 // a picture a scene is drawn over, fitted to cover the window as CSS's background-size: cover does, held at `anchor`
-// (its point kept in view as the window's shape crops it, 0–1 across and down)
+// (its point kept in view as the window's shape crops it, 0–1 across and down); or, fit 'texture', a texture the
+// shader samples by its own 0–1 coordinates (a sheet of steam): taken in once, whole, at a power of two near its own
+// size and mipmapped, so it's filtered smoothly however small it's drawn (read with texture2DLodEXT, at a level the
+// shader works out, where its coordinates jump from pixel to pixel)
 export interface ScenePicture {
   src: string;
   anchor?: [number, number];
+  fit?: 'cover' | 'texture';
 }
 
 // the part of a picture iw × ih that covers a window w × h, held at its anchor: its left, top, width and height
@@ -30,8 +34,8 @@ function cover (iw: number, ih: number, w: number, h: number, [ax, ay]: [number,
 // pixel ratio (u_dpr). A scene whose world mostly holds still can hand its still part over as a second shader (still):
 // drawn once a size, into a texture its main shader reads as u_still, so each frame only works out what moves. A scene
 // over pictures has each resampled by the browser to the window's own pixels once a size (crisper than the GPU's
-// filtering) and read as u_picture0, u_picture1…, at gl_FragCoord.xy / u_res; u_crop maps that onto the first
-// picture's own 0–1 coordinates (top down) and u_loaded is 1 once they're all in, 0 before
+// filtering) and read as u_picture0, u_picture1…, at gl_FragCoord.xy / u_res (a texture at its own coordinates); u_crop
+// maps that onto the first picture's own 0–1 coordinates (top down) and u_loaded is 1 once they're all in, 0 before
 // drawn into a 2D canvas the window's device size once a size, for the shader to read as u_paint at gl_FragCoord.xy /
 // u_res: what's crisper stroked by the browser than worked out per pixel (straight lines, a mesh)
 export type ScenePaint = (ctx: CanvasRenderingContext2D, width: number, height: number, dpr: number) => void;
@@ -51,10 +55,12 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
     return shader;
   };
   const vertex = compile(gl.VERTEX_SHADER, 'attribute vec2 p; void main () { gl_Position = vec4(p, 0.0, 1.0); }');
+  // a shader that picks its own level of a texture's mipmaps
+  const lod = fragment.includes('texture2DLodEXT') && !!gl.getExtension('EXT_shader_texture_lod');
   const link = (src: string) => {
     const program = gl.createProgram()!;
     gl.attachShader(program, vertex);
-    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, `precision highp float;\nuniform vec2 u_res;\nuniform float u_time;\nuniform float u_dpr;\nuniform sampler2D u_still;\n${pictures.map((_, i) => `uniform sampler2D u_picture${i};\n`).join('')}${paint ? 'uniform sampler2D u_paint;\n' : ''}uniform vec4 u_crop;\nuniform float u_loaded;\n${src}`));
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, `${lod ? '#extension GL_EXT_shader_texture_lod : enable\n' : ''}precision highp float;\nuniform vec2 u_res;\nuniform float u_time;\nuniform float u_dpr;\nuniform sampler2D u_still;\n${pictures.map((_, i) => `uniform sampler2D u_picture${i};\n`).join('')}${paint ? 'uniform sampler2D u_paint;\n' : ''}uniform vec4 u_crop;\nuniform float u_loaded;\n${src}`));
     gl.bindAttribLocation(program, 0, 'p');
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -107,6 +113,39 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
   const textures = pictures.map(() => gl.createTexture());
   let loaded = false;
   let disposed = false;
+  // a picture, drawn to the size it's to be, into its unit (one past the still part's)
+  const upload = (i: number, source: HTMLCanvasElement, mipmapped: boolean) => {
+    gl.activeTexture(gl.TEXTURE1 + i);
+    gl.bindTexture(gl.TEXTURE_2D, textures[i]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    if (mipmapped) {
+      gl.generateMipmap(gl.TEXTURE_2D);
+    }
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mipmapped ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.uniform1i(gl.getUniformLocation(program, `u_picture${i}`), 1 + i);
+  };
+  // the textures, once they're in: each at the power of two nearest its own size
+  const takeTextures = () => {
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    images.forEach((image, i) => {
+      if (pictures[i].fit !== 'texture') {
+        return;
+      }
+      const scratch = document.createElement('canvas');
+      scratch.width = 2 ** Math.round(Math.log2(image.naturalWidth));
+      scratch.height = 2 ** Math.round(Math.log2(image.naturalHeight));
+      const ctx = scratch.getContext('2d')!;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(image, 0, 0, scratch.width, scratch.height);
+      upload(i, scratch, true);
+    });
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.activeTexture(gl.TEXTURE0);
+  };
+  // the pictures fitted to the window, at its size
   const fitPictures = () => {
     if (!loaded || disposed) {
       return;
@@ -120,19 +159,15 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
     ctx.imageSmoothingQuality = 'high';
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     images.forEach((image, i) => {
-      const [sx, sy, sw, sh] = cover(image.naturalWidth, image.naturalHeight, w, h, pictures[i].anchor ?? [0.5, 0.5]);
+      if (pictures[i].fit === 'texture') {
+        return;
+      }
+      const { naturalWidth: iw, naturalHeight: ih } = image;
+      const [sx, sy, sw, sh] = cover(iw, ih, w, h, pictures[i].anchor ?? [0.5, 0.5]);
       ctx.clearRect(0, 0, w, h);
       ctx.drawImage(image, sx, sy, sw, sh, 0, 0, w, h);
-      gl.activeTexture(gl.TEXTURE1 + i);
-      gl.bindTexture(gl.TEXTURE_2D, textures[i]);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, scratch);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.uniform1i(gl.getUniformLocation(program, `u_picture${i}`), 1 + i);
+      upload(i, scratch, false);
       if (i === 0) {
-        const { naturalWidth: iw, naturalHeight: ih } = image;
         gl.uniform4f(gl.getUniformLocation(program, 'u_crop'), sx / iw, sy / ih, sw / iw, sh / ih);
       }
     });
@@ -145,8 +180,12 @@ export function shaderScene (canvas: HTMLCanvasElement, fragment: string, still?
       image.src = pictures[i].src;
       return image.decode();
     })).then(() => {
+      if (disposed) {
+        return;
+      }
       loaded = true;
       gl.useProgram(program);
+      takeTextures();
       fitPictures();
     })
     : undefined;
