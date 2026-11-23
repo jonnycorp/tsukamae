@@ -150,6 +150,9 @@ export interface PersonalDex {
   entries?: FreeEntry[];
   // its boxes' order open to arrange (utils/free-dex); locked when absent
   boxesOpen?: boolean;
+  // the form each of its marked mons is shown as, by record key, where one's been kept (utils/looks): a choice of
+  // display beside the records, not in them, so a sealed mon's can still change; it goes when its record does
+  looks?: Record<string, string>;
 }
 
 export interface AppState {
@@ -220,6 +223,15 @@ function normalizeState (raw: unknown): { state: AppState; dropped: boolean } {
     for (const [id, entry] of Object.entries(dex.progress)) {
       if (!isObject(entry) || !isKnownStatus(entry.status)) {
         delete dex.progress[id];
+        dropped = true;
+      }
+    }
+    // a look that isn't a form's name, or is of a mon the dex doesn't hold
+    if (dex.looks !== undefined) {
+      const held = new Set(dex.free ? (dex.entries ?? []).map((entry) => String(entry.id)) : Object.keys(dex.progress));
+      const looks = isObject(dex.looks) ? Object.entries(dex.looks).filter(([id, form]) => typeof form === 'string' && form && held.has(id)) : [];
+      if (!isObject(dex.looks) || looks.length !== Object.keys(dex.looks).length) {
+        dex.looks = looks.length > 0 ? Object.fromEntries(looks) : undefined;
         dropped = true;
       }
     }
@@ -449,6 +461,7 @@ export function freeCaptures (dex: PersonalDex): Capture[] {
       captured: true,
       status: statusIn(dex, record?.status) ?? 'caught',
       sealed: Boolean(record?.sealed),
+      look: dex.looks?.[entry.id] ?? null,
     };
   });
 }
@@ -476,6 +489,7 @@ export function progressToCaptures (dex: PersonalDex): Capture[] {
       captured: true,
       status: statusIn(dex, entry.status) ?? null,
       sealed: Boolean(entry.sealed),
+      look: dex.looks?.[pokemon.id] ?? null,
     };
   });
 }
@@ -561,8 +575,10 @@ function commitRecords (dexId: string, mutator: (dex: PersonalDex, state: AppSta
   const state = getAppState();
   let changed: number[];
   let dex: PersonalDex;
+  let looks: PersonalDex['looks'];
   try {
     dex = findDex(state, dexId);
+    looks = dex.looks;
     changed = mutator(dex, state);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -572,7 +588,8 @@ function commitRecords (dexId: string, mutator: (dex: PersonalDex, state: AppSta
   if (changed.length === 0) {
     return;
   }
-  if (!window.tracker || FRESH || importing) {
+  // a patch carries records alone, so one that took a look with it (a release) is saved whole
+  if (!window.tracker || FRESH || importing || dex.looks !== looks) {
     save(state);
     return;
   }
@@ -623,13 +640,42 @@ export function writeCapture (dexId: string, payload: UpdateCapturePayload): voi
 }
 
 export function deleteCaptures (dexId: string, pokemonIds: number[]): void {
-  commitRecords(dexId, (dex) => pokemonIds.filter((id) => {
-    if (!dex.progress[id] || dex.progress[id].sealed) {
-      return false;
+  commitRecords(dexId, (dex) => {
+    const released = pokemonIds.filter((id) => {
+      if (!dex.progress[id] || dex.progress[id].sealed) {
+        return false;
+      }
+      delete dex.progress[id];
+      return true;
+    });
+    const looks = looksLess(dex.looks, released);
+    if (looks !== dex.looks) {
+      dex.looks = looks;
     }
-    delete dex.progress[id];
-    return true;
-  }));
+    return released;
+  });
+}
+
+// a dex's looks (utils/looks) less those of the mons given, as they leave it; the same where none of them had one
+export function looksLess (looks: PersonalDex['looks'], ids: number[]): PersonalDex['looks'] {
+  if (!looks || !ids.some((id) => id in looks)) {
+    return looks;
+  }
+  const kept = Object.entries(looks).filter(([id]) => !ids.includes(Number(id)));
+  return kept.length > 0 ? Object.fromEntries(kept) : undefined;
+}
+
+// a marked mon's look kept, or its own form again (null); saved whole, a look being the dex's rather than its record's
+export function writeLook (dexId: string, pokemon: number, form: string | null): void {
+  const dex = getAppState().dexes.find((entry) => entry.id === dexId);
+  const held = dex && (dex.free ? (dex.entries ?? []).some((entry) => entry.id === pokemon) : Boolean(dex.progress[pokemon]));
+  if (!dex || !held || (dex.looks?.[pokemon] ?? null) === form) {
+    return;
+  }
+  commitAppState(() => {
+    const looks = looksLess(dex.looks, [pokemon]);
+    dex.looks = form ? { ...looks, [pokemon]: form } : looks;
+  });
 }
 
 // a sealed mon moved: the only write a sealed record takes besides unsealing, and only to where it is. A move to where

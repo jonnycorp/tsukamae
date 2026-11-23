@@ -56,7 +56,9 @@ for (const entry of await readdir(DEXES_DIR, { withFileTypes: true })) {
   }
 }
 
-// a variety's own part of its name, past what it shares with its species' default (charizard-mega-x: mega-x)
+// a variety's own part of its name, past what it shares with its species' default (charizard-mega-x: mega-x), or all
+// of it but the species where nothing's left (Minior's red core, minior-red, against the red meteor's
+// minior-red-meteor). Keep in sync with list-looks.mjs, which names each look's artwork
 function suffixOf (variety, base) {
   const own = variety.identifier.split('-');
   const shared = base.identifier.split('-');
@@ -64,7 +66,7 @@ function suffixOf (variety, base) {
   while (i < own.length && own[i] === shared[i]) {
     i++;
   }
-  return own.slice(Math.max(1, i)).join('-');
+  return own.slice(Math.max(1, i)).join('-') || own.slice(1).join('-');
 }
 
 const jobs = [];

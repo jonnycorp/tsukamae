@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { ORIGIN_GAME_NAMES } from '../../../../utils/capture-fields';
 import { SceneMon } from '../Scene';
-import { artSrc } from './ViewLensArt';
+import { artSrc, shownArt, useSavedArt } from './ViewLensArt';
 import { displayName } from '../../../library/PokemonName';
 import { showsShiny } from '../../../../utils/shiny';
 import { localizeNature, localizeOriginGame } from '../../../../i18n/names';
@@ -32,25 +32,28 @@ interface Props {
 
 const natureName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
 
-// a mon's official art as a hologram: tinted in the accent, lined like a projection, flickering on as it comes; its
-// sprite where the art isn't saved (yarn sprites:art), as its record says (a shiny one's in its shiny colours)
-export function ArtHologram ({ mon, view, gmax = false, large = false }: { mon: IconMon; view?: Dex; gmax?: boolean; large?: boolean }) {
+// a mon's official art (src) as a hologram: tinted in the accent, lined like a projection, flickering on as it comes;
+// its sprite where there's none (null) or it isn't saved (yarn sprites:art), as its record says (a shiny one's in its
+// shiny colours)
+export function ArtHologram ({ mon, src, view, large = false }: { mon: IconMon; src: string | null; view?: Dex; large?: boolean }) {
   // the art that failed to load, so a record turned shiny (or back) tries its own
   const [failed, setFailed] = useState<string | null>(null);
-  const src = artSrc(mon.pokemon, mon.shiny === true, gmax ? 'gmax' : null);
   return (
     <div className={classNames('lg-holo', { large })}>
-      {failed === src
+      {src === null || failed === src
         ? <SceneMon mon={mon} view={view} zoom={large ? 6 : 3} />
         : <img alt="" draggable={false} onError={() => setFailed(src)} src={src} />}
     </div>
   );
 }
 
-// a record's: in the colours it says, its giant form where it says Gigantamax
-export const Hologram = ({ record, large = false }: { record: ViewRecord; large?: boolean }) => (
-  <ArtHologram gmax={Boolean(record.capture.gigantamax)} large={large} mon={{ ...record.capture, shiny: showsShiny(record.capture, record.view) }} view={record.view} />
-);
+// a record's: in the colours it says, as the form it's shown as (views/ViewLensArt shownArt)
+export function Hologram ({ record, large = false }: { record: ViewRecord; large?: boolean }) {
+  const saved = useSavedArt();
+  const mon = { ...record.capture, shiny: showsShiny(record.capture, record.view) };
+  const art = shownArt(record.capture, record.view, saved);
+  return <ArtHologram large={large} mon={mon} src={art === undefined ? null : artSrc(mon.pokemon, mon.shiny, art)} view={record.view} />;
+}
 
 // what a picked star in the galaxy shows. The constellation's: a panel at the right, airy, the hologram over the mon's
 // own record. The day's: a narrower one at the left, the day's whole catch under the hologram, each pressed to pick it.

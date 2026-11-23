@@ -1,4 +1,5 @@
 import { iconClass } from './pokemon';
+import { lookOf } from './looks';
 import { showsShiny } from './shiny';
 
 import type { Capture, CapturePokemon, Dex } from '../types';
@@ -29,7 +30,8 @@ export function showsGigantamax (capture: Pick<Capture, 'pokemon' | 'gigantamax'
 
 // the giant form's sprite, from the sprite sheet's own, at its own size as every sprite is (styles/gigantamax.scss): in
 // any dex's family, a Legends: Arceus dex's included, whose icons have no giant forms and would win over it; in the
-// colours its record says
-export function gigantamaxIcon (capture: Pick<Capture, 'pokemon' | 'shiny'>, dex: Dex): string {
-  return iconClass({ ...capture.pokemon, form: 'gigantamax' }, dex, { family: null, shiny: showsShiny(capture, dex) });
+// colours its record says; its look's own where that has one (Rapid Strike Urshifu's, utils/looks)
+export function gigantamaxIcon (capture: Pick<Capture, 'pokemon' | 'shiny' | 'look'>, dex: Dex): string {
+  const form = lookOf(capture, dex)?.giant?.form ?? 'gigantamax';
+  return iconClass({ ...capture.pokemon, form }, dex, { family: null, shiny: showsShiny(capture, dex) });
 }

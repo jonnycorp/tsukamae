@@ -57,6 +57,8 @@ export interface Capture extends CaptureMetadata {
   status: CaptureStatus | null;
   // only reachable from 'caught'
   sealed: boolean;
+  // the form it's shown as (utils/looks), its dex's choice beside the record rather than a field of it
+  look?: string | null;
 }
 
 // the eighteen types, as PokéAPI names them

@@ -16,6 +16,7 @@
     "sprites:marks": "node scripts/fetch-origin-marks.mjs",
     "sprites:fit": "node scripts/fit-tall-sprites.mjs",
     "sprites:forms": "node scripts/add-sprite-forms.mjs",
+    "sprites:looks": "node scripts/list-looks.mjs",
     "sprites:themes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/theme-sprites.mjs",
     "marks:themes": "node scripts/theme-marks.mjs",
     "electron:build": "yarn lint:all && yarn build && electron-builder --win",

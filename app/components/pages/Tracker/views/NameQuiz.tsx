@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ArtHologram } from './GalaxyPanel';
+import { artSrc } from './ViewLensArt';
 import { Scene, SceneMon } from '../Scene';
 import { ScopeSwitch, useViewScope, useScopedRecords } from './ViewScope';
 import { intervalMs, review } from './fsrs';
@@ -213,7 +214,7 @@ export function NameQuiz ({ onClose }: ViewProps) {
                 {/* answered: the mon the name is, its art held up beside the name (no English: the name's to be learnt as itself) */}
                 {answer && (
                   <div className="lq-reveal">
-                    <ArtHologram mon={{ pokemon: question.entry.pokemon, shiny: false }} />
+                    <ArtHologram mon={{ pokemon: question.entry.pokemon }} src={artSrc(question.entry.pokemon, false, null)} />
                   </div>
                 )}
                 <div className="lq-choices">

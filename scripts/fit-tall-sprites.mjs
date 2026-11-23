@@ -1,10 +1,10 @@
 'use strict';
 
-// dev-only, rerun when app/styles/pokesprite.scss or the catalogs' forms change: an unsealed tile shows its sprite at
-// 1.3x in 49px between the name and the number, which the tallest sprites (Sirfetch'd's leek) overrun, covering both.
-// This writes app/styles/pokesprite-fit.scss, zooming each of those down to the space instead. Only the forms a tile
-// can wear (utils/pokemon iconClass, from the catalogs): the giant forms FlipStrips draws over sealed tiles never sit
-// in an unsealed one's icon
+// dev-only, rerun when app/styles/pokesprite.scss, the catalogs' forms or the looks (data/looks.json) change: an
+// unsealed tile shows its sprite at 1.3x in 49px between the name and the number, which the tallest sprites (Sirfetch'd's
+// leek) overrun, covering both. This writes app/styles/pokesprite-fit.scss, zooming each of those down to the space
+// instead. Only the forms a tile can wear (utils/pokemon monIcon): the catalogs' and the looks' (Origin Forme Giratina);
+// the giant forms FlipStrips draws over sealed tiles never sit in an unsealed one's icon
 
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -15,7 +15,8 @@ const SPACE = 49;
 const ZOOM = 1.3;
 
 const STYLES = join(dirname(fileURLToPath(import.meta.url)), '..', 'app', 'styles');
-const DEXES = join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'dexes');
+const DATA = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
+const DEXES = join(DATA, 'dexes');
 
 const forms = new Set();
 for (const entry of await readdir(DEXES, { withFileTypes: true })) {
@@ -25,6 +26,12 @@ for (const entry of await readdir(DEXES, { withFileTypes: true })) {
         forms.add(mon.form);
       }
     }
+  }
+}
+
+for (const { forms: looks } of Object.values(JSON.parse(await readFile(join(DATA, 'looks.json'), 'utf8')))) {
+  for (const look of looks) {
+    forms.add(look.form);
   }
 }
 

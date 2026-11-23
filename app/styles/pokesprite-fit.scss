@@ -17,7 +17,9 @@
 
 // 39px tall
 .pokemon:not(.sealed) .set-captured .icon-wrapper :is(
+  .pkicon.form-hisui-noble.pkicon-059,
   .pkicon.form-hisui.pkicon-059,
+  .pkicon.form-hisui-noble.color-shiny.pkicon-059,
   .pkicon.form-hisui.color-shiny.pkicon-059,
   .pkicon.color-shiny.pkicon-849,
   .pkicon.pkicon-849,
@@ -36,7 +38,9 @@
   .pkicon.form-galar.pkicon-145,
   .pkicon.form-galar.color-shiny.pkicon-145,
   .pkicon.form-galar.pkicon-199,
-  .pkicon.form-galar.color-shiny.pkicon-199
+  .pkicon.form-galar.color-shiny.pkicon-199,
+  .pkicon.form-crowned.pkicon-889,
+  .pkicon.form-crowned.color-shiny.pkicon-889
 ) {
   zoom: 1.225;
 }
@@ -63,6 +67,8 @@
 .pokemon:not(.sealed) .set-captured .icon-wrapper :is(
   .pkicon.form-galar.pkicon-144,
   .pkicon.form-galar.color-shiny.pkicon-144,
+  .pkicon.form-origin.pkicon-484,
+  .pkicon.form-origin.color-shiny.pkicon-484,
   .pkicon.color-shiny.pkicon-899,
   .pkicon.pkicon-899
 ) {
@@ -80,7 +86,9 @@
 // 46px tall
 .pokemon:not(.sealed) .set-captured .icon-wrapper :is(
   .pkicon.form-galar.pkicon-110,
-  .pkicon.form-galar.color-shiny.pkicon-110
+  .pkicon.form-galar.color-shiny.pkicon-110,
+  .pkicon.form-crowned.pkicon-888,
+  .pkicon.form-crowned.color-shiny.pkicon-888
 ) {
   zoom: 1.065;
 }
@@ -88,9 +96,21 @@
 // 49px tall
 .pokemon:not(.sealed) .set-captured .icon-wrapper :is(
   .pkicon.color-shiny.pkicon-890,
-  .pkicon.pkicon-890
+  .pkicon.pkicon-890,
+  .pkicon.form-ice-rider.pkicon-898,
+  .pkicon.form-ice-rider.color-shiny.pkicon-898
 ) {
   zoom: 1;
+}
+
+// 50px tall
+.pokemon:not(.sealed) .set-captured .icon-wrapper :is(
+  .pkicon.form-origin.pkicon-483,
+  .pkicon.form-origin.color-shiny.pkicon-483,
+  .pkicon.form-shadow-rider.pkicon-898,
+  .pkicon.form-shadow-rider.color-shiny.pkicon-898
+) {
+  zoom: 0.98;
 }
 
 // 52px tall
@@ -99,4 +119,12 @@
   .pkicon.pkicon-865
 ) {
   zoom: 0.942;
+}
+
+// 56px tall
+.pokemon:not(.sealed) .set-captured .icon-wrapper :is(
+  .pkicon.form-eternamax.pkicon-890,
+  .pkicon.form-eternamax.color-shiny.pkicon-890
+) {
+  zoom: 0.875;
 }

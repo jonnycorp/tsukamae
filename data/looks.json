@@ -1,0 +1,885 @@
+{
+  "3": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Venusaur","ja":"メガフシギバナ","art":"mega"}
+    ]
+  },
+  "6": {
+    "base": null,
+    "forms": [
+      {"form":"mega-x","en":"Mega Charizard X","ja":"メガリザードンＸ","art":"mega-x"},
+      {"form":"mega-y","en":"Mega Charizard Y","ja":"メガリザードンＹ","art":"mega-y"}
+    ]
+  },
+  "9": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Blastoise","ja":"メガカメックス","art":"mega"}
+    ]
+  },
+  "15": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Beedrill","ja":"メガスピアー","art":"mega"}
+    ]
+  },
+  "18": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Pidgeot","ja":"メガピジョット","art":"mega"}
+    ]
+  },
+  "25": {
+    "base": null,
+    "forms": [
+      {"form":"cosplay","en":"Cosplay Pikachu","ja":"おきがえピカチュウ","art":"cosplay"},
+      {"form":"cool","en":"Pikachu Rock Star","ja":"ハードロック・ピカチュウ","art":"rock-star"},
+      {"form":"beautiful","en":"Pikachu Belle","ja":"マダム・ピカチュウ","art":"belle"},
+      {"form":"cute","en":"Pikachu Pop Star","ja":"アイドル・ピカチュウ","art":"pop-star"},
+      {"form":"clever","en":"Pikachu Ph.D.","ja":"ドクター・ピカチュウ","art":"phd"},
+      {"form":"tough","en":"Pikachu Libre","ja":"マスクド・ピカチュウ","art":"libre"},
+      {"form":"original-cap","en":"Original Cap","ja":"オリジナルキャップ","art":"original-cap"},
+      {"form":"hoenn-cap","en":"Hoenn Cap","ja":"ホウエンキャップ","art":"hoenn-cap"},
+      {"form":"sinnoh-cap","en":"Sinnoh Cap","ja":"シンオウキャップ","art":"sinnoh-cap"},
+      {"form":"unova-cap","en":"Unova Cap","ja":"イッシュキャップ","art":"unova-cap"},
+      {"form":"kalos-cap","en":"Kalos Cap","ja":"カロスキャップ","art":"kalos-cap"},
+      {"form":"alola-cap","en":"Alola Cap","ja":"アローラキャップ","art":"alola-cap"},
+      {"form":"partner-cap","en":"Partner Cap","ja":"キミにきめたキャップ","art":"partner-cap"},
+      {"form":"starter","en":"Partner Pikachu","ja":"あいぼう","art":"starter"},
+      {"form":"world-cap","en":"World Cap","ja":"ワールドキャップ","art":"world-cap"}
+    ]
+  },
+  "65": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Alakazam","ja":"メガフーディン","art":"mega"}
+    ]
+  },
+  "80": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Slowbro","ja":"メガヤドラン","art":"mega"}
+    ]
+  },
+  "94": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Gengar","ja":"メガゲンガー","art":"mega"}
+    ]
+  },
+  "115": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Kangaskhan","ja":"メガガルーラ","art":"mega"}
+    ]
+  },
+  "127": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Pinsir","ja":"メガカイロス","art":"mega"}
+    ]
+  },
+  "130": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Gyarados","ja":"メガギャラドス","art":"mega"}
+    ]
+  },
+  "133": {
+    "base": null,
+    "forms": [
+      {"form":"starter","en":"Partner Eevee","ja":"あいぼう","art":"starter"}
+    ]
+  },
+  "142": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Aerodactyl","ja":"メガプテラ","art":"mega"}
+    ]
+  },
+  "150": {
+    "base": null,
+    "forms": [
+      {"form":"mega-x","en":"Mega Mewtwo X","ja":"メガミュウツーＸ","art":"mega-x"},
+      {"form":"mega-y","en":"Mega Mewtwo Y","ja":"メガミュウツーＹ","art":"mega-y"}
+    ]
+  },
+  "172": {
+    "base": null,
+    "forms": [
+      {"form":"spiky-eared","en":"Spiky-eared","ja":"ギザみみ"}
+    ]
+  },
+  "181": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Ampharos","ja":"メガデンリュウ","art":"mega"}
+    ]
+  },
+  "201": {
+    "base": {"en":"A","ja":"Ａ"},
+    "forms": [
+      {"form":"b","en":"B","ja":"Ｂ"},
+      {"form":"c","en":"C","ja":"Ｃ"},
+      {"form":"d","en":"D","ja":"Ｄ"},
+      {"form":"e","en":"E","ja":"Ｅ"},
+      {"form":"f","en":"F","ja":"Ｆ"},
+      {"form":"g","en":"G","ja":"Ｇ"},
+      {"form":"h","en":"H","ja":"Ｈ"},
+      {"form":"i","en":"I","ja":"Ｉ"},
+      {"form":"j","en":"J","ja":"Ｊ"},
+      {"form":"k","en":"K","ja":"Ｋ"},
+      {"form":"l","en":"L","ja":"Ｌ"},
+      {"form":"m","en":"M","ja":"Ｍ"},
+      {"form":"n","en":"N","ja":"Ｎ"},
+      {"form":"o","en":"O","ja":"Ｏ"},
+      {"form":"p","en":"P","ja":"Ｐ"},
+      {"form":"q","en":"Q","ja":"Ｑ"},
+      {"form":"r","en":"R","ja":"Ｒ"},
+      {"form":"s","en":"S","ja":"Ｓ"},
+      {"form":"t","en":"T","ja":"Ｔ"},
+      {"form":"u","en":"U","ja":"Ｕ"},
+      {"form":"v","en":"V","ja":"Ｖ"},
+      {"form":"w","en":"W","ja":"Ｗ"},
+      {"form":"x","en":"X","ja":"Ｘ"},
+      {"form":"y","en":"Y","ja":"Ｙ"},
+      {"form":"z","en":"Z","ja":"Ｚ"},
+      {"form":"exclamation","en":"!","ja":"!"},
+      {"form":"question","en":"?","ja":"?"}
+    ]
+  },
+  "208": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Steelix","ja":"メガハガネール","art":"mega"}
+    ]
+  },
+  "212": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Scizor","ja":"メガハッサム","art":"mega"}
+    ]
+  },
+  "214": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Heracross","ja":"メガヘラクロス","art":"mega"}
+    ]
+  },
+  "229": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Houndoom","ja":"メガヘルガー","art":"mega"}
+    ]
+  },
+  "248": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Tyranitar","ja":"メガバンギラス","art":"mega"}
+    ]
+  },
+  "254": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Sceptile","ja":"メガジュカイン","art":"mega"}
+    ]
+  },
+  "257": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Blaziken","ja":"メガバシャーモ","art":"mega"}
+    ]
+  },
+  "260": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Swampert","ja":"メガラグラージ","art":"mega"}
+    ]
+  },
+  "282": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Gardevoir","ja":"メガサーナイト","art":"mega"}
+    ]
+  },
+  "302": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Sableye","ja":"メガヤミラミ","art":"mega"}
+    ]
+  },
+  "303": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Mawile","ja":"メガクチート","art":"mega"}
+    ]
+  },
+  "306": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Aggron","ja":"メガボスゴドラ","art":"mega"}
+    ]
+  },
+  "308": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Medicham","ja":"メガチャーレム","art":"mega"}
+    ]
+  },
+  "310": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Manectric","ja":"メガライボルト","art":"mega"}
+    ]
+  },
+  "319": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Sharpedo","ja":"メガサメハダー","art":"mega"}
+    ]
+  },
+  "323": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Camerupt","ja":"メガバクーダ","art":"mega"}
+    ]
+  },
+  "334": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Altaria","ja":"メガチルタリス","art":"mega"}
+    ]
+  },
+  "351": {
+    "base": {"en":"Normal","ja":"ポワルンのすがた"},
+    "forms": [
+      {"form":"sunny","en":"Sunny Form","ja":"たいようのすがた","art":"sunny"},
+      {"form":"rainy","en":"Rainy Form","ja":"あまみずのすがた","art":"rainy"},
+      {"form":"snowy","en":"Snowy Form","ja":"ゆきぐものすがた","art":"snowy"}
+    ]
+  },
+  "354": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Banette","ja":"メガジュペッタ","art":"mega"}
+    ]
+  },
+  "359": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Absol","ja":"メガアブソル","art":"mega"}
+    ]
+  },
+  "362": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Glalie","ja":"メガオニゴーリ","art":"mega"}
+    ]
+  },
+  "373": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Salamence","ja":"メガボーマンダ","art":"mega"}
+    ]
+  },
+  "376": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Metagross","ja":"メガメタグロス","art":"mega"}
+    ]
+  },
+  "380": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Latias","ja":"メガラティアス","art":"mega"}
+    ]
+  },
+  "381": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Latios","ja":"メガラティオス","art":"mega"}
+    ]
+  },
+  "382": {
+    "base": {"en":"Kyogre","ja":"カイオーガのすがた"},
+    "forms": [
+      {"form":"primal","en":"Primal Reversion","ja":"ゲンシカイキのすがた","art":"primal"}
+    ]
+  },
+  "383": {
+    "base": {"en":"Groudon","ja":"グラードンのすがた"},
+    "forms": [
+      {"form":"primal","en":"Primal Reversion","ja":"ゲンシカイキのすがた","art":"primal"}
+    ]
+  },
+  "384": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Rayquaza","ja":"メガレックウザ","art":"mega"}
+    ]
+  },
+  "386": {
+    "base": {"en":"Normal Forme","ja":"ノーマルフォルム"},
+    "forms": [
+      {"form":"attack","en":"Attack Forme","ja":"アタックフォルム","art":"attack"},
+      {"form":"defense","en":"Defense Forme","ja":"ディフェンスフォルム","art":"defense"},
+      {"form":"speed","en":"Speed Forme","ja":"スピードフォルム","art":"speed"}
+    ]
+  },
+  "412": {
+    "base": {"en":"Plant Cloak","ja":"くさきのミノ"},
+    "forms": [
+      {"form":"sandy","en":"Sandy Cloak","ja":"すなちのミノ"},
+      {"form":"trash","en":"Trash Cloak","ja":"ゴミのミノ"}
+    ]
+  },
+  "413": {
+    "base": {"en":"Plant Cloak","ja":"くさきのミノ"},
+    "forms": [
+      {"form":"sandy","en":"Sandy Cloak","ja":"すなちのミノ","art":"sandy"},
+      {"form":"trash","en":"Trash Cloak","ja":"ゴミのミノ","art":"trash"}
+    ]
+  },
+  "421": {
+    "base": {"en":"Overcast Form","ja":"ネガフォルム"},
+    "forms": [
+      {"form":"sunshine","en":"Sunshine Form","ja":"ポジフォルム"}
+    ]
+  },
+  "422": {
+    "base": {"en":"East Sea","ja":"ひがしのうみ"},
+    "forms": [
+      {"form":"west","en":"West Sea","ja":"にしのうみ","art":""}
+    ]
+  },
+  "423": {
+    "base": {"en":"East Sea","ja":"ひがしのうみ"},
+    "forms": [
+      {"form":"west","en":"West Sea","ja":"にしのうみ","art":""}
+    ]
+  },
+  "428": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Lopunny","ja":"メガミミロップ","art":"mega"}
+    ]
+  },
+  "445": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Garchomp","ja":"メガガブリアス","art":"mega"}
+    ]
+  },
+  "448": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Lucario","ja":"メガルカリオ","art":"mega"}
+    ]
+  },
+  "460": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Abomasnow","ja":"メガユキノオー","art":"mega"}
+    ]
+  },
+  "475": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Gallade","ja":"メガエルレイド","art":"mega"}
+    ]
+  },
+  "479": {
+    "base": {"en":"Rotom","ja":"ロトムのすがた"},
+    "forms": [
+      {"form":"heat","en":"Heat Rotom","ja":"ヒートロトム","art":"heat"},
+      {"form":"wash","en":"Wash Rotom","ja":"ウォッシュロトム","art":"wash"},
+      {"form":"frost","en":"Frost Rotom","ja":"フロストロトム","art":"frost"},
+      {"form":"fan","en":"Fan Rotom","ja":"スピンロトム","art":"fan"},
+      {"form":"mow","en":"Mow Rotom","ja":"カットロトム","art":"mow"}
+    ]
+  },
+  "483": {
+    "base": null,
+    "forms": [
+      {"form":"origin","en":"Origin Forme","ja":"オリジンフォルム","art":"origin"}
+    ]
+  },
+  "484": {
+    "base": null,
+    "forms": [
+      {"form":"origin","en":"Origin Forme","ja":"オリジンフォルム","art":"origin"}
+    ]
+  },
+  "487": {
+    "base": {"en":"Altered Forme","ja":"アナザーフォルム"},
+    "forms": [
+      {"form":"origin","en":"Origin Forme","ja":"オリジンフォルム","art":"origin"}
+    ]
+  },
+  "492": {
+    "base": {"en":"Land Forme","ja":"ランドフォルム"},
+    "forms": [
+      {"form":"sky","en":"Sky Forme","ja":"スカイフォルム","art":"sky"}
+    ]
+  },
+  "493": {
+    "base": {"en":"Normal Type","ja":"ノーマルタイプ"},
+    "forms": [
+      {"form":"fighting","en":"Fighting Type","ja":"かくとうタイプ"},
+      {"form":"flying","en":"Flying Type","ja":"ひこうタイプ"},
+      {"form":"poison","en":"Poison Type","ja":"どくタイプ"},
+      {"form":"ground","en":"Ground Type","ja":"じめんタイプ"},
+      {"form":"rock","en":"Rock Type","ja":"いわタイプ"},
+      {"form":"bug","en":"Bug Type","ja":"むしタイプ"},
+      {"form":"ghost","en":"Ghost Type","ja":"ゴーストタイプ"},
+      {"form":"steel","en":"Steel Type","ja":"はがねタイプ"},
+      {"form":"fire","en":"Fire Type","ja":"ほのおタイプ"},
+      {"form":"water","en":"Water Type","ja":"みずタイプ"},
+      {"form":"grass","en":"Grass Type","ja":"くさタイプ"},
+      {"form":"electric","en":"Electric Type","ja":"でんきタイプ"},
+      {"form":"psychic","en":"Psychic Type","ja":"エスパータイプ"},
+      {"form":"ice","en":"Ice Type","ja":"こおりタイプ"},
+      {"form":"dragon","en":"Dragon Type","ja":"ドラゴンタイプ"},
+      {"form":"dark","en":"Dark Type","ja":"あくタイプ"},
+      {"form":"fairy","en":"Fairy Type","ja":"フェアリータイプ"}
+    ]
+  },
+  "531": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Audino","ja":"メガタブンネ","art":"mega"}
+    ]
+  },
+  "550": {
+    "base": null,
+    "forms": [
+      {"form":"red-striped","en":"Red-Striped Form","ja":"あかすじのすがた","art":"","family":"home"},
+      {"form":"blue-striped","en":"Blue-Striped Form","ja":"あおすじのすがた","art":"blue-striped"},
+      {"form":"white-striped","en":"White-Striped Form","ja":"しろすじのすがた","art":"white-striped","baseIn":"home"}
+    ]
+  },
+  "555": {
+    "base": {"en":"Standard Mode","ja":"ノーマルモード"},
+    "forms": [
+      {"form":"zen","en":"Zen Mode","ja":"ダルマモード","art":"zen"}
+    ]
+  },
+  "585": {
+    "base": {"en":"Spring Form","ja":"はるのすがた"},
+    "forms": [
+      {"form":"summer","en":"Summer Form","ja":"なつのすがた"},
+      {"form":"autumn","en":"Autumn Form","ja":"あきのすがた"},
+      {"form":"winter","en":"Winter Form","ja":"ふゆのすがた"}
+    ]
+  },
+  "586": {
+    "base": {"en":"Spring Form","ja":"はるのすがた"},
+    "forms": [
+      {"form":"summer","en":"Summer Form","ja":"なつのすがた"},
+      {"form":"autumn","en":"Autumn Form","ja":"あきのすがた"},
+      {"form":"winter","en":"Winter Form","ja":"ふゆのすがた"}
+    ]
+  },
+  "641": {
+    "base": {"en":"Incarnate Forme","ja":"けしんフォルム"},
+    "forms": [
+      {"form":"therian","en":"Therian Forme","ja":"れいじゅうフォルム","art":"therian"}
+    ]
+  },
+  "642": {
+    "base": {"en":"Incarnate Forme","ja":"けしんフォルム"},
+    "forms": [
+      {"form":"therian","en":"Therian Forme","ja":"れいじゅうフォルム","art":"therian"}
+    ]
+  },
+  "645": {
+    "base": {"en":"Incarnate Forme","ja":"けしんフォルム"},
+    "forms": [
+      {"form":"therian","en":"Therian Forme","ja":"れいじゅうフォルム","art":"therian"}
+    ]
+  },
+  "646": {
+    "base": {"en":"Kyurem","ja":"キュレムのすがた"},
+    "forms": [
+      {"form":"white","en":"White Kyurem","ja":"ホワイトキュレム","art":"white"},
+      {"form":"black","en":"Black Kyurem","ja":"ブラックキュレム","art":"black"}
+    ]
+  },
+  "647": {
+    "base": {"en":"Ordinary Form","ja":"いつものすがた"},
+    "forms": [
+      {"form":"resolute","en":"Resolute Form","ja":"かくごのすがた","art":"resolute"}
+    ]
+  },
+  "648": {
+    "base": {"en":"Aria Forme","ja":"ボイスフォルム"},
+    "forms": [
+      {"form":"pirouette","en":"Pirouette Forme","ja":"ステップフォルム","art":"pirouette"}
+    ]
+  },
+  "649": {
+    "base": null,
+    "forms": [
+      {"form":"douse","en":"Douse Drive","ja":"アクアカセット"},
+      {"form":"shock","en":"Shock Drive","ja":"イナズマカセット"},
+      {"form":"burn","en":"Burn Drive","ja":"ブレイズカセット"},
+      {"form":"chill","en":"Chill Drive","ja":"フリーズカセット"}
+    ]
+  },
+  "658": {
+    "base": null,
+    "forms": [
+      {"form":"ash","en":"Ash-Greninja","ja":"サトシゲッコウガ","art":"ash"}
+    ]
+  },
+  "666": {
+    "base": {"en":"Meadow Pattern","ja":"はなぞののもよう"},
+    "forms": [
+      {"form":"icy-snow","en":"Icy Snow Pattern","ja":"ひょうせつのもよう"},
+      {"form":"polar","en":"Polar Pattern","ja":"ゆきぐにのもよう"},
+      {"form":"tundra","en":"Tundra Pattern","ja":"せつげんのもよう"},
+      {"form":"continental","en":"Continental Pattern","ja":"たいりくのもよう"},
+      {"form":"garden","en":"Garden Pattern","ja":"ていえんのもよう"},
+      {"form":"elegant","en":"Elegant Pattern","ja":"みやびなもよう"},
+      {"form":"modern","en":"Modern Pattern","ja":"モダンなもよう"},
+      {"form":"marine","en":"Marine Pattern","ja":"マリンのもよう"},
+      {"form":"archipelago","en":"Archipelago Pattern","ja":"ぐんとうのもよう"},
+      {"form":"high-plains","en":"High Plains Pattern","ja":"こうやのもよう"},
+      {"form":"sandstorm","en":"Sandstorm Pattern","ja":"さじんのもよう"},
+      {"form":"river","en":"River Pattern","ja":"たいがのもよう"},
+      {"form":"monsoon","en":"Monsoon Pattern","ja":"スコールのもよう"},
+      {"form":"savanna","en":"Savanna Pattern","ja":"サバンナのもよう"},
+      {"form":"sun","en":"Sun Pattern","ja":"たいようのもよう"},
+      {"form":"ocean","en":"Ocean Pattern","ja":"オーシャンのもよう"},
+      {"form":"jungle","en":"Jungle Pattern","ja":"ジャングルのもよう"},
+      {"form":"fancy","en":"Fancy Pattern","ja":"ファンシーなもよう"},
+      {"form":"poke-ball","en":"Poké Ball Pattern","ja":"ボールのもよう"}
+    ]
+  },
+  "669": {
+    "base": {"en":"Red Flower","ja":"あかいはな"},
+    "forms": [
+      {"form":"yellow","en":"Yellow Flower","ja":"きいろのはな"},
+      {"form":"orange","en":"Orange Flower","ja":"オレンジいろのはな"},
+      {"form":"blue","en":"Blue Flower","ja":"あおいはな"},
+      {"form":"white","en":"White Flower","ja":"しろいはな"}
+    ]
+  },
+  "670": {
+    "base": {"en":"Red Flower","ja":"あかいはな"},
+    "forms": [
+      {"form":"yellow","en":"Yellow Flower","ja":"きいろのはな"},
+      {"form":"orange","en":"Orange Flower","ja":"オレンジいろのはな"},
+      {"form":"blue","en":"Blue Flower","ja":"あおいはな"},
+      {"form":"white","en":"White Flower","ja":"しろいはな"},
+      {"form":"eternal","en":"Eternal Flower","ja":"えいえんのはな","art":"eternal"}
+    ]
+  },
+  "671": {
+    "base": {"en":"Red Flower","ja":"あかいはな"},
+    "forms": [
+      {"form":"yellow","en":"Yellow Flower","ja":"きいろのはな"},
+      {"form":"orange","en":"Orange Flower","ja":"オレンジいろのはな"},
+      {"form":"blue","en":"Blue Flower","ja":"あおいはな"},
+      {"form":"white","en":"White Flower","ja":"しろいはな"}
+    ]
+  },
+  "676": {
+    "base": {"en":"Natural Form","ja":"やせいのすがた"},
+    "forms": [
+      {"form":"heart","en":"Heart Trim","ja":"ハートカット"},
+      {"form":"star","en":"Star Trim","ja":"スターカット"},
+      {"form":"diamond","en":"Diamond Trim","ja":"ダイヤカット"},
+      {"form":"debutante","en":"Debutante Trim","ja":"レディカット"},
+      {"form":"matron","en":"Matron Trim","ja":"マダムカット"},
+      {"form":"dandy","en":"Dandy Trim","ja":"ジェントルカット"},
+      {"form":"la-reine","en":"La Reine Trim","ja":"クイーンカット"},
+      {"form":"kabuki","en":"Kabuki Trim","ja":"カブキカット"},
+      {"form":"pharaoh","en":"Pharaoh Trim","ja":"キングダムカット"}
+    ]
+  },
+  "681": {
+    "base": {"en":"Shield Forme","ja":"シールドフォルム"},
+    "forms": [
+      {"form":"blade","en":"Blade Forme","ja":"ブレードフォルム","art":"blade"}
+    ]
+  },
+  "716": {
+    "base": {"en":"Active Mode","ja":"アクティブモード"},
+    "forms": [
+      {"form":"neutral","en":"Neutral Mode","ja":"リラックスモード"}
+    ]
+  },
+  "718": {
+    "base": {"en":"50% Forme","ja":"５０％フォルム"},
+    "forms": [
+      {"form":"10","en":"10% Forme","ja":"１０％フォルム","art":"10"},
+      {"form":"complete","en":"Complete Forme","ja":"パーフェクトフォルム","art":"complete"}
+    ]
+  },
+  "719": {
+    "base": null,
+    "forms": [
+      {"form":"mega","en":"Mega Diancie","ja":"メガディアンシー","art":"mega"}
+    ]
+  },
+  "720": {
+    "base": {"en":"Hoopa Confined","ja":"いましめられしフーパ"},
+    "forms": [
+      {"form":"unbound","en":"Hoopa Unbound","ja":"ときはなたれしフーパ","art":"unbound"}
+    ]
+  },
+  "741": {
+    "base": {"en":"Baile Style","ja":"めらめらスタイル"},
+    "forms": [
+      {"form":"pom-pom","en":"Pom-Pom Style","ja":"ぱちぱちスタイル","art":"pom-pom"},
+      {"form":"pau","en":"Pa’u Style","ja":"ふらふらスタイル","art":"pau"},
+      {"form":"sensu","en":"Sensu Style","ja":"まいまいスタイル","art":"sensu"}
+    ]
+  },
+  "745": {
+    "base": {"en":"Midday Form","ja":"まひるのすがた"},
+    "forms": [
+      {"form":"midnight","en":"Midnight Form","ja":"まよなかのすがた","art":"midnight"},
+      {"form":"dusk","en":"Dusk Form","ja":"たそがれのすがた","art":"dusk"}
+    ]
+  },
+  "746": {
+    "base": {"en":"Solo Form","ja":"たんどくのすがた"},
+    "forms": [
+      {"form":"school","en":"School Form","ja":"むれたすがた","art":"school"}
+    ]
+  },
+  "773": {
+    "base": {"en":"Type: Normal","ja":"タイプ：ノーマル"},
+    "forms": [
+      {"form":"fighting","en":"Type: Fighting","ja":"タイプ：ファイト"},
+      {"form":"flying","en":"Type: Flying","ja":"タイプ：フライング"},
+      {"form":"poison","en":"Type: Poison","ja":"タイプ：ポイズン"},
+      {"form":"ground","en":"Type: Ground","ja":"タイプ：グラウンド"},
+      {"form":"rock","en":"Type: Rock","ja":"タイプ：ロック"},
+      {"form":"bug","en":"Type: Bug","ja":"タイプ：バグ"},
+      {"form":"ghost","en":"Type: Ghost","ja":"タイプ：ゴースト"},
+      {"form":"steel","en":"Type: Steel","ja":"タイプ：スチール"},
+      {"form":"fire","en":"Type: Fire","ja":"タイプ：ファイヤー"},
+      {"form":"water","en":"Type: Water","ja":"タイプ：ウオーター"},
+      {"form":"grass","en":"Type: Grass","ja":"タイプ：グラス"},
+      {"form":"electric","en":"Type: Electric","ja":"タイプ：エレクトロ"},
+      {"form":"psychic","en":"Type: Psychic","ja":"タイプ：サイキック"},
+      {"form":"ice","en":"Type: Ice","ja":"タイプ：アイス"},
+      {"form":"dragon","en":"Type: Dragon","ja":"タイプ：ドラゴン"},
+      {"form":"dark","en":"Type: Dark","ja":"タイプ：ダーク"},
+      {"form":"fairy","en":"Type: Fairy","ja":"タイプ：フェアリー"}
+    ]
+  },
+  "774": {
+    "base": {"en":"Meteor Form","ja":"りゅうせいのすがた"},
+    "forms": [
+      {"form":"red","en":"Red Core","ja":"あかいろのコア","art":"red"},
+      {"form":"orange","en":"Orange Core","ja":"だいだいいろのコア","art":"orange"},
+      {"form":"yellow","en":"Yellow Core","ja":"きいろのコア","art":"yellow"},
+      {"form":"green","en":"Green Core","ja":"みどりいろのコア","art":"green"},
+      {"form":"blue","en":"Blue Core","ja":"みずいろのコア","art":"blue"},
+      {"form":"indigo","en":"Indigo Core","ja":"あおいろのコア","art":"indigo"},
+      {"form":"violet","en":"Violet Core","ja":"むらさきいろのコア","art":"violet"}
+    ]
+  },
+  "800": {
+    "base": null,
+    "forms": [
+      {"form":"dusk","en":"Dusk Mane","ja":"たそがれのたてがみ","art":"dusk"},
+      {"form":"dawn","en":"Dawn Wings","ja":"あかつきのつばさ","art":"dawn"},
+      {"form":"ultra","en":"Ultra Necrozma","ja":"ウルトラネクロズマ","art":"ultra"}
+    ]
+  },
+  "801": {
+    "base": null,
+    "forms": [
+      {"form":"original","en":"Original Color","ja":"５００ねんまえのいろ","art":"original"}
+    ]
+  },
+  "845": {
+    "base": null,
+    "forms": [
+      {"form":"gulping","en":"Gulping Form","ja":"うのみのすがた","art":"gulping"},
+      {"form":"gorging","en":"Gorging Form","ja":"まるのみのすがた","art":"gorging"}
+    ]
+  },
+  "849": {
+    "base": {"en":"Amped Form","ja":"ハイなすがた"},
+    "forms": [
+      {"form":"low-key","en":"Low Key Form","ja":"ローなすがた","art":"low-key","giant":{"form":"gigantamax","art":"low-key-gmax"}}
+    ]
+  },
+  "854": {
+    "base": {"en":"Phony Form","ja":"がんさくフォルム"},
+    "forms": [
+      {"form":"antique","en":"Antique Form","ja":"しんさくフォルム"}
+    ]
+  },
+  "855": {
+    "base": {"en":"Phony Form","ja":"がんさくフォルム"},
+    "forms": [
+      {"form":"antique","en":"Antique Form","ja":"しんさくフォルム"}
+    ]
+  },
+  "869": {
+    "base": {"en":"Vanilla Cream Strawberry Sweet","ja":"ミルキィバニラ・いちごアメざいく"},
+    "forms": [
+      {"form":"vanilla-cream-berry","en":"Vanilla Cream Berry Sweet","ja":"ミルキィバニラ・ベリーアメざいく"},
+      {"form":"vanilla-cream-love","en":"Vanilla Cream Love Sweet","ja":"ミルキィバニラ・ハートアメざいく"},
+      {"form":"vanilla-cream-star","en":"Vanilla Cream Star Sweet","ja":"ミルキィバニラ・スターアメざいく"},
+      {"form":"vanilla-cream-clover","en":"Vanilla Cream Clover Sweet","ja":"ミルキィバニラ・よつばアメざいく"},
+      {"form":"vanilla-cream-flower","en":"Vanilla Cream Flower Sweet","ja":"ミルキィバニラ・おはなアメざいく"},
+      {"form":"vanilla-cream-ribbon","en":"Vanilla Cream Ribbon Sweet","ja":"ミルキィバニラ・リボンアメざいく"},
+      {"form":"ruby-cream","en":"Ruby Cream Strawberry Sweet","ja":"ミルキィルビー・いちごアメざいく"},
+      {"form":"ruby-cream-berry","en":"Ruby Cream Berry Sweet","ja":"ミルキィルビー・ベリーアメざいく"},
+      {"form":"ruby-cream-love","en":"Ruby Cream Love Sweet","ja":"ミルキィルビー・ハートアメざいく"},
+      {"form":"ruby-cream-star","en":"Ruby Cream Star Sweet","ja":"ミルキィルビー・スターアメざいく"},
+      {"form":"ruby-cream-clover","en":"Ruby Cream Clover Sweet","ja":"ミルキィルビー・よつばアメざいく"},
+      {"form":"ruby-cream-flower","en":"Ruby Cream Flower Sweet","ja":"ミルキィルビー・おはなアメざいく"},
+      {"form":"ruby-cream-ribbon","en":"Ruby Cream Ribbon Sweet","ja":"ミルキィルビー・リボンアメざいく"},
+      {"form":"matcha-cream","en":"Matcha Cream Strawberry Sweet","ja":"ミルキィまっちゃ・いちごアメざいく"},
+      {"form":"matcha-cream-berry","en":"Matcha Cream Berry Sweet","ja":"ミルキィまっちゃ・ベリーアメざいく"},
+      {"form":"matcha-cream-love","en":"Matcha Cream Love Sweet","ja":"ミルキィまっちゃ・ハートアメざいく"},
+      {"form":"matcha-cream-star","en":"Matcha Cream Star Sweet","ja":"ミルキィまっちゃ・スターアメざいく"},
+      {"form":"matcha-cream-clover","en":"Matcha Cream Clover Sweet","ja":"ミルキィまっちゃ・よつばアメざいく"},
+      {"form":"matcha-cream-flower","en":"Matcha Cream Flower Sweet","ja":"ミルキィまっちゃ・おはなアメざいく"},
+      {"form":"matcha-cream-ribbon","en":"Matcha Cream Ribbon Sweet","ja":"ミルキィまっちゃ・リボンアメざいく"},
+      {"form":"mint-cream","en":"Mint Cream Strawberry Sweet","ja":"ミルキィミント・いちごアメざいく"},
+      {"form":"mint-cream-berry","en":"Mint Cream Berry Sweet","ja":"ミルキィミント・ベリーアメざいく"},
+      {"form":"mint-cream-love","en":"Mint Cream Love Sweet","ja":"ミルキィミント・ハートアメざいく"},
+      {"form":"mint-cream-star","en":"Mint Cream Star Sweet","ja":"ミルキィミント・スターアメざいく"},
+      {"form":"mint-cream-clover","en":"Mint Cream Clover Sweet","ja":"ミルキィミント・よつばアメざいく"},
+      {"form":"mint-cream-flower","en":"Mint Cream Flower Sweet","ja":"ミルキィミント・おはなアメざいく"},
+      {"form":"mint-cream-ribbon","en":"Mint Cream Ribbon Sweet","ja":"ミルキィミント・リボンアメざいく"},
+      {"form":"lemon-cream","en":"Lemon Cream Strawberry Sweet","ja":"ミルキィレモン・いちごアメざいく"},
+      {"form":"lemon-cream-berry","en":"Lemon Cream Berry Sweet","ja":"ミルキィレモン・ベリーアメざいく"},
+      {"form":"lemon-cream-love","en":"Lemon Cream Love Sweet","ja":"ミルキィレモン・ハートアメざいく"},
+      {"form":"lemon-cream-star","en":"Lemon Cream Star Sweet","ja":"ミルキィレモン・スターアメざいく"},
+      {"form":"lemon-cream-clover","en":"Lemon Cream Clover Sweet","ja":"ミルキィレモン・よつばアメざいく"},
+      {"form":"lemon-cream-flower","en":"Lemon Cream Flower Sweet","ja":"ミルキィレモン・おはなアメざいく"},
+      {"form":"lemon-cream-ribbon","en":"Lemon Cream Ribbon Sweet","ja":"ミルキィレモン・リボンアメざいく"},
+      {"form":"salted-cream","en":"Salted Cream Strawberry Sweet","ja":"ミルキィソルト・いちごアメざいく"},
+      {"form":"salted-cream-berry","en":"Salted Cream Berry Sweet","ja":"ミルキィソルト・ベリーアメざいく"},
+      {"form":"salted-cream-love","en":"Salted Cream Love Sweet","ja":"ミルキィソルト・ハートアメざいく"},
+      {"form":"salted-cream-star","en":"Salted Cream Star Sweet","ja":"ミルキィソルト・スターアメざいく"},
+      {"form":"salted-cream-clover","en":"Salted Cream Clover Sweet","ja":"ミルキィソルト・よつばアメざいく"},
+      {"form":"salted-cream-flower","en":"Salted Cream Flower Sweet","ja":"ミルキィソルト・おはなアメざいく"},
+      {"form":"salted-cream-ribbon","en":"Salted Cream Ribbon Sweet","ja":"ミルキィソルト・リボンアメざいく"},
+      {"form":"ruby-swirl","en":"Ruby Swirl Strawberry Sweet","ja":"ルビーミックス・いちごアメざいく"},
+      {"form":"ruby-swirl-berry","en":"Ruby Swirl Berry Sweet","ja":"ルビーミックス・ベリーアメざいく"},
+      {"form":"ruby-swirl-love","en":"Ruby Swirl Love Sweet","ja":"ルビーミックス・ハートアメざいく"},
+      {"form":"ruby-swirl-star","en":"Ruby Swirl Star Sweet","ja":"ルビーミックス・スターアメざいく"},
+      {"form":"ruby-swirl-clover","en":"Ruby Swirl Clover Sweet","ja":"ルビーミックス・よつばアメざいく"},
+      {"form":"ruby-swirl-flower","en":"Ruby Swirl Flower Sweet","ja":"ルビーミックス・おはなアメざいく"},
+      {"form":"ruby-swirl-ribbon","en":"Ruby Swirl Ribbon Sweet","ja":"ルビーミックス・リボンアメざいく"},
+      {"form":"caramel-swirl","en":"Caramel Swirl Strawberry Sweet","ja":"キャラメルミックス・いちごアメざいく"},
+      {"form":"caramel-swirl-berry","en":"Caramel Swirl Berry Sweet","ja":"キャラメルミックス・ベリーアメざいく"},
+      {"form":"caramel-swirl-love","en":"Caramel Swirl Love Sweet","ja":"キャラメルミックス・ハートアメざいく"},
+      {"form":"caramel-swirl-star","en":"Caramel Swirl Star Sweet","ja":"キャラメルミックス・スターアメざいく"},
+      {"form":"caramel-swirl-clover","en":"Caramel Swirl Clover Sweet","ja":"キャラメルミックス・よつばアメざいく"},
+      {"form":"caramel-swirl-flower","en":"Caramel Swirl Flower Sweet","ja":"キャラメルミックス・おはなアメざいく"},
+      {"form":"caramel-swirl-ribbon","en":"Caramel Swirl Ribbon Sweet","ja":"キャラメルミックス・リボンアメざいく"},
+      {"form":"rainbow-swirl","en":"Rainbow Swirl Strawberry Sweet","ja":"トリプルミックス・いちごアメざいく"},
+      {"form":"rainbow-swirl-berry","en":"Rainbow Swirl Berry Sweet","ja":"トリプルミックス・ベリーアメざいく"},
+      {"form":"rainbow-swirl-love","en":"Rainbow Swirl Love Sweet","ja":"トリプルミックス・ハートアメざいく"},
+      {"form":"rainbow-swirl-star","en":"Rainbow Swirl Star Sweet","ja":"トリプルミックス・スターアメざいく"},
+      {"form":"rainbow-swirl-clover","en":"Rainbow Swirl Clover Sweet","ja":"トリプルミックス・よつばアメざいく"},
+      {"form":"rainbow-swirl-flower","en":"Rainbow Swirl Flower Sweet","ja":"トリプルミックス・おはなアメざいく"},
+      {"form":"rainbow-swirl-ribbon","en":"Rainbow Swirl Ribbon Sweet","ja":"トリプルミックス・リボンアメざいく"}
+    ]
+  },
+  "875": {
+    "base": {"en":"Ice Face","ja":"アイスフェイス"},
+    "forms": [
+      {"form":"noice","en":"Noice Face","ja":"ナイスフェイス","art":"noice"}
+    ]
+  },
+  "877": {
+    "base": {"en":"Full Belly Mode","ja":"まんぷくもよう"},
+    "forms": [
+      {"form":"hangry","en":"Hangry Mode","ja":"はらぺこもよう","art":"hangry"}
+    ]
+  },
+  "888": {
+    "base": {"en":"Hero of Many Battles","ja":"れきせんのゆうしゃ"},
+    "forms": [
+      {"form":"crowned","en":"Crowned Sword","ja":"けんのおう","art":"crowned"}
+    ]
+  },
+  "889": {
+    "base": {"en":"Hero of Many Battles","ja":"れきせんのゆうしゃ"},
+    "forms": [
+      {"form":"crowned","en":"Crowned Shield","ja":"たてのおう","art":"crowned"}
+    ]
+  },
+  "890": {
+    "base": null,
+    "forms": [
+      {"form":"eternamax","en":"Eternamax","ja":"ムゲンダイマックス","art":"eternamax"}
+    ]
+  },
+  "892": {
+    "base": {"en":"Single Strike Style","ja":"いちげきのかた"},
+    "forms": [
+      {"form":"rapid","en":"Rapid Strike Style","ja":"れんげきのかた","art":"rapid-strike","giant":{"form":"rapid-gigantamax","art":"rapid-strike-gmax"}}
+    ]
+  },
+  "893": {
+    "base": null,
+    "forms": [
+      {"form":"dada","en":"Dada","ja":"とうちゃん","art":"dada"}
+    ]
+  },
+  "898": {
+    "base": null,
+    "forms": [
+      {"form":"ice-rider","en":"Ice Rider","ja":"はくばじょうのすがた","art":"ice"},
+      {"form":"shadow-rider","en":"Shadow Rider","ja":"こくばじょうのすがた","art":"shadow"}
+    ]
+  },
+  "900": {
+    "base": null,
+    "forms": [
+      {"form":"noble","en":"Noble","ja":"キングバサギリ"}
+    ]
+  },
+  "905": {
+    "base": {"en":"Incarnate Forme","ja":"けしんフォルム"},
+    "forms": [
+      {"form":"therian","en":"Therian Forme","ja":"れいじゅうフォルム","art":"therian"}
+    ]
+  },
+  "59:hisui": {
+    "base": {"en":"Hisuian Form","ja":"ヒスイのすがた"},
+    "forms": [
+      {"form":"hisui-noble","en":"Noble","ja":"キングウインディ"}
+    ]
+  },
+  "101:hisui": {
+    "base": {"en":"Hisuian Form","ja":"ヒスイのすがた"},
+    "forms": [
+      {"form":"hisui-noble","en":"Noble","ja":"キングマルマイン"}
+    ]
+  },
+  "549:hisui": {
+    "base": {"en":"Hisuian Form","ja":"ヒスイのすがた"},
+    "forms": [
+      {"form":"hisui-noble","en":"Noble","ja":"クイーンドレディア"}
+    ]
+  },
+  "555:galar": {
+    "base": {"en":"Galarian Form","ja":"ガラルのすがた"},
+    "forms": [
+      {"form":"galar-zen","en":"Zen Mode","ja":"ダルマモード","art":"galar-zen"}
+    ]
+  },
+  "713:hisui": {
+    "base": {"en":"Hisuian Form","ja":"ヒスイのすがた"},
+    "forms": [
+      {"form":"hisui-noble","en":"Noble","ja":"キングクレベース"}
+    ]
+  }
+}

@@ -16,7 +16,6 @@ import { CONFIRMABLE, CONFIRMABLE_IDS, MANUAL_ORIGIN, MY_GAME_IDS, asksField, gi
 import { gameColor } from '../../../utils/game-colors';
 import { canVisitChampions } from '../../../utils/champions';
 import { dexNumber, monIcon } from '../../../utils/pokemon';
-import { showsShiny } from '../../../utils/shiny';
 import { monLinks } from '../../../utils/formatting';
 import { stateOf } from './ledger-model';
 import { today } from '../../../utils/date-entry';
@@ -243,7 +242,7 @@ interface Props {
 export function Review ({ queue: opened, start, onClose }: Props) {
   const { captures } = useTrackerState();
   const { activeDex, activeDexView, dexes, saves } = useDexContext();
-  const { openMoveMenu, releaseCaptures } = useTrackerActions();
+  const { keepLook, openMoveMenu, releaseCaptures } = useTrackerActions();
   const { t, locale } = useTranslation();
   const mark = useMark();
   const patchRecords = usePatchRecords();
@@ -483,10 +482,11 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         go(e.key === 'ArrowRight' ? 1 : -1);
       } else if (e.key === ' ' && !typing && bare) {
         // Space walks the run as E does, Shift+Space back as Q, held to run on: from anywhere but a field typed
-        // into or a button of its own (Previous and Next press again as they're focused). A menu's button or
-        // the Nickname box, left focused by the pointer's last answer, gives the key up rather than opening or toggling
+        // into or a button of its own (Previous and Next press again as they're focused). A menu's button, the
+        // Nickname box or one of the lens's (its forms, Keep, its switch), left focused by the pointer's last press,
+        // gives the key up rather than opening or toggling
         const button = target?.closest('button');
-        if (!button || button.classList.contains('dropdown-trigger') || button.classList.contains('rv-toggle') || button.classList.contains('review-place') || field) {
+        if (!button || button.classList.contains('dropdown-trigger') || button.classList.contains('rv-toggle') || button.classList.contains('review-place') || button.closest('.review-lens') || field) {
           e.preventDefault();
           mainRef.current?.focus({ preventScroll: true });
           go(e.shiftKey ? -1 : 1);
@@ -780,7 +780,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
                       <svg aria-hidden="true" className="review-brackets" preserveAspectRatio="none" viewBox="0 0 100 100">
                         <path d="M1 17V1H17M83 1H99V17M99 83V99H83M17 99H1V83" />
                       </svg>
-                      <ViewLensArt giant={capture.gigantamax === true} pokemon={capture.pokemon} shiny={showsShiny(capture, dex)}><i className={monIcon(capture, dex)} /></ViewLensArt>
+                      <ViewLensArt dex={dex} mon={capture} onKeep={capture.captured ? (form) => keepLook(capture.pokemon.id, form) : undefined} />
                       {capture.sealed && <span className={classNames('review-stamp', { slam: stamping === capture.pokemon.id })}>{t('review.stamp')}</span>}
                     </div>
                     {/* a row each, every one its own height on every mon, filled or not */}

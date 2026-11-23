@@ -86,47 +86,157 @@ $art-ease: cubic-bezier(.2, .9, .25, 1);
   }
 }
 
-// the species' other forms, over the lens while it's pointed at
+// its forms over the lens while it's pointed at, in an airy panel standing off its top: a row of their sprites, faded
+// where it runs on past an end, and the one looked at named under it with Keep, or Kept where it's the look shown
 .view-art-forms {
   display: flex;
   position: absolute;
-  top: -10px;
+  bottom: calc(100% - 24px);
   left: 50%;
   z-index: 2;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 3px;
+  flex-direction: column;
+  gap: 2px;
   width: max-content;
-  max-width: 260px;
+  max-width: calc(100% + 44px);
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 14px;
+  background-color: color-mix(in srgb, var(--paper-raised) 74%, transparent);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--ink) 10%, transparent);
   opacity: 0;
   transform: translateX(-50%);
   transition: opacity .2s;
+  backdrop-filter: blur(10px);
 
   .review-lens:hover &,
   &:focus-within {
     opacity: 1;
   }
+}
+
+.view-art-row {
+  display: flex;
+  justify-content: safe center;
+  gap: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  &.more-start {
+    mask-image: linear-gradient(90deg, transparent, #000 28px);
+  }
+
+  &.more-end {
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  }
+
+  &.more-start.more-end {
+    mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  }
 
   button {
-    padding: 2px 8px;
-    border: 1px solid var(--line);
-    border-radius: 99px;
-    background-color: color-mix(in srgb, var(--paper-raised) 85%, transparent);
+    display: flex;
+    position: relative;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: none;
     color: var(--ink-muted);
     font: inherit;
+    white-space: nowrap;
     cursor: pointer;
-    backdrop-filter: blur(6px);
+    transition: background-color .15s, border-color .15s;
 
     @include small-text(10px);
 
     &:hover {
-      border-color: var(--accent);
-      color: var(--ink);
+      background-color: color-mix(in srgb, var(--ink) 7%, transparent);
     }
 
     &.on {
       border-color: var(--accent);
+      background-color: color-mix(in srgb, var(--accent) 14%, transparent);
       color: var(--ink);
     }
+
+    // the look shown everywhere
+    &.kept::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background-color: var(--accent);
+    }
+
+    &.kind-art {
+      padding: 0 9px;
+    }
+  }
+}
+
+.view-art-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 24px;
+  padding: 0 6px;
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+
+  @include small-text(11px);
+
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  small {
+    flex: none;
+    color: var(--ink-muted);
+    font-size: inherit;
+    font-weight: 400;
+  }
+}
+
+.view-art-keep {
+  flex: none;
+  padding: 2px 9px;
+  border: 1px solid var(--accent);
+  border-radius: 99px;
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--accent-hover);
+  }
+}
+
+small.view-art-kept {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+}
+
+// a narrow window's lens, at the side of the band with nothing over it: the panel off its right, over its name
+@container (width < 960px) {
+  .view-art-forms {
+    top: 2px;
+    bottom: auto;
+    left: calc(100% - 10px);
+    max-width: 340px;
+    transform: none;
   }
 }

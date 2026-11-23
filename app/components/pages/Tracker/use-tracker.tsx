@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { BOX_COLUMNS, TILE_SIZE } from '../../../utils/pokemon';
 import { EMPTY_METADATA } from '../../../utils/capture-fields';
-import { deleteCaptures, moveCapture, progressToCaptures, writeCapture } from '../../../utils/local-data';
+import { deleteCaptures, moveCapture, progressToCaptures, writeCapture, writeLook } from '../../../utils/local-data';
 import { isDexPlaceId } from '../../../utils/dex-places';
 import { removeEntries } from '../../../utils/free-dex';
 import { locationTint, movedRecord, placeOf, samePlace } from '../../../utils/location-moves';
@@ -96,6 +96,8 @@ interface TrackerActions {
   updateCapture: (payload: UpdateCapturePayload) => void;
   // blanks the tiles and deletes the records; sealed ones are skipped by both
   releaseCaptures: (pokemon: number[]) => void;
+  // a marked mon's look kept (utils/looks), or its own form again (null), the tile and the dex alike
+  keepLook: (pokemon: number, form: string | null) => void;
   // a sealed mon moved, the tile and the record alike, with the level it came home at (asksLevel); an unsealed one is
   // skipped by both
   moveTo: (pokemon: number, to: Place, level?: number) => void;
@@ -118,6 +120,7 @@ const TrackerActionsContext = createContext<TrackerActions>({
   setCaptures: () => {},
   updateCapture: () => {},
   releaseCaptures: () => {},
+  keepLook: () => {},
   moveTo: () => {},
   openMoveMenu: () => {},
   moveMenuHost: { current: null },
@@ -177,10 +180,14 @@ export const TrackerContextProvider = ({ children }: Props) => {
       return;
     }
     setCaptures((prev) => prev.map((cap) => (pokemon.includes(cap.pokemon.id) && cap.captured && !cap.sealed
-      ? { ...cap, ...EMPTY_METADATA, captured: false, status: null, sealed: false }
+      ? { ...cap, ...EMPTY_METADATA, captured: false, status: null, sealed: false, look: null }
       : cap)));
     deleteCaptures(dexId, pokemon);
   }, [dexId, free]);
+  const keepLook = useCallback((pokemon: number, form: string | null) => {
+    setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === pokemon && cap.captured ? { ...cap, look: form } : cap)));
+    writeLook(dexId, pokemon, form);
+  }, [dexId]);
   const moveTo = useCallback((pokemon: number, to: Place, level?: number) => {
     setCaptures((prev) => prev.map((cap) => {
       const here = placeOf(cap);
@@ -199,8 +206,8 @@ export const TrackerContextProvider = ({ children }: Props) => {
 
   const stateValue = useMemo<TrackerState>(() => ({ captures }), [captures]);
   const actionsValue = useMemo<TrackerActions>(
-    () => ({ setCaptures, updateCapture, releaseCaptures, moveTo, openMoveMenu, moveMenuHost, openHost, revealHost, holdHost, narrow }),
-    [updateCapture, releaseCaptures, moveTo, openMoveMenu, narrow],
+    () => ({ setCaptures, updateCapture, releaseCaptures, keepLook, moveTo, openMoveMenu, moveMenuHost, openHost, revealHost, holdHost, narrow }),
+    [updateCapture, releaseCaptures, keepLook, moveTo, openMoveMenu, narrow],
   );
 
   return (

@@ -6,6 +6,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } fr
 import { CAPTURE_FIELDS, formatFieldValue, unansweredFields } from '../../../utils/capture-fields';
 import { PokemonName, displayName } from '../../library/PokemonName';
 import { dexNumber, monIcon } from '../../../utils/pokemon';
+import { lookOf } from '../../../utils/looks';
 import { asksField } from '../../../utils/review-confirm';
 import { inTraining } from '../../../utils/location-moves';
 import { levelText } from './review-fields';
@@ -188,6 +189,8 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
   const stale = new Set(missing.map((field) => field.id));
   // a mon out in a game still going up: 育成中, at least the level it left at
   const training = inTraining(capture, dexView.game.id === 'home');
+  // the form it's shown as, named beside its number
+  const look = lookOf(capture, dexView);
 
   return (
     <div
@@ -201,6 +204,7 @@ export function PokemonPopover ({ onClose, scale, selectedPokemon }: Props) {
             <h1 data-copy-name={displayName(pokemon.name, pokemon.name_ja, locale)}><PokemonName name={pokemon.name} nameJa={pokemon.name_ja} /></h1>
             <p className="popover-meta">
               #{dexNumber(pokemon, dexView)}
+              {look && <span>{look[locale]}</span>}
             </p>
           </div>
           <button aria-label={t('popover.close')} className="popover-close" onClick={dismiss} title={t('popover.close')} type="button">

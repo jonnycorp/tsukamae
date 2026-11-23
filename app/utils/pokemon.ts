@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 
+import { lookOf } from './looks';
 import { padding } from './formatting';
 import { showsShiny } from './shiny';
 
@@ -59,8 +60,14 @@ export function iconClass ({ national_id: nationalId, form }: CapturePokemon, de
 }
 
 // a mon to draw: a marked one's record, or a species alone ({ pokemon }), drawn as its dex's box says
-export type IconMon = Pick<Capture, 'pokemon'> & Partial<Pick<Capture, 'shiny' | 'gender'>>;
+export type IconMon = Pick<Capture, 'pokemon'> & Partial<Pick<Capture, 'shiny' | 'gender' | 'look'>>;
 
-// a mon's icon as its record says: its colours (utils/shiny), and a female's own icon
-export const monIcon = (mon: IconMon, dex: Dex, family?: string | null) =>
-  iconClass(mon.pokemon, dex, { family, shiny: showsShiny(mon, dex), female: mon.gender === 'female' });
+// a mon's icon as its record says: its colours (utils/shiny), and a female's own icon; or the form its dex shows it as
+// (utils/looks), from the sheet's own icons, as a game family's have none of its forms
+export function monIcon (mon: IconMon, dex: Dex): string {
+  const look = lookOf(mon, dex);
+  const shiny = showsShiny(mon, dex);
+  return look
+    ? iconClass({ ...mon.pokemon, form: look.form }, dex, { family: null, shiny })
+    : iconClass(mon.pokemon, dex, { shiny, female: mon.gender === 'female' });
+}

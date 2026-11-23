@@ -1,6 +1,6 @@
 import { BALLS, LANGUAGES, ORIGIN_GAMES } from './capture-fields';
 import { BOX_SIZE } from './pokemon';
-import { DEFAULT_CATALOG_KEY, FREE_ID_BASE, freshEntry, getCatalogDex, newId } from './local-data';
+import { DEFAULT_CATALOG_KEY, FREE_ID_BASE, freshEntry, getCatalogDex, looksLess, newId } from './local-data';
 import { speciesKey } from './copies';
 
 import type { AppState, FreeBox, FreeEntry, PersonalDex } from './local-data';
@@ -118,7 +118,7 @@ export function removeEntries (state: AppState, dexId: string, ids: number[]) {
   withDex(state, dexId, (dex) => {
     const gone = new Set(ids.filter((id) => !dex.progress[id]?.sealed));
     gone.forEach((id) => delete dex.progress[id]);
-    return { entries: (dex.entries ?? []).filter((entry) => !gone.has(entry.id)) };
+    return { entries: (dex.entries ?? []).filter((entry) => !gone.has(entry.id)), looks: looksLess(dex.looks, [...gone]) };
   });
 }
 
@@ -238,11 +238,13 @@ export function moveToFree (state: AppState, fromId: string, ids: number[], toId
       dex.progress[first + i] = { ...record };
       return { id: first + i, species: species!, ...slots[i] };
     });
-    return { boxes, entries: [...(dex.entries ?? []), ...added] };
+    // each with its look, the same species and form having the same ones here (utils/looks)
+    const looks = moving.flatMap(({ id }, i) => (from.looks?.[id] ? [[first + i, from.looks[id]]] : []));
+    return { boxes, entries: [...(dex.entries ?? []), ...added], ...(looks.length > 0 && { looks: { ...dex.looks, ...Object.fromEntries(looks) } }) };
   });
   withDex(state, fromId, (dex) => {
     moving.forEach(({ id }) => delete dex.progress[id]);
-    return {};
+    return { looks: looksLess(dex.looks, moving.map(({ id }) => id)) };
   });
   return moving.map(({ id }) => id);
 }
