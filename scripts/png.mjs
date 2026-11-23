@@ -1,7 +1,7 @@
 'use strict';
 
-// dev-only: the little PNG the theme scripts need (theme-sprites.mjs, theme-marks.mjs), with no image library: 8-bit
-// RGBA or grey-and-alpha, not interlaced, in; RGBA out
+// dev-only: the little PNG the sprite scripts need (theme-sprites.mjs, theme-marks.mjs, add-sprite-forms.mjs), with no
+// image library: 8-bit RGBA, grey-and-alpha or palette, not interlaced, in; RGBA out
 
 import { readFileSync } from 'node:fs';
 import { deflateSync, inflateSync } from 'node:zlib';
@@ -28,15 +28,17 @@ const crc32 = (buf) => {
   return (c ^ 0xffffffff) >>> 0;
 };
 
-// null for a PNG it can't read
-export function decode (file) {
-  const buf = readFileSync(file);
+// a file's or a buffer's pixels as RGBA, or null for a PNG it can't read
+export function decode (source) {
+  const buf = typeof source === 'string' ? readFileSync(source) : source;
   if (!buf.subarray(0, 8).equals(SIGNATURE)) {
-    throw new Error(`${file}: not a PNG`);
+    throw new Error(`${typeof source === 'string' ? source : 'buffer'}: not a PNG`);
   }
   let width = 0;
   let height = 0;
   let channels = 0;
+  let palette = null;
+  let alphas = null;
   const data = [];
   for (let at = 8; at < buf.length;) {
     const length = buf.readUInt32BE(at);
@@ -46,10 +48,14 @@ export function decode (file) {
       width = body.readUInt32BE(0);
       height = body.readUInt32BE(4);
       const [depth, colour, , , interlace] = body.subarray(8, 13);
-      channels = { 6: 4, 4: 2 }[colour];
+      channels = { 6: 4, 4: 2, 3: 1 }[colour];
       if (depth !== 8 || !channels || interlace !== 0) {
         return null;
       }
+    } else if (type === 'PLTE') {
+      palette = body;
+    } else if (type === 'tRNS') {
+      alphas = body;
     } else if (type === 'IDAT') {
       data.push(body);
     }
@@ -87,9 +93,14 @@ export function decode (file) {
       const o = (y * width + x) * 4;
       if (channels === 4) {
         line.copy(pixels, o, x * 4, x * 4 + 4);
-      } else {
+      } else if (channels === 2) {
         pixels[o] = pixels[o + 1] = pixels[o + 2] = line[x * 2];
         pixels[o + 3] = line[x * 2 + 1];
+      } else {
+        // an index into the palette, its alpha from tRNS where that lists it
+        const i = line[x];
+        palette.copy(pixels, o, i * 3, i * 3 + 3);
+        pixels[o + 3] = alphas && i < alphas.length ? alphas[i] : 255;
       }
     }
     line.copy(prev);
@@ -106,10 +117,13 @@ function chunk (type, body) {
   return Buffer.concat([head, body, crc]);
 }
 
-// each row with whichever filter leaves it smallest, as most encoders guess
+// the rows filtered two ways, the smaller kept once deflated: each row with whichever filter leaves it smallest, as most
+// encoders guess, or none at all, which pixel art's runs of one colour deflate best as they are (a sprite sheet a fifth
+// smaller)
 export function encode ({ width, height, pixels }) {
   const stride = width * 4;
-  const out = Buffer.alloc(height * (stride + 1));
+  const guessed = Buffer.alloc(height * (stride + 1));
+  const plain = Buffer.alloc(height * (stride + 1));
   const candidates = [0, 1, 2, 3, 4].map(() => Buffer.alloc(stride));
   for (let y = 0; y < height; y++) {
     const row = pixels.subarray(y * stride, (y + 1) * stride);
@@ -146,12 +160,14 @@ export function encode ({ width, height, pixels }) {
         best = filter;
       }
     }
-    out[y * (stride + 1)] = best;
-    candidates[best].copy(out, y * (stride + 1) + 1);
+    guessed[y * (stride + 1)] = best;
+    candidates[best].copy(guessed, y * (stride + 1) + 1);
+    row.copy(plain, y * (stride + 1) + 1);
   }
+  const data = [guessed, plain].map((rows) => deflateSync(rows, { level: 9 })).sort((a, b) => a.length - b.length)[0];
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
   ihdr.set([8, 6, 0, 0, 0], 8);
-  return Buffer.concat([SIGNATURE, chunk('IHDR', ihdr), chunk('IDAT', deflateSync(out, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+  return Buffer.concat([SIGNATURE, chunk('IHDR', ihdr), chunk('IDAT', data), chunk('IEND', Buffer.alloc(0))]);
 }

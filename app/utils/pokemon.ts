@@ -40,16 +40,27 @@ export function dexNumber (pokemon: CapturePokemon, dex: Dex): string {
   return pokemon.dex_number === -1 ? '---' : padding(pokemon.dex_number, numberDigits(dex));
 }
 
-// `family`, the game family whose icons to draw (the dex's own), or none for the sheet's own; `shiny`, drawn in its
-// shiny colours, as the dex's box says for a species alone (a marked mon's own record says: monIcon)
-export function iconClass ({ national_id: nationalId, form }: CapturePokemon, dex: Dex, family: string | null = dex.dex_type.game_family_id, shiny = dex.shiny) {
+// how a species' icon is drawn: `family`, the game family whose icons to draw (the dex's own), or none for the sheet's
+// own; `shiny`, in its shiny colours, as the dex's box says for a species alone (a marked mon's own record says:
+// monIcon); `female`, its species' female icon where it has one (the sheet's gender-female), never over a form
+export interface IconOptions {
+  family?: string | null;
+  shiny?: boolean;
+  female?: boolean;
+}
+
+export function iconClass ({ national_id: nationalId, form }: CapturePokemon, dex: Dex, { family = dex.dex_type.game_family_id, shiny = dex.shiny, female = false }: IconOptions = {}) {
   return classNames('pkicon', `pkicon-${padding(nationalId, 3)}`, {
     'color-shiny': shiny,
     [`form-${form}`]: Boolean(form),
+    'gender-female': female && !form,
     [`game-family-${family}`]: Boolean(family),
   });
 }
 
-// a mon's icon in the colours its record says (utils/shiny)
-export const monIcon = (capture: Pick<Capture, 'pokemon' | 'shiny'>, dex: Dex, family?: string | null) =>
-  iconClass(capture.pokemon, dex, family, showsShiny(capture, dex));
+// a mon to draw: a marked one's record, or a species alone ({ pokemon }), drawn as its dex's box says
+export type IconMon = Pick<Capture, 'pokemon'> & Partial<Pick<Capture, 'shiny' | 'gender'>>;
+
+// a mon's icon as its record says: its colours (utils/shiny), and a female's own icon
+export const monIcon = (mon: IconMon, dex: Dex, family?: string | null) =>
+  iconClass(mon.pokemon, dex, { family, shiny: showsShiny(mon, dex), female: mon.gender === 'female' });

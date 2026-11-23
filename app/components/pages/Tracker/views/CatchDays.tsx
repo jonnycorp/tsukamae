@@ -200,7 +200,7 @@ export function CatchDays ({ back, onClose, onLocate, onReview }: ViewProps) {
                     style={{ '--i': Math.min(i, 30) } as CSSProperties}
                     type="button"
                   >
-                    <SceneMon pokemon={record.capture.pokemon} shiny={record.capture.shiny} view={record.view} />
+                    <SceneMon mon={record.capture} view={record.view} />
                   </button>
                 ))}
               </div>

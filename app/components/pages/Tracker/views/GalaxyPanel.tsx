@@ -9,8 +9,9 @@ import { showsShiny } from '../../../../utils/shiny';
 import { localizeNature, localizeOriginGame } from '../../../../i18n/names';
 import { useViewText } from './views-i18n';
 
-import type { CapturePokemon, Dex } from '../../../../types';
+import type { Dex } from '../../../../types';
 import type { GalaxyMode } from './BallGalaxy';
+import type { IconMon } from '../../../../utils/pokemon';
 import type { ViewRecord } from './ViewScope';
 
 interface Props {
@@ -32,15 +33,15 @@ interface Props {
 const natureName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
 
 // a mon's official art as a hologram: tinted in the accent, lined like a projection, flickering on as it comes; its
-// sprite where the art isn't saved (yarn sprites:art), a shiny one's in its shiny colours
-export function ArtHologram ({ pokemon, view, shiny = false, gmax = false, large = false }: { pokemon: CapturePokemon; view?: Dex; shiny?: boolean; gmax?: boolean; large?: boolean }) {
+// sprite where the art isn't saved (yarn sprites:art), as its record says (a shiny one's in its shiny colours)
+export function ArtHologram ({ mon, view, gmax = false, large = false }: { mon: IconMon; view?: Dex; gmax?: boolean; large?: boolean }) {
   // the art that failed to load, so a record turned shiny (or back) tries its own
   const [failed, setFailed] = useState<string | null>(null);
-  const src = artSrc(pokemon, shiny, gmax ? 'gmax' : null);
+  const src = artSrc(mon.pokemon, mon.shiny === true, gmax ? 'gmax' : null);
   return (
     <div className={classNames('lg-holo', { large })}>
       {failed === src
-        ? <SceneMon pokemon={pokemon} shiny={shiny} view={view} zoom={large ? 6 : 3} />
+        ? <SceneMon mon={mon} view={view} zoom={large ? 6 : 3} />
         : <img alt="" draggable={false} onError={() => setFailed(src)} src={src} />}
     </div>
   );
@@ -48,7 +49,7 @@ export function ArtHologram ({ pokemon, view, shiny = false, gmax = false, large
 
 // a record's: in the colours it says, its giant form where it says Gigantamax
 export const Hologram = ({ record, large = false }: { record: ViewRecord; large?: boolean }) => (
-  <ArtHologram gmax={Boolean(record.capture.gigantamax)} large={large} pokemon={record.capture.pokemon} shiny={showsShiny(record.capture, record.view)} view={record.view} />
+  <ArtHologram gmax={Boolean(record.capture.gigantamax)} large={large} mon={{ ...record.capture, shiny: showsShiny(record.capture, record.view) }} view={record.view} />
 );
 
 // what a picked star in the galaxy shows. The constellation's: a panel at the right, airy, the hologram over the mon's
@@ -100,7 +101,7 @@ export function GalaxyPanel ({ kind, record, scale = 1, ballName, day = [], onPi
           <div>
             {day.map((other) => (
               <button className={classNames({ on: other === record })} key={other.key} onClick={() => onPick?.(other)} title={displayName(other.capture.pokemon.name, other.capture.pokemon.name_ja, locale)} type="button">
-                <SceneMon pokemon={other.capture.pokemon} shiny={other.capture.shiny} view={other.view} />
+                <SceneMon mon={other.capture} view={other.view} />
               </button>
             ))}
           </div>

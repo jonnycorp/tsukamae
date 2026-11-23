@@ -213,7 +213,7 @@ export function NameQuiz ({ onClose }: ViewProps) {
                 {/* answered: the mon the name is, its art held up beside the name (no English: the name's to be learnt as itself) */}
                 {answer && (
                   <div className="lq-reveal">
-                    <ArtHologram pokemon={question.entry.pokemon} />
+                    <ArtHologram mon={{ pokemon: question.entry.pokemon, shiny: false }} />
                   </div>
                 )}
                 <div className="lq-choices">
@@ -230,7 +230,7 @@ export function NameQuiz ({ onClose }: ViewProps) {
                       type="button"
                     >
                       <kbd>{i + 1}</kbd>
-                      <SceneMon pokemon={choice.pokemon} zoom={2.2} />
+                      <SceneMon mon={{ pokemon: choice.pokemon }} zoom={2.2} />
                       {answer && <small>{choice.name}</small>}
                     </button>
                   ))}

@@ -62,7 +62,7 @@ const BatchTable = memo(function BatchTable ({ batch, columns, cursor, ditto, on
         return (
           <tr className={classNames({ ready: row.left === 0, at: cursor?.row === row.record.key })} key={row.record.key}>
             <th onDoubleClick={() => onOpen(row)} scope="row" title={lt('sheet.open')}>
-              <SceneMon pokemon={row.record.capture.pokemon} shiny={row.record.capture.shiny} view={row.record.view} />
+              <SceneMon mon={row.record.capture} view={row.record.view} />
               <span>{displayName(row.record.capture.pokemon.name, row.record.capture.pokemon.name_ja, locale)}</span>
               <small>{row.left === 0 ? lt('sheet.ready') : row.left}</small>
             </th>

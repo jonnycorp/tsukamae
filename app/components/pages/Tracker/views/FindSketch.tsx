@@ -282,7 +282,7 @@ export function FindSketch ({ back, onClose, onFilter, onLocate, onSpot }: ViewP
                   onClick={() => (at === n && record.here ? onSpot(capture.pokemon.id) : setAt(n))}
                   type="button"
                 >
-                  <SceneMon pokemon={capture.pokemon} shiny={capture.shiny} view={record.view} />
+                  <SceneMon mon={capture} view={record.view} />
                   <span className="lf-names">
                     <strong>{capture.pokemon.name_ja || capture.pokemon.name}</strong>
                     <small>No.{String(capture.pokemon.national_id).padStart(4, '0')} · {displayName(capture.pokemon.name, null, 'en')}{capture.has_nickname && capture.nickname ? ` · “${capture.nickname}”` : ''}</small>

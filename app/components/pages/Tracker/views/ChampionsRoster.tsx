@@ -146,7 +146,7 @@ export function ChampionsRoster ({ back, onClose, onLocate }: ViewProps) {
             style={{ '--i': Math.min(40, i + g * 4) } as CSSProperties}
             type="button"
           >
-            <span className="lch-mon"><SceneMon pokemon={slot.pokemon} zoom={1.4} /></span>
+            <span className="lch-mon"><SceneMon mon={{ pokemon: slot.pokemon }} zoom={1.4} /></span>
             <span className="lch-name">{displayName(slot.pokemon.name, slot.pokemon.name_ja, locale)}</span>
             {slot.copies.length > 0 && (
               <span className="lch-badges">

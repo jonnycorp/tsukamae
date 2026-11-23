@@ -31,5 +31,5 @@ export function showsGigantamax (capture: Pick<Capture, 'pokemon' | 'gigantamax'
 // any dex's family, a Legends: Arceus dex's included, whose icons have no giant forms and would win over it; in the
 // colours its record says
 export function gigantamaxIcon (capture: Pick<Capture, 'pokemon' | 'shiny'>, dex: Dex): string {
-  return iconClass({ ...capture.pokemon, form: 'gigantamax' }, dex, null, showsShiny(capture, dex));
+  return iconClass({ ...capture.pokemon, form: 'gigantamax' }, dex, { family: null, shiny: showsShiny(capture, dex) });
 }

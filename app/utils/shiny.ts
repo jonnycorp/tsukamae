@@ -15,6 +15,6 @@ export function asksShiny (capture: Pick<Capture, 'shiny'>, dex: ShinyDex): bool
 
 // drawn shiny: as its record says, and a slot with no answer (one not marked, a checklist's, which keeps no fields)
 // as its dex's box says
-export function showsShiny (capture: Pick<Capture, 'shiny'>, dex: Pick<Dex, 'shiny'>): boolean {
+export function showsShiny (capture: Partial<Pick<Capture, 'shiny'>>, dex: Pick<Dex, 'shiny'>): boolean {
   return capture.shiny ?? dex.shiny;
 }

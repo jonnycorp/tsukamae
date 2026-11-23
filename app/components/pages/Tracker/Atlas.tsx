@@ -167,7 +167,7 @@ export function Atlas ({ onClose, onLocate }: Props) {
     return (
       <div className="at-tip" ref={tipRef} role="status">
         <div className="at-tip-mon">
-          {mon && <SceneMon pokemon={mon} zoom={1.5} />}
+          {mon && <SceneMon mon={{ pokemon: mon }} zoom={1.5} />}
           <span>
             <strong>{nameOf(hot.national)}</strong>
             <small>#{padding(hot.national, 4)} · {t('atlas.copies', { n: data.copies.get(hot.national) ?? 0 })}</small>
@@ -195,7 +195,7 @@ export function Atlas ({ onClose, onLocate }: Props) {
     const slot = slotHere(national);
     return (
       <button className="at-mon" disabled={!slot} key={national} onClick={() => go(national)} title={`${nameOf(national)} #${padding(national, 4)}`} type="button">
-        {species && <SceneMon pokemon={species} />}
+        {species && <SceneMon mon={{ pokemon: species }} />}
       </button>
     );
   };

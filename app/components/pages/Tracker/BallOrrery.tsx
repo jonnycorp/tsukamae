@@ -218,7 +218,7 @@ export function BallOrrery ({ back, onClose, onFilter }: Props) {
                   </span>
                 </div>
                 <span className="orb-tip-mons">
-                  {hotBody.mons.slice(0, hotBody.mons.length > TIP_MONS ? TIP_MONS - 1 : TIP_MONS).map((capture) => <SceneMon key={capture.pokemon.id} pokemon={capture.pokemon} shiny={capture.shiny} />)}
+                  {hotBody.mons.slice(0, hotBody.mons.length > TIP_MONS ? TIP_MONS - 1 : TIP_MONS).map((capture) => <SceneMon key={capture.pokemon.id} mon={capture} />)}
                   {hotBody.mons.length > TIP_MONS && <span className="orb-tip-more">+{hotBody.mons.length - TIP_MONS + 1}</span>}
                 </span>
                 <em>{t('orrery.press')}</em>

@@ -7,7 +7,7 @@ export interface SpriteCut {
   h: number;
 }
 
-const SHEET = '/pokesprite-v12.png';
+const SHEET = '/pokesprite-v13.png';
 const cuts = new Map<string, SpriteCut | null>();
 let sheet: HTMLImageElement | null = null;
 const shadows = new Map<string, HTMLCanvasElement>();

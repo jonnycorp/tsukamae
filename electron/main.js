@@ -283,7 +283,7 @@ function saveWindowState (win, maximized) {
   }
 }
 
-// app:// lets the bundle's absolute paths (publicPath '/', url('/pokesprite-v12.png')) resolve without a server
+// app:// lets the bundle's absolute paths (publicPath '/', url('/pokesprite-v13.png')) resolve without a server
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
