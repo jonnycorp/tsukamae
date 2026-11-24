@@ -1,15 +1,17 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { createPortal } from 'react-dom';
-import { faArrowLeft, faCheck, faHouse } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCheck, faHouse, faLock } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { GameChip, LangTag } from './review-fields';
 import { ORIGIN_GAME_NAMES } from '../../../utils/capture-fields';
 import { PokemonName } from '../../library/PokemonName';
-import { asksLevel, dexPlacesFor, placeKey, placeLabel, placeOf, placesFor, samePlace, shownPlace } from '../../../utils/location-moves';
+import { asksLevel, asksSoup, dexPlacesFor, placeKey, placeLabel, placeOf, placesFor, samePlace, shownPlace } from '../../../utils/location-moves';
+import { canMoveTo } from '../../../utils/game-reach';
 import { monIcon } from '../../../utils/pokemon';
 import { localizeOriginGame } from '../../../i18n/names';
+import { offersChampions } from '../../../utils/champions';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTrackerActions, useTrackerState } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
@@ -21,9 +23,12 @@ import type { MoveTarget } from './use-tracker';
 const EDGE = 8;
 const GAP = 6;
 const MAX_LEVEL = 100;
+const CHAMPIONS: Place = { location: 'champions', location_save: null };
+// what would scroll the page under a step with nothing to type into, which closes the menu
+const SCROLL_KEYS = new Set(['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'PageDown', 'PageUp', 'Home', 'End']);
 
-// HOME and Champions, drawn large; a free-form dex's checklist boxes in HOME; your games
-const isBig = (place: Place) => place.location === 'champions' || (place.location === 'home' && !place.location_save);
+// HOME, drawn large; a free-form dex's checklist boxes in HOME; your games
+const isBig = (place: Place) => place.location === 'home' && !place.location_save;
 const isBox = (place: Place) => place.location === 'home' && Boolean(place.location_save);
 const isGame = (place: Place) => place.location === 'game';
 
@@ -38,11 +43,14 @@ function PlacePicture ({ place, saves }: { place: Place; saves: GameSave[] }) {
   return <GameChip game={saves.find((save) => save.id === place.location_save)?.game} />;
 }
 
-// where a sealed mon can be moved, a menu at its tile (S, or L, over it) or at its place under W's lens: the mon
-// and where it is, then HOME and Champions large, a free-form dex's checklist boxes, and your games as W's chips (box
-// art, mark, name, language), each its number; where it is ticked. Coming home from a game (asksLevel) asks the level
-// it's back at first, at least the floor it kept. Q E (or the arrows) move, Space or Enter picks, 1 to 9 a game; S or L
-// again, Escape, a press outside, a scroll or a resize close it
+// where a sealed mon can be checked out to, a menu at its tile (S, or L, over it) or at its place under W's lens: the
+// mon and where it is, then HOME large, a free-form dex's checklist boxes, and your games as W's chips (box art, mark,
+// name, language), each its number; where it is ticked. Champions is past them, an operation of its own (C) offered in
+// HOME, as it's for good (been to Champions) and locks the mon in HOME till it's back out, offered nothing but HOME. A
+// pick that asks something first opens a step: coming home from a game, the level it's back at, at least the floor it
+// kept; leaving Sword or Shield, the Gigantamax factor (G), which Max Soup may have changed; into Champions, a yes. Q E
+// (or the arrows) move, Space or Enter picks, 1 to 9 a game; S or L again, Escape, a press outside, a scroll or a
+// resize close it
 export function MoveMenu () {
   const { captures } = useTrackerState();
   const { moveTo, moveMenuHost } = useTrackerActions();
@@ -50,9 +58,10 @@ export function MoveMenu () {
   const { t, locale } = useTranslation();
   const [target, setTarget] = useState<MoveTarget | null>(null);
   const [active, setActive] = useState(0);
-  // the level step: where the mon is coming home to, and the level typed for it
-  const [coming, setComing] = useState<Place | null>(null);
+  // the step a pick opened: where the mon is going, the level typed for it and the factor said for it
+  const [step, setStep] = useState<Place | null>(null);
   const [draft, setDraft] = useState('');
+  const [factor, setFactor] = useState(false);
   const [style, setStyle] = useState<CSSProperties>({ visibility: 'hidden' });
   const panelRef = useRef<HTMLDivElement>(null);
   const levelRef = useRef<HTMLInputElement>(null);
@@ -61,7 +70,7 @@ export function MoveMenu () {
   useEffect(() => {
     moveMenuHost.current = (next) => {
       setTarget(next);
-      setComing(null);
+      setStep(null);
     };
     return () => {
       moveMenuHost.current = null;
@@ -73,18 +82,28 @@ export function MoveMenu () {
   const here = capture ? placeOf(capture) : null;
   // the games it can go to from where it is (placesFor), and the one it's in whatever it is, so where it is stays ticked
   const places = useMemo(() => (open && capture
-    ? placesFor(saves, capture, homeDex, dexPlacesFor(activeDex, dexes ?? []))
-    : []), [open, capture, saves, homeDex, activeDex, dexes]);
+    ? placesFor(saves, capture, dexPlacesFor(activeDex, dexes ?? []))
+    : []), [open, capture, saves, activeDex, dexes]);
   const [big, boxes, games] = useMemo(() => [places.filter(isBig), places.filter(isBox), places.filter(isGame)], [places]);
+  const champions = open && capture ? offersChampions(capture, homeDex) : false;
   // the order the keys walk them in, as they stand
-  const order = useMemo(() => [...big, ...boxes, ...games], [big, boxes, games]);
+  const order = useMemo(() => [...big, ...boxes, ...games, ...(champions ? [CHAMPIONS] : [])], [big, boxes, games, champions]);
   const floor = capture?.level ?? null;
   const typed = Number(draft);
   const levelOk = draft !== '' && Number.isInteger(typed) && typed >= (floor ?? 1) && typed <= MAX_LEVEL;
+  // what the step asks: the level coming home, the factor leaving Sword or Shield (wherever it's going)
+  const level = Boolean(step && capture && asksLevel(capture, step, homeDex));
+  const soup = Boolean(capture && asksSoup(capture, saves));
+  // a game it's going on to holds it with the factor as now said (placesFor offers it either way): no giant Pikachu,
+  // Eevee or Meowth in Brilliant Diamond and Shining Pearl, nor Pikachu or Eevee in Legends: Arceus (utils/game-reach
+  // gameHolds)
+  const stepSave = step?.location === 'game' ? saves.find((save) => save.id === step.location_save) : undefined;
+  const fits = !soup || !stepSave || !capture || canMoveTo(stepSave, { ...capture, gigantamax: factor }, saves);
+  const ready = (!level || levelOk) && fits;
 
   const close = () => {
     setTarget(null);
-    setComing(null);
+    setStep(null);
   };
 
   const pick = (place: Place | undefined) => {
@@ -93,20 +112,21 @@ export function MoveMenu () {
     }
     if (here && samePlace(place, here)) {
       close();
-    } else if (asksLevel(capture, place, homeDex)) {
-      setComing(place);
+    } else if (place.location === 'champions' || soup || asksLevel(capture, place, homeDex)) {
+      setStep(place);
       setDraft(floor === null ? '' : String(floor));
+      setFactor(capture.gigantamax === true);
     } else {
       moveTo(capture.pokemon.id, place);
       close();
     }
   };
 
-  const bringHome = () => {
-    if (capture && coming && levelOk) {
-      moveTo(capture.pokemon.id, coming, typed);
+  const confirm = () => {
+    if (capture && step && ready) {
+      moveTo(capture.pokemon.id, step, { level: level ? typed : undefined, gigantamax: soup ? factor : undefined });
       close();
-    } else {
+    } else if (level && !levelOk) {
       levelRef.current?.select();
     }
   };
@@ -133,18 +153,18 @@ export function MoveMenu () {
     const left = Math.max(EDGE, Math.min(anchor.left, window.innerWidth - width - EDGE));
     const below = anchor.bottom + GAP + height <= window.innerHeight - EDGE;
     setStyle({ left, top: below ? anchor.bottom + GAP : fitTop(anchor.top - GAP - height) });
-  }, [open, target, coming]);
+  }, [open, target, step]);
   useLayoutEffect(() => {
-    if (open && !coming) {
+    if (open && !step) {
       setActive(Math.max(0, order.findIndex((place) => here !== null && samePlace(place, here))));
     }
   }, [open, target]);
   useLayoutEffect(() => {
-    if (coming) {
+    if (level) {
       levelRef.current?.focus();
       levelRef.current?.select();
     }
-  }, [coming]);
+  }, [step]);
 
   // the keys the open menu takes are claimed, so none reaches the page's hotkeys (Space's walk, Space's pause)
   useEffect(() => {
@@ -156,13 +176,21 @@ export function MoveMenu () {
         return;
       }
       const letter = e.key.toLowerCase();
-      if (coming) {
+      if (step) {
+        const typing = e.target === levelRef.current;
         if (e.key === 'Escape') {
           e.preventDefault();
-          setComing(null);
+          setStep(null);
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          bringHome();
+          confirm();
+        } else if (letter === 'g' && soup) {
+          e.preventDefault();
+          if (!e.repeat) {
+            setFactor((on) => !on);
+          }
+        } else if ((e.key === ' ' && !(e.target instanceof HTMLButtonElement)) || (!typing && SCROLL_KEYS.has(e.key))) {
+          e.preventDefault();
         }
         return;
       }
@@ -185,6 +213,9 @@ export function MoveMenu () {
       } else if (/^[1-9]$/.test(e.key)) {
         e.preventDefault();
         pick(games[Number(e.key) - 1]);
+      } else if (letter === 'c' && champions) {
+        e.preventDefault();
+        pick(CHAMPIONS);
       } else if (letter === 's' || letter === 'l') {
         e.preventDefault();
         if (!e.repeat) {
@@ -212,15 +243,16 @@ export function MoveMenu () {
       document.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', close);
     };
-  }, [open, order, active, target, coming, draft]);
+  }, [open, order, active, target, step, draft, factor]);
 
   if (!open || !capture || !target) {
     return null;
   }
 
   const shown = shownPlace(capture, saves);
-  // a press on one, its picture, its name, and what it holds after: where it is ticked, a game's number key, and a
-  // level asked on the way home
+  const gameName = (save: GameSave) => localizeOriginGame(locale, save.game, ORIGIN_GAME_NAMES.get(save.game) ?? save.game);
+  // a press on one, its picture, its name, and what it holds after: where it is ticked, a game's number key, Champions'
+  // C, and a level asked on the way home
   const option = (place: Place, body: ReactNode, after?: ReactNode) => {
     const index = order.indexOf(place);
     const current = here !== null && samePlace(place, here);
@@ -254,30 +286,65 @@ export function MoveMenu () {
             <span className="move-now">{t('move.now', { place: shown ? placeLabel(shown, saves, locale) : '—' })}</span>
           </span>
         </header>
-        {coming
+        {step
           ? (
-            <div className="move-level">
-              <p className="move-level-to"><PlacePicture place={coming} saves={saves} />{placeLabel(coming, saves, locale)}</p>
-              <label className="move-level-label" htmlFor="move-level">{t('move.level')}</label>
-              <div className="move-level-row">
-                <span className="move-level-lv">Lv.</span>
-                <input
-                  autoComplete="off"
-                  className="form-control move-level-input"
-                  id="move-level"
-                  inputMode="numeric"
-                  onChange={(e) => setDraft(e.target.value.normalize('NFKC').replace(/\D/g, '').slice(0, 3))}
-                  ref={levelRef}
-                  value={draft}
-                />
-                {floor !== null && <span className="move-level-min">{t('move.levelMin', { n: floor })}</span>}
-              </div>
-              <div className="move-level-acts">
-                <button className="move-back" onClick={() => setComing(null)} type="button">
+            <div className="move-step">
+              <p className="move-step-to"><PlacePicture place={step} saves={saves} />{placeLabel(step, saves, locale)}</p>
+              {level &&
+                <div className="move-step-part">
+                  <label className="move-step-label" htmlFor="move-level">{t('move.level')}</label>
+                  <div className="move-level-row">
+                    <span className="move-level-lv">Lv.</span>
+                    <input
+                      autoComplete="off"
+                      className="form-control move-level-input"
+                      id="move-level"
+                      inputMode="numeric"
+                      onChange={(e) => setDraft(e.target.value.normalize('NFKC').replace(/\D/g, '').slice(0, 3))}
+                      ref={levelRef}
+                      value={draft}
+                    />
+                    {floor !== null && <span className="move-level-min">{t('move.levelMin', { n: floor })}</span>}
+                  </div>
+                </div>
+              }
+              {soup &&
+                <div className="move-step-part">
+                  <span className="move-step-label">
+                    {t('move.factor')}<span className="move-step-note">{t('move.soup')}</span><kbd className="move-key">G</kbd>
+                  </span>
+                  <div aria-label={t('move.factor')} className="move-factor" role="radiogroup">
+                    {[false, true].map((on) => (
+                      <button
+                        aria-checked={factor === on}
+                        className={classNames('move-factor-option', { picked: factor === on })}
+                        key={String(on)}
+                        onClick={() => setFactor(on)}
+                        role="radio"
+                        type="button"
+                      >
+                        <img alt="" className={classNames('move-factor-mark', { off: !on })} src="/marks/gigantamax.png" />
+                        {t(on ? 'common.yes' : 'common.no')}
+                      </button>
+                    ))}
+                  </div>
+                  {!fits && stepSave && <p className="move-warn">{t('move.factorBars', { game: gameName(stepSave) })}</p>}
+                </div>
+              }
+              {step.location === 'champions' &&
+                <ul className="move-terms">
+                  {capture.been_to_champions !== true &&
+                    <li><img alt="" className="move-terms-mark" src="/marks/champions.png" />{t('move.championsBeen')}</li>
+                  }
+                  <li><FontAwesomeIcon className="move-terms-mark" icon={faLock} />{t('move.championsLock')}</li>
+                </ul>
+              }
+              <div className="move-step-acts">
+                <button className="move-back" onClick={() => setStep(null)} type="button">
                   <FontAwesomeIcon icon={faArrowLeft} />{t('move.back')}<kbd>Esc</kbd>
                 </button>
-                <button className="move-confirm" disabled={!levelOk} onClick={bringHome} type="button">
-                  {t('move.confirm')}<kbd>Enter</kbd>
+                <button className="move-confirm" disabled={!ready} onClick={confirm} type="button">
+                  {t(step.location === 'champions' ? 'move.send' : 'move.confirm')}<kbd>Enter</kbd>
                 </button>
               </div>
             </div>
@@ -285,7 +352,7 @@ export function MoveMenu () {
           : (
             <>
               <div className="move-big">
-                {big.map((place) => option(place, <span className="move-name">{t(place.location === 'champions' ? 'move.champions' : 'move.home')}</span>, levelHint(place)))}
+                {big.map((place) => option(place, <span className="move-name">{t('move.home')}</span>, levelHint(place)))}
               </div>
               {boxes.length > 0 &&
                 <div className="move-group">
@@ -293,24 +360,32 @@ export function MoveMenu () {
                   {boxes.map((place) => option(place, <span className="move-name">{placeLabel(place, saves, locale)}</span>, levelHint(place)))}
                 </div>
               }
-              <div className="move-group">
-                <p className="move-group-title">{t('move.games')}</p>
-                {games.length === 0 && <p className="move-none">{t('move.noGames')}</p>}
-                {games.map((place, i) => {
-                  const save = saves.find((entry) => entry.id === place.location_save);
-                  // two files of one game in one language told apart by their ID No., as My Games tells them
-                  const twin = Boolean(save?.tid) && saves.some((other) => other.id !== save!.id && other.game === save!.game && other.language === save!.language);
-                  const name = save ? localizeOriginGame(locale, save.game, ORIGIN_GAME_NAMES.get(save.game) ?? save.game) : placeLabel(place, saves, locale);
-                  return option(
-                    place,
-                    <>
-                      <span className="move-name">{name}{twin && <span className="move-id">ID {save!.tid}</span>}</span>
-                      <LangTag language={save?.language} />
-                    </>,
-                    i < 9 ? <kbd className="move-key">{i + 1}</kbd> : <span className="move-key" />,
-                  );
-                })}
-              </div>
+              {capture.location === 'champions'
+                ? <p className="move-locked"><FontAwesomeIcon icon={faLock} />{t('move.locked')}</p>
+                : (
+                  <div className="move-group">
+                    <p className="move-group-title">{t('move.games')}</p>
+                    {games.length === 0 && <p className="move-none">{t('move.noGames')}</p>}
+                    {games.map((place, i) => {
+                      const save = saves.find((entry) => entry.id === place.location_save);
+                      // two files of one game in one language told apart by their ID No., as My Games tells them
+                      const twin = Boolean(save?.tid) && saves.some((other) => other.id !== save!.id && other.game === save!.game && other.language === save!.language);
+                      return option(
+                        place,
+                        <>
+                          <span className="move-name">{save ? gameName(save) : placeLabel(place, saves, locale)}{twin && <span className="move-id">ID {save!.tid}</span>}</span>
+                          <LangTag language={save?.language} />
+                        </>,
+                        i < 9 ? <kbd className="move-key">{i + 1}</kbd> : <span className="move-key" />,
+                      );
+                    })}
+                  </div>
+                )}
+              {champions &&
+                <div className="move-op">
+                  {option(CHAMPIONS, <span className="move-name">{t('move.intoChampions')}</span>, <kbd className="move-key">C</kbd>)}
+                </div>
+              }
             </>
           )}
       </div>

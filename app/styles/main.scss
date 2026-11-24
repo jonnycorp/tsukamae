@@ -410,10 +410,10 @@ form {
   animation-duration: var(--hold) !important;
 }
 
-// every dropdown's menu, and the move menu (L): in the popover's colours, edge and shadow, a little clear of its field
-// and as wide as its widest option (Dropdown keeps it at least the field's width), so no label is cut off. It unfurls
-// from the field, or up from it where it opens above (data-up); the row under the pointer or the arrow keys is the
-// deeper shade, the selected one bold and ticked
+// every dropdown's menu, and the move menu (S or L): in the popover's colours, edge and shadow, a little clear of its
+// field and as wide as its widest option (Dropdown keeps it at least the field's width), so no label is cut off. It
+// unfurls from the field, or up from it where it opens above (data-up); the row under the pointer or the arrow keys
+// is the deeper shade, the selected one bold and ticked
 .dropdown-menu {
   @include scrollbar-fade;
 
@@ -1018,6 +1018,8 @@ form {
 
     dd {
       margin: 0;
+      // Japanese wraps between phrases, never inside a word
+      word-break: auto-phrase;
 
       @include small-text(14px);
     }

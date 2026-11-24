@@ -68,6 +68,8 @@ const GROUPS: Group[] = [
       { keys: [['S'], ['L']], label: 'help.move', records: true },
       { keys: [['Q'], ['E'], ['↑'], ['↓']], label: 'help.movePick', records: true },
       { keys: [['1–9']], label: 'help.movePickGame', records: true },
+      { keys: [['C']], label: 'help.moveChampions', records: true, homeOnly: true },
+      { keys: [['G']], label: 'help.moveFactor', records: true },
       { keys: [['D']], label: 'help.release' },
     ],
   },

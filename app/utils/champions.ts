@@ -27,7 +27,9 @@ export function asksChampions (capture: Pick<Capture, 'pokemon' | 'been_to_champ
   return capture.been_to_champions === true || canVisitChampions(capture.pokemon);
 }
 
-// whether Champions is a place to move a record to: in a HOME dex, for a mon that can go there or is there already
+// whether the move menu offers Champions, a step of its own past the places (a mon is checked out to games): in a HOME
+// dex, for a mon on the roster that's in HOME. One out in a game comes home first, and one in Champions is locked in HOME
+// till it's back out (utils/location-moves placesFor)
 export function offersChampions (capture: Pick<Capture, 'pokemon' | 'location'>, homeDex: boolean): boolean {
-  return homeDex && (capture.location === 'champions' || canVisitChampions(capture.pokemon));
+  return homeDex && capture.location === 'home' && canVisitChampions(capture.pokemon);
 }

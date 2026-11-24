@@ -9,9 +9,9 @@ import { locationTint, movedRecord, placeOf, samePlace } from '../../../utils/lo
 import { writeTouches } from '../../../utils/review-confirm';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 
+import type { Back, LocationTint } from '../../../utils/location-moves';
 import type { Capture, Place } from '../../../types';
 import type { Dispatch, MutableRefObject, ReactNode, SetStateAction } from 'react';
-import type { LocationTint } from '../../../utils/location-moves';
 import type { UpdateCapturePayload } from '../../../utils/local-data';
 
 // a checklist's check, and its Elsewhere (a mon you have that another dex represents, tinted as one checked out of
@@ -98,9 +98,9 @@ interface TrackerActions {
   releaseCaptures: (pokemon: number[]) => void;
   // a marked mon's look kept (utils/looks), or its own form again (null), the tile and the dex alike
   keepLook: (pokemon: number, form: string | null) => void;
-  // a sealed mon moved, the tile and the record alike, with the level it came home at (asksLevel); an unsealed one is
-  // skipped by both
-  moveTo: (pokemon: number, to: Place, level?: number) => void;
+  // a sealed mon moved, the tile and the record alike, with what it brought back from a game (its level, the Gigantamax
+  // factor: utils/location-moves Back); an unsealed one is skipped by both
+  moveTo: (pokemon: number, to: Place, back?: Back) => void;
   openMoveMenu: (pokemon: number, anchor: Element, zoom?: number, beside?: boolean) => void;
   // set by the one MoveMenu; read only when the menu's asked for, so opening it renders no tile
   moveMenuHost: MutableRefObject<((target: MoveTarget) => void) | null>;
@@ -188,12 +188,12 @@ export const TrackerContextProvider = ({ children }: Props) => {
     setCaptures((prev) => prev.map((cap) => (cap.pokemon.id === pokemon && cap.captured ? { ...cap, look: form } : cap)));
     writeLook(dexId, pokemon, form);
   }, [dexId]);
-  const moveTo = useCallback((pokemon: number, to: Place, level?: number) => {
+  const moveTo = useCallback((pokemon: number, to: Place, back?: Back) => {
     setCaptures((prev) => prev.map((cap) => {
       const here = placeOf(cap);
-      return cap.pokemon.id === pokemon && cap.sealed && !(here && samePlace(here, to)) ? movedRecord(cap, to, level) : cap;
+      return cap.pokemon.id === pokemon && cap.sealed && !(here && samePlace(here, to)) ? movedRecord(cap, to, back) : cap;
     }));
-    moveCapture(dexId, pokemon, to, level);
+    moveCapture(dexId, pokemon, to, back);
   }, [dexId]);
   const moveMenuHost = useRef<((target: MoveTarget) => void) | null>(null);
   const openMoveMenu = useCallback((pokemon: number, anchor: Element, zoom = 1, beside = true) => {

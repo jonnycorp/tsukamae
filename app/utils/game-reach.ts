@@ -238,7 +238,7 @@ export function originOf (capture: Pick<Capture, 'tid' | 'origin_game'>, saves: 
 // what HOME can send each of the Switch games that take from it, by species and regional form: Sword and
 // Shield's and Scarlet and Violet's catalogues as Showdown has them (data/home-catalogs.json,
 // scripts/fetch-home-catalogs.mjs), Legends: Z-A's its two dexes, and the closed games theirs (closedGameHas)
-const SWSH = new Set(['sword', 'shield']);
+export const SWSH = new Set(['sword', 'shield']);
 const SV = new Set(['scarlet', 'violet']);
 let catalogs: { swsh: Set<string>; sv: Set<string>; za: Set<string> } | null = null;
 function catalogOf (game: string): Set<string> | null {

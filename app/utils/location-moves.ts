@@ -1,16 +1,17 @@
-import { canMoveTo } from './game-reach';
+import { SWSH, canMoveTo } from './game-reach';
 import { isDexPlaceId } from './dex-places';
-import { offersChampions } from './champions';
 import { retiredSaves } from './retired-saves';
-import { saveLabel } from './capture-fields';
+import { saveLabel, withFieldInvariants } from './capture-fields';
+import { takesSoup } from './gigantamax';
 import { translate } from '../i18n/translations';
 
 import type { Capture, CaptureLocation, CaptureMetadata, GameSave, Place } from '../types';
 import type { Locale } from '../i18n/translations';
 
-// a sealed mon is the slot's holder for good, but where it is can still change: taken out to a game for raids, into
-// Champions, back to HOME. Its location is the one field a sealed record still edits, from the move menu (S or L over
-// its tile, or its place under the lens in W)
+// a sealed mon is the slot's holder for good, but where it is can still change: checked out to a game for raids, back to
+// HOME, into Champions and out. Its location is the one field a sealed record still edits, from the move menu (S or L
+// over its tile, or its place under the lens in W), and what a game changed on it (its level, the Gigantamax factor) is
+// asked as it leaves
 
 type Located = Pick<CaptureMetadata, 'location' | 'location_save'>;
 
@@ -29,15 +30,23 @@ export function samePlace (a: Place, b: Place): boolean {
   return a.location === b.location && (a.location === 'champions' || (a.location_save ?? null) === (b.location_save ?? null));
 }
 
-// a sealed record moved; Champions, once it's been there, remembered (been to Champions is for good, as the field is);
-// the level it came home at (asksLevel) written with it
-export function movedRecord<T extends Located & Pick<CaptureMetadata, 'been_to_champions' | 'level'>> (record: T, to: Place, level?: number): T {
+// what a mon brings back from a game, asked as it leaves: the level it's come home at (asksLevel), and the Gigantamax
+// factor Max Soup may have given it or taken back in Sword or Shield (asksSoup)
+export type Back = Partial<Pick<CaptureMetadata, 'level' | 'gigantamax'>>;
+
+// a sealed record moved, with what it brought back; Champions, once it's been there, remembered (been to Champions is
+// for good, as the field is). Under the rules every write keeps (capture-fields withFieldInvariants), so a factor it came
+// back with makes it a partner
+export function movedRecord<T extends Located & Partial<CaptureMetadata>> (record: T, to: Place, { level, gigantamax }: Back = {}): T {
   return {
     ...record,
-    location: to.location,
-    location_save: inSomewhere(to) ? to.location_save : null,
-    been_to_champions: to.location === 'champions' ? true : record.been_to_champions,
-    level: level ?? record.level,
+    ...withFieldInvariants(record, {
+      location: to.location,
+      location_save: inSomewhere(to) ? to.location_save : null,
+      been_to_champions: to.location === 'champions' ? true : record.been_to_champions,
+      level: level ?? record.level,
+      gigantamax: gigantamax ?? record.gigantamax,
+    }),
   };
 }
 
@@ -46,10 +55,17 @@ export function movedRecord<T extends Located & Pick<CaptureMetadata, 'been_to_c
 export const inTraining = (record: Pick<Capture, 'sealed' | 'location' | 'level'>, homeDex: boolean) =>
   homeDex && record.sealed && record.location === 'game' && record.level !== 100;
 
-// coming home from a game (to HOME, a checklist's boxes in it, or Champions inside it) asks the level it's come back at,
-// at least the floor; one at 100 isn't training, so it's asked nothing
+// coming home from a game (to HOME, or a checklist's boxes in it) asks the level it's come back at, at least the floor;
+// one at 100 isn't training, so it's asked nothing
 export const asksLevel = (record: Pick<Capture, 'sealed' | 'location' | 'level'>, to: Place, homeDex: boolean) =>
   inTraining(record, homeDex) && to.location !== 'game';
+
+// leaving Sword or Shield, for anywhere, a mon Max Soup reaches (utils/gigantamax takesSoup) is asked the Gigantamax
+// factor again, at any level and in any dex: there alone can it have changed
+export function asksSoup (record: Pick<Capture, 'location' | 'location_save' | 'pokemon'>, saves: GameSave[]): boolean {
+  const game = record.location === 'game' ? saves.find((save) => save.id === record.location_save)?.game : undefined;
+  return game !== undefined && SWSH.has(game) && takesSoup(record.pokemon);
+}
 
 // a sealed tile's tint for a mon away from where its dex keeps them (HOME in a HOME dex, a game in a game's): gold in
 // Champions, out in one of your games, or in HOME. One where the dex keeps it has none, and wears the plain sealed wash
@@ -65,25 +81,26 @@ export function locationTint (location: CaptureLocation | null, homeDex: boolean
   return location === 'home' ? 'home' : null;
 }
 
-// where a mon can be moved: HOME, each of your games that `holds` says can take it, and Champions where `champions` says
-// it can go (utils/champions: a HOME dex's mon on the roster). A HOME entry in My Games is a trainer, not a place (HOME
-// itself is one), so it's never a game to move into
-export function destinations (saves: GameSave[], champions: boolean, holds: (save: GameSave) => boolean): Place[] {
-  return [
-    { location: 'home', location_save: null },
-    ...saves.filter((save) => save.game !== 'home' && holds(save)).map((save): Place => ({ location: 'game', location_save: save.id })),
-    ...(champions ? [{ location: 'champions', location_save: null } as Place] : []),
-  ];
-}
+const HOME: Place = { location: 'home', location_save: null };
 
-// where one mon can be moved, as the move menu (S or L) offers it: the games it can go to from where it is now
-// (utils/game-reach canMoveTo, whatever the dex) that aren't retired (My Games' 引退, utils/retired-saves), the one
-// it's in whatever it is, and Champions while it can go there
-export function placesFor (saves: GameSave[], capture: Capture, homeDex: boolean, inDexes: Place[] = []): Place[] {
+// where one mon can be moved, as the move menu (S or L) offers it: HOME (and a free-form dex's checklist boxes in it,
+// `inDexes`), then the games it can go to from where it is now (utils/game-reach canMoveTo, whatever the dex) that aren't
+// retired (My Games' 引退, utils/retired-saves), the one it's in whatever it is; one leaving Sword or Shield as it is
+// without the factor, which it may have lost there (asksSoup: the menu asks). A HOME entry in My Games is a trainer,
+// not a place (HOME itself is one). Champions is a step of its own (utils/champions offersChampions), and a mon in it
+// is locked in HOME till it's back out: HOME is all it's offered
+export function placesFor (saves: GameSave[], capture: Capture, inDexes: Place[] = []): Place[] {
+  if (capture.location === 'champions') {
+    return [HOME, ...inDexes];
+  }
   const retired = retiredSaves();
-  const holds = (save: GameSave) => save.id === capture.location_save || (!retired.has(save.id) && canMoveTo(save, capture, saves));
-  const [home, ...rest] = destinations(saves, offersChampions(capture, homeDex), holds);
-  return [home, ...inDexes, ...rest];
+  const leaving = asksSoup(capture, saves) ? { ...capture, gigantamax: false } : capture;
+  const holds = (save: GameSave) => save.id === capture.location_save || (!retired.has(save.id) && canMoveTo(save, leaving, saves));
+  return [
+    HOME,
+    ...inDexes,
+    ...saves.filter((save) => save.game !== 'home' && holds(save)).map((save): Place => ({ location: 'game', location_save: save.id })),
+  ];
 }
 
 // a free-form dex's mon can be in HOME in one of your checklist dexes' boxes, a place each

@@ -13,10 +13,16 @@ const GIGANTAMAX = new Set([
   861, 869, 879, 884, 892,
 ]);
 
+const MELMETAL = 809;
+
 // whether a mon can have the factor: its species has a giant form, and it isn't a regional form (Meowth's is Kanto's)
 export function canGigantamax (pokemon: Pick<CapturePokemon, 'national_id' | 'form'>): boolean {
   return GIGANTAMAX.has(pokemon.national_id) && !pokemon.form;
 }
+
+// whether Max Soup reaches it: drunk by a mon that can have the factor it gives it, or takes it back from one that has
+// it, every one but Melmetal. So one out in Sword or Shield can come back with it changed (location-moves asksSoup)
+export const takesSoup = (pokemon: Pick<CapturePokemon, 'national_id' | 'form'>) => canGigantamax(pokemon) && pokemon.national_id !== MELMETAL;
 
 export function asksGigantamax (capture: Pick<Capture, 'pokemon' | 'gigantamax'>): boolean {
   return capture.gigantamax === true || canGigantamax(capture.pokemon);

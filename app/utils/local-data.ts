@@ -38,6 +38,7 @@ import xYRegionalPokemon from '../../data/dexes/x-y-regional/pokemon.json';
 import { EMPTY_METADATA, dexBaselines, freshMetadata, withBaselines } from './capture-fields';
 import { movedRecord, placeOf, samePlace } from './location-moves';
 
+import type { Back } from './location-moves';
 import type { Capture, CaptureMetadata, CapturePokemon, CaptureStatus, Dex, DexType, Game, GameSave, Place } from '../types';
 
 export interface CatalogDex {
@@ -678,16 +679,17 @@ export function writeLook (dexId: string, pokemon: number, form: string | null):
   });
 }
 
-// a sealed mon moved: the only write a sealed record takes besides unsealing, and only to where it is. A move to where
-// it already is, or of a record that isn't sealed, does nothing
-export function moveCapture (dexId: string, pokemon: number, to: Place, level?: number): void {
+// a sealed mon moved: the only write a sealed record takes besides unsealing, to where it is and with what it brought
+// back from a game (its level, the Gigantamax factor). A move to where it already is, or of a record that isn't sealed,
+// does nothing
+export function moveCapture (dexId: string, pokemon: number, to: Place, back?: Back): void {
   commitRecords(dexId, (dex) => {
     const entry = dex.progress[pokemon];
     const here = entry && placeOf(entry);
     if (!entry?.sealed || (here && samePlace(here, to))) {
       return [];
     }
-    dex.progress[pokemon] = movedRecord(entry, to, level);
+    dex.progress[pokemon] = movedRecord(entry, to, back);
     return [pokemon];
   });
 }
