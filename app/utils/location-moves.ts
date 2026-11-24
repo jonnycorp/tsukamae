@@ -85,8 +85,7 @@ const HOME: Place = { location: 'home', location_save: null };
 
 // where one mon can be moved, as the move menu (S or L) offers it: HOME (and a free-form dex's checklist boxes in it,
 // `inDexes`), then the games it can go to from where it is now (utils/game-reach canMoveTo, whatever the dex) that aren't
-// retired (My Games' 引退, utils/retired-saves), the one it's in whatever it is; one leaving Sword or Shield as it is
-// without the factor, which it may have lost there (asksSoup: the menu asks). A HOME entry in My Games is a trainer,
+// retired (My Games' 引退, utils/retired-saves), the one it's in whatever it is. A HOME entry in My Games is a trainer,
 // not a place (HOME itself is one). Champions is a step of its own (utils/champions offersChampions), and a mon in it
 // is locked in HOME till it's back out: HOME is all it's offered
 export function placesFor (saves: GameSave[], capture: Capture, inDexes: Place[] = []): Place[] {
@@ -94,8 +93,7 @@ export function placesFor (saves: GameSave[], capture: Capture, inDexes: Place[]
     return [HOME, ...inDexes];
   }
   const retired = retiredSaves();
-  const leaving = asksSoup(capture, saves) ? { ...capture, gigantamax: false } : capture;
-  const holds = (save: GameSave) => save.id === capture.location_save || (!retired.has(save.id) && canMoveTo(save, leaving, saves));
+  const holds = (save: GameSave) => save.id === capture.location_save || (!retired.has(save.id) && canMoveTo(save, capture, saves));
   return [
     HOME,
     ...inDexes,

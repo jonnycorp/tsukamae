@@ -259,18 +259,15 @@ function catalogOf (game: string): Set<string> | null {
 
 const SPINDA = 327;
 const NINCADA = 290;
-// the Pikachu, Eevee and Meowth that can Gigantamax, which HOME sends neither to Brilliant Diamond and Shining Pearl
-// nor (Pikachu and Eevee; Hisui has no Meowth) to Legends: Arceus
-const NO_GIGANTAMAX: Record<string, number[]> = { brilliant_diamond: [25, 133, 52], shining_pearl: [25, 133, 52], legends_arceus: [25, 133] };
 
 // whether a game can hold a mon, the species as it is now (whatever it was caught as): one of the Switch games HOME
 // sends to only what its catalogue has, a closed game only what it has (closedGameHas), any other game nothing newer
 // than itself. And nothing HOME keeps out of it: Spinda goes neither into Brilliant Diamond and Shining Pearl nor out
-// of them, Nincada into them only if it came from them, and no Gigantamax Pikachu, Eevee or Meowth (NO_GIGANTAMAX).
-// Let's Go holds no mon with the Gigantamax factor at all, since only Sword and Shield give it, and nothing that's
-// been to a newer game goes back to Let's Go. One of HOME's own entries, GO, a trade, a gift or "other" is no game to
-// hold anything. A mon from a trade, a gift or "other" could be from either side of Spinda's and Nincada's rules, so
-// it's kept out by neither
+// of them, and Nincada into them only if it came from them. The Gigantamax factor keeps a mon out of Let's Go alone,
+// since only Sword and Shield give it and nothing that's been to a newer game goes back to Let's Go, and a giant
+// Pikachu, Eevee or Meowth no further: any one of them can drink Max Soup. One of HOME's own entries, GO, a trade, a
+// gift or "other" is no game to hold anything. A mon from a trade, a gift or "other" could be from either side of
+// Spinda's and Nincada's rules, so it's kept out by neither
 export function gameHolds (game: string, capture: Pick<Capture, 'pokemon' | 'gigantamax'>, origin: string | null): boolean {
   const { national_id: national, form, generation } = capture.pokemon;
   const gen = GAME_FACTS[game]?.gen;
@@ -285,7 +282,7 @@ export function gameHolds (game: string, capture: Pick<Capture, 'pokemon' | 'gig
     ((national === SPINDA && BDSP.has(game) !== BDSP.has(origin)) || (national === NINCADA && BDSP.has(game) && !BDSP.has(origin)))) {
     return false;
   }
-  return !(capture.gigantamax === true && (LETS_GO.has(game) || (!form && NO_GIGANTAMAX[game]?.includes(national))));
+  return !(capture.gigantamax === true && LETS_GO.has(game));
 }
 
 // the game a mon is in now, as far as where it can go next: HOME for HOME or Champions (which it visits from HOME), the

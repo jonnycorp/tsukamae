@@ -8,7 +8,6 @@ import { GameChip, LangTag } from './review-fields';
 import { ORIGIN_GAME_NAMES } from '../../../utils/capture-fields';
 import { PokemonName } from '../../library/PokemonName';
 import { asksLevel, asksSoup, dexPlacesFor, placeKey, placeLabel, placeOf, placesFor, samePlace, shownPlace } from '../../../utils/location-moves';
-import { canMoveTo } from '../../../utils/game-reach';
 import { monIcon } from '../../../utils/pokemon';
 import { localizeOriginGame } from '../../../i18n/names';
 import { offersChampions } from '../../../utils/champions';
@@ -94,12 +93,7 @@ export function MoveMenu () {
   // what the step asks: the level coming home, the factor leaving Sword or Shield (wherever it's going)
   const level = Boolean(step && capture && asksLevel(capture, step, homeDex));
   const soup = Boolean(capture && asksSoup(capture, saves));
-  // a game it's going on to holds it with the factor as now said (placesFor offers it either way): no giant Pikachu,
-  // Eevee or Meowth in Brilliant Diamond and Shining Pearl, nor Pikachu or Eevee in Legends: Arceus (utils/game-reach
-  // gameHolds)
-  const stepSave = step?.location === 'game' ? saves.find((save) => save.id === step.location_save) : undefined;
-  const fits = !soup || !stepSave || !capture || canMoveTo(stepSave, { ...capture, gigantamax: factor }, saves);
-  const ready = (!level || levelOk) && fits;
+  const ready = !level || levelOk;
 
   const close = () => {
     setTarget(null);
@@ -328,7 +322,6 @@ export function MoveMenu () {
                       </button>
                     ))}
                   </div>
-                  {!fits && stepSave && <p className="move-warn">{t('move.factorBars', { game: gameName(stepSave) })}</p>}
                 </div>
               }
               {step.location === 'champions' &&
