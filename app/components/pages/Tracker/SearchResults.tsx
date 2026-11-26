@@ -5,7 +5,8 @@ import { EMPTY_FILTERS, appliedFacets, filterMatcher, hasQuery, queryMatcher } f
 import { FlipStrips } from './FlipStrips';
 import { Pokemon } from './Pokemon';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
-import { sealClip, sealTintClips, useTrackerActions } from './use-tracker';
+import { SealMaterials } from './SealMaterials';
+import { useTrackerActions } from './use-tracker';
 import { useTranslation } from '../../../hooks/use-translation';
 
 import type { Capture } from '../../../types';
@@ -53,9 +54,6 @@ const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, r
   const checklist = Boolean(activeDex!.checklist);
   const homeDex = activeDexView!.game.id === 'home';
 
-  const clip = useMemo(() => (narrow ? null : sealClip(captures, checklist, columns)), [captures, checklist, narrow, columns]);
-  const tintClips = useMemo(() => (narrow ? [] : sealTintClips(captures, checklist, homeDex, columns)), [captures, checklist, homeDex, narrow, columns]);
-
   // its own size while it's out of sight (styles/tracker.scss): a short last chunk's rows, not a box's five
   const size = { '--chunk-rows': Math.ceil(captures.length / columns), '--chunk-tiles': captures.length } as CSSProperties;
 
@@ -71,16 +69,7 @@ const ResultsChunk = memo(function ResultsChunk ({ captures, columns, padding, r
           </div>
         ))}
       </div>
-      {clip &&
-        <div className="seal-material" style={{ clipPath: clip }}>
-          <div className="seal-flow" />
-        </div>
-      }
-      {tintClips.map(({ tint, clip: tintClip }) => (
-        <div className="seal-material" data-tint={tint} key={tint} style={{ clipPath: tintClip }}>
-          <div className="seal-flow" />
-        </div>
-      ))}
+      {!narrow && <SealMaterials captures={captures} checklist={checklist} columns={columns} homeDex={homeDex} />}
       {!narrow && <FlipStrips columns={columns} grids={[captures]} ruled={ruled} />}
     </div>
   );

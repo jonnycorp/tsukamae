@@ -961,7 +961,7 @@ $flip-face-width: $search-height;
 }
 
 // a sealed tile's material: one overlay per box or results chunk, under its grid (z-index -1 in the container), clipped
-// to its sealed slots (use-tracker's sealClip), where the tiles' own fill clears. Plain, it's the caught fill they had;
+// to its sealed slots (SealMaterials), where the tiles' own fill clears. Plain, it's the caught fill they had;
 // a theme gives it a colour of its own and a flow, a faint pattern drifting a period in a loop. It took the shine's
 // place, which the user took out on 2026-10-31, and its machinery. Every box's lies on one sheet down the whole display,
 // placed by its box's column and row (--column, --seal-row, --seal-rise), so a pattern runs on from box to box; and every
@@ -989,9 +989,19 @@ $flip-face-width: $search-height;
 }
 
 // a seal material for one place, over the grid's own and clipped to its sealed tiles away from where the dex keeps them
-// (use-tracker's sealTintClips): drawn only by a theme that gives a place a material of its own
+// (SealMaterials): drawn only by a theme that gives a place a material of its own
 .seal-material[data-tint] {
   display: none;
+}
+
+// a place's material fading in over a tile as its mon goes there, or out as it comes away (SealMaterials), from part
+// way where it turns one going the other way back (its delay); keep in sync with FADE_MS there
+.seal-material[data-fade] {
+  animation: fade-in .7s ease-in-out both;
+}
+
+.seal-material[data-fade='out'] {
+  animation-direction: reverse;
 }
 
 // a theme's flow, shown by a theme that has one: its pattern a period larger than the material on the side it drifts

@@ -7,6 +7,7 @@ import { FlipStrips } from './FlipStrips';
 import { Ledger } from './Ledger';
 import { Scroll } from './Scroll';
 import { SearchResults } from './SearchResults';
+import { keepFlowPhase } from './SealMaterials';
 import { anyFilterActive, hasQuery } from './filters';
 import { groupBoxes } from '../../../utils/pokemon';
 import { useHotkey } from '../../../hooks/use-hotkey';
@@ -222,6 +223,8 @@ export function Dex ({
 
   // after the boxes' own effects and ahead of the popover's, which places itself by where this leaves its tile
   useLayoutEffect(onRescaled, [onRescaled, scale, columns]);
+  // and the seal flows kept where they are, after the flips held back from the first layout at the new scale
+  useLayoutEffect(() => keepFlowPhase(scale), [scale]);
 
   return (
     <>

@@ -1,7 +1,7 @@
 @use '../variables' as *;
 
 // Wisteria: the original's violet and gold taken into a court's night (theme-scene/kumo.ts): gold-leaf clouds
-// drifting over seigaiha on violet lacquer, the header lacquered glass they show through; every box is a lacquer panel
+// drifting over seigaiha on violet lacquer, the header a veil of lacquer they show through; every box is a lacquer panel
 // set in a gold frame whose leaf catches the light along its length, a second hairline of gold inside it on a finished
 // box, its range lettered in gold leaf on a plaque of the lacquer above it. A sealed tile is lacquered deeper, open
 // seigaiha drifting in it, its lines lit in the colour of where its mon is when that's away (gold in Champions, rose out
@@ -13,10 +13,14 @@
   --glaze: #5b2a7e;
   --kumo-line: rgb(224 194 122 / 14%);
 
-  nav {
-    background: rgb(14 6 20 / 50%);
-    backdrop-filter: blur(16px) saturate(1.2);
+  // the header: a veil of the lacquer the night shows through as it is, never so busy behind it that it needs a blur,
+  // even all the way down, a little deeper at its two ends
+  nav,
+  .dex-search-bar {
+    background: linear-gradient(90deg, rgb(16 7 23 / 66%), rgb(16 7 23 / 60%) 8%, rgb(16 7 23 / 54%) 18%, rgb(16 7 23 / 50%) 32% 68%, rgb(16 7 23 / 54%) 82%, rgb(16 7 23 / 60%) 92%, rgb(16 7 23 / 66%));
+  }
 
+  nav {
     &::after {
       content: '';
       position: absolute;
@@ -30,11 +34,6 @@
     }
   }
 
-  .dex-search-bar {
-    background: linear-gradient(rgb(20 9 28 / 70%), rgb(20 9 28 / 50%));
-    backdrop-filter: blur(14px) saturate(1.25);
-  }
-
   // the meter: a lacquered slot in a gold frame, its fill the colourway in lacquer, the original's gold waves woven
   // over it
   .dex-meter-bar {
@@ -43,10 +42,12 @@
     box-shadow: inset 0 0 0 1px rgb(224 194 122 / 45%), inset 0 0 14px rgb(0 0 0 / 50%);
   }
 
+  // a layer of its own: under a header with no blur, Chromium drew its masked waves as a black box down the page
   .dex-meter-fill {
     background:
       linear-gradient(rgb(255 255 255 / 18%), transparent 45%, rgb(0 0 0 / 18%)),
       linear-gradient(90deg, #4a2068, #7d3aa0 45%, #b25aa8 80%, #d77aa6);
+    will-change: transform;
 
     &::after {
       content: '';
@@ -180,12 +181,13 @@
   }
 
   // a mon away from where its dex keeps them: the same waves over its tile, in its place's colour, lit from low behind
-  // its sprite and gone before the tile's edges, so a border only ever cuts the pale ones. Laid over the grid's own and
-  // in step with it, the light held still on each tile (a mask tile a tile across) as the waves drift through it
+  // its sprite, a broad light that eases off evenly (each stop on one smooth curve, so no ring of it drops away) and is
+  // all but gone at the tile's edges, so a border only ever cuts the pale ones. Laid over the grid's own and in step
+  // with it, the light held still on each tile (a mask tile a tile across) as the waves drift through it
   &:not([data-plain-seals]) .seal-material[data-tint] {
     display: block;
     background: none;
-    mask: radial-gradient(50% 50% at 50% 57%, #000 35%, rgb(0 0 0 / 70%) 60%, rgb(0 0 0 / 30%) 80%, transparent) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size};
+    mask: radial-gradient(50% 43.6% at 50% 57%, #000 40%, rgb(0 0 0 / 99%) 50%, rgb(0 0 0 / 94%) 60%, rgb(0 0 0 / 90%) 65%, rgb(0 0 0 / 82%) 70%, rgb(0 0 0 / 71%) 75%, rgb(0 0 0 / 57%) 80%, rgb(0 0 0 / 40%) 85%, rgb(0 0 0 / 23%) 90%, rgb(0 0 0 / 11%) 95%, rgb(0 0 0 / 3%) 100%, transparent 108%) 0 0 / #{$pokemon-box-size} #{$pokemon-box-size};
   }
 
   .seal-material[data-tint='champions'] .seal-flow {
@@ -193,7 +195,7 @@
   }
 
   .seal-material[data-tint='out'] .seal-flow {
-    background-color: rgb(255 168 206 / 92%);
+    background-color: rgb(255 190 224);
   }
 
   .seal-material[data-tint='home'] .seal-flow {

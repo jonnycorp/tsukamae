@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { BOX_COLUMNS, TILE_SIZE } from '../../../utils/pokemon';
 import { EMPTY_METADATA } from '../../../utils/capture-fields';
 import { deleteCaptures, moveCapture, progressToCaptures, writeCapture, writeLook } from '../../../utils/local-data';
 import { isDexPlaceId } from '../../../utils/dex-places';
@@ -20,27 +19,6 @@ export function isDisplaySealed (capture: Capture, checklist: boolean): boolean 
   return checklist ? capture.status === 'caught' || capture.status === 'temporary' : capture.sealed;
 }
 
-// the slots of a grid (a box's, or a chunk of search results `columns` across) that `takes` picks, as one path: a seal
-// material's clip; null with none
-function slotsPath (captures: Capture[], columns: number, takes: (capture: Capture) => boolean): string | null {
-  const holes = captures.reduce<string[]>((all, capture, index) => {
-    if (takes(capture)) {
-      const x = (index % columns) * TILE_SIZE;
-      const y = Math.floor(index / columns) * TILE_SIZE;
-      all.push(`M${x} ${y}h${TILE_SIZE}v${TILE_SIZE}h-${TILE_SIZE}Z`);
-    }
-    return all;
-  }, []);
-  return holes.length > 0 ? `path('${holes.join('')}')` : null;
-}
-
-// a grid's sealed slots as one path, the clip of its seal material (styles/tracker.scss) — a layer per tile exhausts
-// GPU memory in a checklist; null with nothing sealed. Boxes and search results chunks both draw it, so a seal looks the
-// same in every view
-export function sealClip (captures: Capture[], checklist: boolean, columns = BOX_COLUMNS): string | null {
-  return slotsPath(captures, columns, (capture) => isDisplaySealed(capture, checklist));
-}
-
 // a sealed tile's tint for where its mon is (utils/location-moves), when it's away from where its dex keeps them; a
 // checklist's Elsewhere is tinted as a mon checked out of HOME is
 export function tileTint (capture: Capture, checklist: boolean, homeDex: boolean): LocationTint | null {
@@ -48,16 +26,6 @@ export function tileTint (capture: Capture, checklist: boolean, homeDex: boolean
     return capture.status === 'temporary' ? 'out' : null;
   }
   return capture.sealed ? locationTint(capture.location, homeDex) : null;
-}
-
-// a grid's sealed tiles away from where its dex keeps them, a clip for each place they're in: a seal material each, laid
-// over the grid's own, for a theme that draws a place's material its own way (.seal-material[data-tint]); none shows
-// unless a theme does
-export function sealTintClips (captures: Capture[], checklist: boolean, homeDex: boolean, columns = BOX_COLUMNS): { tint: LocationTint; clip: string }[] {
-  return (['champions', 'out', 'home'] as const).flatMap((tint) => {
-    const clip = slotsPath(captures, columns, (capture) => isDisplaySealed(capture, checklist) && tileTint(capture, checklist, homeDex) === tint);
-    return clip ? [{ tint, clip }] : [];
-  });
 }
 
 // too narrow for one box: the legacy list view; keep in sync with the 750px media queries in styles/

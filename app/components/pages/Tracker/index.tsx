@@ -15,6 +15,7 @@ import { Review } from './Review';
 import { SHOW_SCROLL_THRESHOLD } from './Scroll';
 import { SceneBanner } from './SceneBanner';
 import { SearchBar } from './SearchBar';
+import { sealFlowStart } from './SealMaterials';
 import { Timeline } from './Timeline';
 import { ZoomIndicator } from './ZoomIndicator';
 import { ThemeScene } from './theme-scene/ThemeScene';
@@ -77,9 +78,9 @@ export function Tracker () {
 }
 
 // a CSS animation starts when its element is first styled, which content-visibility delays until scroll-in, and a
-// moon slot's group (FlipStrips) only once a mon fills it: the seal materials' flow and the moons' turn all run from the
-// timeline's start, so every box keeps in step, and a row's slots their fifth of a turn apart (by their delays); and an
-// open free box's marching frame, so two open at once march together
+// moon slot's group (FlipStrips) only once a mon fills it: the seal materials' flow (from the start SealMaterials keeps
+// them on) and the moons' turn all run from one start, so every box keeps in step, and a row's slots their fifth of a
+// turn apart (by their delays); and an open free box's marching frame, so two open at once march together
 const SYNCED = ['seal-flow', 'hub-far', 'hub-near', 'free-march'];
 
 function syncLoops (e: AnimationEvent<HTMLDivElement>) {
@@ -91,7 +92,7 @@ function syncLoops (e: AnimationEvent<HTMLDivElement>) {
   for (const animation of target.getAnimations({ subtree: Boolean(e.pseudoElement) })) {
     const effect = animation.effect as KeyframeEffect | null;
     if (!e.pseudoElement || (effect?.target === target && effect.pseudoElement === e.pseudoElement)) {
-      animation.startTime = 0;
+      animation.startTime = e.animationName === 'seal-flow' ? sealFlowStart() : 0;
     }
   }
 }

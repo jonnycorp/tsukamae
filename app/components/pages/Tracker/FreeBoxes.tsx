@@ -10,7 +10,8 @@ import { EMPTY_METADATA } from '../../../utils/capture-fields';
 import { FlipStrips } from './FlipStrips';
 import { Pokemon } from './Pokemon';
 import { SpeciesPicker } from './SpeciesPicker';
-import { sealClip, sealTintClips, useTrackerActions } from './use-tracker';
+import { SealMaterials } from './SealMaterials';
+import { useTrackerActions } from './use-tracker';
 import { useDexContext } from '../../../hooks/contexts/use-dex-context';
 import { useTranslation } from '../../../hooks/use-translation';
 
@@ -211,8 +212,6 @@ export function FreeBoxes ({ captures, columns }: Props) {
         {boxes.map((box, i) => {
           const slots = grids[i];
           const filled = slots.filter(Boolean).length;
-          const clip = narrow ? null : sealClip(padded[i], false);
-          const tintClips = narrow ? [] : sealTintClips(padded[i], false, homeDex);
           const lit = over?.box === box.id ? over.slot : undefined;
           return (
             <div
@@ -320,16 +319,7 @@ export function FreeBoxes ({ captures, columns }: Props) {
                     style={{ left: 1 + (lit % BOX_COLUMNS) * TILE_SIZE, top: 1 + Math.floor(lit / BOX_COLUMNS) * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }}
                   />
                 }
-                {clip &&
-                  <div className="seal-material" style={{ clipPath: clip }}>
-                    <div className="seal-flow" />
-                  </div>
-                }
-                {tintClips.map(({ tint, clip: tintClip }) => (
-                  <div className="seal-material" data-tint={tint} key={tint} style={{ clipPath: tintClip }}>
-                    <div className="seal-flow" />
-                  </div>
-                ))}
+                {!narrow && <SealMaterials captures={padded[i]} checklist={false} homeDex={homeDex} />}
               </div>
             </div>
           );
