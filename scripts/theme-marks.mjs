@@ -366,8 +366,9 @@ const write = (slug, name, png) => {
   write('ink', 'title.png', sheet.mask());
 }
 
-// Wisteria's tiles' waves (seigaiha), a scale 64px across, at twice the size they're shown so they stay crisp under
-// the dex's zoom
+// Wisteria's waves (seigaiha): its meter's, a scale 32px across, and its tiles', 64px across, each at twice the size
+// it's shown so they stay crisp under the dex's zoom
+write('wisteria', 'seigaiha.png', seigaiha(32, 4, 2.2).mask());
 write('wisteria', 'seigaiha-large.png', seigaiha(64, 4, 2.2).mask());
 
 // seal materials' patterns, each a seamless tile of what its theme's flow moves: Matcha's shoji light at the size it's

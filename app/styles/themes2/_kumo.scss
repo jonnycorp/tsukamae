@@ -1,11 +1,11 @@
 @use '../variables' as *;
 
 // Wisteria: the original's violet and gold taken into a court's night (theme-scene/kumo.ts): gold-leaf clouds
-// drifting over seigaiha on violet lacquer, the header lacquered glass they show through; every box is
-// a lacquer panel set in a gold frame whose leaf catches the light along its length, a second hairline of gold inside
-// it on a finished box. A sealed tile is lacquered deeper in the colour of where it is (violet at home, indigo in HOME,
-// amber in Champions, peony out in a game) with the original's seigaiha over gold dust (nashiji) in it, drifting very slowly as its
-// waves did; its range is lettered in gold leaf above it
+// drifting over seigaiha on violet lacquer, the header lacquered glass they show through; every box is a lacquer panel
+// set in a gold frame whose leaf catches the light along its length, a second hairline of gold inside it on a finished
+// box, its range lettered in gold leaf on a plaque of the lacquer above it. A sealed tile is lacquered deeper in the
+// colour of where it is (violet at home, indigo in HOME, amber in Champions, peony out in a game) with the original's
+// seigaiha in it, drifting as its waves did
 :root[data-theme='wisteria'] {
   --gold-leaf: linear-gradient(115deg, #7a5a22 0%, #e9cd84 16%, #a37b33 32%, #f6e3a6 50%, #b48a3f 68%, #e3c47a 84%, #7e5c24 100%);
   --gold: #e0c27a;
@@ -35,7 +35,8 @@
     backdrop-filter: blur(14px) saturate(1.25);
   }
 
-  // the meter: a lacquered slot in a gold frame, its fill the colourway in lacquer with the gold dust in it
+  // the meter: a lacquered slot in a gold frame, its fill the colourway in lacquer, the original's gold waves woven
+  // over it
   .dex-meter-bar {
     border: 0;
     background: rgb(14 6 20 / 70%);
@@ -51,9 +52,8 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: var(--gold);
-      mask: var(--kumo-nashiji) 0 0 / 256px;
-      opacity: .7;
+      background-color: rgb(224 181 90 / 45%);
+      mask: url('/themes/wisteria/seigaiha.png') 0 0 / 32px 16px;
     }
   }
 
@@ -76,18 +76,22 @@
     }
   }
 
-  // a box's range in gold leaf
+  // a box's range in gold leaf on a plaque of the lacquer, so it reads whatever cloud drifts behind it: its corners
+  // scooped as a Japanese frame's are (sumi-iri), edged in a hairline of gold
   .box-header h1 {
-    background: var(--gold-leaf);
-    background-size: 140% 100%;
+    padding: 0 22px;
+    border-radius: 7px;
+    corner-shape: scoop;
+    background: var(--gold-leaf) 0 0 / 140% 100%, var(--lacquer);
+    background-clip: text, padding-box;
     color: transparent;
-    background-clip: text;
-    filter: drop-shadow(0 2px 2px rgb(0 0 0 / 60%));
+    box-shadow: inset 0 0 0 1px rgb(224 194 122 / 55%), 0 10px 20px -8px rgb(0 0 0 / 70%);
+    backdrop-filter: blur(16px) saturate(1.4);
   }
 
-  // the panel: lacquer over the night, the racemes' colours blurred deep in it; a search's results and what an emptied
-  // view says panels too. The list one as well, its lacquer deeper in place of the blur, too much to keep drawing down
-  // a panel as long as the whole dex, its light at its head
+  // the panel: lacquer over the night, the clouds blurred deep in it; a search's results and what an emptied view says
+  // panels too. The list one as well, its lacquer deeper in place of the blur, too much to keep drawing down a panel as
+  // long as the whole dex, its light at its head
   .box-container,
   .search-results {
     background:
@@ -176,17 +180,14 @@
     }
   }
 
-  // the original's seigaiha in gold over gold dust, drifting right as the dex reads (256px repeats both tiles)
+  // the original's seigaiha in its pale gold, a scale 64px across, drifting right as the dex reads, a scale in 18 s
   .seal-flow {
-    --flow-x: 256px;
-    --flow-time: 70s;
+    --flow-x: 64px;
+    --flow-time: 18s;
 
     display: block;
-    background-color: var(--gold);
-    opacity: .34;
-    mask:
-      url('/themes/wisteria/seigaiha-large.png') var(--seal-x) var(--seal-y) / 64px 32px,
-      var(--kumo-nashiji) var(--seal-x) var(--seal-y) / 256px;
+    background-color: rgb(224 181 90 / 30%);
+    mask: url('/themes/wisteria/seigaiha-large.png') var(--seal-x) var(--seal-y) / 64px 32px;
   }
 
   // a finished box: a second hairline of gold just inside the first, and the leaf glowing

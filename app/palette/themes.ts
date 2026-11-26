@@ -160,9 +160,9 @@ export const THEMES: ThemeSeed[] = [
       },
     },
   },
-  // Wisteria: the original's feel taken into a scene, a night under a wisteria trellis. Racemes hang from the top of
-  // the window in depth, the near ones soft, swaying slowly; the boxes lacquer panels under them, framed in gold that
-  // catches the light, with gold dust (nashiji) in the lacquer of a sealed tile
+  // Wisteria: the original's feel taken into a scene, a court's night: gold clouds (suyari-gasumi) drifting over
+  // seigaiha on violet lacquer, near and far; the boxes lacquer panels over them, framed in gold that catches the
+  // light, the original's waves in the lacquer of a sealed tile
   {
     name: 'Wisteria', hue: 305, ink: 300, unobtainable: 80, temporary: 345, caught: 300, chroma: 1, unobtainableChroma: 0.85,
     tones: {

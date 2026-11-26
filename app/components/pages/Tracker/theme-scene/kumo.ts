@@ -1,32 +1,53 @@
+import { KUMO_COUNT, KUMO_GLSL, KUMO_WIDEST } from './kumo-clouds';
 import { shaderScene } from './scene';
-import { canvas, rng, toProperty } from './texture';
 
-import type { Scene, SceneMaker } from './scene';
+import type { SceneMaker } from './scene';
 
-// Wisteria's court night: deep violet lacquer, the gold waves of seigaiha laid faintly over it, and bands of gold-leaf
-// cloud (suyari-gasumi) drifting across in two depths, the near ones slower than the far, the leaf catching a light that
-// stands still as they pass under it, flecked where the leaf was laid in squares and broke
+const glsl = (v: number) => v.toFixed(2);
+
+// the clouds' lanes, px tall, and the room kept clear inside a lane's edges; along a lane, cells this many bar
+// thicknesses across, and at least this many between two clouds
+const LANE = 84;
+const MARGIN = 6;
+const CELL = 38;
+const GAP = 6;
+
+// Wisteria's court night: deep violet lacquer, the gold waves of seigaiha laid faintly over it, and gold clouds
+// (suyari-gasumi, kumo-clouds.ts) drifting left over them, near and far by turns down the window, the far ones smaller,
+// dimmer and slower, none ever crossing another. Each cloud is flat gold leaf, deeper at its top bar and paler at its
+// foot, and catches a light that stands still at the top left as it passes
 const FRAGMENT = `
-float hash (vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise (vec2 p) {
-  vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+${KUMO_GLSL}
+
+float hash (vec2 p) {
+  vec3 q = fract(p.xyx * 0.1031);
+  q += dot(q, q.yzx + 33.33);
+  return fract((q.x + q.y) * q.z);
 }
 
-// a band of cloud: two or three rounded slips of leaf stacked off one another, the stepped edge suyari-gasumi has
-float band (vec2 p, float seed) {
-  float d = 1.0;
-  for (int i = 0; i < 3; i++) {
-    float fi = float(i);
-    vec2 o = vec2((hash(vec2(seed, fi)) - 0.5) * 0.55, fi * 0.042 - 0.042);
-    float w = 0.2 + 0.22 * hash(vec2(fi, seed + 3.0));
-    vec2 q = p - o;
-    float c = length(max(abs(q) - vec2(w, 0.0), 0.0)) - 0.024;
-    // its upper edge rising in soft scallops, as a painter's cloud does
-    c -= 0.012 * max(0.0, sin(q.x * 38.0 + seed * 5.0)) * smoothstep(-0.01, 0.02, q.y) * step(abs(q.x), w);
-    d = min(d, c);
+// the cloud over a point: lanes ${LANE}px tall down the window, near (bars 9px thick, drifting 5px a second) and far (6px,
+// 3px a second) by turns, each lane slid along by its own amount and cut into cells ${CELL} thicknesses across. Most
+// cells hold a cloud, set off the cell's middle by some of the room round it, so it keeps ${GAP} thicknesses from the
+// next and ${MARGIN}px inside its lane; along a lane the clouds come in turn, each 5 on from the last, so two alike never
+// stand side by side, some turned the other way round. How much of the point it covers, how far down a three-row cloud
+// the point lies (0 its top, 1 its foot), and whether it's near
+vec3 cloud (vec2 px, float time) {
+  vec2 at = vec2(px.x, u_res.y - px.y) / u_dpr;
+  float lane = floor(at.y / ${glsl(LANE)});
+  float near = mod(lane, 2.0);
+  float size = mix(6.0, 9.0, near);
+  vec2 p = vec2(at.x + time * mix(3.0, 5.0, near), at.y - (lane + 0.5) * ${glsl(LANE)}) / size;
+  float x = p.x + hash(vec2(lane, 3.0)) * ${glsl(CELL)};
+  float cell = floor(x / ${glsl(CELL)});
+  float roll = hash(vec2(cell, lane));
+  vec2 q = vec2(x - (cell + 0.5) * ${glsl(CELL)}, p.y);
+  q -= (vec2(hash(vec2(cell + 7.0, lane)), hash(vec2(cell, lane + 7.0))) - 0.5) * vec2(${glsl(CELL - GAP - KUMO_WIDEST)}, ${glsl(LANE - 2 * MARGIN)} / size - 5.0);
+  if (roll < 0.2 || abs(q.x) > ${glsl(KUMO_WIDEST / 2 + 1)} || abs(q.y) > 3.5) {
+    return vec3(0.0);
   }
-  return d;
+  float k = mod(floor(hash(vec2(lane, 9.0)) * ${glsl(KUMO_COUNT)}) + cell * 5.0, ${glsl(KUMO_COUNT)});
+  q.x *= roll < 0.6 ? -1.0 : 1.0;
+  return vec3(clamp(0.5 - kumo(k, q) * size * u_dpr, 0.0, 1.0), clamp(q.y / 5.0 + 0.5, 0.0, 1.0), near);
 }
 
 void main () {
@@ -39,8 +60,8 @@ void main () {
   vec3 col = mix(vec3(0.05, 0.02, 0.07), vec3(0.13, 0.05, 0.17), smoothstep(0.0, 1.0, uv.y));
   col += vec3(0.25, 0.12, 0.3) * exp(-length(uv - vec2(-0.3, 1.1)) * 1.6) * 0.35;
 
-  // the waves, faint gold, drifting right very slowly
-  vec2 wp = (uv + vec2(t * 0.004, 0.0)) * 7.0;
+  // the waves, faint gold, drifting left behind the clouds, slower than the farthest of them
+  vec2 wp = (uv + vec2(t * 1.5 * u_dpr / h, 0.0)) * 7.0;
   // scales a unit across in rows a quarter apart, each row half a scale over and lying over the row above it: the
   // nearest row down whose half-disc holds the point draws it
   float ring = 1.0;
@@ -62,38 +83,11 @@ void main () {
   float pw = 1.1 * u_dpr / h * 7.0;
   col += vec3(0.85, 0.66, 0.3) * smoothstep(pw, 0.0, ring) * 0.1;
 
-  // the clouds: bands in two depths, drifting left at their own pace, the near one larger
-  vec3 leaf = vec3(0.0);
-  float cover = 0.0;
-  for (int layer = 0; layer < 2; layer++) {
-    float fl = float(layer);
-    float scale = 1.0 + fl * 0.6;
-    float speed = 0.006 - fl * 0.0025;
-    for (int b = 0; b < 4; b++) {
-      float fb = float(b);
-      float y = 0.15 + fb * 0.24 + fl * 0.11;
-      float period = 1.9 * scale;
-      vec2 p = vec2(uv.x + t * speed + fb * 0.7 + fl * 0.37, uv.y - y) / scale;
-      float idx = floor(p.x / (period / scale) + 0.5);
-      p.x -= idx * (period / scale);
-      float d = band(p, idx * 7.0 + fb * 3.0 + fl * 11.0);
-      float a = smoothstep(0.0015 * u_dpr, -0.0015 * u_dpr, d * h / 600.0);
-      if (a > 0.0) {
-        // gold leaf: laid in squares, each a touch different, the light standing at the top left
-        vec2 sq = floor((uv + vec2(t * speed, 0.0)) * 60.0);
-        float tone = 0.88 + 0.12 * hash(sq + fl);
-        float light = 0.75 + 0.45 * exp(-length(uv - vec2(-0.5, 0.95)) * 1.4);
-        vec3 gold = mix(vec3(0.55, 0.38, 0.14), vec3(0.98, 0.82, 0.45), clamp((p.y * 20.0 + 0.5) * 0.6 + 0.3, 0.0, 1.0)) * tone * light;
-        gold *= 0.85 + 0.15 * noise(uv * 300.0);
-        // its edge a hair brighter where the leaf folds over
-        gold += vec3(0.4, 0.3, 0.1) * smoothstep(0.004, 0.0, abs(d)) * 0.5;
-        float depth = layer == 0 ? 0.45 : 0.92;
-        leaf = mix(leaf, gold, a);
-        cover = max(cover, a * depth);
-      }
-    }
-  }
-  col = mix(col, leaf, cover);
+  // the clouds: gold leaf, deep at the top bar, pale at the foot, under a light standing at the top left; the far ones
+  // laid thinner over the night
+  vec3 c = cloud(px, t);
+  float light = 0.85 + 0.3 * exp(-length(uv - vec2(-0.5, 0.95)) * 1.4);
+  col = mix(col, mix(vec3(0.6, 0.43, 0.16), vec3(0.96, 0.82, 0.5), c.y) * light, c.x * mix(0.5, 0.92, c.z));
 
   vec2 q = px / u_res;
   col *= mix(0.7, 1.0, smoothstep(1.2, 0.4, length((q - 0.5) * vec2(1.1, 1.0))));
@@ -102,38 +96,4 @@ void main () {
 }
 `;
 
-// the lacquer's gold dust: flecks of three sizes scattered thin, an alpha mask (--kumo-nashiji)
-function nashiji (): HTMLCanvasElement {
-  const size = 256;
-  const [c, ctx] = canvas(size);
-  const random = rng(31);
-  for (let i = 0; i < 260; i++) {
-    const r = random() < 0.85 ? 0.4 + random() * 0.6 : 1 + random() * 0.8;
-    ctx.fillStyle = `rgba(0, 0, 0, ${0.35 + random() * 0.65})`;
-    ctx.beginPath();
-    ctx.arc(random() * size, random() * size, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  return c;
-}
-
-// the gold dust set first, as the seals' and the meter's masks (styles/themes2/_kumo.scss) want it whether or not the
-// night can be drawn: with no WebGL they keep it, over no scene
-export const kumoScene: SceneMaker = (back) => {
-  const off = toProperty('--kumo-nashiji', nashiji());
-  let scene: Scene | null = null;
-  try {
-    scene = shaderScene(back, FRAGMENT);
-  } catch {
-    // drawn over nothing
-  }
-  return {
-    resize: (width, height, dpr) => scene?.resize(width, height, dpr),
-    draw: (time) => scene?.draw(time),
-    ready: scene?.ready,
-    dispose () {
-      off();
-      scene?.dispose();
-    },
-  };
-};
+export const kumoScene: SceneMaker = (back) => shaderScene(back, FRAGMENT);
