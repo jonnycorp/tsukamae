@@ -180,10 +180,11 @@
     }
   }
 
-  // the original's seigaiha in its pale gold, a scale 64px across, drifting right as the dex reads, a scale in 18 s
+  // the original's seigaiha in its pale gold, a scale 64px across, drifting right as the dex reads, a scale in 18 s on
+  // screen whatever the zoom (--dex-scale), a touch ahead of the night behind it (theme-scene/kumo.ts)
   .seal-flow {
     --flow-x: 64px;
-    --flow-time: 18s;
+    --flow-time: calc(18s * var(--dex-scale, 1));
 
     display: block;
     background-color: rgb(224 181 90 / 30%);
@@ -197,6 +198,96 @@
 
   .box-complete .box-container > .tile-grid {
     outline: 0;
+  }
+}
+
+// the tile lab (Nav, data-tile-lab): three ways to mark a sealed tile by where its mon is, Champions, out in a game or
+// in HOME, without washing the whole tile in another colour, each over waves of its own, set side by side till one is
+// kept. Every one's waves drift at the original's pace on screen
+
+// 1: the night's own waves (theme-scene/kumo.ts), a scale 144px across in fine centred rings, sparse; a tile away from
+// where its dex keeps its mons has its lines brightened into its place's colour, its lacquer as every sealed tile's
+:root[data-theme='wisteria'][data-tile-lab='1'] {
+  .seal-flow {
+    --flow-x: 144px;
+    --flow-time: calc(40.5s * var(--dex-scale, 1));
+
+    background-color: rgb(224 181 90 / 28%);
+    mask: url('/themes/wisteria/lab-night.png') var(--seal-x) var(--seal-y) / 144px 72px;
+  }
+
+  .seal-material[data-tint] {
+    background: none;
+  }
+
+  .seal-material[data-tint='champions'] .seal-flow {
+    background-color: rgb(255 210 125 / 80%);
+  }
+
+  .seal-material[data-tint='out'] .seal-flow {
+    background-color: rgb(255 140 182 / 75%);
+  }
+
+  .seal-material[data-tint='home'] .seal-flow {
+    background-color: rgb(140 192 255 / 75%);
+  }
+}
+
+// 2: wider waves, a scale 96px across in three fine rings, lighter; a tile is marked by light and shade from its edges
+// alone, its lacquer and its waves as every sealed tile's: Champions gilt from within, a gold glow in from its edges;
+// out in a game, or in HOME, sunk into the lacquer, in shadow from its edges
+:root[data-theme='wisteria'][data-tile-lab='2'] {
+  .seal-flow {
+    --flow-x: 96px;
+    --flow-time: calc(27s * var(--dex-scale, 1));
+
+    background-color: rgb(224 181 90 / 24%);
+    mask: url('/themes/wisteria/lab-wide.png') var(--seal-x) var(--seal-y) / 96px 48px;
+  }
+
+  &:not([data-plain-seals]) {
+    .seal-material[data-tint] {
+      display: none;
+    }
+
+    .pokemon.captured.sealed:not([data-selected]) {
+      &.loc-champions {
+        box-shadow: inset 0 0 22px 3px rgb(255 190 95 / 42%);
+      }
+
+      &:is(.loc-out, .loc-home) {
+        box-shadow: inset 0 0 0 1px rgb(0 0 0 / 40%), inset 0 0 22px 4px rgb(6 2 12 / 72%);
+      }
+    }
+  }
+}
+
+// 3: open waves, a scale 64px across in two rings, sparser; a tile is marked by a fade down it: Champions its lines
+// turning to gold leaf toward its foot, out in a game, or in HOME, its tile fading back into the bare lacquer toward
+// its foot, its waves with it
+:root[data-theme='wisteria'][data-tile-lab='3'] {
+  .seal-flow {
+    --flow-x: 64px;
+    --flow-time: calc(18s * var(--dex-scale, 1));
+
+    background-color: rgb(224 181 90 / 26%);
+    mask: url('/themes/wisteria/lab-open.png') var(--seal-x) var(--seal-y) / 64px 32px;
+  }
+
+  .seal-material[data-tint] {
+    background: none;
+  }
+
+  .seal-material[data-tint='champions'] .seal-flow {
+    background: linear-gradient(transparent, rgb(255 210 125 / 95%) 80%) 0 0 / 100% #{$pokemon-box-size};
+  }
+
+  .seal-material:is([data-tint='out'], [data-tint='home']) {
+    display: none;
+  }
+
+  &:not([data-plain-seals]) :is(.box-container, .results-chunk):has(> .seal-material) .pokemon.captured.sealed:is(.loc-out, .loc-home) {
+    background-image: linear-gradient(transparent 30%, rgb(14 6 20 / 75%));
   }
 }
 

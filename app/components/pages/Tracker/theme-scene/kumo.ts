@@ -12,8 +12,15 @@ const MARGIN = 6;
 const CELL = 38;
 const GAP = 6;
 
+// how fast the night drifts right, px a second: the near clouds, the far ones and the waves behind them, each a little
+// slower than what lies over it, and all of them a little slower than the sealed tiles' waves (64px in 18 s,
+// styles/themes2/_kumo.scss), so nothing in it runs against them or past them
+const NEAR = 3.4;
+const FAR = 2.8;
+const WAVES = 2.4;
+
 // Wisteria's court night: deep violet lacquer, the gold waves of seigaiha laid faintly over it, and gold clouds
-// (suyari-gasumi, kumo-clouds.ts) drifting left over them, near and far by turns down the window, the far ones smaller,
+// (suyari-gasumi, kumo-clouds.ts) drifting right over them, near and far by turns down the window, the far ones smaller,
 // dimmer and slower, none ever crossing another. Each cloud is flat gold leaf, deeper at its top bar and paler at its
 // foot, and catches a light that stands still at the top left as it passes
 const FRAGMENT = `
@@ -25,18 +32,18 @@ float hash (vec2 p) {
   return fract((q.x + q.y) * q.z);
 }
 
-// the cloud over a point: lanes ${LANE}px tall down the window, near (bars 9px thick, drifting 5px a second) and far (6px,
-// 3px a second) by turns, each lane slid along by its own amount and cut into cells ${CELL} thicknesses across. Most
-// cells hold a cloud, set off the cell's middle by some of the room round it, so it keeps ${GAP} thicknesses from the
-// next and ${MARGIN}px inside its lane; along a lane the clouds come in turn, each 5 on from the last, so two alike never
-// stand side by side, some turned the other way round. How much of the point it covers, how far down a three-row cloud
-// the point lies (0 its top, 1 its foot), and whether it's near
+// the cloud over a point: lanes ${LANE}px tall down the window, near (bars 9px thick) and far (6px) by turns, each lane
+// slid along by its own amount and cut into cells ${CELL} thicknesses across. Most cells hold a cloud, set off the
+// cell's middle by some of the room round it, so it keeps ${GAP} thicknesses from the next and ${MARGIN}px inside its
+// lane; along a lane the clouds come in turn, each 5 on from the last, so two alike never stand side by side, some
+// turned the other way round. How much of the point it covers, how far down a three-row cloud the point lies (0 its
+// top, 1 its foot), and whether it's near
 vec3 cloud (vec2 px, float time) {
   vec2 at = vec2(px.x, u_res.y - px.y) / u_dpr;
   float lane = floor(at.y / ${glsl(LANE)});
   float near = mod(lane, 2.0);
   float size = mix(6.0, 9.0, near);
-  vec2 p = vec2(at.x + time * mix(3.0, 5.0, near), at.y - (lane + 0.5) * ${glsl(LANE)}) / size;
+  vec2 p = vec2(at.x - time * mix(${glsl(FAR)}, ${glsl(NEAR)}, near), at.y - (lane + 0.5) * ${glsl(LANE)}) / size;
   float x = p.x + hash(vec2(lane, 3.0)) * ${glsl(CELL)};
   float cell = floor(x / ${glsl(CELL)});
   float roll = hash(vec2(cell, lane));
@@ -60,8 +67,8 @@ void main () {
   vec3 col = mix(vec3(0.05, 0.02, 0.07), vec3(0.13, 0.05, 0.17), smoothstep(0.0, 1.0, uv.y));
   col += vec3(0.25, 0.12, 0.3) * exp(-length(uv - vec2(-0.3, 1.1)) * 1.6) * 0.35;
 
-  // the waves, faint gold, drifting left behind the clouds, slower than the farthest of them
-  vec2 wp = (uv + vec2(t * 1.5 * u_dpr / h, 0.0)) * 7.0;
+  // the waves, faint gold, drifting right behind the clouds
+  vec2 wp = (uv - vec2(t * ${glsl(WAVES)} * u_dpr / h, 0.0)) * 7.0;
   // scales a unit across in rows a quarter apart, each row half a scale over and lying over the row above it: the
   // nearest row down whose half-disc holds the point draws it
   float ring = 1.0;
