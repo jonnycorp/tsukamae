@@ -7,6 +7,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { CAPTURE_FIELDS, asksPlace, sealedPlace, unansweredFields, withFieldInvariants } from '../../../utils/capture-fields';
 import { ViewLensArt } from './views/ViewLensArt';
 import { FieldControl, FieldText, FieldVisual, SoftBox } from './review-fields';
+import { ReviewFind, RunScopeChips } from './ReviewFind';
 import { PokemonName } from '../../library/PokemonName';
 import { ShinyMark } from '../../library/ShinyMark';
 import { useCalmStart } from './TitleCard';
@@ -16,6 +17,7 @@ import { CONFIRMABLE, CONFIRMABLE_IDS, MANUAL_ORIGIN, MY_GAME_IDS, asksField, gi
 import { gameColor } from '../../../utils/game-colors';
 import { canVisitChampions } from '../../../utils/champions';
 import { dexNumber, monIcon } from '../../../utils/pokemon';
+import { hasQuery } from './filters';
 import { monLinks } from '../../../utils/formatting';
 import { stateOf } from './ledger-model';
 import { today } from '../../../utils/date-entry';
@@ -34,6 +36,7 @@ import type { CSSProperties } from 'react';
 import type { Capture, CaptureStatus, Dex, GameSave } from '../../../types';
 import type { CaptureField } from '../../../utils/capture-fields';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import type { LetGo, RunScope } from './ReviewFind';
 import type { OriginMode } from '../../../utils/review-confirm';
 import type { RecordPatch } from './use-patch';
 
@@ -227,9 +230,15 @@ function UnsealHold ({ onUnseal }: { onUnseal: () => void }) {
 
 interface Props {
   // the mons to go through, as the dex showed them when it opened; kept, so one sealed out of the view stays in the run
-  // (one released from a free-form dex leaves the dex, and the run, altogether)
+  // (one released from a free-form dex leaves the dex, and the run, altogether). Given again as it widens (onWiden),
+  // `start` the mon it's widened round
   queue: number[];
   start: number;
+  // the dex's search and filters where the run is the dex's view, shown on the foot to be let go of (a scene's: none)
+  scope: RunScope | null;
+  // the run widened round a mon (none, from an empty run): the dex's search or filters let go of, or whatever hides
+  // one the find goes to
+  onWiden: (pokemon: number | null, letGo: LetGo) => void;
   // closing: back to the dex, at the mon it ended on (none, from an empty run)
   onClose: (pokemon: number | null) => void;
 }
@@ -239,7 +248,7 @@ interface Props {
 // listed beside them to jump about in. Made to be filled in steadily from the keyboard: 1 2 3 mark, Enter goes from
 // field to field still to fill (a menu opening as it's reached), Ctrl+Enter stamps the seal, the mon staying up to be
 // looked over, and again goes on to the next
-export function Review ({ queue: opened, start, onClose }: Props) {
+export function Review ({ queue: opened, start, scope, onWiden, onClose }: Props) {
   const { captures } = useTrackerState();
   const { activeDex, activeDexView, dexes, saves } = useDexContext();
   const { keepLook, openMoveMenu, releaseCaptures } = useTrackerActions();
@@ -261,6 +270,22 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   const [flow, setFlow] = useState<{ after: string | null; from?: string | null } | null>(null);
   // the mon just sealed here, its stamp slammed down as it was (not as it comes up sealed)
   const [stamping, setStamping] = useState<number | null>(null);
+  // the run widened (onWiden), taken up before it's drawn: on the mon it was widened round, its bay kept where it's the
+  // one shown, else that mon coming in from the side it lies on
+  const shownRef = useRef<number>();
+  const [run, setRun] = useState(opened);
+  if (run !== opened) {
+    setRun(opened);
+    const to = Math.max(0, Math.min(opened.length - 1, start));
+    if (opened[to] !== shownRef.current) {
+      const at = shownRef.current === undefined ? -1 : opened.indexOf(shownRef.current);
+      setStamping(null);
+      setDir(at !== -1 && to < at ? -1 : 1);
+    }
+    setIndex(to);
+  }
+  // the find along the foot (/, ReviewFind)
+  const [finding, setFinding] = useState(false);
   // its entrance as it opens, in place of a title card (styles/review.scss): held at its start while the first
   // frames go by (gate, useCalmStart), so it never starts in a stall, and let go once it's played (entering). Keys and
   // presses work from the first frame; still mode lands at once
@@ -301,9 +326,11 @@ export function Review ({ queue: opened, start, onClose }: Props) {
     }
   }, [index, queue.length]);
   const capture = byId.get(queue[index]);
+  const inRun = useMemo(() => new Set(queue), [queue]);
   // each mon from the top of the stage: the last one's scroll (the wheel's, or the Enter flow's to a plate below the
   // fold) would keep the next one's number and lens out of sight as it comes in. Before the flow scrolls to its field
   const shownId = capture?.pokemon.id;
+  shownRef.current = shownId;
   useLayoutEffect(() => {
     if (mainRef.current) {
       mainRef.current.scrollTop = 0;
@@ -350,6 +377,32 @@ export function Review ({ queue: opened, start, onClose }: Props) {
     pickedRef.current = to !== indexRef.current;
     jump(to);
   }, [jump]);
+
+  // the find folded, back to the page where it's left by a key (not where focus went elsewhere); a mon found gone to,
+  // one outside the run widening it round that mon
+  const foldFind = useCallback((back: boolean) => {
+    setFinding(false);
+    if (back) {
+      mainRef.current?.focus({ preventScroll: true });
+    }
+  }, []);
+  const findGo = useCallback((pokemon: number) => {
+    setFinding(false);
+    const at = queue.indexOf(pokemon);
+    if (at === -1) {
+      onWiden(pokemon, null);
+      mainRef.current?.focus({ preventScroll: true });
+    } else {
+      jump(at);
+    }
+  }, [queue, jump, onWiden]);
+  // the dex's search or filters let go of, W staying on the mon it's on, its neighbours round it: from the find
+  // (Backspace), which stays open, or a press on the foot's chip, the page's keys back after it
+  const letGo = useCallback((what: 'query' | 'filters') => onWiden(shownRef.current ?? null, what), [onWiden]);
+  const pressLetGo = useCallback((what: 'query' | 'filters') => {
+    letGo(what);
+    mainRef.current?.focus({ preventScroll: true });
+  }, [letGo]);
 
   // sealed and stamped, the mon staying up: Ctrl+Enter again, or E, goes on
   const seal = useCallback(() => {
@@ -418,15 +471,19 @@ export function Review ({ queue: opened, start, onClose }: Props) {
   const confirmTypedRef = useRef<(field: string) => void>(() => {});
 
   // ← → between mons (anywhere with Ctrl or Alt; bare, out of what's typed into), or Q and E; 1 2 3 mark, S moves a
-  // sealed mon; Enter starts filling in from the top, and in a field (or on a closed menu's button, or the Nickname box)
-  // goes on to the next to fill; Ctrl+Enter seals (with nothing to seal, goes on), from an open menu too, which it
-  // closes; Esc leaves a field, then the review. An open menu keeps its other keys, an IME its own while it composes
+  // sealed mon, / finds one; Enter starts filling in from the top, and in a field (or on a closed menu's button, or the
+  // Nickname box) goes on to the next to fill; Ctrl+Enter seals (with nothing to seal, goes on), from an open menu too,
+  // which it closes; Esc leaves a field, then the review. An open menu keeps its other keys, an IME its own while it
+  // composes, the find all of them
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) {
         return;
       }
       const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest('.review-find')) {
+        return;
+      }
       const typing = target?.closest('input, textarea, [contenteditable]') ?? null;
       const field = typing ?? target?.closest('.dropdown-trigger, .rv-toggle') ?? null;
       const bare = !e.ctrlKey && !e.metaKey && !e.altKey;
@@ -473,6 +530,10 @@ export function Review ({ queue: opened, start, onClose }: Props) {
           e.preventDefault();
           setFlow({ after: null });
         }
+      } else if (e.key === '/' && !typing && bare) {
+        // claimed, so the slash never lands in the find it opens
+        e.preventDefault();
+        setFinding(true);
       } else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && (!typing || e.ctrlKey || e.altKey)) {
         e.preventDefault();
         // what's typed is committed as it's left (a date padded out), so it goes with this mon, not lost
@@ -884,6 +945,15 @@ export function Review ({ queue: opened, start, onClose }: Props) {
         </div>
       </div>
       <footer className="review-foot" style={{ zoom: scale }}>
+        <ReviewFind
+          captures={captures}
+          dex={dex}
+          onFold={foldFind}
+          onGo={findGo}
+          onLetGo={scope && hasQuery(scope.query) ? () => letGo('query') : undefined}
+          open={finding}
+          run={inRun}
+        />
         <button className="review-nav" disabled={index === 0} onClick={() => go(-1)} type="button">
           <FontAwesomeIcon icon={faArrowLeft} />{t('review.prev')}<kbd>Q</kbd>
         </button>
@@ -894,6 +964,7 @@ export function Review ({ queue: opened, start, onClose }: Props) {
             <a href={links.serebii} rel="noopener noreferrer" target="_blank">Serebii<FontAwesomeIcon icon={faArrowUpRightFromSquare} /></a>
           </span>
         }
+        {scope && <RunScopeChips onLetGo={pressLetGo} scope={scope} />}
         <span className="review-spacer" />
         {sealable &&
           <button className="review-seal" onClick={seal} type="button">

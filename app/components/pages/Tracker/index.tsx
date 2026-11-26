@@ -40,6 +40,7 @@ import type { DexLayout } from './ledger-model';
 import type { FacetId, TrackerFilters } from './filters';
 import type { JourneysView } from './Journeys';
 import type { LabScene, SceneView } from './Scene';
+import type { LetGo } from './ReviewFind';
 import type { OrreryView } from './BallOrrery';
 import type { ViewSceneId } from './views/registry';
 
@@ -105,6 +106,7 @@ function TrackerInner () {
 
   const { activeDex, activeDexView } = useDexContext();
   const { t, locale } = useTranslation();
+  const regional = Boolean(activeDexView?.regional);
 
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -114,8 +116,9 @@ function TrackerInner () {
   const [showAlmanac, setShowAlmanac] = useState(false);
   // every shortcut, on a sheet (H)
   const [showHelp, setShowHelp] = useState(false);
-  // the review's run of mons, fixed as it opens
-  const [review, setReview] = useState<{ queue: number[]; start: number } | null>(null);
+  // the review's run of mons, fixed as it opens; `dexView` where it's the dex's view (W, a mon opened), whose search
+  // and filters W shows and can let go of (a scene's run is its own)
+  const [review, setReview] = useState<{ queue: number[]; start: number; dexView: boolean } | null>(null);
   const { captures } = useTrackerState();
   const { revealHost, openHost } = useTrackerActions();
   // the boxes, or the ledger in their place (V); kept across dexes and restarts
@@ -389,18 +392,41 @@ function TrackerInner () {
   }, [curtain, layout]);
   useHotkey('v', () => switchLayout(layout === 'boxes' ? 'ledger' : 'boxes'));
 
+  // the mons the dex shows under a search and filters, in its order, those kept in where they stand though the view
+  // doesn't hold them: the one W starts from (a press marked it), and as W widens, every one its run held
+  const runOf = useCallback((nextFilters: TrackerFilters, nextQuery: string, keep: ReadonlySet<number>) => {
+    const matchesFilters = filterMatcher(nextFilters);
+    const matchesQuery = queryMatcher(nextQuery, regional);
+    return captures.filter((capture) => keep.has(capture.pokemon.id) || (matchesFilters(capture) && matchesQuery(capture))).map((capture) => capture.pokemon.id);
+  }, [captures, regional]);
   // the review (W): the mons the dex shows now, in its order, from the popover's if one's open, else from the one W
   // was pressed over (a press marks a tile without opening it), or the open record pressed; closing it comes
   // back to the one it ended on. A checklist keeps no records to review
   const reviewFrom = useCallback((from: number) => {
-    const matchesFilters = filterMatcher(filters);
-    const matchesQuery = queryMatcher(query, Boolean(activeDexView?.regional));
-    // the one it starts from is shown, so it's in, where it stands, though the view only holds it (a press marked it)
-    const queue = captures.filter((capture) => capture.pokemon.id === from || (matchesFilters(capture) && matchesQuery(capture))).map((capture) => capture.pokemon.id);
+    const queue = runOf(filters, query, new Set([from]));
     closingReview.current = false;
-    setReview({ queue, start: Math.max(0, queue.indexOf(from)) });
+    setReview({ queue, start: Math.max(0, queue.indexOf(from)), dexView: true });
     setSelectedPokemon(0);
-  }, [captures, filters, query, activeDexView]);
+  }, [runOf, filters, query]);
+  // W letting go of the dex's search or its filters, or of whatever hides a mon its find goes to (null): the dex's own,
+  // so the dex shows the same as W closes, and the run widened round that mon. A scene's run is its own, so going
+  // outside it goes to the dex's view
+  const handleReviewWiden = useCallback((pokemon: number | null, letGo: LetGo) => {
+    if (!review) {
+      return;
+    }
+    const capture = pokemon === null ? undefined : captures.find((entry) => entry.pokemon.id === pokemon);
+    const nextQuery = letGo === 'query' || (letGo === null && capture && !queryMatcher(query, regional)(capture)) ? '' : query;
+    const nextFilters = letGo === 'filters' || (letGo === null && capture && !filterMatcher(filters)(capture)) ? EMPTY_FILTERS : filters;
+    const keep = new Set(review.dexView ? review.queue : []);
+    if (pokemon !== null) {
+      keep.add(pokemon);
+    }
+    const queue = runOf(nextFilters, nextQuery, keep);
+    setQuery(nextQuery);
+    setFilters(nextFilters);
+    setReview({ queue, start: pokemon === null ? 0 : Math.max(0, queue.indexOf(pokemon)), dexView: true });
+  }, [review, captures, query, filters, regional, runOf]);
   const handleOpenReview = useCallback((pointed = 0) => reviewFrom(selectedPokemon || pointed), [reviewFrom, selectedPokemon]);
   // a marked mon opened, by a press on its tile or row (openHost) or a pick in a scene: an open record in the
   // review at it (its run the dex as it's viewed), a sealed one's card. A checklist opens neither
@@ -424,7 +450,7 @@ function TrackerInner () {
       return;
     }
     const capture = pokemon === null ? undefined : captures.find((entry) => entry.pokemon.id === pokemon);
-    const shown = capture && filterMatcher(filters)(capture) && queryMatcher(query, Boolean(activeDexView?.regional))(capture);
+    const shown = capture && filterMatcher(filters)(capture) && queryMatcher(query, regional)(capture);
     if (pokemon === null || !shown) {
       setReview(null);
       return;
@@ -435,7 +461,7 @@ function TrackerInner () {
       closingReview.current = false;
       setReview(null);
     }, { pokemon, select: false });
-  }, [handOff, captures, filters, query, activeDexView]);
+  }, [handOff, captures, filters, query, regional]);
   // the tile or ledger row under the pointer, as L and D find theirs (Dex.tsx)
   useHotkey('w', () => {
     if (!activeDex!.checklist && !document.querySelector('.facet-panel')) {
@@ -445,7 +471,6 @@ function TrackerInner () {
   });
   // a mon picked in a scene (the timeline, the almanac, the red pen, the atlas) that the search or a filter hides has
   // them cleared first, so there's a tile to go to
-  const regional = Boolean(activeDexView?.regional);
   const handleReveal = useCallback((pokemon: number) => {
     const capture = captures.find((entry) => entry.pokemon.id === pokemon);
     if (capture && !(filterMatcher(filters)(capture) && queryMatcher(query, regional)(capture))) {
@@ -557,7 +582,7 @@ function TrackerInner () {
   const handleSceneReview = useCallback((queue: number[], start?: number) => {
     setScene(null);
     setSelectedPokemon(0);
-    setReview({ queue, start: start === undefined ? 0 : Math.max(0, queue.indexOf(start)) });
+    setReview({ queue, start: start === undefined ? 0 : Math.max(0, queue.indexOf(start)), dexView: false });
   }, []);
   useHotkey('j', sceneKey('journeys', true));
   // a checklist's Red Pen keeps its bookkeeping alone
@@ -642,7 +667,14 @@ function TrackerInner () {
       {!activeDex!.checklist && <MoveMenu />}
       {showTimeline && <Timeline onClose={handleCloseTimeline} onLocate={handleReveal} />}
       {showAlmanac && <Almanac onClose={handleCloseAlmanac} onFilter={handleAlmanacFilter} onLocate={handleReveal} />}
-      {review && <Review onClose={handleCloseReview} queue={review.queue} start={review.start} />}
+      {review &&
+        <Review
+          onClose={handleCloseReview}
+          onWiden={handleReviewWiden}
+          queue={review.queue}
+          scope={review.dexView ? { query, filters } : null}
+          start={review.start}
+        />}
       {scene === 'journeys' &&
         <Journeys back={sceneBack?.scene === 'journeys' ? sceneBack.view : null} onClose={handleCloseScene} onFilter={handleJourneysFilter} />}
       {scene === 'redpen' && <RedPen onClose={handleCloseScene} onLocate={handleSceneLocate} onReview={handleSceneReview} />}

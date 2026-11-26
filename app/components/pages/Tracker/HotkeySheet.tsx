@@ -85,6 +85,7 @@ const GROUPS: Group[] = [
       { keys: [['Q'], ['←']], label: 'help.reviewBack' },
       { keys: [['Space'], ['Shift', 'Space']], label: 'help.reviewSpace' },
       { keys: [['S']], label: 'help.reviewMove' },
+      { keys: [['/']], label: 'help.reviewFind' },
       { keys: [['↓']], label: 'help.reviewRecentDate' },
       { keys: [['Esc']], label: 'help.reviewEscape' },
     ],

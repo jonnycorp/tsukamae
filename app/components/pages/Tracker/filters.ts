@@ -332,6 +332,20 @@ export function queryMatcher (query: string, regional: boolean): (capture: Captu
     matchesNumber(capture.pokemon.national_id, lower);
 }
 
+// a match that is the whole of what's typed (a name, a nickname, a number), so a find going to one mon (W's) puts
+// Mew before Mewtwo
+export function queryExact (query: string, regional: boolean): (capture: Capture) => boolean {
+  const lower = normalizeQuery(query);
+  const kana = toKatakana(lower);
+  const plain = unaccented(lower);
+  const nickname = unaccentedLatin(kana);
+  return (capture) => unaccented(fold(capture.pokemon.name)) === plain ||
+    fold(capture.pokemon.name_ja || '') === kana ||
+    (Boolean(capture.nickname) && unaccentedLatin(toKatakana(fold(capture.nickname!))) === nickname) ||
+    (regional && matchesNumber(capture.pokemon.dex_number, lower)) ||
+    matchesNumber(capture.pokemon.national_id, lower);
+}
+
 export interface FacetOption {
   value: string;
   label: string;

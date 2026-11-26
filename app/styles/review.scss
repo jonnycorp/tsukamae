@@ -1816,12 +1816,13 @@ $wire: 30px;
   text-align: center;
 }
 
-// the moves, at the foot: back, the seal (when it can), on, each with its key
+// the moves, at the foot: back, the seal (when it can), on, each with its key; the find furling out along its top edge
 .review-foot {
   display: flex;
   flex: none;
   align-items: center;
   gap: 12px;
+  position: relative;
   padding: 12px 20px;
   border-top: 1px solid var(--line);
   background-color: var(--paper-raised);
@@ -1852,6 +1853,235 @@ $wire: 30px;
 
   .svg-inline--fa {
     font-size: 9px;
+  }
+}
+
+// what narrows the run (ReviewFind's RunScopeChips): the dex's search and its filters, each on a short stretch of the
+// find's line, pressed to let it go, W staying on its mon
+.review-scope {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 280px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-bottom: 2px solid var(--accent);
+  background: none;
+  color: var(--ink);
+  font-family: $font-secondary;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .1s ease-out;
+
+  &:hover {
+    background-color: var(--hover-wash);
+  }
+
+  > .svg-inline--fa {
+    flex: none;
+    color: var(--accent);
+    font-size: 11px;
+  }
+
+  > .review-scope-x {
+    color: var(--ink-muted);
+    font-size: 10px;
+  }
+}
+
+.review-scope-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// W's find (/, ReviewFind): a line furling out from the left along the foot's top edge, what's typed riding on it and
+// the mons it finds after it, the one Enter goes to lit on the line. The page under it misted, never covered, and
+// through it once it folds
+.review-find {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  z-index: 3;
+  height: 48px;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, color-mix(in srgb, var(--paper) 90%, transparent), color-mix(in srgb, var(--paper) 45%, transparent) 75%, transparent);
+    opacity: 0;
+    transition: opacity .2s ease-out;
+  }
+
+  // the line, over the foot's own edge
+  &::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 2px;
+    background-color: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .22s $review-ease;
+  }
+
+  &[data-open] {
+    pointer-events: auto;
+
+    &::before {
+      opacity: 1;
+    }
+
+    &::after {
+      transform: none;
+      transition-duration: .34s;
+    }
+  }
+}
+
+.review-find-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  height: 100%;
+  padding: 0 20px;
+  font-family: $font-secondary;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity .14s ease-out, transform .2s $review-ease, visibility 0s .2s;
+
+  .review-find[data-open] > & {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity .18s ease-out, transform .28s $review-ease;
+  }
+}
+
+.review-find-slash {
+  flex: none;
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.review-find-input {
+  flex: 0 1 260px;
+  min-width: 140px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  box-shadow: none;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+
+  &::placeholder {
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+}
+
+// the mons found, along the line, the last of those in sight fading out where there are more; one outside the run
+// fainter (going to it widens the run)
+.review-find-hits {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+
+.review-find-hit {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 10px 0 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ink-muted);
+  font-family: $font-secondary;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ink);
+  }
+
+  &.picked {
+    border-bottom-color: var(--accent);
+    color: var(--ink);
+  }
+
+  &.outside {
+    opacity: .55;
+  }
+
+  &.outside.picked {
+    opacity: .85;
+  }
+}
+
+.review-find-mon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 34px;
+
+  .pkicon {
+    zoom: .6;
+  }
+}
+
+.review-find-no {
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-find-count {
+  flex: none;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-find-keys {
+  display: flex;
+  flex: none;
+  gap: 4px;
+
+  kbd {
+    @include key-cap;
   }
 }
 
