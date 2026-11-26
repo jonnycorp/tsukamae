@@ -994,6 +994,12 @@ $flip-face-width: $search-height;
   display: none;
 }
 
+// a material clipped to a grid's unobtainable slots (SealMaterials), drawn only by a theme that gives those one of their
+// own, which clears their tiles' fill where it does
+.seal-material[data-hole] {
+  display: none;
+}
+
 // a place's material fading in over a tile as its mon goes there, or out as it comes away (SealMaterials), from part
 // way where it turns one going the other way back (its delay); keep in sync with FADE_MS there
 .seal-material[data-fade] {

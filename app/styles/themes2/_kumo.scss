@@ -3,9 +3,10 @@
 // Wisteria: the original's violet and gold taken into a court's night (theme-scene/kumo.ts): gold-leaf clouds
 // drifting over seigaiha on violet lacquer, the header a veil of lacquer they show through; every box is a lacquer panel
 // set in a gold frame whose leaf catches the light along its length, a second hairline of gold inside it on a finished
-// box, its range lettered in gold leaf on a plaque of the lacquer above it. A sealed tile is lacquered deeper, open
-// seigaiha drifting in it, its lines lit in the colour of where its mon is when that's away (gold in Champions, rose out
-// in a game, pale blue in HOME), from low behind its sprite
+// box, its range lettered in gold leaf on a plaque of the lacquer above it. A marked tile is lacquered in a violet glaze,
+// a sealed one with open seigaiha drifting in it, its lines lit in the colour of where its mon is when that's away (gold
+// in Champions, rose out in a game, pale blue in HOME) from low behind its sprite; an unobtainable one is a hole down to
+// the night
 :root[data-theme='wisteria'] {
   --gold-leaf: linear-gradient(115deg, #7a5a22 0%, #e9cd84 16%, #a37b33 32%, #f6e3a6 50%, #b48a3f 68%, #e3c47a 84%, #7e5c24 100%);
   --gold: #e0c27a;
@@ -134,6 +135,12 @@
     }
   }
 
+  // tiles: a slot nothing fills a socket sunk in the panel's lacquer, a little deeper than it; whatever's marked lifts
+  // out of it in the glaze, lit from its top, which a seal sets its waves drifting in (below)
+  .pokemon:not(.captured, .empty) {
+    background-color: rgb(8 3 13 / 38%);
+  }
+
   .pokemon.captured {
     background-color: transparent;
   }
@@ -142,8 +149,15 @@
     background-color: rgb(150 90 200 / 14%);
   }
 
+  // marked, not yet sealed: a seal's glaze, a touch lighter, with nothing drifting in it yet
+  .pokemon.captured.caught:not(.sealed) {
+    background-color: rgb(128 70 172 / 58%);
+    background-image: linear-gradient(rgb(255 255 255 / 11%), transparent 40%, rgb(0 0 0 / 16%));
+  }
+
+  // unobtainable: the night's violet, never a black; where a grid draws its material (below), a hole in the panel
   .pokemon.captured.unobtainable {
-    background-color: rgb(0 0 0 / 30%);
+    background-color: rgb(12 5 18 / 50%);
   }
 
   .pokemon.captured.temporary {
@@ -200,6 +214,23 @@
 
   .seal-material[data-tint='home'] .seal-flow {
     background-color: rgb(160 204 255 / 92%);
+  }
+
+  // unobtainable: a hole in the panel down to the night behind it, not a slot left to fill. A seal's waves drift in it,
+  // in the night's own faint gold on its near-black, and its rim's shadow falls across the top of it, laid by the tile
+  // over the waves too
+  .seal-material[data-hole] {
+    display: block;
+    background: rgb(6 2 10 / 66%);
+  }
+
+  .seal-material[data-hole] .seal-flow {
+    background-color: rgb(224 181 90 / 15%);
+  }
+
+  :is(.box-container, .results-chunk):has(> .seal-material[data-hole]) .pokemon.captured.unobtainable {
+    background-color: transparent;
+    background-image: linear-gradient(rgb(0 0 0 / 50%), rgb(0 0 0 / 18%) 10px, transparent 22px);
   }
 
   // a finished box: a second hairline of gold just inside the first, and the leaf glowing

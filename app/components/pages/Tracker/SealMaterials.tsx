@@ -202,7 +202,8 @@ interface Props {
 
 // a grid's seal materials (styles/tracker.scss), under its tiles: one clipped to its sealed slots, and one over it for
 // each place its sealed mons away from where the dex keeps them are in (use-tracker's tileTint), which shows only where
-// a theme draws a place's material its own way (.seal-material[data-tint]), and the marks fading in or out over them
+// a theme draws a place's material its own way (.seal-material[data-tint]), and the marks fading in or out over them;
+// and one clipped to its unobtainable slots, for a theme that draws those a material of their own (data-hole)
 export const SealMaterials = memo(function SealMaterials ({ captures, checklist, homeDex, columns = BOX_COLUMNS }: Props) {
   const { still } = useThemeContext();
   const sealed = useMemo(() => captures.map((capture) => isDisplaySealed(capture, checklist)), [captures, checklist]);
@@ -213,6 +214,10 @@ export const SealMaterials = memo(function SealMaterials ({ captures, checklist,
   const { fades, onFade } = useMarkFades(captures, sealed, tints, still);
 
   const clip = useMemo(() => slotsPath(sealed.flatMap((one, index) => (one ? [index] : [])), columns), [sealed, columns]);
+  const holes = useMemo(
+    () => slotsPath(captures.flatMap((capture, index) => (capture.captured && capture.status === 'unobtainable' ? [index] : [])), columns),
+    [captures, columns],
+  );
   // a tile fading in is its fade's alone till it's done
   const steady = useMemo(() => TINTS.flatMap((tint) => {
     const coming = new Set(fades.flatMap((fade) => (fade.tint === tint && !fade.out ? fade.slots.map(({ index }) => index) : [])));
@@ -224,6 +229,11 @@ export const SealMaterials = memo(function SealMaterials ({ captures, checklist,
     <>
       {clip &&
         <div className="seal-material" style={{ clipPath: clip }}>
+          <div className="seal-flow" ref={syncFlow} />
+        </div>
+      }
+      {holes &&
+        <div className="seal-material" data-hole="" style={{ clipPath: holes }}>
           <div className="seal-flow" ref={syncFlow} />
         </div>
       }
