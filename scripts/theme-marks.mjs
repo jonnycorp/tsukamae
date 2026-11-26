@@ -247,11 +247,8 @@ function paint (width, height, coverage, near = () => true) {
 }
 
 // seigaiha, the blue sea's waves: scales of radius `r` in rows half a scale apart, each row laid over the one above,
-// every scale ringed `rings` deep in lines `line` wide, the outermost along its edge; or, `centred`, each ring in the
-// middle of its band, the outermost half a band in from the edge, as the night's waves are drawn (theme-scene/kumo.ts);
-// a tile two scales wide and one high repeats seamlessly
-function seigaiha (r, rings, line, centred = false) {
-  const ring = (k) => (centred ? (r * (k - 0.5)) / rings : (r * k) / rings - line / 2);
+// every scale ringed `rings` deep in lines `line` wide; a tile two scales wide and one high repeats seamlessly
+function seigaiha (r, rings, line) {
   return paint(2 * r, r, (x, y) => {
     const row = Math.floor((2 * y) / r);
     for (let j = row + 2; j >= row - 2; j--) {
@@ -260,7 +257,7 @@ function seigaiha (r, rings, line, centred = false) {
       const d = Math.hypot(x - cx, y - (j * r) / 2);
       if (d <= r) {
         for (let k = 1; k <= rings; k++) {
-          if (Math.abs(d - ring(k)) < line / 2) {
+          if (Math.abs(d - (r * k) / rings + line / 2) < line / 2) {
             return 1;
           }
         }
@@ -369,17 +366,10 @@ const write = (slug, name, png) => {
   write('ink', 'title.png', sheet.mask());
 }
 
-// Wisteria's waves (seigaiha): its meter's, a scale 32px across, and its tiles', 64px across, each at twice the size
-// it's shown so they stay crisp under the dex's zoom
+// Wisteria's waves (seigaiha): its meter's, a scale 32px across, four rings deep, and its sealed tiles', open, a scale
+// 56px across, two rings deep, each at twice the size it's shown so they stay crisp under the dex's zoom
 write('wisteria', 'seigaiha.png', seigaiha(32, 4, 2.2).mask());
-write('wisteria', 'seigaiha-large.png', seigaiha(64, 4, 2.2).mask());
-
-// the tile lab's waves (styles/themes2/_kumo.scss, data-tile-lab), each at twice the size it's shown: the night's own,
-// a scale 144px across with its rings centred and fine; wider, 96px across, three rings deep; and open, 64px across,
-// two rings deep
-write('wisteria', 'lab-night.png', seigaiha(144, 4, 2, true).mask());
-write('wisteria', 'lab-wide.png', seigaiha(96, 3, 1.8).mask());
-write('wisteria', 'lab-open.png', seigaiha(64, 2, 2.2).mask());
+write('wisteria', 'seigaiha-tiles.png', seigaiha(56, 2, 2.2).mask());
 
 // seal materials' patterns, each a seamless tile of what its theme's flow moves: Matcha's shoji light at the size it's
 // shown, the rest at twice it so they stay crisp under the dex's zoom

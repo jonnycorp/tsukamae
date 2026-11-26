@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faCirclePause, faFileExport, faFileImport, faFlask, faFont, faGamepad, faGear, faHexagonNodes, faLanguage, faLocationDot, faPalette, faRing } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCirclePause, faFileExport, faFileImport, faFont, faGamepad, faGear, faHexagonNodes, faLanguage, faLocationDot, faPalette, faRing } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { DISPLAY_MODES } from '../../utils/display-modes';
@@ -10,8 +10,6 @@ import { exportAppState, importAppState, isAppState } from '../../utils/local-da
 import { today } from '../../utils/date-entry';
 import { useDexContext } from '../../hooks/contexts/use-dex-context';
 import { useDisplayContext, useLocalStorageContext, useThemeContext } from '../../hooks/contexts/use-local-storage-context';
-import { useHotkey } from '../../hooks/use-hotkey';
-import { useLocalStorage } from '../../hooks/use-local-storage';
 import { useTranslation } from '../../hooks/use-translation';
 
 import type { ChangeEvent, RefObject } from 'react';
@@ -51,12 +49,6 @@ const DISPLAY_ICONS: Record<DisplayMode, IconDefinition> = {
   orbit: faRing,
 };
 
-// the tile lab, Wisteria's for now: ways to mark a sealed tile by where its mon is, set side by side before one is kept
-// (0 the tiles as they are), read off the root (data-tile-lab, styles/themes2/_kumo.scss); picked in the theme menu, or
-// stepped through with Y
-const TILE_LAB = [0, 1, 2, 3];
-const TILE_LAB_THEMES = ['Wisteria'];
-
 export function Nav () {
   const { locale, setLocale } = useLocalStorageContext();
   const { theme, setTheme, locationTints, setLocationTints, still, setStill, typefaces, setTypefaces } = useThemeContext();
@@ -74,18 +66,6 @@ export function Nav () {
 
   const [showDataMenu, setShowDataMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
-
-  const [tileLab, setTileLab] = useLocalStorage('tileLab', 0);
-  const inTileLab = TILE_LAB_THEMES.includes(theme);
-  useEffect(() => {
-    const root = document.documentElement;
-    if (tileLab) {
-      root.dataset.tileLab = String(tileLab);
-    } else {
-      delete root.dataset.tileLab;
-    }
-  }, [tileLab]);
-  useHotkey('y', () => inTileLab && setTileLab((tileLab + 1) % TILE_LAB.length));
 
   useOutsideClickClose(showDataMenu, dataMenuRef, () => setShowDataMenu(false));
   useOutsideClickClose(showThemeMenu, themeMenuRef, () => setShowThemeMenu(false));
@@ -228,19 +208,6 @@ export function Nav () {
               {t('nav.still')}
               {still && <FontAwesomeIcon className="theme-check" icon={faCheck} />}
             </li>
-            {inTileLab &&
-              <li className="theme-lab" title={`${t('nav.tileLab')} (Y)`}>
-                <FontAwesomeIcon icon={faFlask} />
-                {t('nav.tileLab')}
-                <span className="theme-lab-picks">
-                  {TILE_LAB.map((option) => (
-                    <button className={classNames({ 'theme-active': option === tileLab })} key={option} onClick={() => setTileLab(option)} type="button">
-                      {option || t('nav.tileLabNow')}
-                    </button>
-                  ))}
-                </span>
-              </li>
-            }
           </ul>
         }
       </div>

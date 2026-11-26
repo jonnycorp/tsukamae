@@ -243,47 +243,8 @@ nav {
     // deeper shade
     &.theme-typefaces,
     &.theme-modes,
-    &.theme-display,
-    &.theme-lab {
+    &.theme-display {
       border-top: 4px solid var(--chrome-active);
-    }
-
-    // the tile lab (Nav): a row of its options rather than one, each a small button at its end, the one set lit
-    &.theme-lab {
-      cursor: default;
-
-      &:hover {
-        background-color: transparent;
-      }
-    }
-  }
-
-  .theme-lab-picks {
-    display: flex;
-    margin-left: auto;
-    padding-left: 14px;
-
-    button {
-      @include outline-button(24px);
-
-      min-width: 30px;
-      padding: 0 7px;
-      border-width: 1px;
-      border-color: color-mix(in srgb, var(--on-chrome) 30%, transparent);
-      color: var(--on-chrome);
-      font: inherit;
-      letter-spacing: inherit;
-      text-transform: inherit;
-
-      + button {
-        border-left: 0;
-      }
-
-      &.theme-active {
-        border-color: var(--accent);
-        background-color: var(--accent);
-        color: var(--on-accent);
-      }
     }
   }
 }
